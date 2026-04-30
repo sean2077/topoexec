@@ -1,0 +1,172 @@
+#pragma once
+
+#include "topoexec/runtime/clock.hpp"
+#include "topoexec/runtime/component.hpp"
+#include "topoexec/runtime/graph.hpp"
+#include "topoexec/runtime/payload.hpp"
+
+#include <chrono>
+#include <condition_variable>
+#include <cstdint>
+#include <deque>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <set>
+#include <string>
+#include <vector>
+
+namespace topoexec {
+
+enum class RuntimeChannelPublishTarget {
+  kChannel,
+  kSourceEndpoint,
+};
+
+struct RuntimeChannelPublication {
+  RuntimeChannelPublishTarget target{RuntimeChannelPublishTarget::kSourceEndpoint};
+  std::string id;
+  RuntimePayloadPtr payload;
+  std::optional<EventTimestamp> event_timestamp;
+};
+
+class RuntimeChannelPublicationStage {
+public:
+  RuntimeChannelPublishResult stage(RuntimeChannelPublication publication);
+  std::vector<RuntimeChannelPublication> snapshot() const;
+
+private:
+  mutable std::mutex mutex_;
+  std::vector<RuntimeChannelPublication> publications_;
+};
+
+enum class ChannelType {
+  kLatestOnly,
+  kEveryMessage,
+  kLatchedSnapshot,
+  kPreviousTick,
+  kBarrier,
+};
+
+enum class DropPolicy {
+  kOverwrite,
+  kDropOldest,
+  kDropNewest,
+  kBlockProducer,
+  kFailFast,
+};
+
+enum class CopyPolicy {
+  kCopy,
+  kSharedView,
+  kLoanedView,
+  kMoveOnly,
+};
+
+struct ChannelConfig {
+  std::string id;
+  ChannelType type{ChannelType::kLatestOnly};
+  std::size_t capacity{1};
+  DropPolicy drop_policy{DropPolicy::kOverwrite};
+  std::chrono::milliseconds deadline{0};
+  TimestampDomain timestamp_domain{TimestampDomain::kSteady};
+  CopyPolicy copy_policy{CopyPolicy::kCopy};
+};
+
+struct RuntimeChannelMessage {
+  std::string channel_id;
+  RuntimePayloadPtr payload;
+  std::chrono::steady_clock::time_point published_at;
+  std::chrono::steady_clock::time_point received_at;
+  std::uint64_t sequence{0};
+  bool deadline_missed{false};
+  std::optional<EventTimestamp> event_timestamp;
+};
+
+struct RuntimeChannelMetrics {
+  std::string channel_id;
+  std::size_t published_count{0};
+  std::size_t delivered_count{0};
+  std::size_t drop_count{0};
+  std::size_t deadline_miss_count{0};
+  std::size_t payload_copy_count{0};
+  std::size_t copy_fallback_count{0};
+  double message_age_ms{0.0};
+  double delivery_latency_ms{0.0};
+  std::size_t depth{0};
+  std::size_t max_depth{0};
+  std::string degradation_reason;
+};
+
+struct RuntimeChannelReadResult {
+  bool ok{false};
+  std::optional<RuntimeChannelMessage> message;
+  std::string reason;
+};
+
+class RuntimeChannelBus : public GraphOutputPublisher {
+public:
+  RuntimeChannelBus() = default;
+  explicit RuntimeChannelBus(const std::vector<EdgeSpec>& specs);
+
+  bool empty() const;
+  bool has_channel(const std::string& channel_id) const;
+
+  RuntimeChannelPublishResult publish(const std::string& channel_id, RuntimePayload payload,
+                                      std::optional<EventTimestamp> event_timestamp = std::nullopt);
+  RuntimeChannelPublishResult publish_shared(const std::string& channel_id, RuntimePayloadPtr payload,
+                                             std::optional<EventTimestamp> event_timestamp = std::nullopt);
+  RuntimeChannelPublishResult publish_from(const std::string& source_endpoint, RuntimePayload payload,
+                                           std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+  RuntimeChannelPublishResult publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
+                                                  std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+  RuntimeChannelPublishResult publish_batch(const std::vector<RuntimeChannelPublication>& publications);
+
+  RuntimeChannelReadResult read_latest_for_reader(const std::string& channel_id, const std::string& reader_id);
+  RuntimeChannelReadResult read_latest_update_for_component_port(const std::string& component_id,
+                                                                 const std::string& port_name);
+  RuntimeChannelReadResult peek_latest_for_component_port(const std::string& component_id,
+                                                          const std::string& port_name);
+  std::vector<RuntimeChannelMessage> drain_for_component_port(const std::string& component_id,
+                                                              const std::string& port_name, std::size_t max_batch = 0);
+  std::vector<RuntimeChannelMessage> consume_for_component(const std::string& component_id);
+
+  RuntimeChannelMetrics metrics(const std::string& channel_id) const;
+  std::vector<RuntimeChannelMetrics> metrics_snapshot() const;
+  std::uint64_t update_sequence() const;
+  bool wait_for_update(std::uint64_t last_seen, std::chrono::milliseconds timeout,
+                       const std::function<bool()>& stop_requested);
+
+private:
+  struct ChannelState {
+    ChannelConfig config;
+    std::string from;
+    std::string to;
+    std::uint64_t next_sequence{1};
+    std::optional<RuntimeChannelMessage> latest;
+    std::deque<RuntimeChannelMessage> queue;
+    std::map<std::string, std::uint64_t> delivered_latest_sequences;
+    RuntimeChannelMetrics metrics;
+  };
+
+  RuntimeChannelPublishResult prepare_payload_for_state(ChannelState& state, RuntimePayloadPtr source,
+                                                        RuntimePayloadPtr& payload_for_channel, bool& copied);
+  RuntimeChannelPublishResult publish_to_state(ChannelState& state, RuntimePayloadPtr payload,
+                                               std::optional<EventTimestamp> event_timestamp, bool payload_was_copied);
+  std::optional<RuntimeChannelMessage> consume_latest_from_state(ChannelState& state, const std::string& reader_id);
+  std::vector<RuntimeChannelMessage> consume_from_state(ChannelState& state);
+  RuntimeChannelMetrics metrics_from_state(const ChannelState& state) const;
+  std::vector<std::string> channel_ids_for_component_port(const std::string& component_id,
+                                                          const std::string& port_name) const;
+
+  std::map<std::string, ChannelState> channels_;
+  std::map<std::string, std::vector<std::string>> source_to_channels_;
+  std::map<std::string, std::vector<std::string>> component_to_channels_;
+  mutable std::mutex mutex_;
+  std::condition_variable update_available_;
+  std::uint64_t update_sequence_{0};
+};
+
+}  // namespace topoexec
+

@@ -1,0 +1,66 @@
+#pragma once
+
+#include "topoexec/runtime/component_registry.hpp"
+#include "topoexec/runtime/graph.hpp"
+#include "topoexec/runtime/scheduler.hpp"
+
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+namespace topoexec {
+
+enum class RuntimeRunMode {
+  kValidate,
+  kDryRun,
+  kRun,
+};
+
+struct RuntimeRunnerOptions {
+  RuntimeRunMode mode{RuntimeRunMode::kDryRun};
+  std::size_t tick_iterations{1};
+  std::uint64_t run_duration_ms{0};
+  SchedulerStopToken stop_token;
+  std::chrono::milliseconds pending_task_cleanup_timeout{1000};
+};
+
+struct RuntimeRunnerResult {
+  bool ok{false};
+  std::string graph_name;
+  std::size_t component_count{0};
+  std::size_t channel_count{0};
+  GraphValidationResult validation;
+  GraphDryRunResult dry_run;
+  std::size_t instantiated_components{0};
+  std::size_t configured_components{0};
+  std::size_t started_components{0};
+  std::size_t stopped_components{0};
+  std::size_t tick_calls{0};
+  std::size_t metric_samples{0};
+  std::size_t channel_publish_count{0};
+  std::size_t channel_delivery_count{0};
+  std::size_t channel_drop_count{0};
+  std::size_t channel_deadline_miss_count{0};
+  std::size_t payload_copy_count{0};
+  SchedulerStopReason scheduler_stop_reason{SchedulerStopReason::kNotStarted};
+  std::vector<std::string> ticked_components;
+  std::vector<RuntimeMetricSample> runtime_metrics;
+  std::vector<std::string> errors;
+};
+
+std::string to_string(RuntimeRunMode mode);
+
+class RuntimeRunner {
+public:
+  explicit RuntimeRunner(const ComponentRegistry& registry);
+
+  RuntimeRunnerResult run(const GraphSpec& graph, RuntimeRunnerOptions options = {}) const;
+
+private:
+  const ComponentRegistry& registry_;
+};
+
+}  // namespace topoexec
+

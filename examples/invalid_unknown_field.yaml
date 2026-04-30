@@ -1,0 +1,9 @@
+graph_version: 2
+graph:
+  name: invalid_unknown_field
+  kind: internal_test
+lanes:
+  main:
+    type: event_loop
+components: []
+edges: []

@@ -1,0 +1,60 @@
+schema_version: 1
+graph:
+  name: feedback_controller
+  kind: internal_test
+lanes:
+  main:
+    type: event_loop
+components:
+  - id: sensor
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: synthetic_sensor}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: estimator
+    type: topoexec.transforms.Estimator
+    event_sources: [{type: message, inputs: [measurement, correction]}]
+    trigger_policy: {type: any_input, inputs: [measurement, correction]}
+    execution: {lane: main}
+  - id: controller
+    type: topoexec.transforms.Controller
+    event_sources: [{type: message, inputs: [state]}]
+    trigger_policy: {type: any_input, inputs: [state]}
+    execution: {lane: main}
+  - id: actuator
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: synthetic_actuator}
+    event_sources: [{type: message, inputs: [command]}]
+    trigger_policy: {type: any_input, inputs: [command]}
+    execution: {lane: main}
+edges:
+  - id: measurement
+    kind: immediate
+    from: sensor.out
+    to: estimator.measurement
+    policy: {mode: latest, copy_policy: shared_view}
+  - id: state
+    kind: immediate
+    from: estimator.state
+    to: controller.state
+    policy: {mode: latest, copy_policy: shared_view}
+  - id: correction
+    kind: immediate
+    from: controller.correction
+    to: estimator.correction
+    policy: {mode: latest, copy_policy: shared_view}
+  - id: command
+    kind: delay
+    from: controller.command
+    to: actuator.command
+    policy: {mode: queue, capacity: 2, overflow: drop_oldest, copy_policy: shared_view}
+composite_loops:
+  - id: estimator_controller_loop
+    components: [estimator, controller]
+    loop_policy:
+      type: fixed_point
+      budget_ms: 5
+      max_iterations: 3
+      convergence: stable_state
+
