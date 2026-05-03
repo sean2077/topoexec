@@ -38,6 +38,8 @@ std::string to_string(SchedulerStopReason reason) {
     return "tick_bound";
   case SchedulerStopReason::kDurationBound:
     return "duration_bound";
+  case SchedulerStopReason::kIdle:
+    return "idle";
   case SchedulerStopReason::kStopRequested:
     return "stop_requested";
   case SchedulerStopReason::kError:
@@ -105,4 +107,3 @@ const SchedulerMetrics& SchedulerMetricsTracker::metrics() const {
 }
 
 }  // namespace topoexec
-

@@ -82,7 +82,7 @@ bool is_backpressure_drop_policy(const std::string& policy) {
 
 bool is_allowed_drop_policy(const std::string& policy) {
   return policy == "overwrite" || policy == "drop_oldest" || policy == "drop_newest" || policy == "block" ||
-         policy == "reject";
+         policy == "fail_fast" || policy == "reject";
 }
 
 bool is_allowed_copy_policy(const std::string& policy) {
@@ -1030,6 +1030,9 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     }
     if (!is_allowed_readers(edge.policy.readers)) {
       add_error(result, "edge " + edge.id + " has unsupported policy.readers " + edge.policy.readers);
+    }
+    if (edge.policy.copy_policy == "move_only" && edge.policy.readers != "single") {
+      add_error(result, "edge " + edge.id + " move_only copy_policy requires readers: single");
     }
 
     const auto from_component = component_id_from_endpoint(edge.from);

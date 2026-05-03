@@ -1,0 +1,55 @@
+schema_version: 1
+graph:
+  name: control_feedback_delay
+  kind: runnable
+lanes:
+  main:
+    type: event_loop
+components:
+  - id: sensor
+    type: topoexec.example.Sensor
+    boundary: {role: input, descriptor: simulated_sensor}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: estimator
+    type: topoexec.example.Estimator
+    event_sources: [{type: message, inputs: [sensor, correction]}]
+    trigger_policy: {type: any_input, inputs: [sensor, correction]}
+    execution: {lane: main}
+  - id: controller
+    type: topoexec.example.Controller
+    event_sources: [{type: message, inputs: [estimate]}]
+    trigger_policy: {type: any_input, inputs: [estimate]}
+    execution: {lane: main}
+  - id: actuator
+    type: topoexec.example.Actuator
+    boundary: {role: output, descriptor: simulated_actuator}
+    event_sources: [{type: message, inputs: [command]}]
+    trigger_policy: {type: any_input, inputs: [command]}
+    execution: {lane: main}
+edges:
+  - id: sensor_estimator
+    kind: immediate
+    from: sensor.out
+    to: estimator.sensor
+    policy: {mode: latest, copy_policy: shared_view}
+  - id: estimator_controller
+    kind: immediate
+    from: estimator.estimate
+    to: controller.estimate
+    policy: {mode: latest, copy_policy: shared_view}
+  - id: controller_actuator
+    kind: immediate
+    from: controller.command
+    to: actuator.command
+    policy: {mode: latest, copy_policy: shared_view}
+  - id: controller_estimator_delay
+    kind: delay
+    from: controller.correction
+    to: estimator.correction
+    policy:
+      mode: queue
+      capacity: 4
+      overflow: drop_oldest
+      copy_policy: shared_view

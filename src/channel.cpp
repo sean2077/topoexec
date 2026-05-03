@@ -1,5 +1,7 @@
 #include "topoexec/runtime/channel.hpp"
 
+#include "topoexec/common/trace.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <stdexcept>
@@ -53,6 +55,9 @@ DropPolicy drop_policy_from_string(const std::string& value) {
   if (value == "block") {
     return DropPolicy::kBlockProducer;
   }
+  if (value == "fail_fast") {
+    return DropPolicy::kFailFast;
+  }
   return DropPolicy::kFailFast;
 }
 
@@ -83,6 +88,14 @@ std::string large_payload_copy_reason(const RuntimePayload& payload) {
     return {};
   }
   return "cannot copy large payload schema " + payload.schema + "; use shared_view or loaned_view";
+}
+
+void record_trace_event(TraceCollector* trace, const std::string& name) {
+  if (trace == nullptr) {
+    return;
+  }
+  const auto now = std::chrono::steady_clock::now();
+  trace->add(SpanRecord{TraceId::generate(), name, now, now});
 }
 
 }  // namespace
@@ -203,6 +216,26 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_batch(const std::vector<R
     }
   }
   return {true, {}};
+}
+
+void RuntimeChannelBus::advance_epoch() {
+  std::lock_guard lock(mutex_);
+  bool updated = false;
+  for (auto& [id, state] : channels_) {
+    (void)id;
+    if (state.config.type != ChannelType::kPreviousTick || !state.pending_previous_tick.has_value()) {
+      continue;
+    }
+    state.latest = std::move(state.pending_previous_tick);
+    state.pending_previous_tick.reset();
+    state.metrics.depth = state.latest.has_value() ? 1u : 0u;
+    state.metrics.max_depth = std::max(state.metrics.max_depth, state.metrics.depth);
+    updated = true;
+  }
+  if (updated) {
+    ++update_sequence_;
+    update_available_.notify_all();
+  }
 }
 
 RuntimeChannelReadResult RuntimeChannelBus::read_latest_for_reader(const std::string& channel_id,
@@ -370,6 +403,16 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
   }
 
   auto accept_message = [&]() {
+    if (state.config.type == ChannelType::kPreviousTick) {
+      if (state.pending_previous_tick.has_value()) {
+        ++state.metrics.drop_count;
+      }
+      state.pending_previous_tick = message;
+      ++state.metrics.published_count;
+      state.metrics.depth = (state.latest.has_value() ? 1u : 0u) + 1u;
+      state.metrics.max_depth = std::max(state.metrics.max_depth, state.metrics.depth);
+      return RuntimeChannelPublishResult{true, {}};
+    }
     state.latest = message;
     if (is_latest_style(state.config.type)) {
       if (state.config.type == ChannelType::kLatestOnly && state.metrics.depth > 0u) {
@@ -423,6 +466,9 @@ std::optional<RuntimeChannelMessage> RuntimeChannelBus::consume_latest_from_stat
 }
 
 std::vector<RuntimeChannelMessage> RuntimeChannelBus::consume_from_state(ChannelState& state) {
+  if (state.config.type == ChannelType::kBarrier && state.queue.size() < state.config.capacity) {
+    return {};
+  }
   std::vector<RuntimeChannelMessage> messages(state.queue.begin(), state.queue.end());
   state.metrics.delivered_count += messages.size();
   state.queue.clear();
@@ -432,7 +478,11 @@ std::vector<RuntimeChannelMessage> RuntimeChannelBus::consume_from_state(Channel
 
 RuntimeChannelMetrics RuntimeChannelBus::metrics_from_state(const ChannelState& state) const {
   auto metrics = state.metrics;
-  metrics.depth = is_latest_style(state.config.type) ? (state.latest.has_value() ? 1u : 0u) : state.queue.size();
+  if (state.config.type == ChannelType::kPreviousTick) {
+    metrics.depth = (state.latest.has_value() ? 1u : 0u) + (state.pending_previous_tick.has_value() ? 1u : 0u);
+  } else {
+    metrics.depth = is_latest_style(state.config.type) ? (state.latest.has_value() ? 1u : 0u) : state.queue.size();
+  }
   return metrics;
 }
 
@@ -450,6 +500,152 @@ std::vector<std::string> RuntimeChannelBus::channel_ids_for_component_port(const
     }
   }
   return ids;
+}
+
+RuntimePublicationRouter::RuntimePublicationRouter(RuntimeChannelBus* channels, const std::vector<EdgeSpec>& specs)
+    : channels_(channels) {
+  for (const auto& spec : specs) {
+    source_to_edges_[spec.from].push_back(
+        RoutedEdge{spec.id, component_id_from_endpoint(spec.from), component_id_from_endpoint(spec.to), spec.kind});
+  }
+}
+
+void RuntimePublicationRouter::set_trace_collector(TraceCollector* trace) {
+  trace_ = trace;
+}
+
+void RuntimePublicationRouter::begin_composite_region(const std::vector<std::string>& components) {
+  std::lock_guard lock(mutex_);
+  active_composite_components_.clear();
+  active_composite_components_.insert(components.begin(), components.end());
+  composite_external_stage_.clear();
+}
+
+RuntimeChannelPublishResult RuntimePublicationRouter::commit_composite_region_outputs() {
+  std::vector<RuntimeChannelPublication> immediate_publications;
+  {
+    std::lock_guard lock(mutex_);
+    for (auto& staged : composite_external_stage_) {
+      if (staged.kind == EdgeKind::kImmediate) {
+        immediate_publications.push_back(std::move(staged.publication));
+      } else {
+        deferred_next_epoch_.push_back(std::move(staged.publication));
+      }
+    }
+    composite_external_stage_.clear();
+    active_composite_components_.clear();
+  }
+  return commit_batch(std::move(immediate_publications));
+}
+
+RuntimeChannelPublishResult RuntimePublicationRouter::publish_from(
+    const std::string& source_endpoint, RuntimePayload payload, std::optional<EventTimestamp> event_timestamp) {
+  return publish_shared_from(source_endpoint, make_shared_payload(std::move(payload)), std::move(event_timestamp));
+}
+
+RuntimeChannelPublishResult RuntimePublicationRouter::publish_shared_from(
+    const std::string& source_endpoint, RuntimePayloadPtr payload, std::optional<EventTimestamp> event_timestamp) {
+  if (payload == nullptr) {
+    return {false, "payload must not be null"};
+  }
+  std::lock_guard lock(mutex_);
+  const auto found = source_to_edges_.find(source_endpoint);
+  if (found == source_to_edges_.end()) {
+    return {false, "unknown source endpoint: " + source_endpoint};
+  }
+  for (const auto& edge : found->second) {
+    record_trace_event(trace_, "channel_publish");
+    RuntimeChannelPublication publication;
+    publication.target = RuntimeChannelPublishTarget::kChannel;
+    publication.id = edge.channel_id;
+    publication.payload = payload;
+    publication.event_timestamp = event_timestamp;
+    if (!active_composite_components_.empty() && active_composite_components_.count(edge.source_component) != 0u &&
+        active_composite_components_.count(edge.target_component) == 0u) {
+      composite_external_stage_.push_back(StagedRoutedPublication{edge.kind, std::move(publication)});
+      if (edge.kind == EdgeKind::kState) {
+        ++metrics_.state_staged_count;
+      } else if (edge.kind == EdgeKind::kAsync) {
+        ++metrics_.async_staged_count;
+      } else if (edge.kind == EdgeKind::kDelay) {
+        ++metrics_.delayed_staged_count;
+      } else {
+        ++metrics_.immediate_staged_count;
+      }
+      ++metrics_.staged_count;
+      continue;
+    }
+    if (edge.kind == EdgeKind::kDelay || edge.kind == EdgeKind::kState || edge.kind == EdgeKind::kAsync) {
+      deferred_next_epoch_.push_back(std::move(publication));
+      if (edge.kind == EdgeKind::kState) {
+        ++metrics_.state_staged_count;
+      } else if (edge.kind == EdgeKind::kAsync) {
+        ++metrics_.async_staged_count;
+      } else {
+        ++metrics_.delayed_staged_count;
+      }
+    } else {
+      immediate_stage_.push_back(std::move(publication));
+      ++metrics_.immediate_staged_count;
+    }
+    ++metrics_.staged_count;
+  }
+  return {true, {}};
+}
+
+RuntimeChannelPublishResult RuntimePublicationRouter::begin_epoch() {
+  if (channels_ != nullptr) {
+    channels_->advance_epoch();
+  }
+  std::vector<RuntimeChannelPublication> ready;
+  {
+    std::lock_guard lock(mutex_);
+    ready.swap(deferred_ready_);
+  }
+  return commit_batch(std::move(ready));
+}
+
+RuntimeChannelPublishResult RuntimePublicationRouter::commit_immediate() {
+  std::vector<RuntimeChannelPublication> ready;
+  {
+    std::lock_guard lock(mutex_);
+    ready.swap(immediate_stage_);
+  }
+  return commit_batch(std::move(ready));
+}
+
+void RuntimePublicationRouter::end_epoch() {
+  std::lock_guard lock(mutex_);
+  deferred_ready_.insert(deferred_ready_.end(), deferred_next_epoch_.begin(), deferred_next_epoch_.end());
+  deferred_next_epoch_.clear();
+}
+
+RuntimePublicationRouterMetrics RuntimePublicationRouter::metrics() const {
+  std::lock_guard lock(mutex_);
+  return metrics_;
+}
+
+RuntimeChannelPublishResult RuntimePublicationRouter::commit_batch(
+    std::vector<RuntimeChannelPublication> publications) {
+  if (publications.empty()) {
+    return {true, {}};
+  }
+  if (channels_ == nullptr) {
+    std::lock_guard lock(mutex_);
+    ++metrics_.failed_commit_count;
+    return {false, "publication router has no channel bus"};
+  }
+  const auto result = channels_->publish_batch(publications);
+  std::lock_guard lock(mutex_);
+  if (result.accepted) {
+    metrics_.committed_count += publications.size();
+    for (std::size_t index = 0; index < publications.size(); ++index) {
+      record_trace_event(trace_, "channel_commit");
+    }
+  } else {
+    ++metrics_.failed_commit_count;
+  }
+  return result;
 }
 
 }  // namespace topoexec

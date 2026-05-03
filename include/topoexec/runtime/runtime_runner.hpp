@@ -22,6 +22,7 @@ struct RuntimeRunnerOptions {
   RuntimeRunMode mode{RuntimeRunMode::kDryRun};
   std::size_t tick_iterations{1};
   std::uint64_t run_duration_ms{0};
+  bool run_until_idle{false};
   SchedulerStopToken stop_token;
   std::chrono::milliseconds pending_task_cleanup_timeout{1000};
 };
@@ -44,8 +45,20 @@ struct RuntimeRunnerResult {
   std::size_t channel_drop_count{0};
   std::size_t channel_deadline_miss_count{0};
   std::size_t payload_copy_count{0};
+  std::size_t staged_publication_count{0};
+  std::size_t committed_publication_count{0};
+  std::size_t delayed_publication_count{0};
+  std::size_t state_publication_count{0};
+  std::size_t async_publication_count{0};
+  std::size_t failed_publication_commit_count{0};
+  std::size_t trace_event_count{0};
+  std::size_t loop_iteration_count{0};
+  std::size_t loop_converged_count{0};
+  std::size_t loop_budget_overrun_count{0};
+  std::size_t loop_max_iteration_hit_count{0};
   SchedulerStopReason scheduler_stop_reason{SchedulerStopReason::kNotStarted};
   std::vector<std::string> ticked_components;
+  std::vector<std::string> trace_events;
   std::vector<RuntimeMetricSample> runtime_metrics;
   std::vector<std::string> errors;
 };
@@ -63,4 +76,3 @@ private:
 };
 
 }  // namespace topoexec
-

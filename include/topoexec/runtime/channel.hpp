@@ -19,6 +19,8 @@
 
 namespace topoexec {
 
+class TraceCollector;
+
 enum class RuntimeChannelPublishTarget {
   kChannel,
   kSourceEndpoint,
@@ -99,6 +101,16 @@ struct RuntimeChannelMetrics {
   std::string degradation_reason;
 };
 
+struct RuntimePublicationRouterMetrics {
+  std::size_t staged_count{0};
+  std::size_t immediate_staged_count{0};
+  std::size_t delayed_staged_count{0};
+  std::size_t state_staged_count{0};
+  std::size_t async_staged_count{0};
+  std::size_t committed_count{0};
+  std::size_t failed_commit_count{0};
+};
+
 struct RuntimeChannelReadResult {
   bool ok{false};
   std::optional<RuntimeChannelMessage> message;
@@ -122,6 +134,7 @@ public:
   RuntimeChannelPublishResult publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
                                                   std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
   RuntimeChannelPublishResult publish_batch(const std::vector<RuntimeChannelPublication>& publications);
+  void advance_epoch();
 
   RuntimeChannelReadResult read_latest_for_reader(const std::string& channel_id, const std::string& reader_id);
   RuntimeChannelReadResult read_latest_update_for_component_port(const std::string& component_id,
@@ -145,6 +158,7 @@ private:
     std::string to;
     std::uint64_t next_sequence{1};
     std::optional<RuntimeChannelMessage> latest;
+    std::optional<RuntimeChannelMessage> pending_previous_tick;
     std::deque<RuntimeChannelMessage> queue;
     std::map<std::string, std::uint64_t> delivered_latest_sequences;
     RuntimeChannelMetrics metrics;
@@ -168,5 +182,48 @@ private:
   std::uint64_t update_sequence_{0};
 };
 
-}  // namespace topoexec
+class RuntimePublicationRouter : public GraphOutputPublisher {
+public:
+  RuntimePublicationRouter(RuntimeChannelBus* channels, const std::vector<EdgeSpec>& specs);
+  void set_trace_collector(TraceCollector* trace);
+  void begin_composite_region(const std::vector<std::string>& components);
+  RuntimeChannelPublishResult commit_composite_region_outputs();
 
+  RuntimeChannelPublishResult publish_from(const std::string& source_endpoint, RuntimePayload payload,
+                                           std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+  RuntimeChannelPublishResult publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
+                                                  std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+
+  RuntimeChannelPublishResult begin_epoch();
+  RuntimeChannelPublishResult commit_immediate();
+  void end_epoch();
+  RuntimePublicationRouterMetrics metrics() const;
+
+private:
+  struct RoutedEdge {
+    std::string channel_id;
+    std::string source_component;
+    std::string target_component;
+    EdgeKind kind{EdgeKind::kImmediate};
+  };
+
+  struct StagedRoutedPublication {
+    EdgeKind kind{EdgeKind::kImmediate};
+    RuntimeChannelPublication publication;
+  };
+
+  RuntimeChannelPublishResult commit_batch(std::vector<RuntimeChannelPublication> publications);
+
+  RuntimeChannelBus* channels_{nullptr};
+  TraceCollector* trace_{nullptr};
+  std::map<std::string, std::vector<RoutedEdge>> source_to_edges_;
+  std::set<std::string> active_composite_components_;
+  std::vector<StagedRoutedPublication> composite_external_stage_;
+  std::vector<RuntimeChannelPublication> immediate_stage_;
+  std::vector<RuntimeChannelPublication> deferred_next_epoch_;
+  std::vector<RuntimeChannelPublication> deferred_ready_;
+  RuntimePublicationRouterMetrics metrics_;
+  mutable std::mutex mutex_;
+};
+
+}  // namespace topoexec

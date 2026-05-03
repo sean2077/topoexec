@@ -10,7 +10,8 @@ bool is_timer_event_source(const EventSourceSpec& source) {
 }
 
 bool is_message_event_source(const EventSourceSpec& source) {
-  return source.type == "message";
+  return source.type == "message" || source.type == "request" || source.type == "task_ready" ||
+         source.type == "future_ready";
 }
 
 bool is_manual_event_source(const EventSourceSpec& source) {
@@ -27,6 +28,27 @@ bool has_message_event_source(const ComponentNodeSpec& component) {
 
 bool has_event_driven_source(const ComponentNodeSpec& component) {
   return has_message_event_source(component) || has_timer_event_source(component);
+}
+
+EventKind event_kind_for_component(const ComponentNodeSpec& component) {
+  if (component.trigger_policy.type == "request") {
+    return EventKind::kRequest;
+  }
+  if (component.trigger_policy.type == "task_ready") {
+    return EventKind::kTaskReady;
+  }
+  for (const auto& source : component.event_sources) {
+    if (source.type == "request") {
+      return EventKind::kRequest;
+    }
+    if (source.type == "task_ready") {
+      return EventKind::kTaskReady;
+    }
+    if (source.type == "future_ready") {
+      return EventKind::kFutureReady;
+    }
+  }
+  return EventKind::kMessage;
 }
 
 std::optional<int> timer_period_ms_for(const ComponentNodeSpec& component) {
@@ -144,6 +166,13 @@ std::vector<Invocation> TriggerPolicyEngine::collect_ready_invocations(const Tic
     }
     return invocations;
   }
+  if (component.trigger_policy.coalesce) {
+    auto invocations = collect_coalesced_any_input(context, component, lane, pending);
+    if (!invocations.empty()) {
+      record_invocation(component, context.started_at);
+    }
+    return invocations;
+  }
   auto invocations = collect_any_input(context, component, lane, pending);
   if (!invocations.empty()) {
     record_invocation(component, context.started_at);
@@ -207,15 +236,40 @@ std::vector<Invocation> TriggerPolicyEngine::collect_any_input(const TickContext
                                                                const SchedulerGroupConfig& lane,
                                                                PendingMessages& pending) {
   std::vector<Invocation> invocations;
+  const bool single_invocation = component.trigger_policy.min_interval_ms > 0;
   for (auto& [port, queue] : pending) {
     while (!queue.empty()) {
       auto message = queue.front();
       queue.pop_front();
-      invocations.push_back(invocation_from_messages(EventKind::kMessage, TriggerKind::kAnyInput, context, component,
-                                                     lane, {{port, std::move(message)}}));
+      const auto event = event_kind_for_component(component);
+      invocations.push_back(invocation_from_messages(event, trigger_kind_for_policy(component.trigger_policy, event),
+                                                     context, component, lane, {{port, std::move(message)}}));
+      if (single_invocation) {
+        return invocations;
+      }
     }
   }
   return invocations;
+}
+
+std::vector<Invocation> TriggerPolicyEngine::collect_coalesced_any_input(const TickContext& context,
+                                                                         const ComponentNodeSpec& component,
+                                                                         const SchedulerGroupConfig& lane,
+                                                                         PendingMessages& pending) {
+  std::vector<std::pair<std::string, RuntimeChannelMessage>> messages;
+  for (auto& [port, queue] : pending) {
+    if (queue.empty()) {
+      continue;
+    }
+    messages.emplace_back(port, queue.back());
+    queue.clear();
+  }
+  if (messages.empty()) {
+    return {};
+  }
+  const auto event = event_kind_for_component(component);
+  return {invocation_from_messages(event, trigger_kind_for_policy(component.trigger_policy, event), context, component,
+                                   lane, messages)};
 }
 
 std::vector<Invocation> TriggerPolicyEngine::collect_all_inputs(const TickContext& context,
@@ -234,13 +288,21 @@ std::vector<Invocation> TriggerPolicyEngine::collect_all_inputs(const TickContex
   for (const auto& input : inputs) {
     pending[input].pop_front();
   }
-  return {invocation_from_messages(EventKind::kMessage, TriggerKind::kAllInputs, context, component, lane, messages)};
+  return {invocation_from_messages(EventKind::kMessage, trigger_kind_for_policy(component.trigger_policy, EventKind::kMessage),
+                                   context, component, lane, messages)};
 }
 
 std::vector<Invocation> TriggerPolicyEngine::collect_batch(const TickContext& context, const ComponentNodeSpec& component,
                                                            const SchedulerGroupConfig& lane, PendingMessages& pending) {
   const auto inputs = trigger_policy_inputs_for(component);
   const auto batch_size = component.trigger_policy.batch_size <= 0 ? 1 : component.trigger_policy.batch_size;
+  std::size_t available = 0;
+  for (const auto& input : inputs) {
+    available += pending[input].size();
+  }
+  if (available < static_cast<std::size_t>(batch_size)) {
+    return {};
+  }
   std::vector<std::pair<std::string, RuntimeChannelMessage>> messages;
   for (const auto& input : inputs) {
     auto& queue = pending[input];
@@ -256,4 +318,3 @@ std::vector<Invocation> TriggerPolicyEngine::collect_batch(const TickContext& co
 }
 
 }  // namespace topoexec
-

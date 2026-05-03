@@ -47,6 +47,8 @@ private:
                                       const std::vector<std::pair<std::string, RuntimeChannelMessage>>& messages) const;
   std::vector<Invocation> collect_any_input(const TickContext& context, const ComponentNodeSpec& component,
                                             const SchedulerGroupConfig& lane, PendingMessages& pending);
+  std::vector<Invocation> collect_coalesced_any_input(const TickContext& context, const ComponentNodeSpec& component,
+                                                      const SchedulerGroupConfig& lane, PendingMessages& pending);
   std::vector<Invocation> collect_all_inputs(const TickContext& context, const ComponentNodeSpec& component,
                                              const SchedulerGroupConfig& lane, PendingMessages& pending);
   std::vector<Invocation> collect_batch(const TickContext& context, const ComponentNodeSpec& component,
@@ -59,4 +61,3 @@ private:
 };
 
 }  // namespace topoexec
-

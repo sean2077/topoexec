@@ -73,6 +73,7 @@ enum class SchedulerStopReason {
   kNotStarted,
   kTickBound,
   kDurationBound,
+  kIdle,
   kStopRequested,
   kError,
 };
@@ -82,6 +83,7 @@ struct SchedulerRunResult;
 struct SchedulerRunOptions {
   std::size_t tick_iterations{0};
   std::uint64_t run_duration_ms{0};
+  bool run_until_idle{false};
   std::function<void(std::uint64_t)> after_iteration;
   SchedulerStopToken stop_token;
   std::chrono::milliseconds pending_task_cleanup_timeout{1000};
@@ -96,6 +98,10 @@ struct SchedulerRunResult {
   std::uint64_t iterations{0};
   std::size_t tick_calls{0};
   std::map<std::string, SchedulerMetrics> group_metrics;
+  std::map<std::string, std::size_t> loop_iteration_count;
+  std::map<std::string, std::size_t> loop_converged_count;
+  std::map<std::string, std::size_t> loop_budget_overrun_count;
+  std::map<std::string, std::size_t> loop_max_iteration_hit_count;
   std::vector<std::string> ticked_tasks;
 };
 
@@ -129,4 +135,3 @@ private:
 };
 
 }  // namespace topoexec
-

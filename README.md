@@ -18,13 +18,25 @@ Dependencies are CMake, a C++20 compiler, `yaml-cpp`, `CLI11`, `nlohmann_json`, 
 topoexec graph validate examples/minimal.yaml
 topoexec graph plan examples/composite_loop.yaml --format json
 topoexec graph render examples/composite_loop.yaml --format mermaid
+topoexec graph run examples/minimal.yaml --steps 1
+topoexec graph run examples/minimal.yaml --steps 10 --until-idle
+topoexec graph metrics examples/minimal.yaml --steps 1 --format json
+topoexec graph trace examples/minimal.yaml --steps 1
+topoexec graph lint examples/control_feedback_delay.yaml
+topoexec graph explain examples/minimal.yaml
+topoexec graph diff-plan examples/minimal.yaml examples/control_feedback_delay.yaml
+topoexec graph bench examples/minimal.yaml --steps 1 --runs 2
 ```
 
-The CLI validates `schema_version: 1` graphs and can emit text, JSON, or Mermaid views of components, edges, CompositeLoop regions, region order, boundary roles, channel policy, and validation errors.
+The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, runs demo graphs, prints metrics/trace events, and provides lightweight lint/explain/diff/bench output derived from the runtime contract.
+
+## Runtime semantics
+
+TopoExec's user-visible execution contract is documented in [docs/runtime-semantics.md](docs/runtime-semantics.md). Schema v1 details are in [docs/schema-v1.md](docs/schema-v1.md).
 
 ## Included
 
 - `include/topoexec/common/`: logging, metrics, trace.
 - `include/topoexec/runtime/`: graph, component, static registry, channel, payload, trigger policy, event runtime, scheduler, runner.
-- `tools/topoexec/`: C++ CLI for graph validation, plan output, and Mermaid rendering.
-- `examples/`: minimal graph, CompositeLoop graph, and an invalid-schema fixture.
+- `tools/topoexec/`: C++ CLI for validation, plan/render output, runtime runs, metrics, trace, lint, explain, diff, and bench.
+- `examples/`: minimal graph, CompositeLoop graph, delay-feedback control graph, invalid-schema fixture, and runnable apps for minimal pipeline, latest-vs-queue overload behavior, delayed control feedback, CompositeLoop fixed-point ownership, and async task-ready delivery.

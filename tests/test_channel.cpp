@@ -44,6 +44,95 @@ TEST(Channel, QueueDropsOldestWhenFull) {
   EXPECT_EQ(bus.metrics("events").drop_count, 1u);
 }
 
+TEST(Channel, QueueDropNewestRejectsIncomingPayloadWhenFull) {
+  auto spec = edge("events", "queue", 1);
+  spec.policy.overflow = "drop_newest";
+  topoexec::RuntimeChannelBus bus({spec});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+
+  const auto result = bus.publish_from("producer.out", topoexec::make_text_payload("two"));
+  EXPECT_FALSE(result.accepted);
+  EXPECT_EQ(result.reason, "dropped newest payload");
+
+  const auto messages = bus.consume_for_component("consumer");
+  ASSERT_EQ(messages.size(), 1u);
+  EXPECT_EQ(*messages.front().payload, "one");
+  EXPECT_EQ(bus.metrics("events").drop_count, 1u);
+}
+
+TEST(Channel, QueueBlockReturnsWouldBlockWithoutDroppingExistingPayload) {
+  auto spec = edge("events", "queue", 1);
+  spec.policy.overflow = "block";
+  topoexec::RuntimeChannelBus bus({spec});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+
+  const auto result = bus.publish_from("producer.out", topoexec::make_text_payload("two"));
+  EXPECT_FALSE(result.accepted);
+  EXPECT_EQ(result.reason, "would block producer");
+
+  const auto messages = bus.consume_for_component("consumer");
+  ASSERT_EQ(messages.size(), 1u);
+  EXPECT_EQ(*messages.front().payload, "one");
+  EXPECT_EQ(bus.metrics("events").drop_count, 0u);
+}
+
+TEST(Channel, QueueFailFastReturnsCapacityError) {
+  auto spec = edge("events", "queue", 1);
+  spec.policy.overflow = "fail_fast";
+  topoexec::RuntimeChannelBus bus({spec});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+
+  const auto result = bus.publish_from("producer.out", topoexec::make_text_payload("two"));
+  EXPECT_FALSE(result.accepted);
+  EXPECT_EQ(result.reason, "channel capacity exceeded");
+  EXPECT_EQ(bus.metrics("events").drop_count, 1u);
+}
+
+TEST(Channel, PreviousTickExposesPayloadOnlyAfterEpochAdvance) {
+  topoexec::RuntimeChannelBus bus({edge("previous", "previous_tick", 1)});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+
+  auto before = bus.read_latest_update_for_component_port("consumer", "in");
+  ASSERT_TRUE(before.ok);
+  EXPECT_FALSE(before.message.has_value());
+
+  bus.advance_epoch();
+
+  auto after = bus.read_latest_update_for_component_port("consumer", "in");
+  ASSERT_TRUE(after.ok);
+  ASSERT_TRUE(after.message.has_value());
+  EXPECT_EQ(*after.message->payload, "one");
+}
+
+TEST(Channel, LatchedSnapshotIsAvailableToLateReader) {
+  topoexec::RuntimeChannelBus bus({edge("latched", "latched", 1)});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("snapshot")).accepted);
+
+  auto first_reader = bus.read_latest_update_for_component_port("consumer", "in");
+  ASSERT_TRUE(first_reader.ok);
+  ASSERT_TRUE(first_reader.message.has_value());
+  EXPECT_EQ(*first_reader.message->payload, "snapshot");
+
+  auto late_reader = bus.read_latest_for_reader("latched", "late_consumer.in");
+  ASSERT_TRUE(late_reader.ok);
+  ASSERT_TRUE(late_reader.message.has_value());
+  EXPECT_EQ(*late_reader.message->payload, "snapshot");
+}
+
+TEST(Channel, BarrierWaitsUntilCapacityBeforeDelivery) {
+  topoexec::RuntimeChannelBus bus({edge("barrier", "barrier", 2)});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  EXPECT_TRUE(bus.consume_for_component("consumer").empty());
+  EXPECT_EQ(bus.metrics("barrier").delivered_count, 0u);
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+  const auto messages = bus.consume_for_component("consumer");
+  ASSERT_EQ(messages.size(), 2u);
+  EXPECT_EQ(*messages[0].payload, "one");
+  EXPECT_EQ(*messages[1].payload, "two");
+  EXPECT_EQ(bus.metrics("barrier").delivered_count, 2u);
+}
+
 TEST(Channel, CopyPolicyRejectsLargePayloads) {
   auto spec = edge("frames");
   spec.policy.copy_policy = "copy";
@@ -55,3 +144,12 @@ TEST(Channel, CopyPolicyRejectsLargePayloads) {
   EXPECT_NE(result.reason.find("cannot copy large payload schema topoexec.runtime.BinaryBlob"), std::string::npos);
 }
 
+TEST(Channel, SharedAndLoanedViewDoNotCopyPayloads) {
+  for (const auto* copy_policy : {"shared_view", "loaned_view"}) {
+    auto spec = edge(std::string("frames_") + copy_policy);
+    spec.policy.copy_policy = copy_policy;
+    topoexec::RuntimeChannelBus bus({spec});
+    ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("payload")).accepted);
+    EXPECT_EQ(bus.metrics(spec.id).payload_copy_count, 0u);
+  }
+}
