@@ -238,6 +238,25 @@ TEST(Graph, NonImmediateFeedbackEdgesDoNotCreateImmediateSccs) {
   }
 }
 
+TEST(Graph, StateEdgesRejectMultipleWritersToSameTarget) {
+  const auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: state_conflict, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components:
+  - {id: left, type: topoexec.test.Left, event_sources: [{type: manual}], trigger_policy: {type: manual}, execution: {lane: main}}
+  - {id: right, type: topoexec.test.Right, event_sources: [{type: manual}], trigger_policy: {type: manual}, execution: {lane: main}}
+  - {id: sink, type: topoexec.test.Sink, event_sources: [{type: message, inputs: [state]}], trigger_policy: {type: any_input, inputs: [state]}, execution: {lane: main}}
+edges:
+  - {id: left_state, kind: state, from: left.out, to: sink.state, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: right_state, kind: state, from: right.out, to: sink.state, policy: {mode: latest, copy_policy: shared_view}}
+)");
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "state edge target has multiple writers: sink.state"));
+}
+
 TEST(Graph, BranchingImmediateDagRegionOrderIsDeterministic) {
   const auto graph = topoexec::load_graph_text(R"(
 schema_version: 1

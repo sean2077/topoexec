@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <variant>
+
 namespace {
 
 topoexec::EdgeSpec edge(std::string id, std::string mode = "latest", int capacity = 1) {
@@ -152,4 +154,26 @@ TEST(Channel, SharedAndLoanedViewDoNotCopyPayloads) {
     ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("payload")).accepted);
     EXPECT_EQ(bus.metrics(spec.id).payload_copy_count, 0u);
   }
+}
+
+TEST(Channel, LoanedViewPreservesLoanedFrameBufferWithoutCopying) {
+  auto spec = edge("loaned_frames");
+  spec.policy.copy_policy = "loaned_view";
+  topoexec::RuntimeChannelBus bus({spec});
+  topoexec::BufferPool pool;
+  auto loan = pool.loan_frame(32, 4, 4, 8, "gray8");
+  ASSERT_TRUE(loan.valid());
+  const auto* address = loan.view().payload_address();
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_frame_payload(loan.detach())).accepted);
+  const auto messages = bus.consume_for_component("consumer");
+
+  ASSERT_EQ(messages.size(), 1u);
+  const auto& payload = *messages.front().payload;
+  ASSERT_TRUE(std::holds_alternative<topoexec::FrameView>(payload.value));
+  const auto& frame = std::get<topoexec::FrameView>(payload.value);
+  EXPECT_TRUE(frame.valid());
+  EXPECT_EQ(frame.payload_address(), address);
+  EXPECT_EQ(bus.metrics("loaned_frames").payload_copy_count, 0u);
+  EXPECT_EQ(pool.stats().alloc_count, 1u);
 }

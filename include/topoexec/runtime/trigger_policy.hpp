@@ -51,6 +51,8 @@ private:
                                                       const SchedulerGroupConfig& lane, PendingMessages& pending);
   std::vector<Invocation> collect_all_inputs(const TickContext& context, const ComponentNodeSpec& component,
                                              const SchedulerGroupConfig& lane, PendingMessages& pending);
+  std::vector<Invocation> collect_time_sync(const TickContext& context, const ComponentNodeSpec& component,
+                                            const SchedulerGroupConfig& lane, PendingMessages& pending);
   std::vector<Invocation> collect_batch(const TickContext& context, const ComponentNodeSpec& component,
                                         const SchedulerGroupConfig& lane, PendingMessages& pending);
 

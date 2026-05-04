@@ -994,6 +994,7 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
   std::set<std::string> edge_ids;
   std::set<std::string> source_endpoints;
   std::set<std::string> target_endpoints;
+  std::map<std::string, std::vector<std::string>> state_writers_by_target;
   for (const auto& edge : graph.edges) {
     if (edge.id.empty()) {
       add_error(result, "edge id must not be empty");
@@ -1047,6 +1048,9 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
       add_error(result, "source endpoint has multiple producer-owned edges: " + edge.from);
     }
     target_endpoints.insert(edge.to);
+    if (edge.kind == EdgeKind::kState) {
+      state_writers_by_target[edge.to].push_back(edge.id);
+    }
 
     if (registry != nullptr && descriptors.count(from_component) != 0u) {
       const auto port = port_name_from_endpoint(edge.from);
@@ -1059,6 +1063,12 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
       if (!port.empty() && find_port(descriptors.at(to_component).inputs, port) == nullptr) {
         add_error(result, "edge " + edge.id + " references missing input port " + edge.to);
       }
+    }
+  }
+
+  for (const auto& [target, writers] : state_writers_by_target) {
+    if (writers.size() > 1u) {
+      add_error(result, "state edge target has multiple writers: " + target + " via " + join_ids(writers));
     }
   }
 

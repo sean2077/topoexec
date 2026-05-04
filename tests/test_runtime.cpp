@@ -913,6 +913,59 @@ TEST(Runtime, TimeSyncWaitsForInputsAndUsesTimeSyncTriggerKind) {
   EXPECT_TRUE(has_trigger_record(1, "join", topoexec::EventKind::kMessage, topoexec::TriggerKind::kTimeSync));
 }
 
+TEST(Runtime, TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign) {
+  reset_runtime_records();
+  topoexec::RuntimeChannelBus channels(
+      {runtime_edge("left_join", "left.out", "join.main"), runtime_edge("right_join", "right.out", "join.delayed")});
+  ASSERT_TRUE(channels.publish_from("left.out", topoexec::make_text_payload("left-old"),
+                                    topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 0))
+                  .accepted);
+  ASSERT_TRUE(channels.publish_from("right.out", topoexec::make_text_payload("right"),
+                                    topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 10000000))
+                  .accepted);
+
+  topoexec::GraphContext context;
+  context.channels = &channels;
+  context.component_id = "join";
+  DelayTargetComponent join;
+
+  topoexec::ComponentNodeSpec join_spec;
+  join_spec.id = "join";
+  join_spec.type = "topoexec.test.DelayTarget";
+  join_spec.event_sources = {topoexec::EventSourceSpec{}};
+  join_spec.event_sources.front().type = "message";
+  join_spec.event_sources.front().inputs = {"main", "delayed"};
+  join_spec.trigger_policy.type = "time_sync";
+  join_spec.trigger_policy.inputs = {"main", "delayed"};
+  join_spec.trigger_policy.sync_slop_ms = 5;
+  join_spec.execution.lane = "main";
+
+  topoexec::SchedulerGroupConfig lane;
+  lane.id = "main";
+  lane.type = "event_loop";
+  topoexec::EventRuntime runtime(&channels);
+  runtime.add_component({"join", &join, &context, join_spec, lane});
+
+  topoexec::SchedulerRunOptions options;
+  options.tick_iterations = 2;
+  options.after_iteration = [&](std::uint64_t iteration) {
+    if (iteration == 1u) {
+      const auto publish = channels.publish_from(
+          "left.out", topoexec::make_text_payload("left-aligned"),
+          topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 12000000));
+      ASSERT_TRUE(publish.accepted) << publish.reason;
+    }
+  };
+  const auto result = runtime.run(options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_FALSE(has_record(1, "join", "main"));
+  EXPECT_FALSE(has_record(1, "join", "delayed"));
+  EXPECT_TRUE(has_record(2, "join", "main", "left-aligned"));
+  EXPECT_TRUE(has_record(2, "join", "delayed", "right"));
+  EXPECT_TRUE(has_trigger_record(2, "join", topoexec::EventKind::kMessage, topoexec::TriggerKind::kTimeSync));
+}
+
 TEST(Runtime, BatchTriggerPreservesPartialBatchUntilThreshold) {
   const auto reg = delay_registry();
   const auto spec = batch_graph();
@@ -932,6 +985,69 @@ TEST(Runtime, BatchTriggerPreservesPartialBatchUntilThreshold) {
   result = runner.run(spec, options);
   ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
   EXPECT_TRUE(has_batch_record(3, "batch", {"tick-1", "tick-2", "tick-3"}));
+}
+
+TEST(Runtime, BatchTriggerFlushesPartialBatchAfterWindowExpires) {
+  auto make_runtime = [](topoexec::RuntimeChannelBus& channels, BatchTargetComponent& batch,
+                         topoexec::GraphContext& context, int batch_window_ms) {
+    context.channels = &channels;
+    context.component_id = "batch";
+
+    topoexec::ComponentNodeSpec batch_spec;
+    batch_spec.id = "batch";
+    batch_spec.type = "topoexec.test.BatchTarget";
+    batch_spec.event_sources = {topoexec::EventSourceSpec{}};
+    batch_spec.event_sources.front().type = "message";
+    batch_spec.event_sources.front().inputs = {"in"};
+    batch_spec.trigger_policy.type = "batch";
+    batch_spec.trigger_policy.inputs = {"in"};
+    batch_spec.trigger_policy.batch_size = 3;
+    batch_spec.trigger_policy.batch_window_ms = batch_window_ms;
+    batch_spec.execution.lane = "main";
+
+    topoexec::SchedulerGroupConfig lane;
+    lane.id = "main";
+    lane.type = "event_loop";
+    topoexec::EventRuntime runtime(&channels);
+    runtime.add_component({"batch", &batch, &context, batch_spec, lane});
+    return runtime;
+  };
+
+  {
+    reset_runtime_records();
+    topoexec::RuntimeChannelBus channels({runtime_edge("source_batch", "source.out", "batch.in")});
+    ASSERT_TRUE(channels.publish_from("source.out", topoexec::make_text_payload("one")).accepted);
+    ASSERT_TRUE(channels.publish_from("source.out", topoexec::make_text_payload("two")).accepted);
+    BatchTargetComponent batch;
+    topoexec::GraphContext context;
+    auto runtime = make_runtime(channels, batch, context, 1000);
+    topoexec::SchedulerRunOptions options;
+    options.tick_iterations = 1;
+
+    const auto result = runtime.run(options);
+
+    ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+    EXPECT_FALSE(has_component_record(1, "batch"));
+  }
+
+  {
+    reset_runtime_records();
+    topoexec::RuntimeChannelBus channels({runtime_edge("source_batch", "source.out", "batch.in")});
+    ASSERT_TRUE(channels.publish_from("source.out", topoexec::make_text_payload("one")).accepted);
+    ASSERT_TRUE(channels.publish_from("source.out", topoexec::make_text_payload("two")).accepted);
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    BatchTargetComponent batch;
+    topoexec::GraphContext context;
+    auto runtime = make_runtime(channels, batch, context, 1);
+    topoexec::SchedulerRunOptions options;
+    options.tick_iterations = 1;
+
+    const auto result = runtime.run(options);
+
+    ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+    EXPECT_TRUE(has_batch_record(1, "batch", {"one", "two"}));
+    EXPECT_TRUE(has_trigger_record(1, "batch", topoexec::EventKind::kMessage, topoexec::TriggerKind::kBatch));
+  }
 }
 
 TEST(Runtime, TimerTriggerRunsOncePerSimulatedStep) {

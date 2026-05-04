@@ -1,6 +1,7 @@
 #include "topoexec/runtime/trigger_policy.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <utility>
 
 namespace topoexec {
@@ -104,6 +105,36 @@ TriggerKind trigger_kind_for_policy(const TriggerPolicySpec& policy, EventKind e
   return TriggerKind::kManual;
 }
 
+bool messages_have_comparable_timestamps(
+    const std::vector<std::pair<std::string, RuntimeChannelMessage>>& messages) {
+  if (messages.empty() || !messages.front().second.event_timestamp.has_value()) {
+    return false;
+  }
+  const auto domain = messages.front().second.event_timestamp->domain;
+  return std::all_of(messages.begin(), messages.end(), [domain](const auto& item) {
+    return item.second.event_timestamp.has_value() && item.second.event_timestamp->domain == domain;
+  });
+}
+
+std::int64_t timestamp_slop_ns(const TriggerPolicySpec& policy) {
+  return static_cast<std::int64_t>(policy.sync_slop_ms) * 1000000LL;
+}
+
+std::optional<std::chrono::steady_clock::time_point> oldest_pending_batch_time(
+    const std::vector<std::string>& inputs, std::map<std::string, std::deque<RuntimeChannelMessage>>& pending) {
+  std::optional<std::chrono::steady_clock::time_point> oldest;
+  for (const auto& input : inputs) {
+    auto& queue = pending[input];
+    if (queue.empty()) {
+      continue;
+    }
+    if (!oldest.has_value() || queue.front().received_at < *oldest) {
+      oldest = queue.front().received_at;
+    }
+  }
+  return oldest;
+}
+
 TriggerPolicyEngine::TriggerPolicyEngine(RuntimeChannelBus* channels) : channels_(channels) {}
 
 Invocation TriggerPolicyEngine::timer_invocation_for(const TickContext& context, const ComponentNodeSpec& component,
@@ -152,8 +183,15 @@ std::vector<Invocation> TriggerPolicyEngine::collect_ready_invocations(const Tic
   if (rate_limited(component, context.started_at)) {
     return {};
   }
-  if (component.trigger_policy.type == "all_inputs" || component.trigger_policy.type == "time_sync") {
+  if (component.trigger_policy.type == "all_inputs") {
     auto invocations = collect_all_inputs(context, component, lane, pending);
+    if (!invocations.empty()) {
+      record_invocation(component, context.started_at);
+    }
+    return invocations;
+  }
+  if (component.trigger_policy.type == "time_sync") {
+    auto invocations = collect_time_sync(context, component, lane, pending);
     if (!invocations.empty()) {
       record_invocation(component, context.started_at);
     }
@@ -292,26 +330,83 @@ std::vector<Invocation> TriggerPolicyEngine::collect_all_inputs(const TickContex
                                    context, component, lane, messages)};
 }
 
+std::vector<Invocation> TriggerPolicyEngine::collect_time_sync(const TickContext& context,
+                                                               const ComponentNodeSpec& component,
+                                                               const SchedulerGroupConfig& lane,
+                                                               PendingMessages& pending) {
+  const auto inputs = trigger_policy_inputs_for(component);
+  const auto slop_ns = timestamp_slop_ns(component.trigger_policy);
+  while (true) {
+    std::vector<std::pair<std::string, RuntimeChannelMessage>> messages;
+    for (const auto& input : inputs) {
+      auto& queue = pending[input];
+      if (queue.empty()) {
+        return {};
+      }
+      messages.emplace_back(input, queue.front());
+    }
+
+    if (slop_ns <= 0 || !messages_have_comparable_timestamps(messages)) {
+      for (const auto& input : inputs) {
+        pending[input].pop_front();
+      }
+      return {invocation_from_messages(EventKind::kMessage, TriggerKind::kTimeSync, context, component, lane, messages)};
+    }
+
+    auto min_item = messages.begin();
+    auto max_item = messages.begin();
+    for (auto item = messages.begin(); item != messages.end(); ++item) {
+      if (item->second.event_timestamp->nanoseconds < min_item->second.event_timestamp->nanoseconds) {
+        min_item = item;
+      }
+      if (item->second.event_timestamp->nanoseconds > max_item->second.event_timestamp->nanoseconds) {
+        max_item = item;
+      }
+    }
+    if (max_item->second.event_timestamp->nanoseconds - min_item->second.event_timestamp->nanoseconds <= slop_ns) {
+      for (const auto& input : inputs) {
+        pending[input].pop_front();
+      }
+      return {invocation_from_messages(EventKind::kMessage, TriggerKind::kTimeSync, context, component, lane, messages)};
+    }
+    pending[min_item->first].pop_front();
+  }
+}
+
 std::vector<Invocation> TriggerPolicyEngine::collect_batch(const TickContext& context, const ComponentNodeSpec& component,
                                                            const SchedulerGroupConfig& lane, PendingMessages& pending) {
   const auto inputs = trigger_policy_inputs_for(component);
-  const auto batch_size = component.trigger_policy.batch_size <= 0 ? 1 : component.trigger_policy.batch_size;
+  const auto batch_size = component.trigger_policy.batch_size;
   std::size_t available = 0;
   for (const auto& input : inputs) {
     available += pending[input].size();
   }
-  if (available < static_cast<std::size_t>(batch_size)) {
+  if (available == 0u) {
     return {};
   }
+  std::size_t target_count = 0;
+  if (batch_size > 0 && available >= static_cast<std::size_t>(batch_size)) {
+    target_count = static_cast<std::size_t>(batch_size);
+  } else if (component.trigger_policy.batch_window_ms > 0) {
+    const auto oldest = oldest_pending_batch_time(inputs, pending);
+    if (oldest.has_value() &&
+        context.started_at - *oldest >= std::chrono::milliseconds(component.trigger_policy.batch_window_ms)) {
+      target_count = batch_size > 0 ? std::min<std::size_t>(available, static_cast<std::size_t>(batch_size)) : available;
+    }
+  }
+  if (target_count == 0u) {
+    return {};
+  }
+
   std::vector<std::pair<std::string, RuntimeChannelMessage>> messages;
   for (const auto& input : inputs) {
     auto& queue = pending[input];
-    while (!queue.empty() && static_cast<int>(messages.size()) < batch_size) {
+    while (!queue.empty() && messages.size() < target_count) {
       messages.emplace_back(input, queue.front());
       queue.pop_front();
     }
   }
-  if (messages.empty() || static_cast<int>(messages.size()) < batch_size) {
+  if (messages.empty()) {
     return {};
   }
   return {invocation_from_messages(EventKind::kMessage, TriggerKind::kBatch, context, component, lane, messages)};
