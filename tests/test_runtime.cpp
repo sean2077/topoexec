@@ -948,16 +948,20 @@ TEST(Runtime, TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign) {
 
   topoexec::SchedulerRunOptions options;
   options.tick_iterations = 2;
+  bool aligned_publish_accepted = false;
+  std::string aligned_publish_reason;
   options.after_iteration = [&](std::uint64_t iteration) {
     if (iteration == 1u) {
       const auto publish = channels.publish_from(
           "left.out", topoexec::make_text_payload("left-aligned"),
           topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 12000000));
-      ASSERT_TRUE(publish.accepted) << publish.reason;
+      aligned_publish_accepted = publish.accepted;
+      aligned_publish_reason = publish.reason;
     }
   };
   const auto result = runtime.run(options);
 
+  EXPECT_TRUE(aligned_publish_accepted) << aligned_publish_reason;
   ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
   EXPECT_FALSE(has_record(1, "join", "main"));
   EXPECT_FALSE(has_record(1, "join", "delayed"));

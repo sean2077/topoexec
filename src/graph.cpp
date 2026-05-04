@@ -938,6 +938,11 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
         has_message_event_source(component) && trigger_policy_inputs_for(component).empty()) {
       add_error(result, "component " + component.id + " trigger_policy requires at least one input");
     }
+    if (component.trigger_policy.batch_size < 0 || component.trigger_policy.batch_window_ms < 0 ||
+        component.trigger_policy.sync_slop_ms < 0 || component.trigger_policy.min_interval_ms < 0 ||
+        component.trigger_policy.max_latency_ms < 0) {
+      add_error(result, "component " + component.id + " trigger_policy numeric fields must be non-negative");
+    }
     if (component.trigger_policy.type == "batch" && component.trigger_policy.batch_size <= 0 &&
         component.trigger_policy.batch_window_ms <= 0) {
       add_error(result, "component " + component.id + " batch trigger_policy requires batch_size or batch_window_ms");

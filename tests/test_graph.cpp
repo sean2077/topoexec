@@ -149,6 +149,16 @@ TEST(Graph, MoveOnlyPolicyRequiresSingleReader) {
   EXPECT_TRUE(has_error_containing(result.errors, "move_only copy_policy requires readers: single"));
 }
 
+TEST(Graph, TriggerPolicyNumericFieldsMustBeNonNegative) {
+  auto graph = minimal_graph();
+  graph.components.back().trigger_policy.min_interval_ms = -1;
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "trigger_policy numeric fields must be non-negative"));
+}
+
 TEST(Graph, PartialCompositeLoopDeclarationIsRejected) {
   auto graph = topoexec::load_graph_text(R"(
 schema_version: 1
