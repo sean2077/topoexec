@@ -64,5 +64,4 @@ private:
   std::map<std::string, Histogram> histograms_;
 };
 
-}  // namespace topoexec
-
+} // namespace topoexec

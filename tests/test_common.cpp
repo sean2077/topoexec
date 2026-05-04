@@ -43,4 +43,3 @@ TEST(Common, TraceCollectorRecordsScopedSpan) {
   EXPECT_EQ(spans.front().name, "work");
   EXPECT_GT(spans.front().duration().count(), 0);
 }
-

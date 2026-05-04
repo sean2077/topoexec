@@ -66,5 +66,4 @@ bool operator!=(const RuntimePayload& lhs, const std::string& rhs);
 bool operator!=(const std::string& lhs, const RuntimePayload& rhs);
 std::ostream& operator<<(std::ostream& out, const RuntimePayload& payload);
 
-}  // namespace topoexec
-
+} // namespace topoexec

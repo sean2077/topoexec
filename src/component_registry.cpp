@@ -52,5 +52,4 @@ std::vector<std::string> ComponentRegistry::types() const {
   return values;
 }
 
-}  // namespace topoexec
-
+} // namespace topoexec

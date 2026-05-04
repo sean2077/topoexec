@@ -134,4 +134,4 @@ private:
   SchedulerMetrics metrics_;
 };
 
-}  // namespace topoexec
+} // namespace topoexec

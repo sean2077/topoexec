@@ -21,7 +21,8 @@ std::string to_string(LogLevel level) {
 }
 
 std::string to_json_line(const LogRecord& record) {
-  const auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(record.timestamp.time_since_epoch()).count();
+  const auto millis =
+      std::chrono::duration_cast<std::chrono::milliseconds>(record.timestamp.time_since_epoch()).count();
   nlohmann::json value;
   value["timestamp_ms"] = millis;
   value["level"] = to_string(record.level);
@@ -108,5 +109,4 @@ ScopeTimer::~ScopeTimer() {
   logger_.log(LogLevel::kDebug, event_, "scope finished", {{"duration_us", std::to_string(micros)}});
 }
 
-}  // namespace topoexec
-
+} // namespace topoexec

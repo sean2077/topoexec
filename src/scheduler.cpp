@@ -68,7 +68,8 @@ std::size_t SchedulerRegistry::size() const {
   return groups_.size();
 }
 
-void SchedulerMetricsTracker::observe_tick(const SchedulerGroupConfig&, std::chrono::steady_clock::time_point scheduled_at,
+void SchedulerMetricsTracker::observe_tick(const SchedulerGroupConfig&,
+                                           std::chrono::steady_clock::time_point scheduled_at,
                                            std::chrono::steady_clock::time_point started_at,
                                            std::chrono::steady_clock::duration callback_duration) {
   metrics_.tick_jitter_ms = std::chrono::duration<double, std::milli>(started_at - scheduled_at).count();
@@ -106,4 +107,4 @@ const SchedulerMetrics& SchedulerMetricsTracker::metrics() const {
   return metrics_;
 }
 
-}  // namespace topoexec
+} // namespace topoexec

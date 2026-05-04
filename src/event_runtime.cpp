@@ -35,7 +35,7 @@ bool loop_policy_converged_after_iteration(const LoopPolicySpec& policy) {
 
 constexpr std::size_t kDefaultRunUntilIdleIterationBound = 1000u;
 
-}  // namespace
+} // namespace
 
 EventRuntime::EventRuntime(RuntimeChannelBus* channels) : channels_(channels) {}
 EventRuntime::EventRuntime(RuntimeChannelBus* channels, GraphCompiledPlan compiled_plan)
@@ -95,8 +95,8 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       result.stop_reason = SchedulerStopReason::kStopRequested;
       break;
     }
-    if (options.run_duration_ms > 0u && std::chrono::steady_clock::now() - started_at >=
-                                             std::chrono::milliseconds(options.run_duration_ms)) {
+    if (options.run_duration_ms > 0u &&
+        std::chrono::steady_clock::now() - started_at >= std::chrono::milliseconds(options.run_duration_ms)) {
       result.stop_reason = SchedulerStopReason::kDurationBound;
       break;
     }
@@ -179,9 +179,8 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
             ++result.loop_converged_count[region.id];
             break;
           }
-          if (region.loop_policy.budget_ms > 0 &&
-              std::chrono::steady_clock::now() - loop_started_at >=
-                  std::chrono::milliseconds(region.loop_policy.budget_ms)) {
+          if (region.loop_policy.budget_ms > 0 && std::chrono::steady_clock::now() - loop_started_at >=
+                                                      std::chrono::milliseconds(region.loop_policy.budget_ms)) {
             budget_overrun = true;
             ++result.loop_budget_overrun_count[region.id];
             break;
@@ -231,4 +230,4 @@ std::size_t EventRuntime::component_count() const {
   return components_.size();
 }
 
-}  // namespace topoexec
+} // namespace topoexec

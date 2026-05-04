@@ -111,5 +111,4 @@ std::vector<MetricSample> MetricRegistry::snapshot() const {
   return samples;
 }
 
-}  // namespace topoexec
-
+} // namespace topoexec

@@ -36,5 +36,4 @@ std::string timestamp_domain_name(TimestampDomain domain) {
   return "unknown";
 }
 
-}  // namespace topoexec
-
+} // namespace topoexec

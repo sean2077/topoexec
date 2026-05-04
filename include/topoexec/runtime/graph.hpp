@@ -203,4 +203,4 @@ std::string graph_plan_text(const GraphSpec& graph, const GraphCompiledPlan& pla
 std::string graph_plan_json(const GraphSpec& graph, const GraphCompiledPlan& plan);
 std::string graph_mermaid(const GraphSpec& graph, const GraphCompiledPlan& plan);
 
-}  // namespace topoexec
+} // namespace topoexec

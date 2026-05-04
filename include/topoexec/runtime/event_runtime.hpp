@@ -41,4 +41,4 @@ private:
   std::vector<EventRuntimeComponent> components_;
 };
 
-}  // namespace topoexec
+} // namespace topoexec

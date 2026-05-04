@@ -89,7 +89,8 @@ topoexec::ComponentRegistry registry() {
   topoexec::ComponentRegistry registry;
   registry.register_component({"topoexec.app.LoopSource"}, []() { return std::make_unique<SourceComponent>(); });
   registry.register_component({"topoexec.app.LoopEstimator"}, []() { return std::make_unique<EstimatorComponent>(); });
-  registry.register_component({"topoexec.app.LoopController"}, []() { return std::make_unique<ControllerComponent>(); });
+  registry.register_component({"topoexec.app.LoopController"},
+                              []() { return std::make_unique<ControllerComponent>(); });
   registry.register_component({"topoexec.app.LoopSink"}, []() { return std::make_unique<SinkComponent>(); });
   return registry;
 }
@@ -116,7 +117,7 @@ composite_loops:
 )");
 }
 
-}  // namespace
+} // namespace
 
 int main() {
   const auto components = registry();

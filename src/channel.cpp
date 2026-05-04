@@ -80,7 +80,8 @@ TimestampDomain timestamp_domain_from_string(const std::string& value) {
 }
 
 bool is_latest_style(ChannelType type) {
-  return type == ChannelType::kLatestOnly || type == ChannelType::kLatchedSnapshot || type == ChannelType::kPreviousTick;
+  return type == ChannelType::kLatestOnly || type == ChannelType::kLatchedSnapshot ||
+         type == ChannelType::kPreviousTick;
 }
 
 std::string large_payload_copy_reason(const RuntimePayload& payload) {
@@ -98,7 +99,7 @@ void record_trace_event(TraceCollector* trace, const std::string& name) {
   trace->add(SpanRecord{TraceId::generate(), name, now, now});
 }
 
-}  // namespace
+} // namespace
 
 RuntimeChannelPublishResult RuntimeChannelPublicationStage::stage(RuntimeChannelPublication publication) {
   std::lock_guard lock(mutex_);
@@ -203,7 +204,8 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_shared_from(const std::st
   return last;
 }
 
-RuntimeChannelPublishResult RuntimeChannelBus::publish_batch(const std::vector<RuntimeChannelPublication>& publications) {
+RuntimeChannelPublishResult
+RuntimeChannelBus::publish_batch(const std::vector<RuntimeChannelPublication>& publications) {
   for (const auto& publication : publications) {
     RuntimeChannelPublishResult result;
     if (publication.target == RuntimeChannelPublishTarget::kChannel) {
@@ -362,9 +364,8 @@ std::uint64_t RuntimeChannelBus::update_sequence() const {
 bool RuntimeChannelBus::wait_for_update(std::uint64_t last_seen, std::chrono::milliseconds timeout,
                                         const std::function<bool()>& stop_requested) {
   std::unique_lock lock(mutex_);
-  return update_available_.wait_for(lock, timeout, [&]() {
-    return update_sequence_ != last_seen || (stop_requested && stop_requested());
-  });
+  return update_available_.wait_for(
+      lock, timeout, [&]() { return update_sequence_ != last_seen || (stop_requested && stop_requested()); });
 }
 
 RuntimeChannelPublishResult RuntimeChannelBus::prepare_payload_for_state(ChannelState& state, RuntimePayloadPtr source,
@@ -427,7 +428,8 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
       }
     }
     ++state.metrics.published_count;
-    state.metrics.depth = is_latest_style(state.config.type) ? (state.latest.has_value() ? 1u : 0u) : state.queue.size();
+    state.metrics.depth =
+        is_latest_style(state.config.type) ? (state.latest.has_value() ? 1u : 0u) : state.queue.size();
     state.metrics.max_depth = std::max(state.metrics.max_depth, state.metrics.depth);
     ++update_sequence_;
     update_available_.notify_all();
@@ -452,7 +454,7 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
 }
 
 std::optional<RuntimeChannelMessage> RuntimeChannelBus::consume_latest_from_state(ChannelState& state,
-                                                                                 const std::string& reader_id) {
+                                                                                  const std::string& reader_id) {
   if (!state.latest.has_value()) {
     return std::nullopt;
   }
@@ -538,13 +540,15 @@ RuntimeChannelPublishResult RuntimePublicationRouter::commit_composite_region_ou
   return commit_batch(std::move(immediate_publications));
 }
 
-RuntimeChannelPublishResult RuntimePublicationRouter::publish_from(
-    const std::string& source_endpoint, RuntimePayload payload, std::optional<EventTimestamp> event_timestamp) {
+RuntimeChannelPublishResult RuntimePublicationRouter::publish_from(const std::string& source_endpoint,
+                                                                   RuntimePayload payload,
+                                                                   std::optional<EventTimestamp> event_timestamp) {
   return publish_shared_from(source_endpoint, make_shared_payload(std::move(payload)), std::move(event_timestamp));
 }
 
-RuntimeChannelPublishResult RuntimePublicationRouter::publish_shared_from(
-    const std::string& source_endpoint, RuntimePayloadPtr payload, std::optional<EventTimestamp> event_timestamp) {
+RuntimeChannelPublishResult
+RuntimePublicationRouter::publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
+                                              std::optional<EventTimestamp> event_timestamp) {
   if (payload == nullptr) {
     return {false, "payload must not be null"};
   }
@@ -625,8 +629,8 @@ RuntimePublicationRouterMetrics RuntimePublicationRouter::metrics() const {
   return metrics_;
 }
 
-RuntimeChannelPublishResult RuntimePublicationRouter::commit_batch(
-    std::vector<RuntimeChannelPublication> publications) {
+RuntimeChannelPublishResult
+RuntimePublicationRouter::commit_batch(std::vector<RuntimeChannelPublication> publications) {
   if (publications.empty()) {
     return {true, {}};
   }
@@ -648,4 +652,4 @@ RuntimeChannelPublishResult RuntimePublicationRouter::commit_batch(
   return result;
 }
 
-}  // namespace topoexec
+} // namespace topoexec

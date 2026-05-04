@@ -80,5 +80,4 @@ private:
   BufferPoolStats stats_;
 };
 
-}  // namespace topoexec
-
+} // namespace topoexec

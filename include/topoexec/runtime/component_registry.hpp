@@ -35,5 +35,4 @@ private:
   std::map<std::string, ComponentFactory> factories_;
 };
 
-}  // namespace topoexec
-
+} // namespace topoexec

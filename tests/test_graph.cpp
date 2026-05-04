@@ -50,12 +50,10 @@ std::vector<std::string> sorted(std::vector<std::string> values) {
 
 bool contains_set(const std::vector<std::vector<std::string>>& sets, std::vector<std::string> expected) {
   expected = sorted(std::move(expected));
-  return std::any_of(sets.begin(), sets.end(), [&expected](const auto& value) {
-    return sorted(value) == expected;
-  });
+  return std::any_of(sets.begin(), sets.end(), [&expected](const auto& value) { return sorted(value) == expected; });
 }
 
-}  // namespace
+} // namespace
 
 TEST(Graph, LoadsAndValidatesSchemaVersionOne) {
   const auto graph = minimal_graph();
@@ -67,15 +65,14 @@ TEST(Graph, LoadsAndValidatesSchemaVersionOne) {
 }
 
 TEST(Graph, RejectsUnknownRootFields) {
-  EXPECT_THROW(
-      (void)topoexec::load_graph_text(R"(
+  EXPECT_THROW((void)topoexec::load_graph_text(R"(
 graph_version: 2
 graph: {name: invalid, kind: runnable}
 lanes: {main: {type: event_loop}}
 components: []
 edges: []
 )"),
-      std::invalid_argument);
+               std::invalid_argument);
 }
 
 TEST(Graph, ImmediateCycleRequiresCompositeLoop) {
@@ -180,9 +177,8 @@ composite_loops:
   const auto result = topoexec::validate_graph_structure(graph);
   EXPECT_FALSE(result.ok);
   EXPECT_TRUE(has_error_containing(result.errors, "immediate cycle detected among components a,b,c"));
-  EXPECT_TRUE(has_error_containing(
-      result.errors, "composite_loop partial must exactly match one immediate "
-                     "cyclic strongly connected component"));
+  EXPECT_TRUE(has_error_containing(result.errors, "composite_loop partial must exactly match one immediate "
+                                                  "cyclic strongly connected component"));
 }
 
 TEST(Graph, OverlappingImmediateCyclesCollapseIntoOneCompositeLoopRegion) {
@@ -214,12 +210,10 @@ composite_loops:
   EXPECT_EQ(result.compiled_plan.component_region.at("a"), "abc_loop");
   EXPECT_EQ(result.compiled_plan.component_region.at("b"), "abc_loop");
   EXPECT_EQ(result.compiled_plan.component_region.at("c"), "abc_loop");
-  const auto loop_region = std::find_if(
-      result.compiled_plan.regions.begin(), result.compiled_plan.regions.end(),
-      [](const auto& region) { return region.id == "abc_loop"; });
+  const auto loop_region = std::find_if(result.compiled_plan.regions.begin(), result.compiled_plan.regions.end(),
+                                        [](const auto& region) { return region.id == "abc_loop"; });
   ASSERT_NE(loop_region, result.compiled_plan.regions.end());
-  EXPECT_EQ(sorted(loop_region->components),
-            std::vector<std::string>({"a", "b", "c"}));
+  EXPECT_EQ(sorted(loop_region->components), std::vector<std::string>({"a", "b", "c"}));
   EXPECT_EQ(result.compiled_plan.region_order, std::vector<std::string>({"abc_loop", "d"}));
 }
 

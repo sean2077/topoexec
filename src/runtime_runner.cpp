@@ -57,11 +57,11 @@ void copy_dry_run_to_runner(const GraphDryRunResult& dry_run, RuntimeRunnerResul
 
 void append_runtime_metric(RuntimeRunnerResult& result, std::string name, double value, std::string component_id = {},
                            std::string lane = {}, std::string channel_id = {}) {
-  result.runtime_metrics.push_back(RuntimeMetricSample{std::move(name), value, std::move(component_id),
-                                                       std::move(lane), std::move(channel_id), {}});
+  result.runtime_metrics.push_back(
+      RuntimeMetricSample{std::move(name), value, std::move(component_id), std::move(lane), std::move(channel_id), {}});
 }
 
-}  // namespace
+} // namespace
 
 std::string to_string(RuntimeRunMode mode) {
   switch (mode) {
@@ -137,10 +137,10 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     EventRuntime runtime(&channels, result.validation.compiled_plan, &publications);
     runtime.set_trace_collector(&trace);
     for (const auto& spec : graph.components) {
-      auto instance = std::find_if(instances.begin(), instances.end(),
-                                   [&spec](const auto& item) { return item.id == spec.id; });
-      runtime.add_component(
-          EventRuntimeComponent{spec.id, instance->component.get(), &instance->context, spec, lanes.at(spec.execution.lane)});
+      auto instance =
+          std::find_if(instances.begin(), instances.end(), [&spec](const auto& item) { return item.id == spec.id; });
+      runtime.add_component(EventRuntimeComponent{spec.id, instance->component.get(), &instance->context, spec,
+                                                  lanes.at(spec.execution.lane)});
     }
     SchedulerRunOptions run_options;
     run_options.tick_iterations = options.tick_iterations;
@@ -148,7 +148,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     run_options.run_until_idle = options.run_until_idle;
     run_options.stop_token = options.stop_token;
     run_options.pending_task_cleanup_timeout = options.pending_task_cleanup_timeout;
-    run_options.max_recorded_ticked_tasks = graph.components.size() * std::max<std::size_t>(1u, options.tick_iterations);
+    run_options.max_recorded_ticked_tasks =
+        graph.components.size() * std::max<std::size_t>(1u, options.tick_iterations);
     const auto run_result = runtime.run(run_options);
     result.ok = run_result.ok;
     result.scheduler_stop_reason = run_result.stop_reason;
@@ -213,8 +214,10 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                           static_cast<double>(publication_metrics.committed_count));
     append_runtime_metric(result, "runtime.publication.delayed",
                           static_cast<double>(publication_metrics.delayed_staged_count));
-    append_runtime_metric(result, "runtime.publication.state", static_cast<double>(publication_metrics.state_staged_count));
-    append_runtime_metric(result, "runtime.publication.async", static_cast<double>(publication_metrics.async_staged_count));
+    append_runtime_metric(result, "runtime.publication.state",
+                          static_cast<double>(publication_metrics.state_staged_count));
+    append_runtime_metric(result, "runtime.publication.async",
+                          static_cast<double>(publication_metrics.async_staged_count));
     append_runtime_metric(result, "runtime.publication.failed_commit",
                           static_cast<double>(publication_metrics.failed_commit_count));
     for (const auto& sample : metrics.snapshot()) {
@@ -233,4 +236,4 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   return result;
 }
 
-}  // namespace topoexec
+} // namespace topoexec

@@ -75,4 +75,4 @@ private:
   const ComponentRegistry& registry_;
 };
 
-}  // namespace topoexec
+} // namespace topoexec

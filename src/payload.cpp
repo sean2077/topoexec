@@ -124,5 +124,4 @@ std::ostream& operator<<(std::ostream& out, const RuntimePayload& payload) {
   return out << payload.schema;
 }
 
-}  // namespace topoexec
-
+} // namespace topoexec

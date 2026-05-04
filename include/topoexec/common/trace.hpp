@@ -56,5 +56,4 @@ private:
   std::chrono::steady_clock::time_point started_at_;
 };
 
-}  // namespace topoexec
-
+} // namespace topoexec

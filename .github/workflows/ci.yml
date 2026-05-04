@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    name: ${{ matrix.compiler }} / ${{ matrix.build_type }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc
+            cxx: g++
+            build_type: Debug
+          - compiler: gcc
+            cxx: g++
+            build_type: RelWithDebInfo
+          - compiler: clang
+            cxx: clang++
+            build_type: Debug
+          - compiler: clang
+            cxx: clang++
+            build_type: RelWithDebInfo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            g++ \
+            libcli11-dev \
+            libyaml-cpp-dev \
+            ninja-build \
+            nlohmann-json3-dev \
+            pkg-config
+
+      - name: Configure, build, and test
+        env:
+          CXX: ${{ matrix.cxx }}
+          TOPOEXEC_BUILD_DIR: build-${{ matrix.compiler }}-${{ matrix.build_type }}
+          TOPOEXEC_BUILD_TYPE: ${{ matrix.build_type }}
+        run: ./scripts/agent_check.sh

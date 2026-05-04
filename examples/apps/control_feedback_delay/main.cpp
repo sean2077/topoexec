@@ -151,7 +151,7 @@ bool saw_delayed_correction_in_second_epoch() {
   return false;
 }
 
-}  // namespace
+} // namespace
 
 int main() {
   observations().clear();

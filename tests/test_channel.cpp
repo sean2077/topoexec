@@ -20,7 +20,7 @@ topoexec::EdgeSpec edge(std::string id, std::string mode = "latest", int capacit
   return spec;
 }
 
-}  // namespace
+} // namespace
 
 TEST(Channel, LatestChannelDeliversOnlyNewestPayload) {
   topoexec::RuntimeChannelBus bus({edge("frames")});
@@ -140,8 +140,7 @@ TEST(Channel, CopyPolicyRejectsLargePayloads) {
   spec.policy.copy_policy = "copy";
   topoexec::RuntimeChannelBus bus({spec});
   auto buffer = std::make_shared<const topoexec::SharedBuffer>(32);
-  const auto result =
-      bus.publish_from("producer.out", topoexec::make_binary_blob_payload(buffer, 0, 32, "bytes"));
+  const auto result = bus.publish_from("producer.out", topoexec::make_binary_blob_payload(buffer, 0, 32, "bytes"));
   EXPECT_FALSE(result.accepted);
   EXPECT_NE(result.reason.find("cannot copy large payload schema topoexec.runtime.BinaryBlob"), std::string::npos);
 }

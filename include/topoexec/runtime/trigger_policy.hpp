@@ -62,4 +62,4 @@ private:
   std::map<std::string, std::chrono::steady_clock::time_point> last_invoked_;
 };
 
-}  // namespace topoexec
+} // namespace topoexec

@@ -308,9 +308,9 @@ public:
   void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
     record_invocation(invocation, context);
     for (int index = 1; index <= 3; ++index) {
-      const auto result = context.publish(
-          "out", topoexec::make_text_payload("burst-" + std::to_string(invocation.sequence) + "-" +
-                                             std::to_string(index)));
+      const auto result =
+          context.publish("out", topoexec::make_text_payload("burst-" + std::to_string(invocation.sequence) + "-" +
+                                                             std::to_string(index)));
       if (!result.accepted) {
         throw std::runtime_error(result.reason);
       }
@@ -375,7 +375,8 @@ public:
     if (invocation.payload == nullptr) {
       return;
     }
-    const auto command = context.publish("command", topoexec::make_text_payload("command:" + invocation.payload->text()));
+    const auto command =
+        context.publish("command", topoexec::make_text_payload("command:" + invocation.payload->text()));
     if (!command.accepted) {
       throw std::runtime_error(command.reason);
     }
@@ -424,7 +425,8 @@ topoexec::ComponentRegistry delay_registry() {
   registry.register_component({"topoexec.test.BatchTarget"}, []() { return std::make_unique<BatchTargetComponent>(); });
   registry.register_component({"topoexec.test.TimerRecord"}, []() { return std::make_unique<TimerRecordComponent>(); });
   registry.register_component({"topoexec.test.BurstSource"}, []() { return std::make_unique<BurstSourceComponent>(); });
-  registry.register_component({"topoexec.test.LoopEstimator"}, []() { return std::make_unique<LoopEstimatorComponent>(); });
+  registry.register_component({"topoexec.test.LoopEstimator"},
+                              []() { return std::make_unique<LoopEstimatorComponent>(); });
   registry.register_component({"topoexec.test.SlowLoopEstimator"},
                               []() { return std::make_unique<SlowLoopEstimatorComponent>(); });
   registry.register_component({"topoexec.test.LoopController"},
@@ -732,7 +734,7 @@ edges: []
 )");
 }
 
-}  // namespace
+} // namespace
 
 TEST(Runtime, StaticRegistryValidationAndDryRunPass) {
   const auto reg = registry();
@@ -917,11 +919,13 @@ TEST(Runtime, TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign) {
   reset_runtime_records();
   topoexec::RuntimeChannelBus channels(
       {runtime_edge("left_join", "left.out", "join.main"), runtime_edge("right_join", "right.out", "join.delayed")});
-  ASSERT_TRUE(channels.publish_from("left.out", topoexec::make_text_payload("left-old"),
-                                    topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 0))
+  ASSERT_TRUE(channels
+                  .publish_from("left.out", topoexec::make_text_payload("left-old"),
+                                topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 0))
                   .accepted);
-  ASSERT_TRUE(channels.publish_from("right.out", topoexec::make_text_payload("right"),
-                                    topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 10000000))
+  ASSERT_TRUE(channels
+                  .publish_from("right.out", topoexec::make_text_payload("right"),
+                                topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 10000000))
                   .accepted);
 
   topoexec::GraphContext context;
@@ -952,9 +956,9 @@ TEST(Runtime, TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign) {
   std::string aligned_publish_reason;
   options.after_iteration = [&](std::uint64_t iteration) {
     if (iteration == 1u) {
-      const auto publish = channels.publish_from(
-          "left.out", topoexec::make_text_payload("left-aligned"),
-          topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 12000000));
+      const auto publish =
+          channels.publish_from("left.out", topoexec::make_text_payload("left-aligned"),
+                                topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 12000000));
       aligned_publish_accepted = publish.accepted;
       aligned_publish_reason = publish.reason;
     }

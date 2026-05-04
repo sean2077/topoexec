@@ -32,7 +32,7 @@ std::string join_payloads(const std::vector<topoexec::RuntimeChannelMessage>& me
   return output;
 }
 
-}  // namespace
+} // namespace
 
 int main() {
   topoexec::RuntimeChannelBus latest({edge("latest_frames", "latest", 1, "overwrite")});

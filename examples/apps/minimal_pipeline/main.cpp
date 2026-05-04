@@ -129,7 +129,7 @@ std::string join(const std::vector<std::string>& values) {
   return output;
 }
 
-}  // namespace
+} // namespace
 
 int main() {
   state() = {};

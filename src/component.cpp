@@ -105,5 +105,4 @@ void Component::execute(const Invocation&, GraphContext&) {
   throw std::logic_error("component does not implement execute");
 }
 
-}  // namespace topoexec
-
+} // namespace topoexec

@@ -131,8 +131,9 @@ public:
                                              std::optional<EventTimestamp> event_timestamp = std::nullopt);
   RuntimeChannelPublishResult publish_from(const std::string& source_endpoint, RuntimePayload payload,
                                            std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
-  RuntimeChannelPublishResult publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
-                                                  std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+  RuntimeChannelPublishResult
+  publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
+                      std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
   RuntimeChannelPublishResult publish_batch(const std::vector<RuntimeChannelPublication>& publications);
   void advance_epoch();
 
@@ -191,8 +192,9 @@ public:
 
   RuntimeChannelPublishResult publish_from(const std::string& source_endpoint, RuntimePayload payload,
                                            std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
-  RuntimeChannelPublishResult publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
-                                                  std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+  RuntimeChannelPublishResult
+  publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
+                      std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
 
   RuntimeChannelPublishResult begin_epoch();
   RuntimeChannelPublishResult commit_immediate();
@@ -226,4 +228,4 @@ private:
   mutable std::mutex mutex_;
 };
 
-}  // namespace topoexec
+} // namespace topoexec

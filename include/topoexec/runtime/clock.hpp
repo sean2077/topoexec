@@ -28,5 +28,4 @@ inline EventTimestamp make_event_timestamp(TimestampDomain domain, std::int64_t 
   return EventTimestamp{domain, nanoseconds, std::move(source)};
 }
 
-}  // namespace topoexec
-
+} // namespace topoexec

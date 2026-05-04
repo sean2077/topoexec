@@ -6,9 +6,9 @@
 #include <chrono>
 #include <cstdint>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <map>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -118,16 +118,14 @@ topoexec::ComponentRegistry demo_registry() {
   register_demo_component(
       registry, descriptor("topoexec.boundary.Output", topoexec::ComponentRole::kOutputBoundary, {text_in}, {}),
       DemoBehavior::kSink);
-  register_demo_component(
-      registry,
-      descriptor("topoexec.boundary.FrameInput", topoexec::ComponentRole::kInputBoundary, {},
-                 {{"out", topoexec::kFrameViewPayloadSchema}}),
-      DemoBehavior::kLargeSource);
-  register_demo_component(
-      registry,
-      descriptor("topoexec.boundary.BinaryInput", topoexec::ComponentRole::kInputBoundary, {},
-                 {{"out", topoexec::kBinaryBlobPayloadSchema}}),
-      DemoBehavior::kLargeSource);
+  register_demo_component(registry,
+                          descriptor("topoexec.boundary.FrameInput", topoexec::ComponentRole::kInputBoundary, {},
+                                     {{"out", topoexec::kFrameViewPayloadSchema}}),
+                          DemoBehavior::kLargeSource);
+  register_demo_component(registry,
+                          descriptor("topoexec.boundary.BinaryInput", topoexec::ComponentRole::kInputBoundary, {},
+                                     {{"out", topoexec::kBinaryBlobPayloadSchema}}),
+                          DemoBehavior::kLargeSource);
 
   register_demo_component(
       registry, descriptor("topoexec.example.Sensor", topoexec::ComponentRole::kInputBoundary, {}, {text_out}),
@@ -144,11 +142,10 @@ topoexec::ComponentRegistry demo_registry() {
                  {{"estimate", topoexec::kTextPayloadSchema}},
                  {{"command", topoexec::kTextPayloadSchema}, {"correction", topoexec::kTextPayloadSchema}}),
       DemoBehavior::kController);
-  register_demo_component(
-      registry,
-      descriptor("topoexec.example.Actuator", topoexec::ComponentRole::kOutputBoundary,
-                 {{"command", topoexec::kTextPayloadSchema}}, {}),
-      DemoBehavior::kSink);
+  register_demo_component(registry,
+                          descriptor("topoexec.example.Actuator", topoexec::ComponentRole::kOutputBoundary,
+                                     {{"command", topoexec::kTextPayloadSchema}}, {}),
+                          DemoBehavior::kSink);
   return registry;
 }
 
@@ -189,8 +186,7 @@ std::string port_name_from_endpoint(const std::string& endpoint) {
   return endpoint.substr(dot + 1);
 }
 
-const topoexec::PortDescriptor* find_port(const std::vector<topoexec::PortDescriptor>& ports,
-                                          const std::string& name) {
+const topoexec::PortDescriptor* find_port(const std::vector<topoexec::PortDescriptor>& ports, const std::string& name) {
   const auto found = std::find_if(ports.begin(), ports.end(), [&](const auto& port) { return port.name == name; });
   if (found == ports.end()) {
     return nullptr;
@@ -362,17 +358,17 @@ std::vector<LintFinding> lint_graph(const topoexec::GraphSpec& graph,
       const auto lane_id = component_lane[target_component];
       const auto lane = lanes.find(lane_id);
       if (lane != lanes.end() && lane->second.type == "event_loop") {
-        findings.push_back(
-            {"warning", "blocking_overflow_event_loop", "blocking overflow can stall a single-thread event_loop", edge.id});
+        findings.push_back({"warning", "blocking_overflow_event_loop",
+                            "blocking overflow can stall a single-thread event_loop", edge.id});
       }
     }
     if (edge.kind == topoexec::EdgeKind::kAsync && edge.policy.capacity <= 1) {
-      findings.push_back({"info", "async_capacity", "async edge uses capacity <= 1; excess completions may be dropped",
-                          edge.id});
+      findings.push_back(
+          {"info", "async_capacity", "async edge uses capacity <= 1; excess completions may be dropped", edge.id});
     }
     if (edge.kind == topoexec::EdgeKind::kDelay) {
-      findings.push_back({"info", "delay_epoch_boundary", "delay edge becomes visible at the next epoch boundary",
-                          edge.id});
+      findings.push_back(
+          {"info", "delay_epoch_boundary", "delay edge becomes visible at the next epoch boundary", edge.id});
     }
     if (edge.kind == topoexec::EdgeKind::kState) {
       ++state_writers[edge.to];
@@ -412,14 +408,12 @@ std::vector<LintFinding> lint_graph(const topoexec::GraphSpec& graph,
 int print_lint_findings(const std::vector<LintFinding>& findings, const std::string& format) {
   if (format == "json") {
     nlohmann::json value;
-    value["ok"] = std::none_of(findings.begin(), findings.end(),
-                                [](const auto& finding) { return finding.severity == "error"; });
+    value["ok"] =
+        std::none_of(findings.begin(), findings.end(), [](const auto& finding) { return finding.severity == "error"; });
     value["findings"] = nlohmann::json::array();
     for (const auto& finding : findings) {
-      value["findings"].push_back({{"severity", finding.severity},
-                                   {"rule", finding.rule},
-                                   {"message", finding.message},
-                                   {"id", finding.id}});
+      value["findings"].push_back(
+          {{"severity", finding.severity}, {"rule", finding.rule}, {"message", finding.message}, {"id", finding.id}});
     }
     std::cout << value.dump(2) << "\n";
   } else {
@@ -543,7 +537,7 @@ int print_bench_result(const std::string& path, std::size_t steps, std::size_t r
   return errors.empty() ? 0 : 1;
 }
 
-}  // namespace
+} // namespace
 
 int main(int argc, char** argv) {
   CLI::App app{"TopoExec graph tooling"};
@@ -591,7 +585,8 @@ int main(int argc, char** argv) {
   metrics->add_option("file", metrics_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
   metrics->add_option("--steps", metrics_steps, "Bounded event-loop steps");
   metrics->add_option("--duration-ms", metrics_duration_ms, "Optional duration bound in milliseconds");
-  metrics->add_flag("--until-idle", metrics_until_idle, "Stop early after an event-loop iteration executes no components");
+  metrics->add_flag("--until-idle", metrics_until_idle,
+                    "Stop early after an event-loop iteration executes no components");
   metrics->add_option("--format", metrics_format, "Output format")->check(CLI::IsMember({"text", "json"}));
 
   std::string trace_path;

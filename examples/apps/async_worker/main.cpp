@@ -136,7 +136,7 @@ std::size_t async_drop_count(const topoexec::RuntimeRunnerResult& result) {
   return 0u;
 }
 
-}  // namespace
+} // namespace
 
 int main() {
   records().clear();
@@ -158,8 +158,8 @@ int main() {
   }
   const auto async_drops = async_drop_count(result);
   if (async_drops != 1u) {
-    std::cerr << "error: async drop_oldest policy did not drop exactly one stale completion; got "
-              << async_drops << "\n";
+    std::cerr << "error: async drop_oldest policy did not drop exactly one stale completion; got " << async_drops
+              << "\n";
     return 3;
   }
   std::cout << "task_ready_epoch=2\n";

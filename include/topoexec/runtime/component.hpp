@@ -236,5 +236,4 @@ public:
   virtual void collect_metrics(MetricRegistry& registry) const = 0;
 };
 
-}  // namespace topoexec
-
+} // namespace topoexec

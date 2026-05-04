@@ -103,8 +103,8 @@ bool is_allowed_event_source_type(const std::string& type) {
 }
 
 bool is_allowed_trigger_policy_type(const std::string& type) {
-  return type == "on_event" || type == "any_input" || type == "all_inputs" || type == "time_sync" ||
-         type == "batch" || type == "request" || type == "task_ready" || type == "manual";
+  return type == "on_event" || type == "any_input" || type == "all_inputs" || type == "time_sync" || type == "batch" ||
+         type == "request" || type == "task_ready" || type == "manual";
 }
 
 bool is_allowed_loop_policy_type(const std::string& type) {
@@ -266,8 +266,8 @@ TriggerPolicySpec read_trigger_policy(const YAML::Node& component_node, const st
   }
   require_map(policy_node, "components." + component_id + ".trigger_policy");
   reject_unknown_fields(policy_node, "components." + component_id + ".trigger_policy",
-                        {"type", "inputs", "input", "batch_size", "batch_window_ms", "sync_slop_ms",
-                         "min_interval_ms", "max_latency_ms", "coalesce"});
+                        {"type", "inputs", "input", "batch_size", "batch_window_ms", "sync_slop_ms", "min_interval_ms",
+                         "max_latency_ms", "coalesce"});
   TriggerPolicySpec policy;
   policy.type = optional_string(policy_node, "type", "manual");
   policy.inputs = optional_string_vector(policy_node, "inputs", "components." + component_id + ".trigger_policy");
@@ -321,8 +321,8 @@ EdgePolicySpec read_edge_policy(const YAML::Node& edge_node, const std::string& 
   }
   require_map(policy_node, "edges." + edge_id + ".policy");
   reject_unknown_fields(policy_node, "edges." + edge_id + ".policy",
-                        {"mode", "capacity", "overflow", "lifespan_ms", "deadline_ms", "preserve_order",
-                         "allow_drop", "emit_health_events", "timestamp_domain", "copy_policy", "owner", "readers"});
+                        {"mode", "capacity", "overflow", "lifespan_ms", "deadline_ms", "preserve_order", "allow_drop",
+                         "emit_health_events", "timestamp_domain", "copy_policy", "owner", "readers"});
   EdgePolicySpec policy;
   policy.mode = optional_string(policy_node, "mode", policy.mode);
   policy.capacity = optional_int(policy_node, "capacity", policy.capacity);
@@ -418,9 +418,9 @@ GraphSpec load_graph_node(const YAML::Node& root) {
     require_map(component_node, "components[" + std::to_string(index) + "]");
     ComponentNodeSpec component;
     component.id = require_string(component_node, "id", "components[" + std::to_string(index) + "]");
-    reject_unknown_fields(component_node, "components." + component.id,
-                          {"id", "type", "event_sources", "trigger_policy", "execution", "depends_on", "boundary",
-                           "config"});
+    reject_unknown_fields(
+        component_node, "components." + component.id,
+        {"id", "type", "event_sources", "trigger_policy", "execution", "depends_on", "boundary", "config"});
     component.type = require_string(component_node, "type", "components." + component.id);
     component.event_sources = read_event_sources(component_node, component.id);
     component.trigger_policy = read_trigger_policy(component_node, component.id);
@@ -492,7 +492,8 @@ LifecycleOrderResult compute_component_lifecycle_order(const GraphSpec& graph) {
     std::set<std::string> seen;
     for (const auto& dependency : graph.components[index].depends_on) {
       if (!seen.insert(dependency).second) {
-        add_error(result, "component " + graph.components[index].id + " has duplicate lifecycle dependency " + dependency);
+        add_error(result,
+                  "component " + graph.components[index].id + " has duplicate lifecycle dependency " + dependency);
         continue;
       }
       const auto found = indexes.find(dependency);
@@ -1103,13 +1104,13 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
   return result;
 }
 
-void append_metric(std::vector<RuntimeMetricSample>& metrics, std::string name, double value, std::string component_id = {},
-                   std::string lane = {}, std::string channel_id = {}) {
-  metrics.push_back(RuntimeMetricSample{std::move(name), value, std::move(component_id), std::move(lane),
-                                        std::move(channel_id), {}});
+void append_metric(std::vector<RuntimeMetricSample>& metrics, std::string name, double value,
+                   std::string component_id = {}, std::string lane = {}, std::string channel_id = {}) {
+  metrics.push_back(
+      RuntimeMetricSample{std::move(name), value, std::move(component_id), std::move(lane), std::move(channel_id), {}});
 }
 
-}  // namespace
+} // namespace
 
 GraphSpec load_graph_text(const std::string& text) {
   return load_graph_node(YAML::Load(text));
@@ -1169,7 +1170,8 @@ std::vector<std::size_t> component_lifecycle_order(const GraphSpec& graph) {
   return result.order;
 }
 
-GraphDryRunResult dry_run_graph(const GraphSpec& graph, const ComponentRegistry& registry, std::size_t tick_iterations) {
+GraphDryRunResult dry_run_graph(const GraphSpec& graph, const ComponentRegistry& registry,
+                                std::size_t tick_iterations) {
   GraphDryRunResult result;
   const auto validation = validate_graph(graph, registry);
   if (!validation.ok) {
@@ -1207,7 +1209,8 @@ std::string graph_plan_text(const GraphSpec& graph, const GraphCompiledPlan& pla
   }
   out << "\n";
   for (const auto& region : plan.regions) {
-    out << "- region " << region.id << " kind=" << to_string(region.kind) << " components=" << join_ids(region.components);
+    out << "- region " << region.id << " kind=" << to_string(region.kind)
+        << " components=" << join_ids(region.components);
     if (region.kind == CompiledRegionKind::kCompositeLoop) {
       out << " loop_policy=" << region.loop_policy.type;
     }
@@ -1267,11 +1270,11 @@ std::string graph_mermaid(const GraphSpec& graph, const GraphCompiledPlan& plan)
     out << "  end\n";
   }
   for (const auto& edge : graph.edges) {
-    out << "  " << component_id_from_endpoint(edge.from) << " -->|\"" << edge.id << ":" << to_string(edge.kind)
-        << "/" << edge.policy.mode << "\"| " << component_id_from_endpoint(edge.to) << "\n";
+    out << "  " << component_id_from_endpoint(edge.from) << " -->|\"" << edge.id << ":" << to_string(edge.kind) << "/"
+        << edge.policy.mode << "\"| " << component_id_from_endpoint(edge.to) << "\n";
   }
   out << "  %% region_order: " << join_ids(plan.region_order) << "\n";
   return out.str();
 }
 
-}  // namespace topoexec
+} // namespace topoexec

@@ -109,8 +109,7 @@ namespace {
 
 using PendingMessageQueues = std::map<std::string, std::deque<RuntimeChannelMessage>>;
 
-bool messages_have_comparable_timestamps(
-    const std::vector<std::pair<std::string, RuntimeChannelMessage>>& messages) {
+bool messages_have_comparable_timestamps(const std::vector<std::pair<std::string, RuntimeChannelMessage>>& messages) {
   if (messages.empty() || !messages.front().second.event_timestamp.has_value()) {
     return false;
   }
@@ -124,8 +123,8 @@ std::int64_t timestamp_slop_ns(const TriggerPolicySpec& policy) {
   return static_cast<std::int64_t>(policy.sync_slop_ms) * 1000000LL;
 }
 
-std::optional<std::chrono::steady_clock::time_point> oldest_pending_batch_time(
-    const std::vector<std::string>& inputs, PendingMessageQueues& pending) {
+std::optional<std::chrono::steady_clock::time_point> oldest_pending_batch_time(const std::vector<std::string>& inputs,
+                                                                               PendingMessageQueues& pending) {
   std::optional<std::chrono::steady_clock::time_point> oldest;
   for (const auto& input : inputs) {
     auto& queue = pending[input];
@@ -139,8 +138,8 @@ std::optional<std::chrono::steady_clock::time_point> oldest_pending_batch_time(
   return oldest;
 }
 
-std::optional<std::vector<std::pair<std::string, RuntimeChannelMessage>>> front_messages_for_inputs(
-    const std::vector<std::string>& inputs, PendingMessageQueues& pending) {
+std::optional<std::vector<std::pair<std::string, RuntimeChannelMessage>>>
+front_messages_for_inputs(const std::vector<std::string>& inputs, PendingMessageQueues& pending) {
   std::vector<std::pair<std::string, RuntimeChannelMessage>> messages;
   for (const auto& input : inputs) {
     auto& queue = pending[input];
@@ -158,7 +157,7 @@ void consume_front_messages(const std::vector<std::string>& inputs, PendingMessa
   }
 }
 
-}  // namespace
+} // namespace
 
 TriggerPolicyEngine::TriggerPolicyEngine(RuntimeChannelBus* channels) : channels_(channels) {}
 
@@ -268,13 +267,15 @@ bool TriggerPolicyEngine::rate_limited(const ComponentNodeSpec& component,
   return now - found->second < std::chrono::milliseconds(component.trigger_policy.min_interval_ms);
 }
 
-void TriggerPolicyEngine::record_invocation(const ComponentNodeSpec& component, std::chrono::steady_clock::time_point now) {
+void TriggerPolicyEngine::record_invocation(const ComponentNodeSpec& component,
+                                            std::chrono::steady_clock::time_point now) {
   last_invoked_[component.id] = now;
 }
 
 Invocation TriggerPolicyEngine::invocation_from_messages(
     EventKind event, TriggerKind trigger, const TickContext& context, const ComponentNodeSpec& component,
-    const SchedulerGroupConfig& lane, const std::vector<std::pair<std::string, RuntimeChannelMessage>>& messages) const {
+    const SchedulerGroupConfig& lane,
+    const std::vector<std::pair<std::string, RuntimeChannelMessage>>& messages) const {
   auto invocation = event_invocation_for(event, context, component, lane);
   invocation.trigger = trigger;
   for (const auto& [port, message] : messages) {
@@ -336,17 +337,18 @@ std::vector<Invocation> TriggerPolicyEngine::collect_coalesced_any_input(const T
 }
 
 std::vector<Invocation> TriggerPolicyEngine::collect_all_inputs(const TickContext& context,
-                                                               const ComponentNodeSpec& component,
-                                                               const SchedulerGroupConfig& lane,
-                                                               PendingMessages& pending) {
+                                                                const ComponentNodeSpec& component,
+                                                                const SchedulerGroupConfig& lane,
+                                                                PendingMessages& pending) {
   const auto inputs = trigger_policy_inputs_for(component);
   auto messages = front_messages_for_inputs(inputs, pending);
   if (!messages.has_value()) {
     return {};
   }
   consume_front_messages(inputs, pending);
-  return {invocation_from_messages(EventKind::kMessage, trigger_kind_for_policy(component.trigger_policy, EventKind::kMessage),
-                                   context, component, lane, *messages)};
+  return {invocation_from_messages(EventKind::kMessage,
+                                   trigger_kind_for_policy(component.trigger_policy, EventKind::kMessage), context,
+                                   component, lane, *messages)};
 }
 
 std::vector<Invocation> TriggerPolicyEngine::collect_time_sync(const TickContext& context,
@@ -363,7 +365,8 @@ std::vector<Invocation> TriggerPolicyEngine::collect_time_sync(const TickContext
 
     if (slop_ns <= 0 || !messages_have_comparable_timestamps(*messages)) {
       consume_front_messages(inputs, pending);
-      return {invocation_from_messages(EventKind::kMessage, TriggerKind::kTimeSync, context, component, lane, *messages)};
+      return {
+          invocation_from_messages(EventKind::kMessage, TriggerKind::kTimeSync, context, component, lane, *messages)};
     }
 
     auto min_item = messages->begin();
@@ -378,13 +381,15 @@ std::vector<Invocation> TriggerPolicyEngine::collect_time_sync(const TickContext
     }
     if (max_item->second.event_timestamp->nanoseconds - min_item->second.event_timestamp->nanoseconds <= slop_ns) {
       consume_front_messages(inputs, pending);
-      return {invocation_from_messages(EventKind::kMessage, TriggerKind::kTimeSync, context, component, lane, *messages)};
+      return {
+          invocation_from_messages(EventKind::kMessage, TriggerKind::kTimeSync, context, component, lane, *messages)};
     }
     pending[min_item->first].pop_front();
   }
 }
 
-std::vector<Invocation> TriggerPolicyEngine::collect_batch(const TickContext& context, const ComponentNodeSpec& component,
+std::vector<Invocation> TriggerPolicyEngine::collect_batch(const TickContext& context,
+                                                           const ComponentNodeSpec& component,
                                                            const SchedulerGroupConfig& lane, PendingMessages& pending) {
   const auto inputs = trigger_policy_inputs_for(component);
   const auto batch_size = component.trigger_policy.batch_size;
@@ -402,7 +407,8 @@ std::vector<Invocation> TriggerPolicyEngine::collect_batch(const TickContext& co
     const auto oldest = oldest_pending_batch_time(inputs, pending);
     if (oldest.has_value() &&
         context.started_at - *oldest >= std::chrono::milliseconds(component.trigger_policy.batch_window_ms)) {
-      target_count = batch_size > 0 ? std::min<std::size_t>(available, static_cast<std::size_t>(batch_size)) : available;
+      target_count =
+          batch_size > 0 ? std::min<std::size_t>(available, static_cast<std::size_t>(batch_size)) : available;
     }
   }
   if (target_count == 0u) {
@@ -423,4 +429,4 @@ std::vector<Invocation> TriggerPolicyEngine::collect_batch(const TickContext& co
   return {invocation_from_messages(EventKind::kMessage, TriggerKind::kBatch, context, component, lane, messages)};
 }
 
-}  // namespace topoexec
+} // namespace topoexec

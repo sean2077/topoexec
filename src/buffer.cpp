@@ -109,5 +109,4 @@ void BufferPool::return_buffer(std::shared_ptr<SharedBuffer> buffer) {
   stats_.available_count = available_.size();
 }
 
-}  // namespace topoexec
-
+} // namespace topoexec
