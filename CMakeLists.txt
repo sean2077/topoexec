@@ -193,6 +193,14 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_unknown_field.yaml
   )
   set_tests_properties(cli_reject_invalid_unknown_field PROPERTIES WILL_FAIL TRUE)
+  add_test(NAME cli_reject_missing_edge_kind
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_missing_edge_kind.yaml
+  )
+  set_tests_properties(cli_reject_missing_edge_kind PROPERTIES WILL_FAIL TRUE)
+  add_test(NAME cli_reject_immediate_cycle_without_loop
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_immediate_cycle.yaml
+  )
+  set_tests_properties(cli_reject_immediate_cycle_without_loop PROPERTIES WILL_FAIL TRUE)
   add_test(NAME cmake_package_runtime_smoke
     COMMAND ${CMAKE_COMMAND}
       -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
