@@ -80,6 +80,9 @@ target_link_libraries(topoexec_app_composite_loop_fixed_point PRIVATE topoexec)
 add_executable(topoexec_app_async_worker examples/apps/async_worker/main.cpp)
 target_link_libraries(topoexec_app_async_worker PRIVATE topoexec)
 
+add_executable(topoexec_app_cpp_builder_minimal examples/apps/cpp_builder_minimal/main.cpp)
+target_link_libraries(topoexec_app_cpp_builder_minimal PRIVATE topoexec_runtime)
+
 install(TARGETS topoexec_core topoexec_runtime topoexec_yaml topoexec_cli
   EXPORT topoexecTargets
   ARCHIVE DESTINATION lib
@@ -207,4 +210,8 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec_app_async_worker
   )
   set_tests_properties(app_async_worker_runs PROPERTIES PASS_REGULAR_EXPRESSION "async_drop_count=1")
+  add_test(NAME app_cpp_builder_minimal_runs
+    COMMAND topoexec_app_cpp_builder_minimal
+  )
+  set_tests_properties(app_cpp_builder_minimal_runs PROPERTIES PASS_REGULAR_EXPRESSION "builder_sink=hello:built")
 endif()
