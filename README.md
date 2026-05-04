@@ -22,6 +22,7 @@ topoexec graph run examples/minimal.yaml --steps 1
 topoexec graph run examples/minimal.yaml --steps 10 --until-idle
 topoexec graph metrics examples/minimal.yaml --steps 1 --format json
 topoexec graph trace examples/minimal.yaml --steps 1
+topoexec graph trace examples/minimal.yaml --steps 1 --format chrome > topoexec-trace.json
 topoexec graph lint examples/control_feedback_delay.yaml
 topoexec graph explain examples/minimal.yaml
 topoexec graph diff-plan examples/minimal.yaml examples/control_feedback_delay.yaml
@@ -32,7 +33,7 @@ The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, run
 
 ## Runtime semantics
 
-TopoExec's user-visible execution contract is documented in [docs/runtime-semantics.md](docs/runtime-semantics.md). Schema v1 details are in [docs/schema-v1.md](docs/schema-v1.md), and the `docs/spec.md` implementation audit is captured in [docs/spec-implementation-audit.md](docs/spec-implementation-audit.md).
+TopoExec's user-visible execution contract is documented in [docs/runtime-semantics.md](docs/runtime-semantics.md). Schema v1 details are in [docs/schema-v1.md](docs/schema-v1.md), metrics and trace contracts are in [docs/metrics.md](docs/metrics.md) and [docs/trace-events.md](docs/trace-events.md), and the `docs/spec.md` implementation audit is captured in [docs/spec-implementation-audit.md](docs/spec-implementation-audit.md).
 
 ## Included
 

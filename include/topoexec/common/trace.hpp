@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <map>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -26,6 +27,7 @@ struct SpanRecord {
   std::string name;
   std::chrono::steady_clock::time_point started_at;
   std::chrono::steady_clock::time_point finished_at;
+  std::map<std::string, std::string> attributes;
 
   std::chrono::nanoseconds duration() const;
 };

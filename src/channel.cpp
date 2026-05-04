@@ -91,12 +91,13 @@ std::string large_payload_copy_reason(const RuntimePayload& payload) {
   return "cannot copy large payload schema " + payload.schema + "; use shared_view or loaned_view";
 }
 
-void record_trace_event(TraceCollector* trace, const std::string& name) {
+void record_trace_event(TraceCollector* trace, const std::string& name,
+                        std::map<std::string, std::string> attributes = {}) {
   if (trace == nullptr) {
     return;
   }
   const auto now = std::chrono::steady_clock::now();
-  trace->add(SpanRecord{TraceId::generate(), name, now, now});
+  trace->add(SpanRecord{TraceId::generate(), name, now, now, std::move(attributes)});
 }
 
 } // namespace
@@ -558,7 +559,10 @@ RuntimePublicationRouter::publish_shared_from(const std::string& source_endpoint
     return {false, "unknown source endpoint: " + source_endpoint};
   }
   for (const auto& edge : found->second) {
-    record_trace_event(trace_, "channel_publish");
+    record_trace_event(trace_, "channel_publish",
+                       {{"channel_id", edge.channel_id},
+                        {"source_component", edge.source_component},
+                        {"target_component", edge.target_component}});
     RuntimeChannelPublication publication;
     publication.target = RuntimeChannelPublishTarget::kChannel;
     publication.id = edge.channel_id;
@@ -644,7 +648,7 @@ RuntimePublicationRouter::commit_batch(std::vector<RuntimeChannelPublication> pu
   if (result.accepted) {
     metrics_.committed_count += publications.size();
     for (std::size_t index = 0; index < publications.size(); ++index) {
-      record_trace_event(trace_, "channel_commit");
+      record_trace_event(trace_, "channel_commit", {{"channel_id", publications[index].id}});
     }
   } else {
     ++metrics_.failed_commit_count;

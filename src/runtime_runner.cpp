@@ -61,6 +61,11 @@ void append_runtime_metric(RuntimeRunnerResult& result, std::string name, double
       RuntimeMetricSample{std::move(name), value, std::move(component_id), std::move(lane), std::move(channel_id), {}});
 }
 
+std::uint64_t non_negative_duration_ns(std::chrono::steady_clock::duration duration) {
+  const auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
+  return count < 0 ? 0u : static_cast<std::uint64_t>(count);
+}
+
 } // namespace
 
 std::string to_string(RuntimeRunMode mode) {
@@ -223,8 +228,17 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     for (const auto& sample : metrics.snapshot()) {
       result.runtime_metrics.push_back(RuntimeMetricSample{sample.name, sample.value, {}, {}, {}, {}});
     }
-    for (const auto& span : trace.spans()) {
+    const auto spans = trace.spans();
+    const auto trace_epoch =
+        spans.empty() ? std::chrono::steady_clock::time_point{}
+                      : std::min_element(spans.begin(), spans.end(), [](const auto& left, const auto& right) {
+                          return left.started_at < right.started_at;
+                        })->started_at;
+    for (const auto& span : spans) {
       result.trace_events.push_back(span.name);
+      result.trace.push_back(
+          RuntimeTraceEvent{span.name, span.trace_id.value(), non_negative_duration_ns(span.started_at - trace_epoch),
+                            non_negative_duration_ns(span.finished_at - span.started_at), span.attributes});
     }
     result.trace_event_count = result.trace_events.size();
     append_runtime_metric(result, "runtime.trace.event_count", static_cast<double>(result.trace_event_count));

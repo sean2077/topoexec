@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,14 @@ struct RuntimeRunnerOptions {
   bool run_until_idle{false};
   SchedulerStopToken stop_token;
   std::chrono::milliseconds pending_task_cleanup_timeout{1000};
+};
+
+struct RuntimeTraceEvent {
+  std::string name;
+  std::string trace_id;
+  std::uint64_t start_offset_ns{0};
+  std::uint64_t duration_ns{0};
+  std::map<std::string, std::string> attributes;
 };
 
 struct RuntimeRunnerResult {
@@ -59,6 +68,7 @@ struct RuntimeRunnerResult {
   SchedulerStopReason scheduler_stop_reason{SchedulerStopReason::kNotStarted};
   std::vector<std::string> ticked_components;
   std::vector<std::string> trace_events;
+  std::vector<RuntimeTraceEvent> trace;
   std::vector<RuntimeMetricSample> runtime_metrics;
   std::vector<std::string> errors;
 };

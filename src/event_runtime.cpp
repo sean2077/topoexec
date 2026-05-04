@@ -8,6 +8,7 @@
 #include <exception>
 #include <map>
 #include <thread>
+#include <utility>
 
 namespace topoexec {
 namespace {
@@ -20,12 +21,13 @@ std::map<std::string, SchedulerGroupConfig> lane_map(const std::vector<EventRunt
   return lanes;
 }
 
-void record_trace_event(TraceCollector* trace, const std::string& name) {
+void record_trace_event(TraceCollector* trace, const std::string& name,
+                        std::map<std::string, std::string> attributes = {}) {
   if (trace == nullptr) {
     return;
   }
   const auto now = std::chrono::steady_clock::now();
-  trace->add(SpanRecord{TraceId::generate(), name, now, now});
+  trace->add(SpanRecord{TraceId::generate(), name, now, now, std::move(attributes)});
 }
 
 bool loop_policy_converged_after_iteration(const LoopPolicySpec& policy) {
@@ -100,7 +102,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       result.stop_reason = SchedulerStopReason::kDurationBound;
       break;
     }
-    record_trace_event(trace_, "scheduler_iteration_begin");
+    record_trace_event(trace_, "scheduler_iteration_begin", {{"iteration", std::to_string(iteration + 1u)}});
     if (publications_ != nullptr) {
       const auto commit = publications_->begin_epoch();
       if (!commit.accepted) {
@@ -125,9 +127,10 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       try {
         auto invocations = trigger.collect_ready_invocations(tick, found->spec, found->lane);
         for (const auto& invocation : invocations) {
-          record_trace_event(trace_, "component_execute_begin");
+          record_trace_event(trace_, "component_execute_begin",
+                             {{"component_id", found->id}, {"lane", found->lane.id}});
           found->component->execute(invocation, *found->context);
-          record_trace_event(trace_, "component_execute_end");
+          record_trace_event(trace_, "component_execute_end", {{"component_id", found->id}, {"lane", found->lane.id}});
           if (publications_ != nullptr) {
             const auto commit = publications_->commit_immediate();
             if (!commit.accepted) {
@@ -166,14 +169,16 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           publications_->begin_composite_region(region.components);
         }
         for (std::size_t loop_iteration = 0; loop_iteration < max_iterations; ++loop_iteration) {
-          record_trace_event(trace_, "loop_iteration_begin");
+          record_trace_event(trace_, "loop_iteration_begin",
+                             {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
           ++result.loop_iteration_count[region.id];
           for (const auto& component_id : region.components) {
             if (!execute_component(component_id)) {
               return result;
             }
           }
-          record_trace_event(trace_, "loop_iteration_end");
+          record_trace_event(trace_, "loop_iteration_end",
+                             {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
           if (loop_policy_converged_after_iteration(region.loop_policy)) {
             converged = true;
             ++result.loop_converged_count[region.id];
@@ -210,7 +215,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
     if (publications_ != nullptr) {
       publications_->end_epoch();
     }
-    record_trace_event(trace_, "scheduler_iteration_end");
+    record_trace_event(trace_, "scheduler_iteration_end", {{"iteration", std::to_string(iteration + 1u)}});
     ++result.iterations;
     if (options.after_iteration) {
       options.after_iteration(result.iterations);

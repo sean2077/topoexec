@@ -161,6 +161,14 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph trace ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1
   )
   set_tests_properties(cli_trace_minimal PROPERTIES PASS_REGULAR_EXPRESSION "channel_publish")
+  add_test(NAME cli_trace_json_structured_minimal
+    COMMAND topoexec graph trace ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --format json
+  )
+  set_tests_properties(cli_trace_json_structured_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"component_id\"")
+  add_test(NAME cli_trace_chrome_minimal
+    COMMAND topoexec graph trace ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --format chrome
+  )
+  set_tests_properties(cli_trace_chrome_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"traceEvents\"")
   add_test(NAME cli_lint_control_feedback_delay
     COMMAND topoexec graph lint ${CMAKE_CURRENT_SOURCE_DIR}/examples/control_feedback_delay.yaml
   )

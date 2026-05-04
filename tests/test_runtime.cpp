@@ -119,6 +119,14 @@ bool has_trace_event(const topoexec::RuntimeRunnerResult& result, const std::str
   return std::find(result.trace_events.begin(), result.trace_events.end(), name) != result.trace_events.end();
 }
 
+bool has_trace_event_attribute(const topoexec::RuntimeRunnerResult& result, const std::string& name,
+                               const std::string& key, const std::string& value) {
+  return std::any_of(result.trace.begin(), result.trace.end(), [&](const auto& event) {
+    const auto found = event.attributes.find(key);
+    return event.name == name && found != event.attributes.end() && found->second == value;
+  });
+}
+
 bool has_trigger_record(std::uint64_t sequence, const std::string& component_id, topoexec::EventKind event,
                         topoexec::TriggerKind trigger) {
   return std::any_of(runtime_records().begin(), runtime_records().end(), [&](const RuntimeRecord& record) {
@@ -875,6 +883,9 @@ TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {
   EXPECT_TRUE(has_trace_event(result, "component_execute_end"));
   EXPECT_TRUE(has_trace_event(result, "channel_publish"));
   EXPECT_TRUE(has_trace_event(result, "channel_commit"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_execute_begin", "component_id", "source"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "channel_publish", "channel_id", "source_echo"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "channel_commit", "channel_id", "echo_sink"));
   EXPECT_TRUE(has_metric(result, "runtime.trace.event_count"));
   EXPECT_NE(std::find(result.ticked_components.begin(), result.ticked_components.end(), "sink"),
             result.ticked_components.end());

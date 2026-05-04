@@ -52,7 +52,7 @@ ScopedSpan::ScopedSpan(TraceCollector& collector, TraceId trace_id, std::string 
       started_at_(std::chrono::steady_clock::now()) {}
 
 ScopedSpan::~ScopedSpan() {
-  collector_.add(SpanRecord{trace_id_, name_, started_at_, std::chrono::steady_clock::now()});
+  collector_.add(SpanRecord{trace_id_, name_, started_at_, std::chrono::steady_clock::now(), {}});
 }
 
 } // namespace topoexec

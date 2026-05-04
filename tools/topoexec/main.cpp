@@ -234,6 +234,36 @@ nlohmann::json runtime_metrics_json(const topoexec::RuntimeRunnerResult& result)
   return metrics;
 }
 
+nlohmann::json runtime_trace_json(const topoexec::RuntimeRunnerResult& result) {
+  nlohmann::json events = nlohmann::json::array();
+  for (const auto& event : result.trace) {
+    events.push_back({{"name", event.name},
+                      {"trace_id", event.trace_id},
+                      {"start_offset_ns", event.start_offset_ns},
+                      {"duration_ns", event.duration_ns},
+                      {"attributes", event.attributes}});
+  }
+  return events;
+}
+
+nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result) {
+  nlohmann::json events = nlohmann::json::array();
+  for (const auto& event : result.trace) {
+    nlohmann::json chrome_event;
+    chrome_event["name"] = event.name;
+    chrome_event["cat"] = "topoexec";
+    chrome_event["ph"] = "X";
+    chrome_event["ts"] = static_cast<double>(event.start_offset_ns) / 1000.0;
+    chrome_event["dur"] = static_cast<double>(event.duration_ns) / 1000.0;
+    chrome_event["pid"] = 1;
+    chrome_event["tid"] = 0;
+    chrome_event["args"] = event.attributes;
+    chrome_event["args"]["trace_id"] = event.trace_id;
+    events.push_back(std::move(chrome_event));
+  }
+  return {{"traceEvents", events}, {"displayTimeUnit", "ns"}};
+}
+
 nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
   return {{"ok", result.ok},
           {"errors", result.errors},
@@ -255,6 +285,7 @@ nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
           {"failed_publication_commit_count", result.failed_publication_commit_count},
           {"trace_event_count", result.trace_event_count},
           {"trace_events", result.trace_events},
+          {"trace", runtime_trace_json(result)},
           {"loop_iteration_count", result.loop_iteration_count},
           {"loop_converged_count", result.loop_converged_count},
           {"loop_budget_overrun_count", result.loop_budget_overrun_count},
@@ -298,13 +329,16 @@ int print_metrics_result(const topoexec::RuntimeRunnerResult& result, const std:
 }
 
 int print_trace_result(const topoexec::RuntimeRunnerResult& result, const std::string& format) {
-  if (format == "json") {
+  if (format == "chrome") {
+    std::cout << chrome_trace_json(result).dump(2) << "\n";
+  } else if (format == "json") {
     nlohmann::json value;
     value["ok"] = result.ok;
     value["errors"] = result.errors;
     value["graph_name"] = result.graph_name;
     value["trace_event_count"] = result.trace_event_count;
     value["trace_events"] = result.trace_events;
+    value["trace"] = runtime_trace_json(result);
     std::cout << value.dump(2) << "\n";
   } else {
     std::cout << (result.ok ? "ok" : "error") << "\n";
@@ -599,7 +633,7 @@ int main(int argc, char** argv) {
   trace->add_option("--steps", trace_steps, "Bounded event-loop steps");
   trace->add_option("--duration-ms", trace_duration_ms, "Optional duration bound in milliseconds");
   trace->add_flag("--until-idle", trace_until_idle, "Stop early after an event-loop iteration executes no components");
-  trace->add_option("--format", trace_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  trace->add_option("--format", trace_format, "Output format")->check(CLI::IsMember({"text", "json", "chrome"}));
 
   std::string lint_path;
   std::string lint_format{"text"};
