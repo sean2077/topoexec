@@ -156,7 +156,7 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   add_test(NAME cli_metrics_json_minimal
     COMMAND topoexec graph metrics ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --format json
   )
-  set_tests_properties(cli_metrics_json_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"committed_publication_count\": 2")
+  set_tests_properties(cli_metrics_json_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"runtime.component.execution_count\"")
   add_test(NAME cli_trace_minimal
     COMMAND topoexec graph trace ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1
   )
@@ -164,7 +164,7 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   add_test(NAME cli_trace_json_structured_minimal
     COMMAND topoexec graph trace ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --format json
   )
-  set_tests_properties(cli_trace_json_structured_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"component_id\"")
+  set_tests_properties(cli_trace_json_structured_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"edge_kind\"")
   add_test(NAME cli_trace_chrome_minimal
     COMMAND topoexec graph trace ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --format chrome
   )
@@ -189,6 +189,10 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph bench ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --runs 2
   )
   set_tests_properties(cli_bench_minimal PROPERTIES PASS_REGULAR_EXPRESSION "runs: 2")
+  add_test(NAME cli_bench_json_minimal
+    COMMAND topoexec graph bench ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --runs 2 --format json
+  )
+  set_tests_properties(cli_bench_json_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"elapsed_ms\"")
   add_test(NAME cli_reject_invalid_unknown_field
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_unknown_field.yaml
   )

@@ -1,18 +1,55 @@
 # TopoExec
 
-TopoExec is a C++20 single-process stateful dataflow runtime. It focuses on a declarative graph contract, validation, channel policy, trigger policy, compiled execution regions, and runtime observability for applications that need reusable in-process orchestration.
+TopoExec is a compact C++20 runtime for stateful in-process execution graphs. It gives applications explicit semantics for edge visibility, feedback loops, bounded channels, trigger readiness, payload ownership, metrics, and trace events without requiring a service framework.
 
-## Build
+TopoExec is not a distributed runtime, ROS adapter, Python framework, GUI editor, or OpenTelemetry/Prometheus exporter. Those adapter surfaces are deferred until the core runtime API is stable.
+
+## Quickstart
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j
 ctest --test-dir build --output-on-failure
+./build/topoexec_app_cpp_builder_minimal
+./build/topoexec graph run examples/minimal.yaml --steps 1
 ```
 
 Dependencies are CMake, a C++20 compiler, `yaml-cpp`, `CLI11`, `nlohmann_json`, and GTest for tests. If GTest is not installed, the build fetches it through CMake `FetchContent`.
 
-## CLI
+## Core Concepts
+
+- `Component`: user code with lifecycle hooks and one `execute()` / `execute_status()` entry point.
+- `GraphSpec`: declarative lanes, components, edges, and optional CompositeLoops.
+- Edge kinds: `immediate`, `delay`, `state`, and `async`.
+- Channel policy: latest, queue, barrier, previous-tick, overflow behavior, and copy policy.
+- Trigger policy: manual, any/all input, time sync, batch, request, and task-ready.
+- CompositeLoop: explicit owner for immediate feedback SCCs.
+
+```mermaid
+flowchart LR
+  ComponentRegistry --> RuntimeRunner
+  GraphSpec --> Validator --> CompiledPlan
+  CompiledPlan --> RuntimeRunner
+  RuntimeRunner --> EventRuntime
+  EventRuntime --> TriggerPolicy
+  EventRuntime --> PublicationRouter
+  PublicationRouter --> RuntimeChannels
+  RuntimeChannels --> TriggerPolicy
+  EventRuntime --> MetricsTrace[Metrics + Trace]
+```
+
+## Embedding
+
+Pure C++ applications can link only the runtime target:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED)
+target_link_libraries(my_app PRIVATE topoexec::runtime)
+```
+
+Build graphs directly in C++ with `GraphSpec` or `topoexec/runtime/graph_builder.hpp`. `examples/apps/cpp_builder_minimal` is the minimal embeddable example. YAML loading and CLI tooling are optional through `topoexec::yaml`.
+
+## CLI Tools
 
 ```bash
 topoexec graph validate examples/minimal.yaml
@@ -31,15 +68,36 @@ topoexec graph bench examples/minimal.yaml --steps 1 --runs 2
 
 The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, runs demo graphs, prints metrics/trace events, and provides lightweight lint/explain/diff/bench output derived from the runtime contract.
 
-## Runtime semantics
+## Examples
 
-TopoExec's user-visible execution contract is documented in [docs/runtime-semantics.md](docs/runtime-semantics.md). Schema v1 details are in [docs/schema-v1.md](docs/schema-v1.md), metrics and trace contracts are in [docs/metrics.md](docs/metrics.md) and [docs/trace-events.md](docs/trace-events.md), and the `docs/spec.md` implementation audit is captured in [docs/spec-implementation-audit.md](docs/spec-implementation-audit.md).
+- `examples/apps/minimal_pipeline`: immediate source-transform-sink execution.
+- `examples/apps/overload_latest_vs_queue`: latest overwrite versus bounded queue behavior.
+- `examples/apps/control_feedback_delay`: feedback delayed to the next epoch.
+- `examples/apps/composite_loop_fixed_point`: explicit immediate feedback owner.
+- `examples/apps/async_worker`: current async deferred-delivery and bounded queue behavior.
+- `examples/apps/cpp_builder_minimal`: pure C++ graph builder path.
 
-Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), and [docs/release-checklist.md](docs/release-checklist.md).
+Each app directory includes a README with graph shape, run command, expected output, semantic lesson, and contrast case.
 
-## Included
+## Documentation
 
-- `include/topoexec/common/`: logging, metrics, trace.
-- `include/topoexec/runtime/`: graph, component, static registry, channel, payload, trigger policy, event runtime, scheduler, runner.
-- `tools/topoexec/`: C++ CLI for validation, plan/render output, runtime runs, metrics, trace, lint, explain, diff, and bench.
-- `examples/`: minimal graph, CompositeLoop graph, delay-feedback control graph, invalid-schema fixtures, and runnable apps with per-app README tutorials for minimal pipeline, latest-vs-queue overload behavior, delayed control feedback, CompositeLoop fixed-point ownership, async task-ready delivery, and pure C++ graph building.
+- [Runtime semantics](docs/runtime-semantics.md)
+- [Schema v1](docs/schema-v1.md)
+- [API overview](docs/api-overview.md)
+- [Public API stability](docs/public-api.md)
+- [Payloads and ownership](docs/payloads.md)
+- [Scheduler semantics](docs/scheduler.md)
+- [Metrics](docs/metrics.md)
+- [Trace events](docs/trace-events.md)
+- [Performance baselines](docs/performance-baselines.md)
+- [FAQ](docs/faq.md)
+- [Adapter boundaries](docs/adapters.md)
+
+Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), and [docs/release-checklist.md](docs/release-checklist.md). The current target is `v0.1.0-alpha`.
+
+## Known Limitations
+
+- `thread_pool` lanes are schema-visible but rejected by `RuntimeRunner` in `run` mode.
+- Async max-inflight admission is deferred; current async backpressure is channel capacity and overflow policy.
+- Sanitizer CI is planned before beta.
+- ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.

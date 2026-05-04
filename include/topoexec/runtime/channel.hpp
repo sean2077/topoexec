@@ -30,6 +30,7 @@ struct RuntimeChannelPublication {
   RuntimeChannelPublishTarget target{RuntimeChannelPublishTarget::kSourceEndpoint};
   std::string id;
   RuntimePayloadPtr payload;
+  EdgeKind kind{EdgeKind::kImmediate};
   std::optional<EventTimestamp> event_timestamp;
 };
 

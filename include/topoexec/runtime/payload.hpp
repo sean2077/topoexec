@@ -54,6 +54,23 @@ RuntimePayload make_binary_blob_payload(std::shared_ptr<const SharedBuffer> buff
                                         std::string schema = kBinaryBlobPayloadSchema);
 RuntimePayloadPtr make_shared_payload(RuntimePayload payload);
 
+template <typename T> bool payload_is(const RuntimePayload& payload) {
+  return std::holds_alternative<T>(payload.value);
+}
+
+template <typename T> const T* try_payload_as(const RuntimePayload& payload) {
+  return std::get_if<T>(&payload.value);
+}
+
+template <typename T> const T& payload_as(const RuntimePayload& payload, const std::string& context = {}) {
+  const auto* value = try_payload_as<T>(payload);
+  if (value == nullptr) {
+    const auto prefix = context.empty() ? std::string{} : context + ": ";
+    throw std::runtime_error(prefix + "payload schema/type mismatch for schema " + payload.schema);
+  }
+  return *value;
+}
+
 const std::string& require_text_payload(const RuntimePayload& payload, const std::string& context = {});
 const FrameView& require_frame_payload(const RuntimePayload& payload, const std::string& context = {});
 const BinaryBlobPayload& require_binary_blob_payload(const RuntimePayload& payload, const std::string& context = {});

@@ -22,10 +22,10 @@ Each structured event has this shape:
 
 ```json
 {
-  "name": "component_execute_begin",
+  "name": "component_execute",
   "trace_id": "trace-...",
   "start_offset_ns": 1234,
-  "duration_ns": 0,
+  "duration_ns": 9200,
   "attributes": {
     "component_id": "source",
     "lane": "main"
@@ -39,11 +39,13 @@ Each structured event has this shape:
 
 Scheduler:
 
+- `scheduler_iteration`
 - `scheduler_iteration_begin`
 - `scheduler_iteration_end`
 
 Component execution:
 
+- `component_execute`
 - `component_execute_begin`
 - `component_execute_end`
 
@@ -54,6 +56,7 @@ Channels and publication:
 
 Composite loops:
 
+- `loop_iteration`
 - `loop_iteration_begin`
 - `loop_iteration_end`
 
@@ -63,8 +66,8 @@ The runtime includes identifiers where the event source has them:
 
 - Scheduler events include `iteration`.
 - Component events include `component_id` and `lane`.
-- Channel publish events include `channel_id`, `source_component`, and `target_component`.
-- Channel commit events include `channel_id`.
+- Channel publish events include `channel_id`, `source_component`, `target_component`, and `edge_kind`.
+- Channel commit events include `channel_id` and `edge_kind`.
 - Loop events include `loop_id` and loop-local `iteration`.
 
 Future adapters may add OpenTelemetry, Prometheus, or richer Perfetto metadata, but those adapters are separate from the core runtime contract.

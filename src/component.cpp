@@ -2,6 +2,7 @@
 
 #include "topoexec/runtime/channel.hpp"
 
+#include <exception>
 #include <stdexcept>
 
 namespace topoexec {
@@ -103,6 +104,42 @@ RuntimeChannelPublishResult GraphContext::publish_shared(const std::string& port
 
 void Component::execute(const Invocation&, GraphContext&) {
   throw std::logic_error("component does not implement execute");
+}
+
+Status Component::configure_status(GraphContext& ctx, const ConfigView& config) {
+  try {
+    configure(ctx, config);
+    return Status::success();
+  } catch (const std::exception& error) {
+    return Status::error(error.what());
+  }
+}
+
+Status Component::activate_status() {
+  try {
+    activate();
+    return Status::success();
+  } catch (const std::exception& error) {
+    return Status::error(error.what());
+  }
+}
+
+Status Component::deactivate_status() {
+  try {
+    deactivate();
+    return Status::success();
+  } catch (const std::exception& error) {
+    return Status::error(error.what());
+  }
+}
+
+Status Component::execute_status(const Invocation& invocation, GraphContext& ctx) {
+  try {
+    execute(invocation, ctx);
+    return Status::success();
+  } catch (const std::exception& error) {
+    return Status::error(error.what());
+  }
 }
 
 } // namespace topoexec

@@ -7,6 +7,8 @@ TopoExec's public C++ surface is split into two CMake targets:
 
 Use `topoexec::runtime` when an application builds `GraphSpec` directly in C++ and does not need YAML parsing.
 
+For stability categories and lifecycle failure behavior, see [public-api.md](public-api.md). For payload ownership and typed access helpers, see [payloads.md](payloads.md).
+
 ## Minimal Runtime Shape
 
 Application code usually provides three pieces:
@@ -31,3 +33,30 @@ auto graph = topoexec::GraphBuilder("pipeline")
 ```
 
 `examples/apps/cpp_builder_minimal` is the runnable version of this pattern and links only `topoexec_runtime`.
+
+## Failure Reporting
+
+The original `void` lifecycle and `execute()` hooks remain supported. Components may also override status-returning hooks such as `execute_status()` to report failures without throwing:
+
+```cpp
+topoexec::Status execute_status(const topoexec::Invocation& invocation,
+                                topoexec::GraphContext& ctx) override {
+  if (invocation.payload == nullptr) {
+    return topoexec::Status::error("missing payload");
+  }
+  return topoexec::Status::success();
+}
+```
+
+`RuntimeRunnerResult::errors` records configure, activate, execute, and deactivate failures with component ids. Started components are deactivated on stop and component error paths.
+
+## Payload Access
+
+Components should prefer typed helpers over manual `std::variant` access:
+
+```cpp
+const auto& text = invocation.payload_as<topoexec::TextPayload>();
+const auto* frame = invocation.try_payload_as<topoexec::FrameView>();
+```
+
+Bad typed access raises a clear `std::runtime_error`; status-returning components can translate that into `Status::error(...)`.

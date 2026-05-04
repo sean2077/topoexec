@@ -27,6 +27,25 @@ Scheduler:
 
 - `runtime.scheduler.completed_count`: completed component invocations for a lane.
 - `runtime.scheduler.tick_overrun_count`: lane tick overruns observed by the scheduler.
+- `runtime.scheduler.queue_depth`: queued scheduler tasks for a lane. This is `0` for the current single-thread event loop.
+- `runtime.scheduler.active_count`: active workers for a lane. This is `0` until worker-pool scheduling lands.
+- `runtime.scheduler.in_flight_count`: in-flight scheduler tasks for a lane. This is `0` until worker-pool scheduling lands.
+- `runtime.scheduler.rejected_count`: scheduler admission rejections for a lane.
+
+Components:
+
+- `runtime.component.execution_count`: completed `Component::execute_status()` invocations for a component.
+- `runtime.component.error_count`: failed status-returning or exception-wrapped component invocations.
+- `runtime.component.last_duration_ns`: most recent component execution duration in nanoseconds.
+- `runtime.component.max_duration_ns`: maximum component execution duration observed in the run.
+- `runtime.component.budget_overrun_count`: component invocations whose duration exceeded `execution.budget_ms`.
+- `runtime.component.max_in_flight_count`: maximum concurrent in-flight invocations observed for the component. It is `1` or less for non-reentrant components on the current event-loop runtime.
+
+Triggers:
+
+- `runtime.trigger.ready_count`: invocations admitted by trigger readiness for a component.
+- `runtime.trigger.suppressed_count`: event-driven checks that did not admit an invocation.
+- `runtime.trigger.coalesced_count`: invocations admitted through a coalescing trigger policy.
 
 Channels:
 

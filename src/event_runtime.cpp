@@ -30,6 +30,20 @@ void record_trace_event(TraceCollector* trace, const std::string& name,
   trace->add(SpanRecord{TraceId::generate(), name, now, now, std::move(attributes)});
 }
 
+void record_trace_span(TraceCollector* trace, const std::string& name, std::chrono::steady_clock::time_point started_at,
+                       std::chrono::steady_clock::time_point finished_at,
+                       std::map<std::string, std::string> attributes = {}) {
+  if (trace == nullptr) {
+    return;
+  }
+  trace->add(SpanRecord{TraceId::generate(), name, started_at, finished_at, std::move(attributes)});
+}
+
+std::uint64_t non_negative_duration_ns(std::chrono::steady_clock::duration duration) {
+  const auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
+  return count < 0 ? 0u : static_cast<std::uint64_t>(count);
+}
+
 bool loop_policy_converged_after_iteration(const LoopPolicySpec& policy) {
   return policy.convergence == "single_pass" || policy.convergence == "after_first_iteration" ||
          policy.convergence == "always";
@@ -91,6 +105,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
     }
   }
 
+  std::map<std::string, std::size_t> component_in_flight;
   for (std::size_t iteration = 0; iteration < iterations; ++iteration) {
     const auto tick_calls_before_iteration = result.tick_calls;
     if (options.stop_token.stop_requested()) {
@@ -102,6 +117,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       result.stop_reason = SchedulerStopReason::kDurationBound;
       break;
     }
+    const auto iteration_started_at = std::chrono::steady_clock::now();
     record_trace_event(trace_, "scheduler_iteration_begin", {{"iteration", std::to_string(iteration + 1u)}});
     if (publications_ != nullptr) {
       const auto commit = publications_->begin_epoch();
@@ -126,11 +142,50 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       tick.stop_requested = [token = options.stop_token]() { return token.stop_requested(); };
       try {
         auto invocations = trigger.collect_ready_invocations(tick, found->spec, found->lane);
+        if (invocations.empty() && has_message_event_source(found->spec)) {
+          ++result.trigger_metrics[found->id].suppressed_count;
+        } else {
+          result.trigger_metrics[found->id].ready_count += invocations.size();
+          if (found->spec.trigger_policy.coalesce) {
+            result.trigger_metrics[found->id].coalesced_count += invocations.size();
+          }
+        }
         for (const auto& invocation : invocations) {
+          if (!found->spec.execution.reentrant && component_in_flight[found->id] != 0u) {
+            result.ok = false;
+            result.stop_reason = SchedulerStopReason::kError;
+            result.errors.push_back("non-reentrant component " + found->id + " already has an in-flight invocation");
+            return false;
+          }
+          ++component_in_flight[found->id];
+          auto& component_metrics = result.component_metrics[found->id];
+          component_metrics.max_in_flight_count =
+              std::max(component_metrics.max_in_flight_count, component_in_flight[found->id]);
+          const auto component_started_at = std::chrono::steady_clock::now();
           record_trace_event(trace_, "component_execute_begin",
                              {{"component_id", found->id}, {"lane", found->lane.id}});
-          found->component->execute(invocation, *found->context);
+          const auto status = found->component->execute_status(invocation, *found->context);
+          const auto component_finished_at = std::chrono::steady_clock::now();
+          const auto duration_ns = non_negative_duration_ns(component_finished_at - component_started_at);
+          --component_in_flight[found->id];
+          ++component_metrics.execution_count;
+          component_metrics.last_duration_ns = duration_ns;
+          component_metrics.max_duration_ns = std::max(component_metrics.max_duration_ns, duration_ns);
+          if (invocation.budget.count() > 0 && component_finished_at - component_started_at > invocation.budget) {
+            ++component_metrics.budget_overrun_count;
+          }
+          record_trace_span(trace_, "component_execute", component_started_at, component_finished_at,
+                            {{"component_id", found->id},
+                             {"lane", found->lane.id},
+                             {"trigger", std::to_string(static_cast<int>(invocation.trigger))}});
           record_trace_event(trace_, "component_execute_end", {{"component_id", found->id}, {"lane", found->lane.id}});
+          if (!status.ok()) {
+            ++component_metrics.error_count;
+            result.ok = false;
+            result.stop_reason = SchedulerStopReason::kError;
+            result.errors.push_back("component " + found->id + " failed: " + status.message());
+            return false;
+          }
           if (publications_ != nullptr) {
             const auto commit = publications_->commit_immediate();
             if (!commit.accepted) {
@@ -151,6 +206,10 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           result.group_metrics[found->lane.id].completed_count += 1;
         }
       } catch (const std::exception& error) {
+        if (component_in_flight[found->id] > 0u) {
+          --component_in_flight[found->id];
+        }
+        ++result.component_metrics[found->id].error_count;
         result.ok = false;
         result.stop_reason = SchedulerStopReason::kError;
         result.errors.push_back("component " + found->id + " failed: " + error.what());
@@ -169,6 +228,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           publications_->begin_composite_region(region.components);
         }
         for (std::size_t loop_iteration = 0; loop_iteration < max_iterations; ++loop_iteration) {
+          const auto loop_iteration_started_at = std::chrono::steady_clock::now();
           record_trace_event(trace_, "loop_iteration_begin",
                              {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
           ++result.loop_iteration_count[region.id];
@@ -177,6 +237,9 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
               return result;
             }
           }
+          const auto loop_iteration_finished_at = std::chrono::steady_clock::now();
+          record_trace_span(trace_, "loop_iteration", loop_iteration_started_at, loop_iteration_finished_at,
+                            {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
           record_trace_event(trace_, "loop_iteration_end",
                              {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
           if (loop_policy_converged_after_iteration(region.loop_policy)) {
@@ -215,6 +278,9 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
     if (publications_ != nullptr) {
       publications_->end_epoch();
     }
+    const auto iteration_finished_at = std::chrono::steady_clock::now();
+    record_trace_span(trace_, "scheduler_iteration", iteration_started_at, iteration_finished_at,
+                      {{"iteration", std::to_string(iteration + 1u)}});
     record_trace_event(trace_, "scheduler_iteration_end", {{"iteration", std::to_string(iteration + 1u)}});
     ++result.iterations;
     if (options.after_iteration) {

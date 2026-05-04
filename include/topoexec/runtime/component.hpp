@@ -4,6 +4,7 @@
 #include "topoexec/common/metrics.hpp"
 #include "topoexec/runtime/clock.hpp"
 #include "topoexec/runtime/payload.hpp"
+#include "topoexec/runtime/status.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -12,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -190,6 +192,18 @@ struct Invocation {
   std::string lane;
   std::string priority;
   std::function<bool()> stop_requested;
+
+  template <typename T> const T* try_payload_as() const {
+    return payload == nullptr ? nullptr : topoexec::try_payload_as<T>(*payload);
+  }
+
+  template <typename T> const T& payload_as(const std::string& context = {}) const {
+    if (payload == nullptr) {
+      const auto prefix = context.empty() ? std::string{} : context + ": ";
+      throw std::runtime_error(prefix + "invocation payload is null");
+    }
+    return topoexec::payload_as<T>(*payload, context.empty() ? "invocation payload" : context);
+  }
 };
 
 class Component {
@@ -201,6 +215,11 @@ public:
   virtual void activate() {}
   virtual void deactivate() {}
   virtual void execute(const Invocation& invocation, GraphContext& ctx);
+
+  virtual Status configure_status(GraphContext& ctx, const ConfigView& config);
+  virtual Status activate_status();
+  virtual Status deactivate_status();
+  virtual Status execute_status(const Invocation& invocation, GraphContext& ctx);
 };
 
 struct TickContext {

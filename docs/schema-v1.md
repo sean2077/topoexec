@@ -64,6 +64,8 @@ Fields:
 - `rt_priority` optional integer, default `0`.
 - `isolation_intent` optional string, default `none`.
 
+Runtime support note: `event_loop` is the production runtime lane for `v0.1.0-alpha`. `fixed_rate` is simulated by bounded runtime ticks. `thread_pool` remains schema-visible for forward compatibility but `RuntimeRunner` rejects it in `run` mode until the worker-pool MVP lands; see [scheduler.md](scheduler.md).
+
 ## components
 
 `components` is a sequence. Each component must have an id, type, event sources, trigger policy, and execution lane.

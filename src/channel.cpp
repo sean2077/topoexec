@@ -55,7 +55,7 @@ DropPolicy drop_policy_from_string(const std::string& value) {
   if (value == "block") {
     return DropPolicy::kBlockProducer;
   }
-  if (value == "fail_fast") {
+  if (value == "fail_fast" || value == "reject") {
     return DropPolicy::kFailFast;
   }
   return DropPolicy::kFailFast;
@@ -562,11 +562,13 @@ RuntimePublicationRouter::publish_shared_from(const std::string& source_endpoint
     record_trace_event(trace_, "channel_publish",
                        {{"channel_id", edge.channel_id},
                         {"source_component", edge.source_component},
-                        {"target_component", edge.target_component}});
+                        {"target_component", edge.target_component},
+                        {"edge_kind", to_string(edge.kind)}});
     RuntimeChannelPublication publication;
     publication.target = RuntimeChannelPublishTarget::kChannel;
     publication.id = edge.channel_id;
     publication.payload = payload;
+    publication.kind = edge.kind;
     publication.event_timestamp = event_timestamp;
     if (!active_composite_components_.empty() && active_composite_components_.count(edge.source_component) != 0u &&
         active_composite_components_.count(edge.target_component) == 0u) {
@@ -648,7 +650,8 @@ RuntimePublicationRouter::commit_batch(std::vector<RuntimeChannelPublication> pu
   if (result.accepted) {
     metrics_.committed_count += publications.size();
     for (std::size_t index = 0; index < publications.size(); ++index) {
-      record_trace_event(trace_, "channel_commit", {{"channel_id", publications[index].id}});
+      record_trace_event(trace_, "channel_commit",
+                         {{"channel_id", publications[index].id}, {"edge_kind", to_string(publications[index].kind)}});
     }
   } else {
     ++metrics_.failed_commit_count;

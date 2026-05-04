@@ -283,6 +283,32 @@ composite_loops:
   EXPECT_EQ(result.compiled_plan.region_order, std::vector<std::string>({"abc_loop", "d"}));
 }
 
+TEST(Graph, ComponentCannotHaveMultipleCompositeLoopOwners) {
+  const auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: duplicate_loop_owner, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components:
+  - {id: a, type: topoexec.test.A, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+  - {id: b, type: topoexec.test.B, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+edges:
+  - {id: ab, kind: immediate, from: a.out, to: b.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: ba, kind: immediate, from: b.out, to: a.in, policy: {mode: latest, copy_policy: shared_view}}
+composite_loops:
+  - id: first
+    components: [a, b]
+    loop_policy: {type: fixed_point, max_iterations: 3}
+  - id: second
+    components: [a, b]
+    loop_policy: {type: fixed_point, max_iterations: 3}
+)");
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "component a is owned by multiple composite_loops"));
+  EXPECT_TRUE(has_error_containing(result.errors, "component b is owned by multiple composite_loops"));
+}
+
 TEST(Graph, NonImmediateFeedbackEdgesDoNotCreateImmediateSccs) {
   for (const auto kind : {topoexec::EdgeKind::kDelay, topoexec::EdgeKind::kState, topoexec::EdgeKind::kAsync}) {
     auto graph = minimal_graph();

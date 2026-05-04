@@ -36,7 +36,7 @@ cmake --install build-release --prefix /tmp/topoexec-install
 cmake -S tests/cmake/runtime_smoke -B /tmp/topoexec-runtime-smoke \
   -DCMAKE_PREFIX_PATH=/tmp/topoexec-install
 cmake --build /tmp/topoexec-runtime-smoke -j
-/tmp/topoexec-runtime-smoke/runtime_smoke
+/tmp/topoexec-runtime-smoke/topoexec_runtime_smoke
 ```
 
 ## Known Limitations To Keep In Release Notes

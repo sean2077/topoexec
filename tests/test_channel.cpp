@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <stdexcept>
 #include <variant>
 
 namespace {
@@ -175,4 +176,19 @@ TEST(Channel, LoanedViewPreservesLoanedFrameBufferWithoutCopying) {
   EXPECT_EQ(frame.payload_address(), address);
   EXPECT_EQ(bus.metrics("loaned_frames").payload_copy_count, 0u);
   EXPECT_EQ(pool.stats().alloc_count, 1u);
+}
+
+TEST(Payload, TypedHelpersReturnExpectedPayloadVariants) {
+  const auto text_payload = topoexec::make_text_payload("hello");
+  ASSERT_TRUE(topoexec::payload_is<topoexec::TextPayload>(text_payload));
+  ASSERT_NE(topoexec::try_payload_as<topoexec::TextPayload>(text_payload), nullptr);
+  EXPECT_EQ(topoexec::payload_as<topoexec::TextPayload>(text_payload).text, "hello");
+  EXPECT_EQ(topoexec::try_payload_as<topoexec::BinaryBlobPayload>(text_payload), nullptr);
+  EXPECT_THROW((void)topoexec::payload_as<topoexec::BinaryBlobPayload>(text_payload, "test"), std::runtime_error);
+
+  topoexec::Invocation invocation;
+  invocation.payload = topoexec::make_shared_payload(text_payload);
+  ASSERT_NE(invocation.try_payload_as<topoexec::TextPayload>(), nullptr);
+  EXPECT_EQ(invocation.payload_as<topoexec::TextPayload>().text, "hello");
+  EXPECT_THROW((void)invocation.payload_as<topoexec::FrameView>(), std::runtime_error);
 }

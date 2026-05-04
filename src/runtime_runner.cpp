@@ -38,6 +38,16 @@ std::map<std::string, SchedulerGroupConfig> lane_configs(const GraphSpec& graph)
   return values;
 }
 
+std::vector<std::string> unsupported_runtime_lanes(const GraphSpec& graph) {
+  std::vector<std::string> lanes;
+  for (const auto& lane : graph.lanes) {
+    if (lane.type == "thread_pool") {
+      lanes.push_back(lane.id);
+    }
+  }
+  return lanes;
+}
+
 void copy_dry_run_to_runner(const GraphDryRunResult& dry_run, RuntimeRunnerResult& result) {
   result.dry_run = dry_run;
   result.instantiated_components = dry_run.instantiated_components;
@@ -106,6 +116,17 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     return result;
   }
 
+  const auto unsupported_lanes = unsupported_runtime_lanes(graph);
+  if (!unsupported_lanes.empty()) {
+    result.ok = false;
+    result.scheduler_stop_reason = SchedulerStopReason::kError;
+    for (const auto& lane : unsupported_lanes) {
+      result.errors.push_back("lane " + lane +
+                              " has type thread_pool, which is schema-visible but not implemented by RuntimeRunner");
+    }
+    return result;
+  }
+
   RuntimeChannelBus channels(graph.edges);
   RuntimePublicationRouter publications(&channels, graph.edges);
   TraceCollector trace;
@@ -120,6 +141,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     std::string id;
     std::unique_ptr<Component> component;
     GraphContext context;
+    bool configured{false};
+    bool started{false};
   };
   std::vector<Instance> instances;
   instances.reserve(graph.components.size());
@@ -134,9 +157,43 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       instance.context.publisher = &publications;
       instance.context.graph_name = graph.name;
       instance.context.component_id = spec.id;
-      instance.component->configure(instance.context, spec.config);
-      instance.component->activate();
+      const auto configure = instance.component->configure_status(instance.context, spec.config);
+      if (!configure.ok()) {
+        result.ok = false;
+        result.scheduler_stop_reason = SchedulerStopReason::kError;
+        result.errors.push_back("component " + spec.id + " configure failed: " + configure.message());
+        instances.push_back(std::move(instance));
+        break;
+      }
+      instance.configured = true;
+      const auto activate = instance.component->activate_status();
+      if (!activate.ok()) {
+        result.ok = false;
+        result.scheduler_stop_reason = SchedulerStopReason::kError;
+        result.errors.push_back("component " + spec.id + " activate failed: " + activate.message());
+        instances.push_back(std::move(instance));
+        break;
+      }
+      instance.started = true;
       instances.push_back(std::move(instance));
+    }
+    result.instantiated_components = instances.size();
+    result.configured_components = static_cast<std::size_t>(
+        std::count_if(instances.begin(), instances.end(), [](const auto& instance) { return instance.configured; }));
+    result.started_components = static_cast<std::size_t>(
+        std::count_if(instances.begin(), instances.end(), [](const auto& instance) { return instance.started; }));
+    if (!result.errors.empty()) {
+      for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
+        if (!it->started) {
+          continue;
+        }
+        const auto deactivate = it->component->deactivate_status();
+        ++result.stopped_components;
+        if (!deactivate.ok()) {
+          result.errors.push_back("component " + it->id + " deactivate failed: " + deactivate.message());
+        }
+      }
+      return result;
     }
 
     EventRuntime runtime(&channels, result.validation.compiled_plan, &publications);
@@ -161,14 +218,41 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     result.tick_calls = run_result.tick_calls;
     result.ticked_components = run_result.ticked_tasks;
     result.errors = run_result.errors;
-    result.instantiated_components = instances.size();
-    result.configured_components = instances.size();
-    result.started_components = instances.size();
     for (const auto& [lane_id, metrics] : run_result.group_metrics) {
       append_runtime_metric(result, "runtime.scheduler.completed_count", static_cast<double>(metrics.completed_count),
                             {}, lane_id);
       append_runtime_metric(result, "runtime.scheduler.tick_overrun_count",
                             static_cast<double>(metrics.tick_overrun_count), {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.queue_depth", static_cast<double>(metrics.queue_depth), {},
+                            lane_id);
+      append_runtime_metric(result, "runtime.scheduler.active_count", static_cast<double>(metrics.active_count), {},
+                            lane_id);
+      append_runtime_metric(result, "runtime.scheduler.in_flight_count", static_cast<double>(metrics.in_flight_count),
+                            {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.rejected_count",
+                            static_cast<double>(metrics.enqueue_rejected_count), {}, lane_id);
+    }
+    for (const auto& [component_id, metrics] : run_result.component_metrics) {
+      append_runtime_metric(result, "runtime.component.execution_count", static_cast<double>(metrics.execution_count),
+                            component_id);
+      append_runtime_metric(result, "runtime.component.error_count", static_cast<double>(metrics.error_count),
+                            component_id);
+      append_runtime_metric(result, "runtime.component.last_duration_ns", static_cast<double>(metrics.last_duration_ns),
+                            component_id);
+      append_runtime_metric(result, "runtime.component.max_duration_ns", static_cast<double>(metrics.max_duration_ns),
+                            component_id);
+      append_runtime_metric(result, "runtime.component.budget_overrun_count",
+                            static_cast<double>(metrics.budget_overrun_count), component_id);
+      append_runtime_metric(result, "runtime.component.max_in_flight_count",
+                            static_cast<double>(metrics.max_in_flight_count), component_id);
+    }
+    for (const auto& [component_id, metrics] : run_result.trigger_metrics) {
+      append_runtime_metric(result, "runtime.trigger.ready_count", static_cast<double>(metrics.ready_count),
+                            component_id);
+      append_runtime_metric(result, "runtime.trigger.suppressed_count", static_cast<double>(metrics.suppressed_count),
+                            component_id);
+      append_runtime_metric(result, "runtime.trigger.coalesced_count", static_cast<double>(metrics.coalesced_count),
+                            component_id);
     }
     for (const auto& [loop_id, count] : run_result.loop_iteration_count) {
       result.loop_iteration_count += count;
@@ -187,8 +271,15 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       append_runtime_metric(result, "runtime.loop.max_iterations_hit", static_cast<double>(count), loop_id);
     }
     for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
-      it->component->deactivate();
+      if (!it->started) {
+        continue;
+      }
+      const auto deactivate = it->component->deactivate_status();
       ++result.stopped_components;
+      if (!deactivate.ok()) {
+        result.ok = false;
+        result.errors.push_back("component " + it->id + " deactivate failed: " + deactivate.message());
+      }
     }
     for (const auto& metric : channels.metrics_snapshot()) {
       result.channel_publish_count += metric.published_count;
@@ -246,6 +337,16 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   } catch (const std::exception& error) {
     result.ok = false;
     result.errors.push_back(error.what());
+    for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
+      if (!it->started) {
+        continue;
+      }
+      const auto deactivate = it->component->deactivate_status();
+      ++result.stopped_components;
+      if (!deactivate.ok()) {
+        result.errors.push_back("component " + it->id + " deactivate failed: " + deactivate.message());
+      }
+    }
   }
   return result;
 }

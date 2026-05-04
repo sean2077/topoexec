@@ -54,8 +54,14 @@ int& throwing_deactivate_count() {
   return count;
 }
 
+int& status_failure_deactivate_count() {
+  static int count = 0;
+  return count;
+}
+
 void reset_throwing_component_state() {
   throwing_deactivate_count() = 0;
+  status_failure_deactivate_count() = 0;
 }
 
 void record_invocation(const topoexec::Invocation& invocation, const topoexec::GraphContext& context) {
@@ -113,6 +119,12 @@ bool has_metric(const topoexec::RuntimeRunnerResult& result, const std::string& 
   return std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(), [&](const auto& metric) {
     return metric.name == name && (channel_id.empty() || metric.channel_id == channel_id);
   });
+}
+
+bool has_component_metric(const topoexec::RuntimeRunnerResult& result, const std::string& name,
+                          const std::string& component_id) {
+  return std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(),
+                     [&](const auto& metric) { return metric.name == name && metric.component_id == component_id; });
 }
 
 bool has_trace_event(const topoexec::RuntimeRunnerResult& result, const std::string& name) {
@@ -490,6 +502,48 @@ public:
   }
 };
 
+class ConfigureStatusFailureComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.ConfigureStatusFailure";
+    descriptor.name = "configure_status_failure";
+    descriptor.role = topoexec::ComponentRole::kInputOutputBoundary;
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  topoexec::Status configure_status(topoexec::GraphContext&, const topoexec::ConfigView&) override {
+    return topoexec::Status::error("configure status failed");
+  }
+
+  void execute(const topoexec::Invocation&, topoexec::GraphContext&) override {}
+};
+
+class ExecuteStatusFailureComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.ExecuteStatusFailure";
+    descriptor.name = "execute_status_failure";
+    descriptor.role = topoexec::ComponentRole::kInputOutputBoundary;
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  void deactivate() override {
+    ++status_failure_deactivate_count();
+  }
+
+  void execute(const topoexec::Invocation&, topoexec::GraphContext&) override {}
+
+  topoexec::Status execute_status(const topoexec::Invocation&, topoexec::GraphContext&) override {
+    return topoexec::Status::error("execute status failed");
+  }
+};
+
 topoexec::ComponentRegistry registry() {
   topoexec::ComponentRegistry registry;
   registry.register_component({"topoexec.test.Source"}, []() { return std::make_unique<SourceComponent>(); });
@@ -513,6 +567,10 @@ topoexec::ComponentRegistry delay_registry() {
   registry.register_component({"topoexec.test.LoopController"},
                               []() { return std::make_unique<LoopControllerComponent>(); });
   registry.register_component({"topoexec.test.Throwing"}, []() { return std::make_unique<ThrowingComponent>(); });
+  registry.register_component({"topoexec.test.ConfigureStatusFailure"},
+                              []() { return std::make_unique<ConfigureStatusFailureComponent>(); });
+  registry.register_component({"topoexec.test.ExecuteStatusFailure"},
+                              []() { return std::make_unique<ExecuteStatusFailureComponent>(); });
   return registry;
 }
 
@@ -845,6 +903,32 @@ edges: []
 )");
 }
 
+topoexec::GraphSpec status_failure_graph(std::string type) {
+  topoexec::GraphSpec graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: status_failure, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: failing
+    type: topoexec.test.ConfigureStatusFailure
+    boundary: {role: input_output, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+edges: []
+)");
+  graph.components.front().type = std::move(type);
+  return graph;
+}
+
+topoexec::GraphSpec thread_pool_graph() {
+  auto graph = status_failure_graph("topoexec.test.ExecuteStatusFailure");
+  graph.name = "thread_pool_unsupported";
+  graph.lanes.front().type = "thread_pool";
+  graph.lanes.front().max_threads = 2;
+  return graph;
+}
+
 } // namespace
 
 TEST(Runtime, StaticRegistryValidationAndDryRunPass) {
@@ -880,12 +964,19 @@ TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {
   EXPECT_TRUE(has_metric(result, "runtime.channel.max_depth", "source_echo"));
   EXPECT_TRUE(has_trace_event(result, "scheduler_iteration_begin"));
   EXPECT_TRUE(has_trace_event(result, "component_execute_begin"));
+  EXPECT_TRUE(has_trace_event(result, "component_execute"));
   EXPECT_TRUE(has_trace_event(result, "component_execute_end"));
   EXPECT_TRUE(has_trace_event(result, "channel_publish"));
   EXPECT_TRUE(has_trace_event(result, "channel_commit"));
   EXPECT_TRUE(has_trace_event_attribute(result, "component_execute_begin", "component_id", "source"));
   EXPECT_TRUE(has_trace_event_attribute(result, "channel_publish", "channel_id", "source_echo"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "channel_publish", "edge_kind", "immediate"));
   EXPECT_TRUE(has_trace_event_attribute(result, "channel_commit", "channel_id", "echo_sink"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "channel_commit", "edge_kind", "immediate"));
+  EXPECT_TRUE(has_component_metric(result, "runtime.component.execution_count", "source"));
+  EXPECT_TRUE(has_component_metric(result, "runtime.component.last_duration_ns", "source"));
+  EXPECT_TRUE(has_component_metric(result, "runtime.component.max_in_flight_count", "source"));
+  EXPECT_TRUE(has_component_metric(result, "runtime.trigger.ready_count", "sink"));
   EXPECT_TRUE(has_metric(result, "runtime.trace.event_count"));
   EXPECT_NE(std::find(result.ticked_components.begin(), result.ticked_components.end(), "sink"),
             result.ticked_components.end());
@@ -1383,4 +1474,63 @@ TEST(Runtime, ComponentErrorStopsRuntimeAndDeactivatesStartedComponents) {
   EXPECT_EQ(result.started_components, 1u);
   EXPECT_EQ(result.stopped_components, 1u);
   EXPECT_EQ(throwing_deactivate_count(), 1);
+}
+
+TEST(Runtime, ConfigureStatusFailureIsObservableWithoutThrowing) {
+  const auto reg = delay_registry();
+  const auto spec = status_failure_graph("topoexec.test.ConfigureStatusFailure");
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_throwing_component_state();
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_NE(result.errors.front().find("component failing configure failed: configure status failed"),
+            std::string::npos);
+  EXPECT_EQ(result.instantiated_components, 1u);
+  EXPECT_EQ(result.configured_components, 0u);
+  EXPECT_EQ(result.started_components, 0u);
+  EXPECT_EQ(result.stopped_components, 0u);
+}
+
+TEST(Runtime, ExecuteStatusFailureStopsRuntimeAndDeactivatesStartedComponents) {
+  const auto reg = delay_registry();
+  const auto spec = status_failure_graph("topoexec.test.ExecuteStatusFailure");
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_throwing_component_state();
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_NE(result.errors.front().find("component failing failed: execute status failed"), std::string::npos);
+  EXPECT_EQ(result.started_components, 1u);
+  EXPECT_EQ(result.stopped_components, 1u);
+  EXPECT_EQ(status_failure_deactivate_count(), 1);
+  EXPECT_TRUE(has_component_metric(result, "runtime.component.error_count", "failing"));
+}
+
+TEST(Runtime, ThreadPoolLaneIsSchemaVisibleButRuntimeUnsupported) {
+  const auto reg = delay_registry();
+  const auto spec = thread_pool_graph();
+  const auto validation = topoexec::validate_graph(spec, reg);
+  ASSERT_TRUE(validation.ok) << validation.errors.front();
+
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_NE(result.errors.front().find("thread_pool"), std::string::npos);
+  EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kError);
 }

@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -41,6 +42,21 @@ struct SchedulerMetrics {
   std::size_t in_flight_count{0};
   std::size_t enqueue_rejected_count{0};
   std::size_t completed_count{0};
+};
+
+struct ComponentExecutionMetrics {
+  std::size_t execution_count{0};
+  std::size_t error_count{0};
+  std::uint64_t last_duration_ns{0};
+  std::uint64_t max_duration_ns{0};
+  std::size_t budget_overrun_count{0};
+  std::size_t max_in_flight_count{0};
+};
+
+struct TriggerRuntimeMetrics {
+  std::size_t ready_count{0};
+  std::size_t suppressed_count{0};
+  std::size_t coalesced_count{0};
 };
 
 class SchedulerStopToken {
@@ -98,6 +114,8 @@ struct SchedulerRunResult {
   std::uint64_t iterations{0};
   std::size_t tick_calls{0};
   std::map<std::string, SchedulerMetrics> group_metrics;
+  std::map<std::string, ComponentExecutionMetrics> component_metrics;
+  std::map<std::string, TriggerRuntimeMetrics> trigger_metrics;
   std::map<std::string, std::size_t> loop_iteration_count;
   std::map<std::string, std::size_t> loop_converged_count;
   std::map<std::string, std::size_t> loop_budget_overrun_count;
