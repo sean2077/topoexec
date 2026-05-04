@@ -32,7 +32,7 @@ The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, run
 
 ## Runtime semantics
 
-TopoExec's user-visible execution contract is documented in [docs/runtime-semantics.md](docs/runtime-semantics.md). Schema v1 details are in [docs/schema-v1.md](docs/schema-v1.md).
+TopoExec's user-visible execution contract is documented in [docs/runtime-semantics.md](docs/runtime-semantics.md). Schema v1 details are in [docs/schema-v1.md](docs/schema-v1.md), and the `docs/spec.md` implementation audit is captured in [docs/spec-implementation-audit.md](docs/spec-implementation-audit.md).
 
 ## Included
 
