@@ -40,4 +40,4 @@ TopoExec's user-visible execution contract is documented in [docs/runtime-semant
 - `include/topoexec/common/`: logging, metrics, trace.
 - `include/topoexec/runtime/`: graph, component, static registry, channel, payload, trigger policy, event runtime, scheduler, runner.
 - `tools/topoexec/`: C++ CLI for validation, plan/render output, runtime runs, metrics, trace, lint, explain, diff, and bench.
-- `examples/`: minimal graph, CompositeLoop graph, delay-feedback control graph, invalid-schema fixture, and runnable apps for minimal pipeline, latest-vs-queue overload behavior, delayed control feedback, CompositeLoop fixed-point ownership, and async task-ready delivery.
+- `examples/`: minimal graph, CompositeLoop graph, delay-feedback control graph, invalid-schema fixtures, and runnable apps with per-app README tutorials for minimal pipeline, latest-vs-queue overload behavior, delayed control feedback, CompositeLoop fixed-point ownership, async task-ready delivery, and pure C++ graph building.
