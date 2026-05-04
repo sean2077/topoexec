@@ -35,6 +35,8 @@ The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, run
 
 TopoExec's user-visible execution contract is documented in [docs/runtime-semantics.md](docs/runtime-semantics.md). Schema v1 details are in [docs/schema-v1.md](docs/schema-v1.md), metrics and trace contracts are in [docs/metrics.md](docs/metrics.md) and [docs/trace-events.md](docs/trace-events.md), and the `docs/spec.md` implementation audit is captured in [docs/spec-implementation-audit.md](docs/spec-implementation-audit.md).
 
+Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), and [docs/release-checklist.md](docs/release-checklist.md).
+
 ## Included
 
 - `include/topoexec/common/`: logging, metrics, trace.
