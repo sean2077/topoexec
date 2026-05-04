@@ -4,7 +4,9 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 ## Unreleased
 
-Current release target: `v0.1.0-alpha`.
+No changes yet.
+
+## v0.1.0-alpha - 2026-05-05
 
 ### Added
 

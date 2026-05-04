@@ -1,11 +1,17 @@
 # Current Baseline
 
-Date: 2026-05-04
+Date: 2026-05-05
 
-Baseline commit before next-stage automation work:
+Baseline release target:
 
 ```text
-9877209 Tighten trigger policy cleanup boundaries
+v0.1.0-alpha
+```
+
+Runtime implementation commit used for release-candidate CI:
+
+```text
+3b5d7c0 Stabilize alpha runtime API contracts
 ```
 
 Environment used for local reproduction:
@@ -13,27 +19,57 @@ Environment used for local reproduction:
 ```text
 OS: Ubuntu 24.04 environment
 C++ compiler: g++ 13.3.0
-CMake: available via /usr/bin/cmake
-CTest: available via /usr/bin/ctest
+Clang: not installed locally; covered by GitHub Actions
+CMake: 3.28.3
+CTest: 3.28.3
 clang-format: available via /usr/bin/clang-format
 ```
 
-Commands reproduced locally:
+Commands reproduced locally before tagging:
 
 ```bash
 git diff --check
-cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build build -j
-ctest --test-dir build --output-on-failure
+./scripts/agent_check.sh
+TOPOEXEC_BUILD_DIR=/tmp/topoexec-gcc-debug TOPOEXEC_BUILD_TYPE=Debug ./scripts/agent_check.sh
 ```
 
 Observed result:
 
 ```text
-22/22 CTest tests passed.
+29/29 CTest tests passed in RelWithDebInfo and Debug GCC local runs.
+```
+
+Release artifact smoke:
+
+```bash
+cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build "$BUILD_DIR" -j
+ctest --test-dir "$BUILD_DIR" --output-on-failure
+cmake --install "$BUILD_DIR" --prefix "$INSTALL_DIR"
+cmake -S tests/cmake/runtime_smoke -B "$RUNTIME_SMOKE_DIR" -DCMAKE_PREFIX_PATH="$INSTALL_DIR"
+cmake --build "$RUNTIME_SMOKE_DIR" -j
+"$RUNTIME_SMOKE_DIR/topoexec_runtime_smoke"
+```
+
+Observed result:
+
+```text
+29/29 CTest tests passed; downstream topoexec::runtime package smoke executable exited 0.
+```
+
+GitHub Actions evidence:
+
+```text
+CI run 25331487554 on commit 3b5d7c0 completed successfully:
+- gcc / Debug
+- gcc / RelWithDebInfo
+- clang / Debug
+- clang / RelWithDebInfo
 ```
 
 Known baseline limitations:
 
-- CI evidence did not exist before this baseline-protection pass.
-- GCC was the only local compiler used for the recorded baseline; CI is configured to reproduce GCC and Clang builds.
+- Threaded worker-pool scheduling is not implemented; `RuntimeRunner` rejects `thread_pool` lanes in `run` mode.
+- Async max-inflight admission is deferred; current async behavior uses bounded async channel capacity and overflow policy.
+- Sanitizer CI is planned before beta.
+- ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.

@@ -6,18 +6,25 @@ The release is ready only when each item is checked against the commit being tag
 
 ## Required Checks
 
-- [ ] `git status --short` is clean.
-- [ ] `git diff --check` passes.
-- [ ] `./scripts/agent_check.sh` passes locally.
-- [ ] GitHub Actions CI is green for GCC Debug.
-- [ ] GitHub Actions CI is green for GCC RelWithDebInfo.
-- [ ] GitHub Actions CI is green for Clang Debug.
-- [ ] GitHub Actions CI is green for Clang RelWithDebInfo.
-- [ ] `cmake_package_runtime_smoke` passes in CI.
-- [ ] `CHANGELOG.md` has the release section updated.
-- [ ] `docs/versioning.md` matches the intended tag.
-- [ ] `docs/schema-v1.md`, `docs/runtime-semantics.md`, `docs/metrics.md`, and `docs/trace-events.md` describe current behavior.
-- [ ] Runnable app READMEs match current app output.
+- [x] `git status --short` is clean before tagging.
+- [x] `git diff --check` passes.
+- [x] `./scripts/agent_check.sh` passes locally.
+- [x] GitHub Actions CI is green for GCC Debug.
+- [x] GitHub Actions CI is green for GCC RelWithDebInfo.
+- [x] GitHub Actions CI is green for Clang Debug.
+- [x] GitHub Actions CI is green for Clang RelWithDebInfo.
+- [x] `cmake_package_runtime_smoke` passes in CI.
+- [x] `CHANGELOG.md` has the release section updated.
+- [x] `docs/versioning.md` matches the intended tag.
+- [x] `docs/schema-v1.md`, `docs/runtime-semantics.md`, `docs/metrics.md`, and `docs/trace-events.md` describe current behavior.
+- [x] Runnable app READMEs match current app output.
+
+Evidence:
+
+- Local `./scripts/agent_check.sh`: 29/29 CTest tests passed.
+- Local Debug GCC check: 29/29 CTest tests passed with `TOPOEXEC_BUILD_TYPE=Debug`.
+- GitHub Actions run `25331487554`: GCC/Clang Debug/RelWithDebInfo all passed for implementation commit `3b5d7c0`.
+- Isolated release smoke build/install/downstream package executable passed.
 
 ## Artifact Smoke
 
