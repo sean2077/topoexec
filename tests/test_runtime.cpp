@@ -22,13 +22,31 @@ struct RuntimeRecord {
   std::vector<std::string> batch_payloads;
 };
 
+struct PublicationProbeState {
+  bool publisher_active{false};
+  bool publish_accepted{false};
+  bool sink_seen_before_publish_return{false};
+  bool sink_ran_while_publisher_active{false};
+  std::string publish_reason;
+  std::vector<std::string> events;
+};
+
 std::vector<RuntimeRecord>& runtime_records() {
   static std::vector<RuntimeRecord> records;
   return records;
 }
 
+PublicationProbeState& publication_probe_state() {
+  static PublicationProbeState state;
+  return state;
+}
+
 void reset_runtime_records() {
   runtime_records().clear();
+}
+
+void reset_publication_probe_state() {
+  publication_probe_state() = PublicationProbeState{};
 }
 
 int& throwing_deactivate_count() {
@@ -187,6 +205,61 @@ public:
   }
 
   topoexec::RuntimePayloadPtr last;
+};
+
+class StagedPublisherComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.StagedPublisher";
+    descriptor.name = "staged_publisher";
+    descriptor.role = topoexec::ComponentRole::kInputBoundary;
+    descriptor.outputs = {{"out", topoexec::kTextPayloadSchema}};
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  void execute(const topoexec::Invocation&, topoexec::GraphContext& context) override {
+    auto& state = publication_probe_state();
+    state.events.push_back("publisher_begin");
+    state.publisher_active = true;
+
+    const auto result = context.publish("out", topoexec::make_text_payload("staged"));
+    state.publish_accepted = result.accepted;
+    state.publish_reason = result.reason;
+    state.sink_seen_before_publish_return =
+        std::find(state.events.begin(), state.events.end(), "sink_execute") != state.events.end();
+    state.events.push_back("publish_return");
+
+    state.publisher_active = false;
+    state.events.push_back("publisher_end");
+    if (!result.accepted) {
+      throw std::runtime_error(result.reason);
+    }
+  }
+};
+
+class PublicationProbeSinkComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.PublicationProbeSink";
+    descriptor.name = "publication_probe_sink";
+    descriptor.role = topoexec::ComponentRole::kOutputBoundary;
+    descriptor.inputs = {{"in", topoexec::kTextPayloadSchema}};
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  void execute(const topoexec::Invocation&, topoexec::GraphContext&) override {
+    auto& state = publication_probe_state();
+    if (state.publisher_active) {
+      state.sink_ran_while_publisher_active = true;
+    }
+    state.events.push_back("sink_execute");
+  }
 };
 
 class TickSourceComponent : public topoexec::Component {
@@ -435,6 +508,15 @@ topoexec::ComponentRegistry delay_registry() {
   return registry;
 }
 
+topoexec::ComponentRegistry publication_probe_registry() {
+  topoexec::ComponentRegistry registry;
+  registry.register_component({"topoexec.test.StagedPublisher"},
+                              []() { return std::make_unique<StagedPublisherComponent>(); });
+  registry.register_component({"topoexec.test.PublicationProbeSink"},
+                              []() { return std::make_unique<PublicationProbeSinkComponent>(); });
+  return registry;
+}
+
 topoexec::GraphSpec graph() {
   return topoexec::load_graph_text(R"(
 schema_version: 1
@@ -459,6 +541,27 @@ components:
 edges:
   - {id: source_echo, kind: immediate, from: source.out, to: echo.in, policy: {mode: latest, copy_policy: shared_view}}
   - {id: echo_sink, kind: immediate, from: echo.out, to: sink.in, policy: {mode: latest, copy_policy: shared_view}}
+)");
+}
+
+topoexec::GraphSpec publication_probe_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: publication_probe, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: publisher
+    type: topoexec.test.StagedPublisher
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: sink
+    type: topoexec.test.PublicationProbeSink
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: publisher_sink, kind: immediate, from: publisher.out, to: sink.in, policy: {mode: latest, copy_policy: shared_view}}
 )");
 }
 
@@ -775,6 +878,29 @@ TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {
   EXPECT_TRUE(has_metric(result, "runtime.trace.event_count"));
   EXPECT_NE(std::find(result.ticked_components.begin(), result.ticked_components.end(), "sink"),
             result.ticked_components.end());
+}
+
+TEST(Runtime, PublishStagesWithoutRecursiveDownstreamExecute) {
+  const auto reg = publication_probe_registry();
+  const auto spec = publication_probe_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_publication_probe_state();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto& state = publication_probe_state();
+  EXPECT_TRUE(state.publish_accepted) << state.publish_reason;
+  EXPECT_FALSE(state.sink_seen_before_publish_return);
+  EXPECT_FALSE(state.sink_ran_while_publisher_active);
+  EXPECT_EQ(state.events,
+            std::vector<std::string>({"publisher_begin", "publish_return", "publisher_end", "sink_execute"}));
+  EXPECT_EQ(result.committed_publication_count, 1u);
+  EXPECT_EQ(result.channel_publish_count, 1u);
+  EXPECT_EQ(result.channel_delivery_count, 1u);
 }
 
 TEST(Runtime, DelayEdgeCommitsAtNextEpochBoundary) {

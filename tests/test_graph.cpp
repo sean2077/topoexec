@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <map>
+#include <random>
 #include <utility>
 
 namespace {
@@ -51,6 +53,70 @@ std::vector<std::string> sorted(std::vector<std::string> values) {
 bool contains_set(const std::vector<std::vector<std::string>>& sets, std::vector<std::string> expected) {
   expected = sorted(std::move(expected));
   return std::any_of(sets.begin(), sets.end(), [&expected](const auto& value) { return sorted(value) == expected; });
+}
+
+std::string component_id_from_endpoint(const std::string& endpoint) {
+  const auto dot = endpoint.find('.');
+  if (dot == std::string::npos) {
+    return endpoint;
+  }
+  return endpoint.substr(0, dot);
+}
+
+topoexec::ComponentNodeSpec random_dag_component(std::string id) {
+  topoexec::ComponentNodeSpec component;
+  component.id = std::move(id);
+  component.type = "topoexec.test.Node";
+  component.event_sources = {topoexec::EventSourceSpec{}};
+  component.event_sources.front().type = "manual";
+  component.trigger_policy.type = "manual";
+  component.execution.lane = "main";
+  return component;
+}
+
+topoexec::EdgeSpec random_dag_edge(std::string id, const std::string& from, const std::string& to) {
+  topoexec::EdgeSpec edge;
+  edge.id = std::move(id);
+  edge.from = from + ".out";
+  edge.to = to + ".in";
+  edge.has_kind = true;
+  edge.kind = topoexec::EdgeKind::kImmediate;
+  edge.policy.mode = "latest";
+  edge.policy.copy_policy = "shared_view";
+  return edge;
+}
+
+topoexec::GraphSpec fixed_seed_random_dag(std::mt19937& rng, int graph_index) {
+  topoexec::GraphSpec graph;
+  graph.schema_version = 1;
+  graph.name = "random_dag_" + std::to_string(graph_index);
+  graph.kind = "internal_test";
+  graph.lanes = {topoexec::LaneSpec{}};
+  graph.lanes.front().id = "main";
+  graph.lanes.front().type = "event_loop";
+
+  const int component_count = 6 + (graph_index % 4);
+  for (int index = 0; index < component_count; ++index) {
+    graph.components.push_back(random_dag_component("c" + std::to_string(index)));
+  }
+
+  int edge_index = 0;
+  for (int index = 0; index + 1 < component_count; ++index) {
+    graph.edges.push_back(random_dag_edge("chain_" + std::to_string(edge_index++), graph.components[index].id,
+                                          graph.components[index + 1].id));
+  }
+
+  std::bernoulli_distribution include_edge(0.35);
+  for (int from = 0; from < component_count; ++from) {
+    for (int to = from + 2; to < component_count; ++to) {
+      if (!include_edge(rng)) {
+        continue;
+      }
+      graph.edges.push_back(random_dag_edge("random_" + std::to_string(edge_index++), graph.components[from].id,
+                                            graph.components[to].id));
+    }
+  }
+  return graph;
 }
 
 } // namespace
@@ -283,4 +349,37 @@ edges:
   ASSERT_TRUE(second.ok) << second.errors.front();
   EXPECT_EQ(first.compiled_plan.region_order, std::vector<std::string>({"source", "left", "right", "sink"}));
   EXPECT_EQ(second.compiled_plan.region_order, first.compiled_plan.region_order);
+}
+
+TEST(Graph, FixedSeedImmediateDagsCompileWithDeterministicRegionOrder) {
+  std::mt19937 rng(0xC0FFEEu);
+  for (int graph_index = 0; graph_index < 8; ++graph_index) {
+    SCOPED_TRACE(graph_index);
+    const auto graph = fixed_seed_random_dag(rng, graph_index);
+
+    const auto first = topoexec::validate_graph_structure(graph);
+    const auto second = topoexec::validate_graph_structure(graph);
+
+    ASSERT_TRUE(first.ok) << (first.errors.empty() ? "" : first.errors.front());
+    ASSERT_TRUE(second.ok) << (second.errors.empty() ? "" : second.errors.front());
+    EXPECT_EQ(second.compiled_plan.region_order, first.compiled_plan.region_order);
+    EXPECT_EQ(first.compiled_plan.region_order.size(), graph.components.size());
+    ASSERT_EQ(first.compiled_plan.immediate_sccs.size(), graph.components.size());
+    for (const auto& scc : first.compiled_plan.immediate_sccs) {
+      EXPECT_EQ(scc.size(), 1u);
+    }
+
+    std::map<std::string, std::size_t> region_position;
+    for (std::size_t index = 0; index < first.compiled_plan.region_order.size(); ++index) {
+      region_position[first.compiled_plan.region_order[index]] = index;
+    }
+    for (const auto& edge : graph.edges) {
+      ASSERT_EQ(edge.kind, topoexec::EdgeKind::kImmediate);
+      const auto from = component_id_from_endpoint(edge.from);
+      const auto to = component_id_from_endpoint(edge.to);
+      ASSERT_NE(region_position.find(from), region_position.end());
+      ASSERT_NE(region_position.find(to), region_position.end());
+      EXPECT_LT(region_position.at(from), region_position.at(to));
+    }
+  }
 }
