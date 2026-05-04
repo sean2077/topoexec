@@ -14,8 +14,18 @@ pkg_check_modules(YAML_CPP REQUIRED IMPORTED_TARGET yaml-cpp)
 
 find_package(CLI11 REQUIRED)
 find_package(nlohmann_json REQUIRED)
+include(CMakePackageConfigHelpers)
 
-add_library(topoexec
+add_library(topoexec_core INTERFACE)
+set_target_properties(topoexec_core PROPERTIES EXPORT_NAME core)
+target_include_directories(topoexec_core INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_compile_features(topoexec_core INTERFACE cxx_std_20)
+add_library(topoexec::core ALIAS topoexec_core)
+
+add_library(topoexec_runtime
   src/buffer.cpp
   src/channel.cpp
   src/clock.cpp
@@ -31,15 +41,28 @@ add_library(topoexec
   src/trace.cpp
   src/trigger_policy.cpp
 )
-target_include_directories(topoexec PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
+set_target_properties(topoexec_runtime PROPERTIES
+  EXPORT_NAME runtime
 )
-target_compile_features(topoexec PUBLIC cxx_std_20)
-target_link_libraries(topoexec PUBLIC PkgConfig::YAML_CPP nlohmann_json::nlohmann_json)
+target_link_libraries(topoexec_runtime PUBLIC topoexec_core)
+
+add_library(topoexec_yaml
+  src/graph_io.cpp
+)
+set_target_properties(topoexec_yaml PROPERTIES
+  OUTPUT_NAME topoexec
+  EXPORT_NAME yaml
+)
+target_link_libraries(topoexec_yaml
+  PUBLIC topoexec_runtime
+  PRIVATE PkgConfig::YAML_CPP nlohmann_json::nlohmann_json
+)
+add_library(topoexec::runtime ALIAS topoexec_runtime)
+add_library(topoexec::yaml ALIAS topoexec_yaml)
+add_library(topoexec ALIAS topoexec_yaml)
 
 add_executable(topoexec_cli tools/topoexec/main.cpp)
-target_link_libraries(topoexec_cli PRIVATE topoexec CLI11::CLI11 nlohmann_json::nlohmann_json)
+target_link_libraries(topoexec_cli PRIVATE topoexec_yaml CLI11::CLI11 nlohmann_json::nlohmann_json)
 set_target_properties(topoexec_cli PROPERTIES OUTPUT_NAME topoexec)
 
 add_executable(topoexec_app_minimal_pipeline examples/apps/minimal_pipeline/main.cpp)
@@ -57,7 +80,7 @@ target_link_libraries(topoexec_app_composite_loop_fixed_point PRIVATE topoexec)
 add_executable(topoexec_app_async_worker examples/apps/async_worker/main.cpp)
 target_link_libraries(topoexec_app_async_worker PRIVATE topoexec)
 
-install(TARGETS topoexec topoexec_cli
+install(TARGETS topoexec_core topoexec_runtime topoexec_yaml topoexec_cli
   EXPORT topoexecTargets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -68,6 +91,21 @@ install(DIRECTORY include/ DESTINATION include)
 install(EXPORT topoexecTargets
   FILE topoexecTargets.cmake
   NAMESPACE topoexec::
+  DESTINATION lib/cmake/topoexec
+)
+configure_package_config_file(
+  cmake/topoexecConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/topoexecConfig.cmake
+  INSTALL_DESTINATION lib/cmake/topoexec
+)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/topoexecConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/topoexecConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/topoexecConfigVersion.cmake
   DESTINATION lib/cmake/topoexec
 )
 
@@ -144,6 +182,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_unknown_field.yaml
   )
   set_tests_properties(cli_reject_invalid_unknown_field PROPERTIES WILL_FAIL TRUE)
+  add_test(NAME cmake_package_runtime_smoke
+    COMMAND ${CMAKE_COMMAND}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/package_smoke.cmake
+  )
   add_test(NAME app_minimal_pipeline_runs
     COMMAND topoexec_app_minimal_pipeline
   )
