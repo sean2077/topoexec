@@ -307,9 +307,25 @@
       "channel_id": "source_to_transform",
       "component_id": "",
       "lane": "",
+      "name": "runtime.channel.deadline_miss_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "source_to_transform",
+      "component_id": "",
+      "lane": "",
       "name": "runtime.channel.max_depth",
       "tags": [],
       "value": 1.0
+    },
+    {
+      "channel_id": "source_to_transform",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.message_age_ms",
+      "tags": [],
+      "value": 0.0
     },
     {
       "channel_id": "source_to_transform",
@@ -347,9 +363,25 @@
       "channel_id": "transform_to_sink",
       "component_id": "",
       "lane": "",
+      "name": "runtime.channel.deadline_miss_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "transform_to_sink",
+      "component_id": "",
+      "lane": "",
       "name": "runtime.channel.max_depth",
       "tags": [],
       "value": 1.0
+    },
+    {
+      "channel_id": "transform_to_sink",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.message_age_ms",
+      "tags": [],
+      "value": 0.0
     },
     {
       "channel_id": "transform_to_sink",

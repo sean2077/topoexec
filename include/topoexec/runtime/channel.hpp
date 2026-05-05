@@ -75,6 +75,7 @@ struct ChannelConfig {
   ChannelType type{ChannelType::kLatestOnly};
   std::size_t capacity{1};
   DropPolicy drop_policy{DropPolicy::kOverwrite};
+  std::chrono::milliseconds lifespan{0};
   std::chrono::milliseconds deadline{0};
   TimestampDomain timestamp_domain{TimestampDomain::kSteady};
   CopyPolicy copy_policy{CopyPolicy::kCopy};
@@ -182,6 +183,10 @@ private:
                                                std::optional<EventTimestamp> event_timestamp, bool payload_was_copied);
   std::optional<RuntimeChannelMessage> consume_latest_from_state(ChannelState& state, const std::string& reader_id);
   std::vector<RuntimeChannelMessage> consume_from_state(ChannelState& state);
+  bool message_expired(const ChannelState& state, const RuntimeChannelMessage& message,
+                       std::chrono::steady_clock::time_point now) const;
+  void mark_delivery_metrics(ChannelState& state, RuntimeChannelMessage& message,
+                             std::chrono::steady_clock::time_point now);
   RuntimeChannelMetrics metrics_from_state(const ChannelState& state) const;
   std::vector<std::string> channel_ids_for_component_port(const std::string& component_id,
                                                           const std::string& port_name) const;

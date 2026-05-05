@@ -2,8 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <variant>
 
 namespace {
@@ -90,6 +92,37 @@ TEST(Channel, QueueFailFastReturnsCapacityError) {
   EXPECT_FALSE(result.accepted);
   EXPECT_EQ(result.reason, "channel capacity exceeded");
   EXPECT_EQ(bus.metrics("events").drop_count, 1u);
+}
+
+TEST(Channel, DeadlineMissIsMarkedOnLateConsume) {
+  auto spec = edge("events", "queue", 2);
+  spec.policy.deadline_ms = 1;
+  topoexec::RuntimeChannelBus bus({spec});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("late")).accepted);
+  std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
+  const auto messages = bus.consume_for_component("consumer");
+
+  ASSERT_EQ(messages.size(), 1u);
+  EXPECT_TRUE(messages.front().deadline_missed);
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.deadline_miss_count, 1u);
+  EXPECT_GT(metrics.message_age_ms, 0.0);
+}
+
+TEST(Channel, LifespanDropsStaleMessageBeforeDelivery) {
+  auto spec = edge("events", "queue", 2);
+  spec.policy.lifespan_ms = 1;
+  topoexec::RuntimeChannelBus bus({spec});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("stale")).accepted);
+  std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
+  const auto messages = bus.consume_for_component("consumer");
+
+  EXPECT_TRUE(messages.empty());
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.drop_count, 1u);
+  EXPECT_EQ(metrics.degradation_reason, "stale message expired");
 }
 
 TEST(Channel, PreviousTickExposesPayloadOnlyAfterEpochAdvance) {

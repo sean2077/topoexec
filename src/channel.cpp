@@ -126,6 +126,7 @@ RuntimeChannelBus::RuntimeChannelBus(const std::vector<EdgeSpec>& specs) {
     state.config.type = channel_type_from_policy(spec.policy);
     state.config.capacity = static_cast<std::size_t>(std::max(1, spec.policy.capacity));
     state.config.drop_policy = drop_policy_from_string(spec.policy.overflow);
+    state.config.lifespan = std::chrono::milliseconds(spec.policy.lifespan_ms);
     state.config.deadline = std::chrono::milliseconds(spec.policy.deadline_ms);
     state.config.timestamp_domain = timestamp_domain_from_string(spec.policy.timestamp_domain);
     state.config.copy_policy = copy_policy_from_string(spec.policy.copy_policy);
@@ -459,24 +460,62 @@ std::optional<RuntimeChannelMessage> RuntimeChannelBus::consume_latest_from_stat
   if (!state.latest.has_value()) {
     return std::nullopt;
   }
+  const auto now = std::chrono::steady_clock::now();
+  if (message_expired(state, *state.latest, now)) {
+    state.latest.reset();
+    ++state.metrics.drop_count;
+    state.metrics.depth = 0;
+    state.metrics.degradation_reason = "stale message expired";
+    return std::nullopt;
+  }
   const auto last = state.delivered_latest_sequences.find(reader_id);
   if (last != state.delivered_latest_sequences.end() && last->second == state.latest->sequence) {
     return std::nullopt;
   }
   state.delivered_latest_sequences[reader_id] = state.latest->sequence;
   ++state.metrics.delivered_count;
-  return state.latest;
+  auto message = *state.latest;
+  mark_delivery_metrics(state, message, now);
+  return message;
 }
 
 std::vector<RuntimeChannelMessage> RuntimeChannelBus::consume_from_state(ChannelState& state) {
   if (state.config.type == ChannelType::kBarrier && state.queue.size() < state.config.capacity) {
     return {};
   }
-  std::vector<RuntimeChannelMessage> messages(state.queue.begin(), state.queue.end());
+  const auto now = std::chrono::steady_clock::now();
+  std::vector<RuntimeChannelMessage> messages;
+  messages.reserve(state.queue.size());
+  for (auto& message : state.queue) {
+    if (message_expired(state, message, now)) {
+      ++state.metrics.drop_count;
+      state.metrics.degradation_reason = "stale message expired";
+      continue;
+    }
+    mark_delivery_metrics(state, message, now);
+    messages.push_back(std::move(message));
+  }
   state.metrics.delivered_count += messages.size();
   state.queue.clear();
   state.metrics.depth = 0;
   return messages;
+}
+
+bool RuntimeChannelBus::message_expired(const ChannelState& state, const RuntimeChannelMessage& message,
+                                        std::chrono::steady_clock::time_point now) const {
+  return state.config.lifespan.count() > 0 && now - message.published_at > state.config.lifespan;
+}
+
+void RuntimeChannelBus::mark_delivery_metrics(ChannelState& state, RuntimeChannelMessage& message,
+                                              std::chrono::steady_clock::time_point now) {
+  const auto age = now - message.published_at;
+  state.metrics.message_age_ms = std::chrono::duration<double, std::milli>(age).count();
+  state.metrics.delivery_latency_ms = state.metrics.message_age_ms;
+  if (state.config.deadline.count() > 0 && age > state.config.deadline) {
+    message.deadline_missed = true;
+    ++state.metrics.deadline_miss_count;
+    state.metrics.degradation_reason = "deadline missed";
+  }
 }
 
 RuntimeChannelMetrics RuntimeChannelBus::metrics_from_state(const ChannelState& state) const {

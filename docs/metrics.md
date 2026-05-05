@@ -105,3 +105,10 @@ The top-level JSON result also carries aggregate counters for common dashboards:
 - `loop_max_iteration_hit_count`
 
 These fields summarize the sample array for quick CLI and test assertions; the sample array remains the extensible product surface.
+
+
+## Channel health metrics
+
+- `runtime.channel.deadline_miss_count`: number of delivered messages whose age exceeded `policy.deadline_ms`. The delivered `RuntimeChannelMessage::deadline_missed` flag is set as well.
+- `runtime.channel.message_age_ms`: latest observed age at delivery time for that channel.
+- Stale messages older than `policy.lifespan_ms` are dropped before delivery, increment `runtime.channel.drop_count`, and set the channel degradation reason to `stale message expired`.

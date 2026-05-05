@@ -323,8 +323,11 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                             {}, metric.channel_id);
       append_runtime_metric(result, "runtime.channel.drop_count", static_cast<double>(metric.drop_count), {}, {},
                             metric.channel_id);
+      append_runtime_metric(result, "runtime.channel.deadline_miss_count",
+                            static_cast<double>(metric.deadline_miss_count), {}, {}, metric.channel_id);
       append_runtime_metric(result, "runtime.channel.max_depth", static_cast<double>(metric.max_depth), {}, {},
                             metric.channel_id);
+      append_runtime_metric(result, "runtime.channel.message_age_ms", metric.message_age_ms, {}, {}, metric.channel_id);
       append_runtime_metric(result, "runtime.channel.payload_copy_count",
                             static_cast<double>(metric.payload_copy_count), {}, {}, metric.channel_id);
     }
