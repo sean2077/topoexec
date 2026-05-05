@@ -17,6 +17,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added optional YAML/CLI/example CMake build switches, runtime-only option smoke coverage, and package-manager draft notes.
 - Added adapter-boundary preview contracts, dependency-free adapter stub notes, and a policy smoke for accidental core adapter SDK dependencies.
 - Added a deferred ROS 2 adapter design covering boundary mapping, QoS separation, executor interaction, lifecycle, diagnostics, and fake-boundary-first tests.
+- Added parser-level graph input limits, schema limit checks, defensive input docs, and graph loader tests for oversized input, too many components, overlong ids, and deep config.
 - Added optional deterministic `TaskExecutor`, `GraphContext::submit_task`, bounded task admission metrics, cancellation, and failure completions.
 - Added CompositeLoop internal failure accounting, `runtime.loop.error`, `loop_error` trace events, and docs for external-output commit isolation.
 - Added trigger timeout-drop, batch-flush, and time-sync-drop metrics plus local message correlation ids on `Invocation`.

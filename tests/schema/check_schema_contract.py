@@ -28,6 +28,11 @@ def main() -> int:
             "root required fields drifted")
     defs = schema["$defs"]
     require(defs["edge"]["additionalProperties"] is False, "edge schema must be strict")
+    require(schema["properties"]["lanes"]["maxProperties"] == 256, "lane count limit drifted")
+    require(schema["properties"]["components"]["maxItems"] == 4096, "component count limit drifted")
+    require(schema["properties"]["edges"]["maxItems"] == 8192, "edge count limit drifted")
+    require(schema["properties"]["composite_loops"]["maxItems"] == 1024, "loop count limit drifted")
+    require(defs["id"]["maxLength"] == 128, "id length limit drifted")
     require(defs["edge"]["properties"]["kind"]["enum"] == ["immediate", "delay", "state", "async"],
             "edge kind enum drifted")
     require("thread_pool" in defs["lane"]["properties"]["type"]["enum"], "thread_pool lane missing")

@@ -6,11 +6,21 @@
 #include <set>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <yaml-cpp/yaml.h>
 
 namespace topoexec {
 namespace {
+
+constexpr std::size_t kMaxGraphInputBytes = 1024u * 1024u;
+constexpr std::size_t kMaxLanes = 256u;
+constexpr std::size_t kMaxComponents = 4096u;
+constexpr std::size_t kMaxEdges = 8192u;
+constexpr std::size_t kMaxCompositeLoops = 1024u;
+constexpr std::size_t kMaxIdentifierLength = 128u;
+constexpr std::size_t kMaxConfigDepth = 8u;
+constexpr std::size_t kMaxConfigValueBytes = 4096u;
 
 std::optional<EdgeKind> parse_edge_kind(const std::string& kind) {
   if (kind == "immediate") {
@@ -27,6 +37,43 @@ std::optional<EdgeKind> parse_edge_kind(const std::string& kind) {
   }
   return std::nullopt;
 }
+
+void enforce_limit(std::size_t value, std::size_t limit, const std::string& context) {
+  if (value > limit) {
+    throw std::invalid_argument(context + " exceeds limit " + std::to_string(limit));
+  }
+}
+
+std::string checked_identifier(std::string value, const std::string& context) {
+  if (value.empty()) {
+    throw std::invalid_argument(context + " must not be empty");
+  }
+  enforce_limit(value.size(), kMaxIdentifierLength, context + " length");
+  return value;
+}
+
+void enforce_config_limits(const YAML::Node& node, const std::string& context, std::size_t depth = 0u) {
+  if (!node || node.IsNull()) {
+    return;
+  }
+  enforce_limit(depth, kMaxConfigDepth, context + " depth");
+  if (node.IsMap()) {
+    for (const auto& item : node) {
+      const auto key = item.first.as<std::string>();
+      enforce_limit(key.size(), kMaxIdentifierLength, context + " key length");
+      enforce_config_limits(item.second, context + "." + key, depth + 1u);
+    }
+    return;
+  }
+  if (node.IsSequence()) {
+    for (std::size_t index = 0; index < node.size(); ++index) {
+      enforce_config_limits(node[index], context + "[" + std::to_string(index) + "]", depth + 1u);
+    }
+    return;
+  }
+  enforce_limit(node.as<std::string>().size(), kMaxConfigValueBytes, context + " value size");
+}
+
 void require_map(const YAML::Node& node, const std::string& context) {
   if (!node || node.IsNull() || !node.IsMap()) {
     throw std::invalid_argument(context + " must be a mapping");
@@ -130,11 +177,13 @@ ConfigView read_config_node(const YAML::Node& config, const std::string& context
     return view;
   }
   require_map(config, context);
+  enforce_config_limits(config, context);
   for (const auto& item : config) {
     const auto key = item.first.as<std::string>();
     if (item.second.IsMap() || item.second.IsSequence()) {
       std::ostringstream out;
       out << item.second;
+      enforce_limit(out.str().size(), kMaxConfigValueBytes, context + "." + key + " serialized value size");
       view.values[key] = out.str();
       view.nested_values.insert(key);
     } else {
@@ -280,7 +329,7 @@ CompositeLoopSpec read_composite_loop(const YAML::Node& loop_node, const std::st
   require_map(loop_node, context);
   reject_unknown_fields(loop_node, context, {"id", "components", "loop_policy"});
   CompositeLoopSpec loop;
-  loop.id = require_string(loop_node, "id", context);
+  loop.id = checked_identifier(require_string(loop_node, "id", context), context + ".id");
   loop.components = optional_string_vector(loop_node, "components", context);
   if (loop.components.empty()) {
     throw std::invalid_argument(context + ".components must contain at least one component");
@@ -299,7 +348,8 @@ GraphSpec load_graph_node(const YAML::Node& root) {
   const auto graph_node = require_node(root, "graph", "runtime graph");
   require_map(graph_node, "runtime graph.graph");
   reject_unknown_fields(graph_node, "runtime graph.graph", {"name", "kind", "clock", "config"});
-  graph.name = require_string(graph_node, "name", "runtime graph.graph");
+  graph.name =
+      checked_identifier(require_string(graph_node, "name", "runtime graph.graph"), "runtime graph.graph.name");
   graph.kind = optional_string(graph_node, "kind", "runnable");
   graph.config = read_config_node(graph_node["config"], "runtime graph.graph.config");
   const auto clock_node = graph_node["clock"];
@@ -312,9 +362,10 @@ GraphSpec load_graph_node(const YAML::Node& root) {
 
   const auto lanes_node = require_node(root, "lanes", "runtime graph");
   require_map(lanes_node, "runtime graph.lanes");
+  enforce_limit(lanes_node.size(), kMaxLanes, "runtime graph.lanes count");
   for (const auto& item : lanes_node) {
     LaneSpec lane;
-    lane.id = item.first.as<std::string>();
+    lane.id = checked_identifier(item.first.as<std::string>(), "lanes id");
     require_map(item.second, "lanes." + lane.id);
     reject_unknown_fields(item.second, "lanes." + lane.id,
                           {"type", "hz", "priority", "max_callback_ms", "max_threads", "queue_capacity", "overflow",
@@ -341,11 +392,13 @@ GraphSpec load_graph_node(const YAML::Node& root) {
 
   const auto components_node = require_node(root, "components", "runtime graph");
   require_sequence(components_node, "runtime graph.components");
+  enforce_limit(components_node.size(), kMaxComponents, "runtime graph.components count");
   for (std::size_t index = 0; index < components_node.size(); ++index) {
     const auto component_node = components_node[index];
     require_map(component_node, "components[" + std::to_string(index) + "]");
     ComponentNodeSpec component;
-    component.id = require_string(component_node, "id", "components[" + std::to_string(index) + "]");
+    component.id = checked_identifier(require_string(component_node, "id", "components[" + std::to_string(index) + "]"),
+                                      "components[" + std::to_string(index) + "].id");
     reject_unknown_fields(
         component_node, "components." + component.id,
         {"id", "type", "event_sources", "trigger_policy", "execution", "depends_on", "boundary", "config"});
@@ -361,11 +414,13 @@ GraphSpec load_graph_node(const YAML::Node& root) {
 
   const auto edges_node = require_node(root, "edges", "runtime graph");
   require_sequence(edges_node, "runtime graph.edges");
+  enforce_limit(edges_node.size(), kMaxEdges, "runtime graph.edges count");
   for (std::size_t index = 0; index < edges_node.size(); ++index) {
     const auto edge_node = edges_node[index];
     require_map(edge_node, "edges[" + std::to_string(index) + "]");
     EdgeSpec edge;
-    edge.id = require_string(edge_node, "id", "edges[" + std::to_string(index) + "]");
+    edge.id = checked_identifier(require_string(edge_node, "id", "edges[" + std::to_string(index) + "]"),
+                                 "edges[" + std::to_string(index) + "].id");
     reject_unknown_fields(edge_node, "edges." + edge.id, {"id", "from", "to", "kind", "policy"});
     edge.from = require_string(edge_node, "from", "edges." + edge.id);
     edge.to = require_string(edge_node, "to", "edges." + edge.id);
@@ -387,6 +442,7 @@ GraphSpec load_graph_node(const YAML::Node& root) {
   const auto loops_node = root["composite_loops"];
   if (loops_node && !loops_node.IsNull()) {
     require_sequence(loops_node, "runtime graph.composite_loops");
+    enforce_limit(loops_node.size(), kMaxCompositeLoops, "runtime graph.composite_loops count");
     for (std::size_t index = 0; index < loops_node.size(); ++index) {
       graph.composite_loops.push_back(
           read_composite_loop(loops_node[index], "composite_loops[" + std::to_string(index) + "]"));
@@ -398,6 +454,7 @@ GraphSpec load_graph_node(const YAML::Node& root) {
 } // namespace
 
 GraphSpec load_graph_text(const std::string& text) {
+  enforce_limit(text.size(), kMaxGraphInputBytes, "graph input size");
   return load_graph_node(YAML::Load(text));
 }
 

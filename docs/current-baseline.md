@@ -79,5 +79,5 @@ Current branch limitations after the post-alpha scheduler/async pass:
 - `thread_pool` lanes have bounded MVP execution, but priority, affinity, RT policy, persistent worker naming, and timeout preemption are not implemented.
 - Async `policy.max_inflight` is enforced for deferred completions, but it is not a general async task/future executor.
 - Normalized CLI golden tests now cover plan JSON, metrics JSON, trace JSON, and Mermaid render drift locally.
-- Non-blocking ThreadSanitizer CI is wired. ASAN+UBSAN sanitizer configuration is available through `scripts/sanitizer_check.sh` and passed locally with GCC Debug over 49/49 CTest tests before the adapter-boundary policy smoke was added; rerun sanitizer for updated 50-test evidence before release tagging.
+- Non-blocking ThreadSanitizer CI is wired. ASAN+UBSAN sanitizer configuration is available through `scripts/sanitizer_check.sh` and passed locally with GCC Debug over 50/50 CTest tests, including defensive parser limits, fuzz, policy, runtime-only option, and downstream package smokes.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.

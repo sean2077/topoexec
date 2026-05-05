@@ -36,13 +36,13 @@ Last updated: 2026-05-05
 | G21 | complete | `docs/adapters/ros2.md`, `docs/adapters.md`, and `policy_no_core_adapter_deps`. | ROS 2 remains a deferred separate adapter package; the design separates ROS QoS/executor/lifecycle concerns from internal TopoExec edge policy and runtime scheduling. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
+| G24 | complete | `src/graph_io.cpp` parser limits, `schema/topoexec.schema.v1.json` count/id limits, `GraphInputLimits.*`, `fuzz_graph_input_smoke`, and `docs/defensive-input.md`. | Loader rejects oversized graph text, excessive component counts, overlong ids, and deep config before runtime; CLI has no output-file path surface today and block overflow behavior is documented as bounded. |
 
 ## Current Stage
 
 The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
 
-1. G24 defensive input handling;
-2. then G25 release progression work.
+1. G25 release progression work.
 
 ## Validation Evidence
 
@@ -62,6 +62,7 @@ ctest --test-dir build --output-on-failure -R 'docs_command_smoke'
 ctest --test-dir build --output-on-failure -R 'fuzz_graph_input_smoke'
 ctest --test-dir build --output-on-failure -R 'cmake_package_runtime_smoke|cmake_runtime_only_options_smoke'
 ctest --test-dir build --output-on-failure -R 'policy_no_core_adapter_deps'
+ctest --test-dir build --output-on-failure -R 'test_graph|schema_v1_contract_smoke|fuzz_graph_input_smoke'
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/sanitizer_check.sh
 ```
 

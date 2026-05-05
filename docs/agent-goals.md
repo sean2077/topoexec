@@ -8,8 +8,7 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-1. G24 defensive input handling;
-2. G25 release progression tracking.
+1. G25 release progression tracking.
 
 ## Goal handoff template
 

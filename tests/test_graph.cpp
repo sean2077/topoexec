@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <map>
 #include <random>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -55,6 +56,23 @@ std::vector<std::string> sorted(std::vector<std::string> values) {
 bool contains_set(const std::vector<std::vector<std::string>>& sets, std::vector<std::string> expected) {
   expected = sorted(std::move(expected));
   return std::any_of(sets.begin(), sets.end(), [&expected](const auto& value) { return sorted(value) == expected; });
+}
+
+std::string graph_with_component_count(std::size_t count) {
+  std::ostringstream out;
+  out << "schema_version: 1\n";
+  out << "graph: {name: component_limit, kind: internal_test}\n";
+  out << "lanes: {main: {type: event_loop}}\n";
+  out << "components:\n";
+  for (std::size_t index = 0; index < count; ++index) {
+    out << "  - id: c" << index << "\n";
+    out << "    type: topoexec.test.Node\n";
+    out << "    event_sources: [{type: manual}]\n";
+    out << "    trigger_policy: {type: manual}\n";
+    out << "    execution: {lane: main}\n";
+  }
+  out << "edges: []\n";
+  return out.str();
 }
 
 std::string component_id_from_endpoint(const std::string& endpoint) {
@@ -156,6 +174,82 @@ topoexec::GraphSpec fixed_seed_random_cycle(std::mt19937& rng, int graph_index) 
 }
 
 } // namespace
+
+TEST(GraphInputLimits, RejectsOversizedGraphTextBeforeYamlParse) {
+  std::string text(1024u * 1024u + 1u, 'x');
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(text);
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("graph input size exceeds limit"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
+TEST(GraphInputLimits, RejectsTooManyComponents) {
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(graph_with_component_count(4097u));
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("runtime graph.components count exceeds limit 4096"),
+                    std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
+TEST(GraphInputLimits, RejectsOverlongIdentifiers) {
+  const std::string long_id(129u, 'x');
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text("schema_version: 1\n"
+                                          "graph: {name: id_limit, kind: internal_test}\n"
+                                          "lanes: {main: {type: event_loop}}\n"
+                                          "components:\n"
+                                          "  - id: " +
+                                          long_id +
+                                          "\n"
+                                          "    type: topoexec.test.Node\n"
+                                          "    event_sources: [{type: manual}]\n"
+                                          "    trigger_policy: {type: manual}\n"
+                                          "    execution: {lane: main}\n"
+                                          "edges: []\n");
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("id length exceeds limit 128"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
+TEST(GraphInputLimits, RejectsDeepConfigSnapshots) {
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(R"(
+schema_version: 1
+graph:
+  name: deep_config
+  kind: internal_test
+  config: {a: {b: {c: {d: {e: {f: {g: {h: {i: too_deep}}}}}}}}}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+)");
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("config"), std::string::npos);
+          EXPECT_NE(std::string(error.what()).find("depth exceeds limit 8"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
 
 TEST(Graph, LoadsAndValidatesSchemaVersionOne) {
   const auto graph = minimal_graph();

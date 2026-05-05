@@ -26,6 +26,7 @@ inspect a YAML graph in less than 30 minutes by following these pages in order.
 - [Metrics](metrics.md)
 - [Trace events](trace-events.md)
 - [Diagnostics](diagnostics.md)
+- [Defensive input handling](defensive-input.md)
 - [Versioning](versioning.md)
 
 ## Design path

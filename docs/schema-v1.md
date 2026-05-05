@@ -287,6 +287,11 @@ A machine-readable Draft 2020-12 JSON Schema is checked in at [`../schema/topoex
 
 The JSON Schema is a documentation and generation contract today; semantic rules such as SCC ownership, registry-backed port compatibility, multi-state-writer rejection, and trigger/input compatibility remain enforced by the C++ validator.
 
+The schema also records the executable defensive limits that are cheap to express
+in JSON Schema: 256 lanes, 4096 components, 8192 edges, 1024 CompositeLoop
+entries, and 128-byte ids. Additional parser limits such as graph text size and
+config nesting depth are documented in [Defensive input handling](defensive-input.md).
+
 CLI validation exposes the same split:
 
 ```bash
