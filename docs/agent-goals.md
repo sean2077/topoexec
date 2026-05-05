@@ -42,6 +42,9 @@ Blocker protocol:
 - `./scripts/goal_check.sh golden` — normalized CLI plan/metrics/trace/render golden checks.
 - `./scripts/goal_check.sh schema` — schema v1 contract and CLI schema/semantic validation split.
 - `./scripts/goal_check.sh package` — install/export downstream runtime-only smoke.
+- `./scripts/goal_check.sh docs` — executable docs command smoke.
+- `./scripts/goal_check.sh fuzz` — deterministic parser/compiler fuzz smoke.
+- `./scripts/goal_check.sh sanitizer` — ASAN+UBSAN Debug build plus full CTest.
 - `./scripts/goal_check.sh debug` — local Debug GCC build and CTest.
 
 Always run `./scripts/goal_check.sh all` before declaring repository changes complete.

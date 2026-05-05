@@ -30,7 +30,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | G15 | P2 | complete | CLI/tooling | Existing graph commands are covered by smokes/goldens; `schema dump`, `schema check`, and `doctor` provide scriptable tooling entry points without adding broad runtime commands. Expanded lint/explain remain incremental enhancements. | `./scripts/agent_check.sh` |
 | G16 | P1/P2 | complete | examples/apps | Core apps and YAML examples now cover minimal, low latency/event queue, delay feedback, state/config snapshot, CompositeLoop, async/service-style flow, batch/time-sync, large payload linting, app registry, and boundary-adapter patterns without adapter dependencies. | `./scripts/agent_check.sh` |
 | G17 | P1/P2 | complete | documentation system | Tutorial, reference, design, and architecture paths are indexed; getting-started/concepts/graph-spec/components/lifecycle/CLI pages exist; doc-command smokes run embedded tutorial/CLI commands. | `./scripts/agent_check.sh` |
-| G18 | P0/P1 | partial | testing strategy | Unit/semantic/package/golden tests exist; fuzz and sanitizer gates are not complete. | `./scripts/agent_check.sh` |
+| G18 | P0/P1 | complete | testing strategy | Unit/semantic/package/golden/docs/example tests are covered; deterministic graph-input fuzz smoke and ASAN+UBSAN/TSAN sanitizer gates are wired through CMake, scripts, and CI. | `./scripts/agent_check.sh` |
 | G19 | P1/P2 | partial | build/package/distribution | Install/export/runtime smoke exists; optional target switches and package-manager drafts remain. | `./scripts/agent_check.sh` |
 | G20 | P2 | not-started | adapter architecture preview docs/stubs | `docs/adapters.md` exists but needs the full contract/stub layout from plan. No adapter dependency should enter core. | docs review plus `./scripts/agent_check.sh` |
 | G21 | P2/P3 | not-started | ROS 2 adapter plan | Deferred design doc only; no core ROS dependency. | docs review plus `./scripts/agent_check.sh` |
@@ -41,7 +41,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 
 ## Next goal
 
-Continue with **G18+ testing/package productization**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
+Continue with **G19+ package/release productization**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
 
 ## Blockers
 

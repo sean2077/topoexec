@@ -16,6 +16,8 @@ Agent-friendly shortcuts:
 ./scripts/goal_check.sh all
 ./scripts/goal_check.sh quick
 ./scripts/goal_check.sh package
+./scripts/goal_check.sh fuzz
+./scripts/goal_check.sh sanitizer
 ```
 
 Optional formatting check:

@@ -72,8 +72,34 @@ jobs:
       - name: Configure, build, and test with ThreadSanitizer
         env:
           CXX: clang++
-          CXXFLAGS: -fsanitize=thread -fno-omit-frame-pointer
-          LDFLAGS: -fsanitize=thread
           TOPOEXEC_BUILD_DIR: build-clang-debug-tsan
           TOPOEXEC_BUILD_TYPE: Debug
-        run: ./scripts/agent_check.sh
+          TOPOEXEC_SANITIZER_MODE: thread
+        run: ./scripts/sanitizer_check.sh
+
+  address-undefined-sanitizer:
+    name: clang / Debug / ASAN+UBSAN
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            libcli11-dev \
+            libyaml-cpp-dev \
+            ninja-build \
+            nlohmann-json3-dev \
+            pkg-config
+
+      - name: Configure, build, and test with AddressSanitizer and UBSan
+        env:
+          CXX: clang++
+          TOPOEXEC_BUILD_DIR: build-clang-debug-asan-ubsan
+          TOPOEXEC_BUILD_TYPE: Debug
+          TOPOEXEC_SANITIZER_MODE: address-undefined
+        run: ./scripts/sanitizer_check.sh

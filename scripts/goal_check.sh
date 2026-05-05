@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|format|debug]
+Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|sanitizer|format|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
@@ -11,6 +11,9 @@ Goal-specific validation dispatcher for TopoExec agents.
 - golden: normalized CLI golden output checks
 - schema: schema v1 contract smoke
 - package: installed runtime-only downstream smoke via CTest
+- docs:   executable docs command smoke
+- fuzz:   deterministic parser/compiler fuzz smoke
+- sanitizer: ASAN+UBSAN Debug build and full CTest
 - format: clang-format check target
 - debug:  Debug build + CTest in build-debug-gcc
 
@@ -45,6 +48,17 @@ case "$MODE" in
   package)
     configure_build
     ctest --test-dir "$BUILD_DIR" --output-on-failure -R cmake_package_runtime_smoke
+    ;;
+  docs)
+    configure_build
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R docs_command_smoke
+    ;;
+  fuzz)
+    configure_build
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R fuzz_graph_input_smoke
+    ;;
+  sanitizer)
+    ./scripts/sanitizer_check.sh
     ;;
   format)
     cmake --build "$BUILD_DIR" --target topoexec_format_check

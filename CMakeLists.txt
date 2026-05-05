@@ -4,6 +4,9 @@ project(topoexec VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(TOPOEXEC_BUILD_TESTING "Build TopoExec tests" ON)
+option(TOPOEXEC_ENABLE_ASAN "Build TopoExec with AddressSanitizer instrumentation" OFF)
+option(TOPOEXEC_ENABLE_UBSAN "Build TopoExec with UndefinedBehaviorSanitizer instrumentation" OFF)
+option(TOPOEXEC_ENABLE_TSAN "Build TopoExec with ThreadSanitizer instrumentation" OFF)
 
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 if(CLANG_FORMAT_EXE)
@@ -21,6 +24,29 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+if(TOPOEXEC_ENABLE_ASAN OR TOPOEXEC_ENABLE_UBSAN OR TOPOEXEC_ENABLE_TSAN)
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    message(FATAL_ERROR "TopoExec sanitizer options require GCC or Clang")
+  endif()
+  if(TOPOEXEC_ENABLE_TSAN AND (TOPOEXEC_ENABLE_ASAN OR TOPOEXEC_ENABLE_UBSAN))
+    message(FATAL_ERROR "ThreadSanitizer cannot be combined with ASAN/UBSAN in this build")
+  endif()
+
+  set(TOPOEXEC_SANITIZER_LIST)
+  if(TOPOEXEC_ENABLE_ASAN)
+    list(APPEND TOPOEXEC_SANITIZER_LIST address)
+  endif()
+  if(TOPOEXEC_ENABLE_UBSAN)
+    list(APPEND TOPOEXEC_SANITIZER_LIST undefined)
+  endif()
+  if(TOPOEXEC_ENABLE_TSAN)
+    list(APPEND TOPOEXEC_SANITIZER_LIST thread)
+  endif()
+  list(JOIN TOPOEXEC_SANITIZER_LIST "," TOPOEXEC_SANITIZER_FLAGS)
+  add_compile_options("-fsanitize=${TOPOEXEC_SANITIZER_FLAGS}" -fno-omit-frame-pointer)
+  add_link_options("-fsanitize=${TOPOEXEC_SANITIZER_FLAGS}")
 endif()
 
 find_package(PkgConfig REQUIRED)
@@ -275,6 +301,11 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       --build-dir ${CMAKE_CURRENT_BINARY_DIR}
       --topoexec $<TARGET_FILE:topoexec_cli>
   )
+  add_test(NAME fuzz_graph_input_smoke
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/fuzz_graph_inputs.py
+      --topoexec $<TARGET_FILE:topoexec_cli>
+  )
   add_test(NAME cli_doctor_json
     COMMAND $<TARGET_FILE:topoexec_cli> doctor --format json
   )
@@ -312,6 +343,7 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND ${CMAKE_COMMAND}
       -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
       -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      -DSANITIZER_FLAGS=${TOPOEXEC_SANITIZER_FLAGS}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/package_smoke.cmake
   )
   add_test(NAME app_minimal_pipeline_runs

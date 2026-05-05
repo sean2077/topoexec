@@ -1,6 +1,6 @@
 build/
+build-*/
 dist/
 compile_commands.json
 *.swp
 *.swo
-

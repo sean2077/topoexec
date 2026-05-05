@@ -8,6 +8,13 @@ endif()
 set(SMOKE_ROOT "${BUILD_DIR}/package-smoke")
 set(INSTALL_DIR "${SMOKE_ROOT}/install")
 set(DOWNSTREAM_BUILD_DIR "${SMOKE_ROOT}/runtime-build")
+set(SANITIZER_CONFIGURE_ARGS)
+if(DEFINED SANITIZER_FLAGS AND NOT "${SANITIZER_FLAGS}" STREQUAL "")
+  list(APPEND SANITIZER_CONFIGURE_ARGS
+    "-DCMAKE_CXX_FLAGS=-fsanitize=${SANITIZER_FLAGS} -fno-omit-frame-pointer"
+    "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=${SANITIZER_FLAGS}"
+  )
+endif()
 
 file(REMOVE_RECURSE "${SMOKE_ROOT}")
 file(MAKE_DIRECTORY "${SMOKE_ROOT}")
@@ -26,6 +33,7 @@ execute_process(
     -B "${DOWNSTREAM_BUILD_DIR}"
     "-DCMAKE_PREFIX_PATH=${INSTALL_DIR}"
     -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    ${SANITIZER_CONFIGURE_ARGS}
   RESULT_VARIABLE configure_result
 )
 if(NOT configure_result EQUAL 0)
