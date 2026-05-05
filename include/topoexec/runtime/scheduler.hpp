@@ -24,6 +24,11 @@ struct SchedulerGroupConfig {
   std::string priority;
   std::chrono::milliseconds max_callback{0};
   int max_threads{0};
+  int queue_capacity{0};
+  std::string overflow{"reject"};
+  bool wall_clock_enabled{false};
+  std::chrono::milliseconds period{0};
+  std::chrono::milliseconds tick_budget{0};
   std::string thread_name;
   std::vector<int> cpu_affinity;
   int nice_priority{0};

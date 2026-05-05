@@ -19,6 +19,11 @@ struct LaneSpec {
   std::string priority;
   int max_callback_ms{0};
   int max_threads{0};
+  int queue_capacity{0};
+  std::string overflow{"reject"};
+  bool wall_clock_enabled{false};
+  int period_ms{0};
+  int tick_budget_ms{0};
   std::string thread_name;
   std::vector<int> cpu_affinity;
   int nice_priority{0};

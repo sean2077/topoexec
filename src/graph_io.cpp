@@ -313,13 +313,19 @@ GraphSpec load_graph_node(const YAML::Node& root) {
     lane.id = item.first.as<std::string>();
     require_map(item.second, "lanes." + lane.id);
     reject_unknown_fields(item.second, "lanes." + lane.id,
-                          {"type", "hz", "priority", "max_callback_ms", "max_threads", "thread_name", "cpu_affinity",
+                          {"type", "hz", "priority", "max_callback_ms", "max_threads", "queue_capacity", "overflow",
+                           "wall_clock_enabled", "period_ms", "tick_budget_ms", "thread_name", "cpu_affinity",
                            "nice_priority", "rt_policy", "rt_priority", "isolation_intent"});
     lane.type = require_string(item.second, "type", "lanes." + lane.id);
     lane.hz = optional_double(item.second, "hz");
     lane.priority = optional_string(item.second, "priority");
     lane.max_callback_ms = optional_int(item.second, "max_callback_ms");
     lane.max_threads = optional_int(item.second, "max_threads");
+    lane.queue_capacity = optional_int(item.second, "queue_capacity");
+    lane.overflow = optional_string(item.second, "overflow", lane.overflow);
+    lane.wall_clock_enabled = optional_bool(item.second, "wall_clock_enabled", lane.wall_clock_enabled);
+    lane.period_ms = optional_int(item.second, "period_ms");
+    lane.tick_budget_ms = optional_int(item.second, "tick_budget_ms");
     lane.thread_name = optional_string(item.second, "thread_name");
     lane.cpu_affinity = optional_int_vector(item.second, "cpu_affinity", "lanes." + lane.id);
     lane.nice_priority = optional_int(item.second, "nice_priority");

@@ -142,6 +142,38 @@
           "minimum": 0,
           "default": 0
         },
+        "queue_capacity": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "overflow": {
+          "type": "string",
+          "default": "reject",
+          "enum": [
+            "overwrite",
+            "drop_oldest",
+            "drop_newest",
+            "reject",
+            "reject_new",
+            "fail_fast",
+            "block"
+          ]
+        },
+        "wall_clock_enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "period_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "tick_budget_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
         "thread_name": {
           "type": "string"
         },

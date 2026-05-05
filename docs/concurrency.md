@@ -32,18 +32,20 @@ components:
 
 Runtime behavior:
 
-- `max_threads` is the worker batch width; `0` means one worker.
+- `max_threads` is the active worker batch width; `0` means one worker.
+- `queue_capacity` optionally bounds pending ready invocations behind the active batch.
+- `overflow` handles over-capacity ready invocations before workers start: `drop_oldest`/`overwrite` keep newest work, `drop_newest`/`reject`/`reject_new`/`block` keep oldest work in the non-blocking runtime, and `fail_fast` stops the run.
 - `execution.reentrant: false` serializes invocations for that component.
 - `execution.reentrant: true` permits overlap up to the lane worker bound.
 - Immediate publications are committed at the worker/component barrier, not recursively from `GraphContext::publish()`.
 - Stop requests prevent new worker batches and wait for already-started invocations to drain cooperatively.
-- The current MVP uses bounded batches, not persistent named worker threads.
+- The current v1 uses bounded batches, not persistent named worker threads.
 
 Advisory fields such as priority, CPU affinity, RT policy, thread name, and isolation intent are parsed but not enforced by the current runtime. Unsupported policy should be documented as advisory rather than silently claimed.
 
 ## Fixed Rate Lane
 
-`fixed_rate` is accepted by schema v1, but current execution is still bounded by runner ticks. It is useful for simulated tests and future clock work, but it does not yet guarantee wall-clock cadence, sleep behavior, or jitter bounds.
+`fixed_rate` is accepted by schema v1 and current execution is still bounded by runner ticks. It reports simulated overrun and positive jitter when an iteration exceeds `hz`, `period_ms`, or `tick_budget_ms`; it does not yet sleep to maintain wall-clock cadence or guarantee OS jitter bounds.
 
 ## Async Admission
 
@@ -77,6 +79,7 @@ Async admission metrics use the `runtime.async.*` namespace; channel metrics rep
 
 - General async task/future executor surface.
 - Persistent worker-pool lifecycle and worker naming.
+- Wall-clock fixed-rate sleep cadence.
 - OS priority, affinity, and hard real-time policy enforcement.
 - Timeout preemption for long-running component code.
 - Blocking overflow behavior on the default non-blocking runtime path.

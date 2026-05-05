@@ -193,6 +193,10 @@ bool is_allowed_drop_policy(const std::string& policy) {
          policy == "fail_fast" || policy == "reject";
 }
 
+bool is_allowed_lane_overflow(const std::string& policy) {
+  return is_allowed_drop_policy(policy) || policy == "reject_new";
+}
+
 bool is_allowed_copy_policy(const std::string& policy) {
   return policy == "copy" || policy == "shared_view" || policy == "loaned_view" || policy == "move_only";
 }
@@ -646,6 +650,18 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     }
     if (lane.max_threads < 0) {
       add_error(result, "lane " + lane.id + " max_threads must be non-negative");
+    }
+    if (lane.queue_capacity < 0) {
+      add_error(result, "lane " + lane.id + " queue_capacity must be non-negative");
+    }
+    if (lane.period_ms < 0) {
+      add_error(result, "lane " + lane.id + " period_ms must be non-negative");
+    }
+    if (lane.tick_budget_ms < 0) {
+      add_error(result, "lane " + lane.id + " tick_budget_ms must be non-negative");
+    }
+    if (!is_allowed_lane_overflow(lane.overflow)) {
+      add_error(result, "lane " + lane.id + " has unsupported overflow " + lane.overflow);
     }
   }
 

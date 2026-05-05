@@ -22,8 +22,8 @@ epoch
 | Lane type | Runtime behavior | Enforced today | Not enforced today |
 | --- | --- | --- | --- |
 | `event_loop` | Deterministic in-process execution in compiled region order. | Region order, trigger readiness, edge commit boundaries, stop-token checks before iterations. | Wall-clock rate, OS priority/affinity/RT policy. |
-| `fixed_rate` | Accepted by schema and executed through bounded simulated ticks. | Bounded tick count, component budget metric checks, and simulated overrun count when iteration duration exceeds `1 / hz`. | Real wall-clock sleep cadence and jitter control. |
-| `thread_pool` | Bounded worker-batch execution for ready invocations. | `max_threads` batch width, non-reentrant serialization, reentrant overlap within the lane bound, region barrier before downstream work. | Persistent worker lifecycle, OS priority/affinity/RT policy, worker naming, timeout preemption. |
+| `fixed_rate` | Accepted by schema and executed through bounded simulated ticks. | Bounded tick count, component budget metric checks, simulated overrun count, last callback duration, and positive jitter when iteration duration exceeds `hz`, `period_ms`, or `tick_budget_ms`. | Real wall-clock sleep cadence and OS jitter control. |
+| `thread_pool` | Bounded worker-batch execution for ready invocations. | `max_threads` active batch width, optional `queue_capacity`, overflow admission, non-reentrant serialization, reentrant overlap within the lane bound, region barrier before downstream work. | Persistent worker lifecycle, OS priority/affinity/RT policy, worker naming, timeout preemption. |
 
 ## Thread Pool MVP
 
@@ -38,17 +38,19 @@ lanes:
 
 Runtime rules:
 
-- `max_threads` is the maximum worker batch width; `0` or an omitted value means one worker.
+- `max_threads` is the maximum active worker batch width; `0` or an omitted value means one worker.
+- `queue_capacity` bounds ready invocations waiting behind the active batch when positive; `0` preserves the current ready set without creating a persistent runtime queue.
+- `overflow` controls over-capacity ready invocations: `drop_oldest`/`overwrite` keep the newest admitted work, `drop_newest`/`reject`/`reject_new`/`block` keep the oldest admitted work in the non-blocking runtime, and `fail_fast` stops the run with an error.
 - `execution.reentrant: false` permits at most one in-flight invocation for that component.
 - `execution.reentrant: true` permits overlap up to the lane `max_threads` bound.
 - The current implementation launches bounded batches and waits for them. It does not keep named persistent worker threads alive between batches.
-- The ready queue is bounded by the ready invocation set for the current component step; excess persistent queueing is not implemented.
 - Downstream regions do not run until the current worker batch has drained and immediate publications have been committed.
 
 Test coverage:
 
 - `Runtime.ThreadPoolLaneExecutesReentrantInvocationsConcurrently` proves overlap and the `max_threads` upper bound.
 - `Runtime.ThreadPoolLaneSerializesNonReentrantInvocations` proves non-reentrant no-overlap.
+- `Runtime.ThreadPoolLaneQueueCapacityRejectsNewestWhenFull` and `Runtime.ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured` prove explicit lane admission behavior and rejected-count metrics.
 - `Runtime.PublishStagesWithoutRecursiveDownstreamExecute` protects the no-recursive-publish boundary that worker lanes must preserve.
 
 ## Stop, Drain, And Cleanup
@@ -70,6 +72,10 @@ Scheduler metrics are emitted through `RuntimeRunnerResult::runtime_metrics`:
 - `runtime.scheduler.completed_count`
 - `runtime.scheduler.tick_overrun_count`
 - `runtime.scheduler.queue_depth`
+- `runtime.scheduler.queue_capacity`
+- `runtime.scheduler.worker_count`
+- `runtime.scheduler.last_callback_duration_ms`
+- `runtime.scheduler.tick_jitter_ms`
 - `runtime.scheduler.active_count`
 - `runtime.scheduler.in_flight_count`
 - `runtime.scheduler.rejected_count`
@@ -84,6 +90,7 @@ Trace events around scheduler and component execution include:
 - `component_execute_begin`
 - `component_execute`
 - `component_execute_end`
+- `thread_pool_batch`
 
 The trace surface can show component execution spans and lane names, but current trace output does not yet expose persistent worker ids because persistent workers are not implemented.
 
@@ -105,7 +112,7 @@ The runtime must not claim OS priority, CPU affinity, hard real-time scheduling,
 ## Remaining Work
 
 - Persistent worker-pool lifecycle.
-- Wall-clock fixed-rate sleep and jitter controls.
+- Wall-clock fixed-rate sleep cadence and OS jitter controls.
 - Queue rejection policy for a persistent worker queue.
 - Timeout preemption or explicit cancellation policy.
 - Platform-specific priority, affinity, and RT helpers.

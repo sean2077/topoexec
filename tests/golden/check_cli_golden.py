@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 VOLATILE_JSON_KEYS = {"trace_id", "start_offset_ns", "duration_ns", "ts", "dur"}
-VOLATILE_METRIC_SUFFIXES = ("duration_ns", "latency_ms", "message_age_ms")
+VOLATILE_METRIC_SUFFIXES = ("duration_ns", "duration_ms", "latency_ms", "message_age_ms", "jitter_ms")
 
 
 def normalize_json(value: Any) -> Any:

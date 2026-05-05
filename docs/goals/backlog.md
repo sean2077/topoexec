@@ -18,7 +18,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | G3 | P0 | complete | `docs/runtime-invariants.md`, runtime/graph/channel tests, golden tests | All 20 plan invariants are mapped to concrete CI tests or golden checks; maintenance rule requires updating coverage with semantic changes. | `./scripts/agent_check.sh` |
 | G4 | P0/P1 | complete | graph compiler diagnostics/plan | Structured plan JSON, compiled regions/SCCs, `GraphDiagnostic` code/severity/path/involved ids/suggested-fix, and CLI validate JSON diagnostics are present. | `./scripts/agent_check.sh` |
 | G5 | P1 | complete | `docs/schema-v1.md`, `schema/topoexec.schema.v1.json`, CLI validation tests | Schema reference, strict machine-readable schema, `--schema-only`, `--semantic`, schema contract smoke, valid fixtures, and invalid fixture rejection are present. | `./scripts/agent_check.sh` |
-| G6 | P0/P1 | partial | scheduler docs/runtime/tests | Event-loop/thread-pool tests exist and simulated fixed_rate overrun metrics are tested; persistent worker pool and wall-clock cadence remain deferred. | `./scripts/agent_check.sh` |
+| G6 | P0/P1 | complete | scheduler docs/runtime/tests | Scheduler lane spec parses admission/timing fields; thread_pool bounded-batch v1 covers reentrant overlap, non-reentrant serialization, queue admission overflow, rejected metrics, batch trace spans, stop cleanup, and fixed_rate simulated overrun/jitter metrics. Persistent named workers and wall-clock sleep cadence are explicitly deferred. | `./scripts/agent_check.sh` |
 | G7 | P1 | not-started | async task runtime | Async edge admission exists, but optional `TaskExecutor`/future runtime is not implemented. | `./scripts/agent_check.sh` |
 | G8 | P0/P1 | partial | channel/backpressure docs/runtime/tests | Bounded policies, lifespan stale drops, deadline miss flags/metrics, and channel health metrics exist; fuller multi-reader/backpressure event semantics remain. | `./scripts/agent_check.sh` |
 | G9 | P1 | partial | payload/memory/buffer pool | Built-in payloads and prototype `BufferPool` exist; custom registration, pool metrics, and no-copy examples need completion. | `./scripts/agent_check.sh` |
@@ -41,7 +41,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 
 ## Next goal
 
-Continue with **G6/G8/G10/G11 runtime completeness** unless the user explicitly asks to prioritize P1 productization. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
+Continue with **G8/G10/G11 runtime completeness** unless the user explicitly asks to prioritize P1 productization. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
 
 ## Blockers
 

@@ -48,6 +48,7 @@ Component execution:
 - `component_execute`
 - `component_execute_begin`
 - `component_execute_end`
+- `thread_pool_batch`
 
 Channels and publication:
 
@@ -65,7 +66,7 @@ Composite loops:
 
 The runtime includes identifiers where the event source has them:
 
-- Scheduler events include `iteration`.
+- Scheduler events include `iteration`; `thread_pool_batch` spans include `component_id`, `lane`, `batch_size`, `worker_count`, and `queue_capacity`.
 - Component events include `component_id` and `lane`.
 - Channel publish events include `channel_id`, `source_component`, `target_component`, and `edge_kind`.
 - Channel commit events include `channel_id` and `edge_kind`.

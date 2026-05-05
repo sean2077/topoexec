@@ -22,6 +22,11 @@ SchedulerGroupConfig lane_config_from_spec(const LaneSpec& lane) {
   config.priority = lane.priority;
   config.max_callback = std::chrono::milliseconds(lane.max_callback_ms);
   config.max_threads = lane.max_threads;
+  config.queue_capacity = lane.queue_capacity;
+  config.overflow = lane.overflow;
+  config.wall_clock_enabled = lane.wall_clock_enabled;
+  config.period = std::chrono::milliseconds(lane.period_ms);
+  config.tick_budget = std::chrono::milliseconds(lane.tick_budget_ms);
   config.thread_name = lane.thread_name;
   config.cpu_affinity = lane.cpu_affinity;
   config.nice_priority = lane.nice_priority;
@@ -254,6 +259,13 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                             static_cast<double>(metrics.tick_overrun_count), {}, lane_id);
       append_runtime_metric(result, "runtime.scheduler.queue_depth", static_cast<double>(metrics.queue_depth), {},
                             lane_id);
+      append_runtime_metric(result, "runtime.scheduler.queue_capacity", static_cast<double>(metrics.queue_capacity), {},
+                            lane_id);
+      append_runtime_metric(result, "runtime.scheduler.worker_count", static_cast<double>(metrics.worker_count), {},
+                            lane_id);
+      append_runtime_metric(result, "runtime.scheduler.last_callback_duration_ms", metrics.last_callback_duration_ms,
+                            {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.tick_jitter_ms", metrics.tick_jitter_ms, {}, lane_id);
       append_runtime_metric(result, "runtime.scheduler.active_count", static_cast<double>(metrics.active_count), {},
                             lane_id);
       append_runtime_metric(result, "runtime.scheduler.in_flight_count", static_cast<double>(metrics.in_flight_count),

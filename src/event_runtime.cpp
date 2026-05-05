@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <exception>
 #include <future>
 #include <map>
@@ -52,6 +53,22 @@ bool loop_policy_converged_after_iteration(const LoopPolicySpec& policy) {
 
 std::size_t worker_count_for_lane(const SchedulerGroupConfig& lane) {
   return lane.max_threads > 0 ? static_cast<std::size_t>(lane.max_threads) : 1u;
+}
+
+std::size_t queue_capacity_for_lane(const SchedulerGroupConfig& lane, std::size_t ready_count,
+                                    std::size_t active_capacity) {
+  if (lane.queue_capacity > 0) {
+    return static_cast<std::size_t>(lane.queue_capacity);
+  }
+  return ready_count > active_capacity ? ready_count - active_capacity : 0u;
+}
+
+bool lane_overflow_drops_oldest(const std::string& overflow) {
+  return overflow == "drop_oldest" || overflow == "overwrite";
+}
+
+bool lane_overflow_fails_fast(const std::string& overflow) {
+  return overflow == "fail_fast";
 }
 
 struct ComponentInvocationOutcome {
@@ -246,9 +263,27 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
         const auto worker_count = worker_count_for_lane(found->lane);
         auto& lane_metrics = result.group_metrics[found->lane.id];
         lane_metrics.worker_count = std::max(lane_metrics.worker_count, worker_count);
-        lane_metrics.queue_capacity = std::max(lane_metrics.queue_capacity, worker_count);
 
         const auto batch_limit = found->spec.execution.reentrant ? worker_count : 1u;
+        const auto queue_capacity = queue_capacity_for_lane(found->lane, invocations.size(), batch_limit);
+        lane_metrics.queue_capacity = std::max(lane_metrics.queue_capacity, queue_capacity);
+        const auto admission_capacity = batch_limit + queue_capacity;
+        if (invocations.size() > admission_capacity) {
+          const auto overflow_count = invocations.size() - admission_capacity;
+          lane_metrics.enqueue_rejected_count += overflow_count;
+          if (lane_overflow_fails_fast(found->lane.overflow)) {
+            result.ok = false;
+            result.stop_reason = SchedulerStopReason::kError;
+            result.errors.push_back("thread_pool lane " + found->lane.id + " queue capacity exceeded");
+            return false;
+          }
+          if (lane_overflow_drops_oldest(found->lane.overflow)) {
+            invocations.erase(invocations.begin(), invocations.begin() + static_cast<std::ptrdiff_t>(overflow_count));
+          } else {
+            invocations.resize(admission_capacity);
+          }
+        }
+
         for (std::size_t offset = 0; offset < invocations.size(); offset += batch_limit) {
           if (options.stop_token.stop_requested()) {
             result.stop_reason = SchedulerStopReason::kStopRequested;
@@ -264,6 +299,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           component_in_flight[found->id] += batch_size;
           component_metrics.max_in_flight_count =
               std::max(component_metrics.max_in_flight_count, component_in_flight[found->id]);
+          const auto batch_started_at = std::chrono::steady_clock::now();
 
           std::vector<std::future<ComponentInvocationOutcome>> futures;
           futures.reserve(batch_size);
@@ -291,6 +327,13 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
               return false;
             }
           }
+          const auto batch_finished_at = std::chrono::steady_clock::now();
+          record_trace_span(trace_, "thread_pool_batch", batch_started_at, batch_finished_at,
+                            {{"component_id", found->id},
+                             {"lane", found->lane.id},
+                             {"batch_size", std::to_string(batch_size)},
+                             {"worker_count", std::to_string(worker_count)},
+                             {"queue_capacity", std::to_string(queue_capacity)}});
         }
       } catch (const std::exception& error) {
         if (component_in_flight[found->id] > 0u) {
@@ -368,12 +411,24 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
     const auto iteration_finished_at = std::chrono::steady_clock::now();
     const auto iteration_duration = iteration_finished_at - iteration_started_at;
     for (const auto& [lane_id, lane] : lanes) {
-      if (lane.type != "fixed_rate" || lane.hz <= 0.0) {
+      auto& metrics = result.group_metrics[lane_id];
+      metrics.last_callback_duration_ms = std::chrono::duration<double, std::milli>(iteration_duration).count();
+      if (lane.type != "fixed_rate") {
         continue;
       }
-      const auto period = std::chrono::duration<double>(1.0 / lane.hz);
-      if (iteration_duration > period) {
-        ++result.group_metrics[lane_id].tick_overrun_count;
+      auto period = std::chrono::steady_clock::duration::zero();
+      if (lane.period.count() > 0) {
+        period = lane.period;
+      } else if (lane.hz > 0.0) {
+        period = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            std::chrono::duration<double>(1.0 / lane.hz));
+      }
+      if (lane.tick_budget.count() > 0) {
+        period = lane.tick_budget;
+      }
+      if (period.count() > 0 && iteration_duration > period) {
+        ++metrics.tick_overrun_count;
+        metrics.tick_jitter_ms = std::chrono::duration<double, std::milli>(iteration_duration - period).count();
       }
     }
     record_trace_span(trace_, "scheduler_iteration", iteration_started_at, iteration_finished_at,

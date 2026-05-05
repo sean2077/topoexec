@@ -28,9 +28,13 @@ Scheduler:
 - `runtime.scheduler.completed_count`: completed component invocations for a lane.
 - `runtime.scheduler.tick_overrun_count`: lane tick overruns observed by the scheduler.
 - `runtime.scheduler.queue_depth`: maximum queued scheduler tasks observed for a lane. This is `0` for the single-thread event loop.
+- `runtime.scheduler.queue_capacity`: configured/effective pending queue capacity for the lane.
+- `runtime.scheduler.worker_count`: configured/effective active worker width for the lane.
+- `runtime.scheduler.last_callback_duration_ms`: latest scheduler iteration duration observed for the lane.
+- `runtime.scheduler.tick_jitter_ms`: positive simulated overrun amount above the fixed-rate period or tick budget.
 - `runtime.scheduler.active_count`: maximum active workers observed for a lane. This is `0` for the single-thread event loop.
 - `runtime.scheduler.in_flight_count`: maximum in-flight scheduler tasks observed for a lane. This is `0` for the single-thread event loop.
-- `runtime.scheduler.rejected_count`: scheduler admission rejections for a lane.
+- `runtime.scheduler.rejected_count`: scheduler admission rejections, skipped ready invocations, or dropped ready invocations for a lane.
 
 Components:
 

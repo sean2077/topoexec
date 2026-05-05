@@ -56,7 +56,12 @@ Fields:
 - `hz` optional number, default `0`.
 - `priority` optional string, default empty.
 - `max_callback_ms` optional integer, default `0`.
-- `max_threads` optional integer, default `0`; must be non-negative.
+- `max_threads` optional integer, default `0`; must be non-negative. For `thread_pool`, this is the active worker batch width (`0` means one worker).
+- `queue_capacity` optional integer, default `0`; must be non-negative. For `thread_pool`, positive values bound pending ready invocations after the active batch; `0` preserves the current ready set without adding a persistent queue.
+- `overflow` optional string, default `reject`; allowed values are `overwrite`, `drop_oldest`, `drop_newest`, `reject`, `reject_new`, `fail_fast`, and `block`. For `thread_pool`, `drop_oldest`/`overwrite` discard oldest ready invocations before execution, `drop_newest`/`reject`/`reject_new`/`block` skip newest ready invocations in the non-blocking runtime, and `fail_fast` stops the run.
+- `wall_clock_enabled` optional boolean, default `false`; parsed for future wall-clock fixed-rate mode and currently advisory.
+- `period_ms` optional integer, default `0`; fixed-rate period override for simulated overrun accounting.
+- `tick_budget_ms` optional integer, default `0`; explicit per-iteration budget for simulated overrun accounting.
 - `thread_name` optional string.
 - `cpu_affinity` optional integer array.
 - `nice_priority` optional integer, default `0`.
@@ -64,7 +69,7 @@ Fields:
 - `rt_priority` optional integer, default `0`.
 - `isolation_intent` optional string, default `none`.
 
-Runtime support note: `event_loop` is the deterministic default. `fixed_rate` is simulated by bounded runtime ticks. `thread_pool` has bounded MVP support for ready invocations with `max_threads`; see [scheduler.md](scheduler.md) and [concurrency.md](concurrency.md).
+Runtime support note: `event_loop` is the deterministic default. `fixed_rate` is simulated by bounded runtime ticks and reports overrun/jitter metrics from `hz`, `period_ms`, or `tick_budget_ms`; real sleeping cadence is still deferred. `thread_pool` uses bounded worker batches for ready invocations with explicit queue admission metrics; see [scheduler.md](scheduler.md) and [concurrency.md](concurrency.md).
 
 ## components
 

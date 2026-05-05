@@ -2022,6 +2022,53 @@ TEST(Runtime, ThreadPoolLaneSerializesNonReentrantInvocations) {
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-3"));
 }
 
+TEST(Runtime, ThreadPoolLaneQueueCapacityRejectsNewestWhenFull) {
+  const auto reg = delay_registry();
+  auto spec = thread_pool_graph(true);
+  spec.lanes.back().max_threads = 1;
+  spec.lanes.back().queue_capacity = 1;
+  spec.lanes.back().overflow = "drop_newest";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  reset_thread_pool_probe_state();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(thread_pool_max_invocations().load(), 1);
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
+  EXPECT_FALSE(has_record(1, "worker", "in", "burst-1-3"));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.rejected_count", 1.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.queue_capacity", 1.0));
+  EXPECT_TRUE(has_trace_event(result, "thread_pool_batch"));
+}
+
+TEST(Runtime, ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured) {
+  const auto reg = delay_registry();
+  auto spec = thread_pool_graph(true);
+  spec.lanes.back().max_threads = 1;
+  spec.lanes.back().queue_capacity = 1;
+  spec.lanes.back().overflow = "drop_oldest";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  reset_thread_pool_probe_state();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_FALSE(has_record(1, "worker", "in", "burst-1-1"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-3"));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.rejected_count", 1.0));
+}
+
 TEST(Runtime, AsyncMaxInflightDropsOldestBeforeChannelCapacity) {
   const auto reg = delay_registry();
   const auto spec = async_max_inflight_graph();

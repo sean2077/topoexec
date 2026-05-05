@@ -165,6 +165,51 @@ TEST(Graph, LoadsAndValidatesSchemaVersionOne) {
   EXPECT_NE(topoexec::graph_mermaid(graph, result.compiled_plan).find("flowchart TD"), std::string::npos);
 }
 
+TEST(Graph, ParsesAndValidatesSchedulerLaneAdmissionFields) {
+  const auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: lane_fields, kind: internal_test}
+lanes:
+  pool:
+    type: thread_pool
+    max_threads: 2
+    queue_capacity: 4
+    overflow: reject_new
+    wall_clock_enabled: false
+    period_ms: 10
+    tick_budget_ms: 8
+components:
+  - id: a
+    type: topoexec.test.Source
+    boundary: {role: input, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: pool}
+edges: []
+)");
+
+  ASSERT_EQ(graph.lanes.size(), 1u);
+  EXPECT_EQ(graph.lanes.front().queue_capacity, 4);
+  EXPECT_EQ(graph.lanes.front().overflow, "reject_new");
+  EXPECT_FALSE(graph.lanes.front().wall_clock_enabled);
+  EXPECT_EQ(graph.lanes.front().period_ms, 10);
+  EXPECT_EQ(graph.lanes.front().tick_budget_ms, 8);
+  const auto result = topoexec::validate_graph_structure(graph);
+  ASSERT_TRUE(result.ok) << result.errors.front();
+}
+
+TEST(Graph, RejectsInvalidSchedulerLaneAdmissionFields) {
+  auto graph = minimal_graph();
+  graph.lanes.front().queue_capacity = -1;
+  graph.lanes.front().overflow = "mystery";
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "lane main queue_capacity must be non-negative"));
+  EXPECT_TRUE(has_error_containing(result.errors, "lane main has unsupported overflow mystery"));
+}
+
 TEST(Graph, NonFailFastExecutionPolicyIsParsedButRejected) {
   auto graph = minimal_graph();
   graph.components.front().execution.on_error = "continue";

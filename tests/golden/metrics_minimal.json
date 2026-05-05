@@ -43,6 +43,38 @@
       "channel_id": "",
       "component_id": "",
       "lane": "main",
+      "name": "runtime.scheduler.queue_capacity",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.worker_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.last_callback_duration_ms",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.tick_jitter_ms",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
       "name": "runtime.scheduler.active_count",
       "tags": [],
       "value": 0.0

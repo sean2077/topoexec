@@ -6,6 +6,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 ### Added
 
+- Added explicit scheduler lane admission fields (`queue_capacity`, `overflow`, `period_ms`, `tick_budget_ms`, `wall_clock_enabled`) with thread-pool queue admission metrics and `thread_pool_batch` trace spans.
 - Added bounded `thread_pool` runtime execution for ready invocations, with `max_threads` worker width and non-reentrant serialization.
 - Added async edge `policy.max_inflight` admission control before channel capacity, with async accepted/rejected/dropped/in-flight/completed metrics.
 - Added a non-blocking GitHub Actions ThreadSanitizer job for the new concurrency surface.
