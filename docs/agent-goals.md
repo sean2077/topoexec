@@ -8,14 +8,12 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-1. G2 structured status/error propagation;
-2. G3 runtime invariant suite;
-3. G4 graph compiler diagnostics;
-4. G6 scheduler lane completeness;
-5. G8 channel/backpressure completeness;
-6. G10 trigger engine completeness;
-7. G11 CompositeLoop/region completeness;
-8. remaining P1/P2 docs, packaging, examples, and adapter preview work.
+1. G18 testing strategy hardening;
+2. G19 build/package/distribution cleanup;
+3. G20 adapter architecture preview docs/stubs;
+4. G21 ROS 2 adapter plan docs only;
+5. G24 defensive input handling;
+6. G25 release progression tracking.
 
 ## Goal handoff template
 

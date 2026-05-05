@@ -86,6 +86,13 @@ Each app directory includes a README with graph shape, run command, expected out
 
 ## Documentation
 
+- [Documentation index](docs/README.md)
+- [Getting started](docs/getting-started.md)
+- [Concepts](docs/concepts.md)
+- [Graph spec](docs/graph-spec.md)
+- [Components](docs/components.md)
+- [Component lifecycle](docs/lifecycle.md)
+- [CLI](docs/cli.md)
 - [Runtime semantics](docs/runtime-semantics.md)
 - [Schema v1](docs/schema-v1.md)
 - [API overview](docs/api-overview.md)

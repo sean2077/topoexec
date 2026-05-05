@@ -1,0 +1,58 @@
+# CLI
+
+The `topoexec` CLI is a validation, inspection, and demo-execution tool. It is
+not the required embedding surface; pure C++ apps can link `topoexec::runtime`
+without CLI or YAML.
+
+## Graph commands
+
+```bash
+./build/topoexec graph validate examples/minimal.yaml
+./build/topoexec graph validate examples/minimal.yaml --schema-only --format json
+./build/topoexec graph validate examples/minimal.yaml --semantic --format json
+./build/topoexec graph plan examples/composite_loop.yaml --format json
+./build/topoexec graph render examples/minimal.yaml --format mermaid
+./build/topoexec graph run examples/minimal.yaml --steps 1
+./build/topoexec graph metrics examples/minimal.yaml --steps 1 --format json
+./build/topoexec graph trace examples/minimal.yaml --steps 1 --format json
+./build/topoexec graph lint examples/control_feedback_delay.yaml
+./build/topoexec graph explain examples/minimal.yaml
+./build/topoexec graph diff-plan examples/minimal.yaml examples/control_feedback_delay.yaml
+./build/topoexec graph bench examples/minimal.yaml --steps 1 --runs 2 --format json
+```
+
+<!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --schema-only --format json -->
+<!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --semantic --format json -->
+<!-- topoexec-doc-test: ${TOPOEXEC} graph render ${SOURCE_DIR}/examples/minimal.yaml --format mermaid -->
+<!-- topoexec-doc-test: ${TOPOEXEC} graph lint ${SOURCE_DIR}/examples/control_feedback_delay.yaml -->
+<!-- topoexec-doc-test: ${TOPOEXEC} graph diff-plan ${SOURCE_DIR}/examples/minimal.yaml ${SOURCE_DIR}/examples/control_feedback_delay.yaml -->
+
+## Schema and doctor commands
+
+```bash
+./build/topoexec schema dump --format json
+./build/topoexec schema check examples/minimal.yaml --format json
+./build/topoexec doctor --format json
+```
+
+<!-- topoexec-doc-test: ${TOPOEXEC} schema dump --format json -->
+<!-- topoexec-doc-test: ${TOPOEXEC} schema check ${SOURCE_DIR}/examples/minimal.yaml --format json -->
+<!-- topoexec-doc-test: ${TOPOEXEC} doctor --format json -->
+
+## Output stability
+
+- Text output is intended for humans and smoke tests.
+- JSON output is intended for scripts and golden tests.
+- Chrome trace output is compatible with Perfetto/Chrome trace viewers but does
+  not require an external Perfetto adapter.
+- Bench output is for local regression comparison only; do not compare absolute
+  performance across machines without a controlled benchmark setup.
+
+## Debugging sequence
+
+1. `validate --schema-only` catches shape and unknown-field issues.
+2. `validate --semantic` adds compiler diagnostics and region order.
+3. `plan --format json` shows what will execute.
+4. `lint` flags risky-but-valid patterns such as large copies.
+5. `run`, `metrics`, and `trace` confirm runtime behavior.
+6. `diff-plan` explains semantic drift between two graph revisions.

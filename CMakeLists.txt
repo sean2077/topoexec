@@ -268,6 +268,13 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       --topoexec $<TARGET_FILE:topoexec_cli>
       --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
   )
+  add_test(NAME docs_command_smoke
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/docs/check_docs.py
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+      --build-dir ${CMAKE_CURRENT_BINARY_DIR}
+      --topoexec $<TARGET_FILE:topoexec_cli>
+  )
   add_test(NAME cli_doctor_json
     COMMAND $<TARGET_FILE:topoexec_cli> doctor --format json
   )

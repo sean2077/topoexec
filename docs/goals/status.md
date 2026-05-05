@@ -29,6 +29,7 @@ Last updated: 2026-05-05
 | G14 | complete | `benchmarks/*.yaml`, `benchmarks/README.md`, `docs/performance-baselines.md`, `cli_bench_json_minimal`, and `cli_bench_json_immediate_chain`. | Benchmark output is scriptable and richer, but CI remains correctness-only and docs explicitly avoid cross-machine performance claims. |
 | G15 | complete | `cli_doctor_json`, `cli_schema_dump_json`, `cli_schema_check_minimal_json`, README CLI docs, and schema docs. | CLI now has scriptable schema and doctor entry points while keeping replay/record/format-graph deferred until runtime event logs and formatter policy are stable. |
 | G16 | complete | `docs/examples.md`, `examples/README.md`, `examples/state_config_snapshot.yaml`, `examples/batch_time_sync.yaml`, `examples/service_pipeline.yaml`, `examples/boundary_adapter_pattern.yaml`, `cli_validate_*` example smokes, `cli_run_*` example smokes, and existing app smokes. | Examples cover the plan categories without adding adapter dependencies; service and boundary examples are core boundary patterns, not external service/ROS implementations. |
+| G17 | complete | `docs/README.md`, `docs/getting-started.md`, `docs/concepts.md`, `docs/graph-spec.md`, `docs/components.md`, `docs/lifecycle.md`, `docs/cli.md`, `tests/docs/check_docs.py`, and `docs_command_smoke`. | Docs now provide a tutorial/reference/design/architecture learning path; compileable snippets are represented by app/package smokes and selected tutorial/CLI commands are executable doc tests. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
 
@@ -36,8 +37,8 @@ Last updated: 2026-05-05
 
 The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
 
-1. G17 documentation system;
-2. then G18+ P1/P2 testing/package work.
+1. G18 testing strategy;
+2. then G19+ P1/P2 package/release work.
 
 ## Validation Evidence
 
@@ -53,6 +54,7 @@ ctest --test-dir build --output-on-failure -R 'test_common|test_graph|cli_golden
 ctest --test-dir build --output-on-failure -R 'cli_bench_json_minimal|cli_bench_json_immediate_chain'
 ctest --test-dir build --output-on-failure -R 'cli_doctor_json|cli_schema_dump_json|cli_schema_check_minimal_json'
 ctest --test-dir build --output-on-failure -R 'cli_validate_state_config_snapshot|cli_validate_batch_time_sync|cli_validate_service_pipeline|cli_validate_boundary_adapter_pattern|cli_run_state_config_snapshot|cli_run_batch_time_sync|cli_run_service_pipeline|cli_run_boundary_adapter_pattern|schema_v1_contract_smoke'
+ctest --test-dir build --output-on-failure -R 'docs_command_smoke'
 ```
 
 Run `./scripts/agent_check.sh` before declaring a repo-changing stage complete.
