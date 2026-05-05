@@ -22,7 +22,7 @@ epoch
 | Lane type | Runtime behavior | Enforced today | Not enforced today |
 | --- | --- | --- | --- |
 | `event_loop` | Deterministic in-process execution in compiled region order. | Region order, trigger readiness, edge commit boundaries, stop-token checks before iterations. | Wall-clock rate, OS priority/affinity/RT policy. |
-| `fixed_rate` | Accepted by schema and executed through bounded simulated ticks. | Bounded tick count, component budget metric checks when configured. | Real wall-clock sleep cadence, jitter control, fixed-rate overrun scheduling. |
+| `fixed_rate` | Accepted by schema and executed through bounded simulated ticks. | Bounded tick count, component budget metric checks, and simulated overrun count when iteration duration exceeds `1 / hz`. | Real wall-clock sleep cadence and jitter control. |
 | `thread_pool` | Bounded worker-batch execution for ready invocations. | `max_threads` batch width, non-reentrant serialization, reentrant overlap within the lane bound, region barrier before downstream work. | Persistent worker lifecycle, OS priority/affinity/RT policy, worker naming, timeout preemption. |
 
 ## Thread Pool MVP

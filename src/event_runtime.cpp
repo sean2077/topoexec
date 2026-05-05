@@ -366,6 +366,16 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       publications_->end_epoch();
     }
     const auto iteration_finished_at = std::chrono::steady_clock::now();
+    const auto iteration_duration = iteration_finished_at - iteration_started_at;
+    for (const auto& [lane_id, lane] : lanes) {
+      if (lane.type != "fixed_rate" || lane.hz <= 0.0) {
+        continue;
+      }
+      const auto period = std::chrono::duration<double>(1.0 / lane.hz);
+      if (iteration_duration > period) {
+        ++result.group_metrics[lane_id].tick_overrun_count;
+      }
+    }
     record_trace_span(trace_, "scheduler_iteration", iteration_started_at, iteration_finished_at,
                       {{"iteration", std::to_string(iteration + 1u)}});
     record_trace_event(trace_, "scheduler_iteration_end", {{"iteration", std::to_string(iteration + 1u)}});

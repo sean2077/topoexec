@@ -515,6 +515,24 @@ public:
   }
 };
 
+class SlowManualComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.SlowManual";
+    descriptor.name = "slow_manual";
+    descriptor.role = topoexec::ComponentRole::kInputOutputBoundary;
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    record_invocation(invocation, context);
+  }
+};
+
 class LoopEstimatorComponent : public topoexec::Component {
 public:
   topoexec::ComponentDescriptor describe() const override {
@@ -736,6 +754,7 @@ topoexec::ComponentRegistry delay_registry() {
                               []() { return std::make_unique<LenientBurstSourceComponent>(); });
   registry.register_component({"topoexec.test.ThreadPoolProbe"},
                               []() { return std::make_unique<ThreadPoolProbeComponent>(); });
+  registry.register_component({"topoexec.test.SlowManual"}, []() { return std::make_unique<SlowManualComponent>(); });
   registry.register_component({"topoexec.test.LoopEstimator"},
                               []() { return std::make_unique<LoopEstimatorComponent>(); });
   registry.register_component({"topoexec.test.SlowLoopEstimator"},
@@ -1101,6 +1120,22 @@ edges: []
 )");
   graph.components.front().type = std::move(type);
   return graph;
+}
+
+topoexec::GraphSpec fixed_rate_overrun_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: fixed_rate_overrun, kind: runnable}
+lanes: {main: {type: fixed_rate, hz: 1000}}
+components:
+  - id: slow
+    type: topoexec.test.SlowManual
+    boundary: {role: input_output, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+edges: []
+)");
 }
 
 topoexec::GraphSpec lifecycle_graph(std::vector<std::pair<std::string, std::string>> components) {
@@ -1595,6 +1630,24 @@ TEST(Runtime, TimerTriggerRunsOncePerSimulatedStep) {
   EXPECT_TRUE(has_component_record(2, "timer"));
   EXPECT_TRUE(has_component_record(3, "timer"));
   EXPECT_EQ(result.tick_calls, 3u);
+}
+
+TEST(Runtime, FixedRateSimulatedLaneReportsOverrunMetric) {
+  const auto reg = delay_registry();
+  const auto spec = fixed_rate_overrun_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.tick_calls, 1u);
+  EXPECT_TRUE(std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(), [](const auto& metric) {
+    return metric.name == "runtime.scheduler.tick_overrun_count" && metric.lane == "main" && metric.value >= 1.0;
+  }));
 }
 
 TEST(Runtime, CoalesceMergesMultiplePendingUpdatesIntoOneInvocation) {

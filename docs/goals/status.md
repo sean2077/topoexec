@@ -18,6 +18,7 @@ Last updated: 2026-05-05
 | G2 | complete | `RuntimeRunnerResult::runtime_errors`, `ExecutionSpec::on_error`, runtime lifecycle tests, thread_pool execute-failure test, and `docs/runtime-semantics.md`. | Existing `errors` strings remain compatible; structured errors expose phase/component/code/fatal and only `fail_fast` is implemented. |
 | G4 | complete | `GraphValidationResult::diagnostics`, `GraphCompileResult::diagnostics`, CLI validate JSON diagnostics, `Graph.NonFailFastExecutionPolicyIsParsedButRejected`, and plan JSON. | Diagnostics expose code/severity/message/path/involved ids/suggested fix while keeping legacy errors. |
 | G3 | complete | `docs/runtime-invariants.md` maps all 20 invariants to existing runtime, graph, channel, CLI, and golden tests. | No duplicate test file was added because the invariant coverage already exists in CI; the mapping is now explicit. |
+| G6 | partial | `Runtime.FixedRateSimulatedLaneReportsOverrunMetric` and `docs/scheduler.md`. | Simulated fixed_rate overrun metrics are observable; persistent workers and wall-clock cadence are still deferred. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
 
