@@ -104,6 +104,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [Trace events](docs/trace-events.md)
 - [Examples](docs/examples.md)
 - [Testing strategy](docs/testing-strategy.md)
+- [Build and package](docs/build-and-package.md)
 - [Performance baselines](docs/performance-baselines.md)
 - [FAQ](docs/faq.md)
 - [Adapter boundaries](docs/adapters.md)

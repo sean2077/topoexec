@@ -4,6 +4,9 @@ project(topoexec VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(TOPOEXEC_BUILD_TESTING "Build TopoExec tests" ON)
+option(TOPOEXEC_BUILD_YAML "Build YAML graph loading target" ON)
+option(TOPOEXEC_BUILD_CLI "Build topoexec CLI" ON)
+option(TOPOEXEC_BUILD_EXAMPLES "Build runnable example applications" ON)
 option(TOPOEXEC_ENABLE_ASAN "Build TopoExec with AddressSanitizer instrumentation" OFF)
 option(TOPOEXEC_ENABLE_UBSAN "Build TopoExec with UndefinedBehaviorSanitizer instrumentation" OFF)
 option(TOPOEXEC_ENABLE_TSAN "Build TopoExec with ThreadSanitizer instrumentation" OFF)
@@ -49,11 +52,20 @@ if(TOPOEXEC_ENABLE_ASAN OR TOPOEXEC_ENABLE_UBSAN OR TOPOEXEC_ENABLE_TSAN)
   add_link_options("-fsanitize=${TOPOEXEC_SANITIZER_FLAGS}")
 endif()
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(YAML_CPP REQUIRED IMPORTED_TARGET yaml-cpp)
-
-find_package(CLI11 REQUIRED)
 find_package(nlohmann_json REQUIRED)
+if(TOPOEXEC_BUILD_YAML)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(YAML_CPP REQUIRED IMPORTED_TARGET yaml-cpp)
+endif()
+if(TOPOEXEC_BUILD_CLI)
+  if(NOT TOPOEXEC_BUILD_YAML)
+    message(FATAL_ERROR "TOPOEXEC_BUILD_CLI=ON requires TOPOEXEC_BUILD_YAML=ON")
+  endif()
+  find_package(CLI11 REQUIRED)
+endif()
+if(TOPOEXEC_BUILD_EXAMPLES AND NOT TOPOEXEC_BUILD_YAML)
+  message(FATAL_ERROR "TOPOEXEC_BUILD_EXAMPLES=ON requires TOPOEXEC_BUILD_YAML=ON")
+endif()
 include(CMakePackageConfigHelpers)
 
 add_library(topoexec_core INTERFACE)
@@ -89,44 +101,57 @@ set_target_properties(topoexec_runtime PROPERTIES
 )
 target_link_libraries(topoexec_runtime PUBLIC topoexec_core)
 
-add_library(topoexec_yaml
-  src/graph_io.cpp
-)
-set_target_properties(topoexec_yaml PROPERTIES
-  OUTPUT_NAME topoexec
-  EXPORT_NAME yaml
-)
-target_link_libraries(topoexec_yaml
-  PUBLIC topoexec_runtime
-  PRIVATE PkgConfig::YAML_CPP nlohmann_json::nlohmann_json
-)
 add_library(topoexec::runtime ALIAS topoexec_runtime)
-add_library(topoexec::yaml ALIAS topoexec_yaml)
-add_library(topoexec ALIAS topoexec_yaml)
 
-add_executable(topoexec_cli tools/topoexec/main.cpp)
-target_link_libraries(topoexec_cli PRIVATE topoexec_yaml CLI11::CLI11 nlohmann_json::nlohmann_json)
-set_target_properties(topoexec_cli PROPERTIES OUTPUT_NAME topoexec)
+set(TOPOEXEC_INSTALL_TARGETS topoexec_core topoexec_runtime)
 
-add_executable(topoexec_app_minimal_pipeline examples/apps/minimal_pipeline/main.cpp)
-target_link_libraries(topoexec_app_minimal_pipeline PRIVATE topoexec)
+if(TOPOEXEC_BUILD_YAML)
+  add_library(topoexec_yaml
+    src/graph_io.cpp
+  )
+  set_target_properties(topoexec_yaml PROPERTIES
+    OUTPUT_NAME topoexec
+    EXPORT_NAME yaml
+  )
+  target_link_libraries(topoexec_yaml
+    PUBLIC topoexec_runtime
+    PRIVATE PkgConfig::YAML_CPP nlohmann_json::nlohmann_json
+  )
+  add_library(topoexec::yaml ALIAS topoexec_yaml)
+  add_library(topoexec ALIAS topoexec_yaml)
+  list(APPEND TOPOEXEC_INSTALL_TARGETS topoexec_yaml)
+else()
+  add_library(topoexec ALIAS topoexec_runtime)
+endif()
 
-add_executable(topoexec_app_overload_latest_vs_queue examples/apps/overload_latest_vs_queue/main.cpp)
-target_link_libraries(topoexec_app_overload_latest_vs_queue PRIVATE topoexec)
+if(TOPOEXEC_BUILD_CLI)
+  add_executable(topoexec_cli tools/topoexec/main.cpp)
+  target_link_libraries(topoexec_cli PRIVATE topoexec_yaml CLI11::CLI11 nlohmann_json::nlohmann_json)
+  set_target_properties(topoexec_cli PROPERTIES OUTPUT_NAME topoexec)
+  list(APPEND TOPOEXEC_INSTALL_TARGETS topoexec_cli)
+endif()
 
-add_executable(topoexec_app_control_feedback_delay examples/apps/control_feedback_delay/main.cpp)
-target_link_libraries(topoexec_app_control_feedback_delay PRIVATE topoexec)
+if(TOPOEXEC_BUILD_EXAMPLES)
+  add_executable(topoexec_app_minimal_pipeline examples/apps/minimal_pipeline/main.cpp)
+  target_link_libraries(topoexec_app_minimal_pipeline PRIVATE topoexec)
 
-add_executable(topoexec_app_composite_loop_fixed_point examples/apps/composite_loop_fixed_point/main.cpp)
-target_link_libraries(topoexec_app_composite_loop_fixed_point PRIVATE topoexec)
+  add_executable(topoexec_app_overload_latest_vs_queue examples/apps/overload_latest_vs_queue/main.cpp)
+  target_link_libraries(topoexec_app_overload_latest_vs_queue PRIVATE topoexec_runtime)
 
-add_executable(topoexec_app_async_worker examples/apps/async_worker/main.cpp)
-target_link_libraries(topoexec_app_async_worker PRIVATE topoexec)
+  add_executable(topoexec_app_control_feedback_delay examples/apps/control_feedback_delay/main.cpp)
+  target_link_libraries(topoexec_app_control_feedback_delay PRIVATE topoexec)
 
-add_executable(topoexec_app_cpp_builder_minimal examples/apps/cpp_builder_minimal/main.cpp)
-target_link_libraries(topoexec_app_cpp_builder_minimal PRIVATE topoexec_runtime)
+  add_executable(topoexec_app_composite_loop_fixed_point examples/apps/composite_loop_fixed_point/main.cpp)
+  target_link_libraries(topoexec_app_composite_loop_fixed_point PRIVATE topoexec)
 
-install(TARGETS topoexec_core topoexec_runtime topoexec_yaml topoexec_cli
+  add_executable(topoexec_app_async_worker examples/apps/async_worker/main.cpp)
+  target_link_libraries(topoexec_app_async_worker PRIVATE topoexec)
+
+  add_executable(topoexec_app_cpp_builder_minimal examples/apps/cpp_builder_minimal/main.cpp)
+  target_link_libraries(topoexec_app_cpp_builder_minimal PRIVATE topoexec_runtime)
+endif()
+
+install(TARGETS ${TOPOEXEC_INSTALL_TARGETS}
   EXPORT topoexecTargets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -158,6 +183,9 @@ install(FILES schema/topoexec.schema.v1.json DESTINATION share/topoexec/schema)
 
 include(CTest)
 if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
+  if(NOT TOPOEXEC_BUILD_YAML OR NOT TOPOEXEC_BUILD_CLI OR NOT TOPOEXEC_BUILD_EXAMPLES)
+    message(FATAL_ERROR "TOPOEXEC_BUILD_TESTING=ON currently requires YAML, CLI, and examples; disable testing for runtime-only option smokes")
+  endif()
   find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
   find_package(GTest QUIET)
@@ -345,6 +373,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
       -DSANITIZER_FLAGS=${TOPOEXEC_SANITIZER_FLAGS}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/package_smoke.cmake
+  )
+  add_test(NAME cmake_runtime_only_options_smoke
+    COMMAND ${CMAKE_COMMAND}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/runtime_only_options_smoke.cmake
   )
   add_test(NAME app_minimal_pipeline_runs
     COMMAND topoexec_app_minimal_pipeline

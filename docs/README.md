@@ -46,6 +46,7 @@ inspect a YAML graph in less than 30 minutes by following these pages in order.
 - [Adapter boundaries](adapters.md)
 - [Performance baselines](performance-baselines.md)
 - [Testing strategy](testing-strategy.md)
+- [Build and package](build-and-package.md)
 - [Release checklist](release-checklist.md)
 - [Contributing](contributing.md)
 - [Agent goals](agent-goals.md)

@@ -31,6 +31,7 @@ Last updated: 2026-05-05
 | G16 | complete | `docs/examples.md`, `examples/README.md`, `examples/state_config_snapshot.yaml`, `examples/batch_time_sync.yaml`, `examples/service_pipeline.yaml`, `examples/boundary_adapter_pattern.yaml`, `cli_validate_*` example smokes, `cli_run_*` example smokes, and existing app smokes. | Examples cover the plan categories without adding adapter dependencies; service and boundary examples are core boundary patterns, not external service/ROS implementations. |
 | G17 | complete | `docs/README.md`, `docs/getting-started.md`, `docs/concepts.md`, `docs/graph-spec.md`, `docs/components.md`, `docs/lifecycle.md`, `docs/cli.md`, `tests/docs/check_docs.py`, and `docs_command_smoke`. | Docs now provide a tutorial/reference/design/architecture learning path; compileable snippets are represented by app/package smokes and selected tutorial/CLI commands are executable doc tests. |
 | G18 | complete | `tests/fuzz/fuzz_graph_inputs.py`, `fuzz_graph_input_smoke`, `TOPOEXEC_ENABLE_ASAN`, `TOPOEXEC_ENABLE_UBSAN`, `TOPOEXEC_ENABLE_TSAN`, `scripts/sanitizer_check.sh`, `.github/workflows/ci.yml`, and `docs/testing-strategy.md`. | Malformed graph inputs are exercised as a deterministic no-crash fuzz smoke; ASAN+UBSAN is a blocking CI gate and TSAN remains non-blocking until concurrency maturity. |
+| G19 | complete | `TOPOEXEC_BUILD_YAML`, `TOPOEXEC_BUILD_CLI`, `TOPOEXEC_BUILD_EXAMPLES`, `cmake_runtime_only_options_smoke`, `docs/build-and-package.md`, `packaging/vcpkg/README.md`, and `packaging/conan/README.md`. | Runtime-only configure/build/install works with YAML, CLI, examples, and tests disabled; package-manager notes remain drafts and do not add runtime dependencies. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
 
@@ -38,8 +39,8 @@ Last updated: 2026-05-05
 
 The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
 
-1. G19 build/package/distribution;
-2. then G20+ P1/P2 adapter/release work.
+1. G20 adapter architecture preview;
+2. then G21+ P1/P2 adapter/release work.
 
 ## Validation Evidence
 
@@ -57,6 +58,7 @@ ctest --test-dir build --output-on-failure -R 'cli_doctor_json|cli_schema_dump_j
 ctest --test-dir build --output-on-failure -R 'cli_validate_state_config_snapshot|cli_validate_batch_time_sync|cli_validate_service_pipeline|cli_validate_boundary_adapter_pattern|cli_run_state_config_snapshot|cli_run_batch_time_sync|cli_run_service_pipeline|cli_run_boundary_adapter_pattern|schema_v1_contract_smoke'
 ctest --test-dir build --output-on-failure -R 'docs_command_smoke'
 ctest --test-dir build --output-on-failure -R 'fuzz_graph_input_smoke'
+ctest --test-dir build --output-on-failure -R 'cmake_package_runtime_smoke|cmake_runtime_only_options_smoke'
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/sanitizer_check.sh
 ```
 

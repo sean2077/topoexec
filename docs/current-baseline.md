@@ -42,7 +42,7 @@ git diff --check
 Observed result:
 
 ```text
-48/48 CTest tests passed in the default local RelWithDebInfo GCC run, including normalized CLI golden outputs, schema contract smoke, docs command smoke, deterministic fuzz smoke, state/config snapshot tests, example validation/run smokes, benchmark JSON smokes, schema tooling smokes, and doctor JSON smoke.
+49/49 CTest tests passed in the default local RelWithDebInfo GCC run, including normalized CLI golden outputs, schema contract smoke, docs command smoke, deterministic fuzz smoke, runtime-only option smoke, state/config snapshot tests, example validation/run smokes, benchmark JSON smokes, schema tooling smokes, and doctor JSON smoke.
 ```
 
 Release artifact smoke:
@@ -60,7 +60,7 @@ cmake --build "$RUNTIME_SMOKE_DIR" -j
 Observed result:
 
 ```text
-48/48 CTest tests passed; downstream topoexec::runtime package smoke executable linked only topoexec::runtime and exited 0.
+49/49 CTest tests passed; downstream topoexec::runtime package smoke executable linked only topoexec::runtime and exited 0, and runtime-only options configure/build/install without YAML, CLI, examples, or tests.
 ```
 
 GitHub Actions evidence for current main:
@@ -79,5 +79,5 @@ Current branch limitations after the post-alpha scheduler/async pass:
 - `thread_pool` lanes have bounded MVP execution, but priority, affinity, RT policy, persistent worker naming, and timeout preemption are not implemented.
 - Async `policy.max_inflight` is enforced for deferred completions, but it is not a general async task/future executor.
 - Normalized CLI golden tests now cover plan JSON, metrics JSON, trace JSON, and Mermaid render drift locally.
-- Non-blocking ThreadSanitizer CI is wired. ASAN+UBSAN sanitizer configuration is available through `scripts/sanitizer_check.sh` and passed locally with GCC Debug over 48/48 CTest tests, including the downstream package smoke with sanitizer link flags.
+- Non-blocking ThreadSanitizer CI is wired. ASAN+UBSAN sanitizer configuration is available through `scripts/sanitizer_check.sh` and passed locally with GCC Debug over 49/49 CTest tests, including runtime-only option and downstream package smokes.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.

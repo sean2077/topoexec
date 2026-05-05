@@ -8,12 +8,10 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-1. G18 testing strategy hardening;
-2. G19 build/package/distribution cleanup;
-3. G20 adapter architecture preview docs/stubs;
-4. G21 ROS 2 adapter plan docs only;
-5. G24 defensive input handling;
-6. G25 release progression tracking.
+1. G20 adapter architecture preview docs/stubs;
+2. G21 ROS 2 adapter plan docs only;
+3. G24 defensive input handling;
+4. G25 release progression tracking.
 
 ## Goal handoff template
 
@@ -41,7 +39,7 @@ Blocker protocol:
 - `./scripts/goal_check.sh quick` — fast build plus golden/schema drift checks.
 - `./scripts/goal_check.sh golden` — normalized CLI plan/metrics/trace/render golden checks.
 - `./scripts/goal_check.sh schema` — schema v1 contract and CLI schema/semantic validation split.
-- `./scripts/goal_check.sh package` — install/export downstream runtime-only smoke.
+- `./scripts/goal_check.sh package` — install/export downstream runtime-only smoke plus runtime-only option smoke.
 - `./scripts/goal_check.sh docs` — executable docs command smoke.
 - `./scripts/goal_check.sh fuzz` — deterministic parser/compiler fuzz smoke.
 - `./scripts/goal_check.sh sanitizer` — ASAN+UBSAN Debug build plus full CTest.
