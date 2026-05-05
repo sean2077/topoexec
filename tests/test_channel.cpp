@@ -275,7 +275,38 @@ TEST(Channel, LoanedViewPreservesLoanedFrameBufferWithoutCopying) {
   EXPECT_TRUE(frame.valid());
   EXPECT_EQ(frame.payload_address(), address);
   EXPECT_EQ(bus.metrics("loaned_frames").payload_copy_count, 0u);
-  EXPECT_EQ(pool.stats().alloc_count, 1u);
+  const auto stats = pool.stats();
+  EXPECT_EQ(stats.alloc_count, 1u);
+  EXPECT_EQ(stats.loan_count, 1u);
+  EXPECT_EQ(stats.bytes_allocated, 32u);
+}
+
+TEST(Channel, BufferPoolReusesReleasedFramesAndReportsMetrics) {
+  topoexec::BufferPool pool;
+  {
+    auto loan = pool.loan_frame(16, 4, 4, 4, "gray8");
+    ASSERT_TRUE(loan.valid());
+  }
+  auto reused = pool.loan_frame(8, 2, 2, 4, "gray8");
+
+  EXPECT_TRUE(reused.valid());
+  const auto stats = pool.stats();
+  EXPECT_EQ(stats.alloc_count, 1u);
+  EXPECT_EQ(stats.reuse_count, 1u);
+  EXPECT_EQ(stats.loan_count, 2u);
+  EXPECT_EQ(stats.release_count, 1u);
+}
+
+TEST(Payload, OpaqueCustomPayloadPreservesSchemaAddressAndSummary) {
+  auto value = std::make_shared<const int>(42);
+  auto payload = topoexec::make_custom_payload(value, "example.Answer", "answer");
+
+  ASSERT_TRUE(topoexec::payload_is<topoexec::OpaquePayload>(payload));
+  const auto opaque = topoexec::require_opaque_payload(payload);
+  EXPECT_TRUE(opaque.valid());
+  EXPECT_EQ(opaque.size_bytes, sizeof(int));
+  EXPECT_EQ(opaque.debug_summary, "answer");
+  EXPECT_EQ(topoexec::payload_address(payload), value.get());
 }
 
 TEST(Payload, TypedHelpersReturnExpectedPayloadVariants) {

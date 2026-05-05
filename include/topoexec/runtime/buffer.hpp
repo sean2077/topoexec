@@ -41,6 +41,10 @@ struct FrameView {
 struct BufferPoolStats {
   std::size_t alloc_count{0};
   std::size_t reuse_count{0};
+  std::size_t loan_count{0};
+  std::size_t release_count{0};
+  std::size_t bytes_allocated{0};
+  std::size_t bytes_available{0};
   std::size_t available_count{0};
 };
 

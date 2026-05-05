@@ -34,7 +34,16 @@ struct BinaryBlobPayload {
   const void* payload_address() const;
 };
 
-using RuntimePayloadValue = std::variant<TextPayload, FrameView, BinaryBlobPayload>;
+struct OpaquePayload {
+  std::shared_ptr<const void> object;
+  std::size_t size_bytes{0};
+  std::string debug_summary;
+
+  bool valid() const;
+  const void* payload_address() const;
+};
+
+using RuntimePayloadValue = std::variant<TextPayload, FrameView, BinaryBlobPayload, OpaquePayload>;
 
 struct RuntimePayload {
   std::string schema{kTextPayloadSchema};
@@ -54,6 +63,14 @@ RuntimePayload make_frame_payload(FrameView frame, std::string schema = kFrameVi
 RuntimePayload make_binary_blob_payload(std::shared_ptr<const SharedBuffer> buffer, std::size_t offset,
                                         std::size_t size, std::string format = {},
                                         std::string schema = kBinaryBlobPayloadSchema);
+RuntimePayload make_opaque_payload(std::shared_ptr<const void> object, std::string schema, std::size_t size_bytes = 0,
+                                   std::string debug_summary = {});
+
+template <typename T>
+RuntimePayload make_custom_payload(std::shared_ptr<const T> object, std::string schema,
+                                   std::string debug_summary = {}) {
+  return make_opaque_payload(std::move(object), std::move(schema), sizeof(T), std::move(debug_summary));
+}
 RuntimePayloadPtr make_shared_payload(RuntimePayload payload);
 
 template <typename T> bool payload_is(const RuntimePayload& payload) {
@@ -76,6 +93,7 @@ template <typename T> const T& payload_as(const RuntimePayload& payload, const s
 const std::string& require_text_payload(const RuntimePayload& payload, const std::string& context = {});
 const FrameView& require_frame_payload(const RuntimePayload& payload, const std::string& context = {});
 const BinaryBlobPayload& require_binary_blob_payload(const RuntimePayload& payload, const std::string& context = {});
+const OpaquePayload& require_opaque_payload(const RuntimePayload& payload, const std::string& context = {});
 const void* payload_address(const RuntimePayload& payload);
 RuntimePayload copy_text_payload(const RuntimePayload& payload);
 

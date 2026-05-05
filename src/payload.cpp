@@ -17,6 +17,14 @@ const void* BinaryBlobPayload::payload_address() const {
   return static_cast<const void*>(data());
 }
 
+bool OpaquePayload::valid() const {
+  return object != nullptr;
+}
+
+const void* OpaquePayload::payload_address() const {
+  return object.get();
+}
+
 bool RuntimePayload::is_text() const {
   return std::holds_alternative<TextPayload>(value);
 }
@@ -59,6 +67,14 @@ RuntimePayload make_binary_blob_payload(std::shared_ptr<const SharedBuffer> buff
   return payload;
 }
 
+RuntimePayload make_opaque_payload(std::shared_ptr<const void> object, std::string schema, std::size_t size_bytes,
+                                   std::string debug_summary) {
+  RuntimePayload payload;
+  payload.schema = std::move(schema);
+  payload.value = OpaquePayload{std::move(object), size_bytes, std::move(debug_summary)};
+  return payload;
+}
+
 RuntimePayloadPtr make_shared_payload(RuntimePayload payload) {
   return std::make_shared<const RuntimePayload>(std::move(payload));
 }
@@ -87,6 +103,14 @@ const BinaryBlobPayload& require_binary_blob_payload(const RuntimePayload& paylo
   return std::get<BinaryBlobPayload>(payload.value);
 }
 
+const OpaquePayload& require_opaque_payload(const RuntimePayload& payload, const std::string& context) {
+  if (!std::holds_alternative<OpaquePayload>(payload.value)) {
+    const auto prefix = context.empty() ? std::string{} : context + ": ";
+    throw std::runtime_error(prefix + "expected Opaque payload, got schema " + payload.schema);
+  }
+  return std::get<OpaquePayload>(payload.value);
+}
+
 const void* payload_address(const RuntimePayload& payload) {
   if (std::holds_alternative<TextPayload>(payload.value)) {
     return static_cast<const void*>(std::get<TextPayload>(payload.value).text.data());
@@ -94,7 +118,10 @@ const void* payload_address(const RuntimePayload& payload) {
   if (std::holds_alternative<FrameView>(payload.value)) {
     return std::get<FrameView>(payload.value).payload_address();
   }
-  return std::get<BinaryBlobPayload>(payload.value).payload_address();
+  if (std::holds_alternative<BinaryBlobPayload>(payload.value)) {
+    return std::get<BinaryBlobPayload>(payload.value).payload_address();
+  }
+  return std::get<OpaquePayload>(payload.value).payload_address();
 }
 
 RuntimePayload copy_text_payload(const RuntimePayload& payload) {
@@ -120,6 +147,12 @@ bool operator!=(const std::string& lhs, const RuntimePayload& rhs) {
 std::ostream& operator<<(std::ostream& out, const RuntimePayload& payload) {
   if (payload.is_text()) {
     return out << payload.text();
+  }
+  if (std::holds_alternative<OpaquePayload>(payload.value)) {
+    const auto& opaque = std::get<OpaquePayload>(payload.value);
+    if (!opaque.debug_summary.empty()) {
+      return out << payload.schema << ":" << opaque.debug_summary;
+    }
   }
   return out << payload.schema;
 }

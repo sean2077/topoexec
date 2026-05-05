@@ -21,6 +21,7 @@ Last updated: 2026-05-05
 | G6 | complete | `Runtime.ThreadPoolLaneExecutesReentrantInvocationsConcurrently`, `Runtime.ThreadPoolLaneSerializesNonReentrantInvocations`, `Runtime.ThreadPoolLaneQueueCapacityRejectsNewestWhenFull`, `Runtime.ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured`, `Runtime.FixedRateSimulatedLaneReportsOverrunMetric`, `Graph.ParsesAndValidatesSchedulerLaneAdmissionFields`, `docs/scheduler.md`, and `docs/concurrency.md`. | Bounded-batch thread_pool v1 and simulated fixed_rate metrics are covered; persistent named workers and wall-clock sleep cadence remain explicit future work, not alpha claims. |
 | G7 | complete | `Runtime.TaskExecutorCompletesDeterministicTasksInOrder`, `Runtime.TaskExecutorRejectsAndCancelsBoundedBacklog`, `Runtime.TaskExecutorReportsFailureAndGraphContextPublishesCompletion`, `docs/async-tasks.md`, and runtime package smoke. | Async task runtime is optional and deterministic with bounded backlog; threaded executor pools remain future work. |
 | G8 | complete | `Channel.QueueDrainMaxBatchPreservesRemainingMessages`, `Channel.SnapshotDoesNotConsumeQueuedMessages`, `Channel.QueueMultiReaderMaintainsPerReaderCursor`, `Channel.DeadlineMissIsMarkedOnLateConsume`, `Channel.LifespanDropsStaleMessageBeforeDelivery`, runtime channel health metrics, `docs/channels.md`, and `docs/metrics.md`. | Channel/backpressure v1 is explicit and bounded; health/backpressure is observable through metrics and degradation reasons without recursive upstream execution. |
+| G9 | complete | `Payload.OpaqueCustomPayloadPreservesSchemaAddressAndSummary`, `Channel.BufferPoolReusesReleasedFramesAndReportsMetrics`, `Channel.LoanedViewPreservesLoanedFrameBufferWithoutCopying`, `docs/payloads.md`, and `docs/memory.md`. | Custom type-erased payloads and in-process BufferPool metrics are available; external shared-memory zero-copy remains out of scope. |
 | G10 | complete | `Runtime.RequestTriggerUsesRequestInvocationKind`, `Runtime.RequestTriggerDropsTimedOutPendingMessage`, `Runtime.FutureReadyEventSourceUsesFutureReadyEventKind`, `Runtime.TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign`, `Runtime.BatchTriggerFlushesPartialBatchAfterWindowExpires`, `docs/triggers.md`, and trigger metrics golden output. | Trigger engine owns readiness, timeout drop, batch flush, time-sync drop, and local correlation metadata; watermark/condition triggers remain future extensions. |
 | G11 | complete | `Runtime.CompositeLoopRegionOwnsInternalFixedPointIterations`, `Runtime.CompositeLoopConvergenceStopsBeforeMaxIterations`, `Runtime.CompositeLoopBudgetOverrunStopsLoopAndReportsMetric`, `Runtime.CompositeLoopInternalFailureStopsLoopAndSuppressesExternalCommit`, `docs/composite-loops.md`, and loop metrics/trace docs. | CompositeLoop regions are bounded, observable, and prevent half-updated external output commits on internal failure; solver-style typed convergence remains future work. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
@@ -30,8 +31,8 @@ Last updated: 2026-05-05
 
 The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
 
-1. G9/G12/G13+ productization/runtime hardening work;
-2. then G9/G12/G13+ P1/P2 productization work.
+1. G12/G13+ productization/runtime hardening work;
+2. then G12/G13+ P1/P2 productization work.
 
 ## Validation Evidence
 

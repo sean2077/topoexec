@@ -91,12 +91,18 @@ LoanedFrame BufferPool::loan_frame(std::size_t size, std::uint32_t width, std::u
   if (reusable == available_.end()) {
     buffer = std::make_shared<SharedBuffer>(size);
     ++stats_.alloc_count;
+    stats_.bytes_allocated += size;
   } else {
     buffer = *reusable;
     available_.erase(reusable);
     ++stats_.reuse_count;
   }
+  ++stats_.loan_count;
   stats_.available_count = available_.size();
+  stats_.bytes_available = 0;
+  for (const auto& available : available_) {
+    stats_.bytes_available += available->size();
+  }
   return LoanedFrame(this, FrameView{buffer, 0, size, width, height, stride, std::move(format)});
 }
 
@@ -106,7 +112,12 @@ BufferPoolStats BufferPool::stats() const {
 
 void BufferPool::return_buffer(std::shared_ptr<SharedBuffer> buffer) {
   available_.push_back(std::move(buffer));
+  ++stats_.release_count;
   stats_.available_count = available_.size();
+  stats_.bytes_available = 0;
+  for (const auto& available : available_) {
+    stats_.bytes_available += available->size();
+  }
 }
 
 } // namespace topoexec

@@ -5,8 +5,9 @@ TopoExec payloads are small value wrappers around one of the built-in runtime pa
 - `TextPayload`: UTF-8/string-like control data.
 - `BinaryBlobPayload`: immutable byte ranges backed by `SharedBuffer`.
 - `FrameView`: structured frame/buffer views, including loaned buffers.
+- `OpaquePayload`: type-erased immutable application payloads with schema, byte-size hint, and debug summary.
 
-`RuntimePayload` stores the schema string beside the variant value. The schema is useful for graph contracts and diagnostics; the C++ variant is the type-safe access path.
+`RuntimePayload` stores the schema string beside the variant value. The schema is useful for graph contracts and diagnostics; the C++ variant is the type-safe access path. Custom application schemas can use `make_custom_payload<T>()` / `OpaquePayload` without adding new core dependencies.
 
 ## Typed Access
 
@@ -46,7 +47,7 @@ Edge `policy.copy_policy` controls how published payloads enter runtime channels
 - `loaned_view`: preserves loaned frame/buffer identity without copying.
 - `move_only`: allowed only with `readers: single`.
 
-Copy metrics are exposed as `runtime.channel.payload_copy_count`. Large payload copy rejection records channel degradation details and returns a failed publication result.
+Copy metrics are exposed as `runtime.channel.payload_copy_count`. Large payload copy rejection records channel degradation details and returns a failed publication result. Buffer reuse metrics are available through `BufferPoolStats`; see [memory.md](memory.md).
 
 ## Lifetime Rules
 

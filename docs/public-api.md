@@ -31,7 +31,7 @@ These headers contain at least one stable type used by stable APIs plus experime
 
 | Header | Stable subset | Experimental subset |
 | --- | --- | --- |
-| `topoexec/runtime/buffer.hpp` | `SharedBuffer`, `FrameView` value shapes used by built-in payloads | `BufferPool` and `LoanedFrame` remain prototype-level until payload/loaned-buffer goals are complete. |
+| `topoexec/runtime/buffer.hpp` | `SharedBuffer`, `FrameView`, `BufferPool`, `LoanedFrame`, and `BufferPoolStats` | In-process buffer reuse helper and stable built-in frame/blob ownership shapes. |
 | `topoexec/runtime/scheduler.hpp` | `SchedulerStopToken`, `SchedulerStopReason`, lane metric structs observed through `RuntimeRunnerResult` | Direct scheduler classes, worker-loop details, and lane implementation hooks may change before beta. |
 
 ## Experimental Before Beta

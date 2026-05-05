@@ -6,6 +6,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 ### Added
 
+- Added `OpaquePayload`/`make_custom_payload` and BufferPool loan/release/byte metrics with memory docs.
 - Added optional deterministic `TaskExecutor`, `GraphContext::submit_task`, bounded task admission metrics, cancellation, and failure completions.
 - Added CompositeLoop internal failure accounting, `runtime.loop.error`, `loop_error` trace events, and docs for external-output commit isolation.
 - Added trigger timeout-drop, batch-flush, and time-sync-drop metrics plus local message correlation ids on `Invocation`.
