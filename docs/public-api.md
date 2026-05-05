@@ -1,6 +1,6 @@
 # Public C++ API
 
-TopoExec is pre-1.0, but embedders should still know which headers are intended product surface and which ones are low-level runtime machinery. Prefer `topoexec::runtime` for embedded C++ applications and add `topoexec::yaml` only when YAML loading or JSON plan helpers are needed.
+TopoExec is pre-1.0, but embedders should still know which headers are intended product surface and which ones are low-level runtime machinery. Prefer `topoexec::runtime` for embedded C++ applications and add `topoexec::yaml` only when YAML loading or JSON/Mermaid plan helpers are needed.
 
 ## CMake Targets
 
@@ -10,61 +10,87 @@ TopoExec is pre-1.0, but embedders should still know which headers are intended 
 | `topoexec::runtime` | Components, C++ graph construction, validation, runtime execution, payload helpers, metrics, and traces. | No YAML parser or CLI dependency for pure C++ embedding. |
 | `topoexec::yaml` | YAML `schema_version: 1` loading and optional JSON/Mermaid plan helpers. | Depends on `topoexec::runtime` and parser/JSON libraries. |
 
-## Stable For 0.x Embedders
+## Stability markers
 
-These headers are safe for ordinary runtime users to include directly. In `0.x`, source compatibility is best-effort and additive fields may appear, but existing behavior should not change without a changelog and versioning note.
+Each installed public header now starts with one of these markers:
+
+- `API stability: stable-v0.2` — intended embedder API for the next `v0.2.0-alpha.0` line. Source compatibility is best-effort through `0.x`; breaking changes need a changelog and versioning note.
+- `API stability: mixed` — the header contains a stable subset used by stable APIs plus experimental low-level types.
+- `API stability: experimental` — public because tests, advanced examples, or future extension points need it, but normal embedders should avoid depending on details before beta.
+- `internal-use-only` — must not be installed under `include/`. Internal headers belong in `src/`, `tools/`, or private build trees.
+
+## Header stability matrix
+
+### Stable-v0.2 headers
+
+These headers are safe for ordinary runtime users to include directly.
 
 | Header | Main surface | Notes |
 | --- | --- | --- |
 | `topoexec/runtime/status.hpp` | `Status`, `Result<T>` | Status-returning hooks use this instead of exceptions when failures are expected. |
 | `topoexec/runtime/clock.hpp` | `TimestampDomain`, `EventTimestamp` | Stable timestamp value types for event-time payloads and policies. |
-| `topoexec/runtime/payload.hpp` | Built-in payload variants, schema constants, typed access helpers | Uses `FrameView` and `SharedBuffer` from `buffer.hpp`; custom payload extension remains future work. |
-| `topoexec/runtime/component.hpp` | `Component`, `ComponentDescriptor`, `GraphContext`, `Invocation`, `InputView`, publication result | `GraphContext::publish()` stages through the runtime publisher and returns an observable publish result. `GraphContext` also carries optional state/config snapshot store pointers for components that include the experimental snapshot header. |
-| `topoexec/runtime/component_registry.hpp` | Component factory registration and lookup | Stable registry entry point for embedders and examples. |
-| `topoexec/runtime/diagnostics.hpp` | Stable graph diagnostic descriptor registry | Maps diagnostic codes to severity, summary, and suggested fix text for editor/tooling integrations. |
-| `topoexec/runtime/graph.hpp` | `GraphSpec`, edge/channel/trigger policy specs, validation and compile result structs | C++ graph model is stable. YAML loader declarations in this header require linking `topoexec::yaml`. |
-| `topoexec/runtime/graph_builder.hpp` | Thin C++ helpers over `GraphSpec` | Convenience only; it does not create a second graph model. |
-| `topoexec/runtime/runtime_runner.hpp` | `RuntimeRunner`, `RuntimeRunnerOptions`, `RuntimeRunnerResult`, `RuntimeTraceEvent` | Primary execution API for embedded applications. |
+| `topoexec/runtime/payload.hpp` | Built-in payload variants, schema constants, typed access helpers | Custom `OpaquePayload`/`make_custom_payload` are stable enough for in-process embedding; external shared-memory zero-copy remains out of scope. |
+| `topoexec/runtime/component.hpp` | `Component`, `ComponentDescriptor`, `GraphContext`, `Invocation`, `InputView`, `ConfigView`, publication result | `GraphContext::publish()` stages through the runtime publisher and never calls downstream components directly. |
+| `topoexec/runtime/component_registry.hpp` | `ComponentRegistry`, `ComponentRegistration`, `ComponentFactory` | Stable registry entry point for embedders and examples. |
+| `topoexec/runtime/diagnostics.hpp` | `GraphDiagnosticDescriptor`, `graph_diagnostic_registry()` | Stable diagnostic code descriptors for editor/tooling integrations. |
+| `topoexec/runtime/graph.hpp` | `GraphSpec`, edge/channel/trigger policy specs, validation and compile result structs, runtime metric samples | The C++ graph model is stable; YAML loader declarations in this header require linking `topoexec::yaml` when called. |
+| `topoexec/runtime/graph_builder.hpp` | `GraphBuilder` and helper constructors | Convenience only; it does not create a second graph model. |
+| `topoexec/runtime/runtime_runner.hpp` | `RuntimeRunner`, `RuntimeRunnerOptions`, `RuntimeRunnerResult`, `RuntimeTraceEvent`, `RuntimeError` | Primary execution API for embedded applications. |
 
-## Mixed Stability Headers
-
-These headers contain at least one stable type used by stable APIs plus experimental or low-level details.
+### Mixed stability headers
 
 | Header | Stable subset | Experimental subset |
 | --- | --- | --- |
-| `topoexec/runtime/buffer.hpp` | `SharedBuffer`, `FrameView`, `BufferPool`, `LoanedFrame`, and `BufferPoolStats` | In-process buffer reuse helper and stable built-in frame/blob ownership shapes. |
-| `topoexec/runtime/scheduler.hpp` | `SchedulerStopToken`, `SchedulerStopReason`, lane metric structs observed through `RuntimeRunnerResult` | Direct scheduler classes, worker-loop details, and lane implementation hooks may change before beta. |
+| `topoexec/runtime/buffer.hpp` | `SharedBuffer`, `FrameView`, `BinaryBlobPayload` support types | `BufferPool`, `LoanedFrame`, and pool metrics may grow in Payload/Memory v2. |
+| `topoexec/runtime/scheduler.hpp` | `SchedulerStopToken` and `SchedulerStopReason` as used by `RuntimeRunnerOptions`/`RuntimeRunnerResult` | Direct scheduler classes, lane metric structs, worker-loop details, and lane implementation hooks may change before beta. |
 
-## Experimental Before Beta
-
-These headers are public because tests, advanced examples, or future extension points need them, but normal embedders should avoid depending on their details unless they accept churn.
+### Experimental headers
 
 | Header | Reason |
 | --- | --- |
-| `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, channel read APIs (`peek`, `snapshot`, bounded drain, explicit per-reader drain), and channel metrics. The overload tutorial uses it as an advanced channel-policy example. |
+| `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, channel read APIs, and channel metrics. Prefer `RuntimeRunner`/`GraphContext` for ordinary embedding. |
 | `topoexec/runtime/event_runtime.hpp` | Lower-level event runtime surface used by tests and advanced embedders. |
-| `topoexec/runtime/state.hpp` | Experimental namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits. |
+| `topoexec/runtime/state.hpp` | Namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits. |
+| `topoexec/runtime/task_executor.hpp` | Deterministic async task helper; threaded executor v2 is future work. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
-| `topoexec/common/metrics.hpp` | Small metrics registry/value helpers that may gain sinks/exporters later. |
+| `topoexec/common/metrics.hpp` | Small metrics registry/value helpers; exporter/cardinality/schema v2 contracts are not stable yet. |
 | `topoexec/common/logging.hpp` | Structured logging helper; adapter/exporter boundary is not stable yet. |
-| `topoexec/common/trace.hpp` | Trace collection helper; exporter mapping remains optional tooling. |
+| `topoexec/common/trace.hpp` | Trace collection helper; timeline/exporter mapping remains future work. |
 
-## Internal Or Tooling-Only
+No installed header is intentionally `internal-use-only`. If future work needs internal-only declarations, place them outside `include/` or stop installing them.
 
-- `src/*` files are implementation details.
-- `tools/topoexec/*` is CLI implementation, not embedder API.
-- YAML parser implementation details are internal to `topoexec::yaml`.
-- `tests/*`, `examples/*`, and generated CMake package files are not API contracts.
+## Function and class stability
+
+| Surface | Stability | Compatibility expectation |
+| --- | --- | --- |
+| `Component::configure/activate/execute/deactivate` plus status variants | stable-v0.2 | New hooks may be added, but existing hook meanings should not silently change. |
+| `GraphContext::publish()` and `publish_shared()` | stable-v0.2 | Publication remains staged/routed by runtime; no direct downstream calls. |
+| `Invocation`, `InputView`, typed payload helpers | stable-v0.2 | Existing payload lookup and typed access behavior should remain source-compatible. |
+| `ComponentRegistry::register_component/create/metadata/types` | stable-v0.2 | Registration metadata can gain additive fields. |
+| `GraphSpec`, `LaneSpec`, `EdgeSpec`, `TriggerPolicySpec`, `CompositeLoopSpec` | stable-v0.2 for current fields | Additive fields are allowed only when schema/runtime meaning stays compatible. |
+| `validate_graph`, `compile_graph`, `GraphDiagnostic` | stable-v0.2 | New diagnostics may be added; existing codes should keep meanings. |
+| `RuntimeRunner::run()` and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, trace vectors, metric vectors, and error fields should keep meanings. |
+| `SchedulerStopSource`/`SchedulerStopToken` | stable-v0.2 through runner options | Direct scheduler registry/metrics internals remain experimental. |
+| `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | Snapshot/config transaction APIs may be reshaped by G43/G44. |
+| `TaskExecutor` | experimental | Threaded executor v2 may split the interface. |
+| `RuntimeChannelBus`, `RuntimePublicationRouter`, `TriggerPolicyEngine`, `EventRuntime` | experimental | Advanced runtime internals may change as scheduler/channel/trigger v2 goals land. |
 
 ## Compatibility Expectations
 
-- Source compatibility in `0.x` is best-effort for stable headers.
+- Source compatibility in `0.x` is best-effort for `stable-v0.2` headers.
 - Binary compatibility is not promised before `1.0.0`; rebuild downstream applications when upgrading.
 - Stable enum names, field names, and result field meanings should not change inside a patch release.
 - Additive fields and metrics may appear in minor releases.
 - Experimental headers may change in minor releases, but changes should still be documented.
 
-## Schema Bump Rules
+## Schema and semantic compatibility
+
+Schema v1 is strict and compatibility-preserving:
+
+- Additive fields are allowed only when they do not change v1 meaning.
+- Unknown fields remain invalid.
+- Breaking semantic changes require a schema version bump.
+- New adapter-specific fields should not be added to core schema v1 unless they are useful without that adapter.
 
 A schema version bump is required when a graph that was valid under the old schema would be rejected or would mean something different because of:
 
@@ -80,12 +106,40 @@ Additive optional fields with documented defaults can remain in schema v1.
 
 CLI JSON fields are part of the user-facing tooling contract even though the CLI implementation is not an embedder API.
 
-- Stable commands: `plan`, `metrics`, `trace`, and `diff-plan` should keep existing field names and JSON value types within a minor release.
+- Stable commands: `plan`, `metrics`, `trace`, `schema dump`, `schema check`, `doctor`, and `diff-plan` should keep existing field names and JSON value types within a minor release.
 - `bench` JSON is machine-readable but still experimental; add fields instead of changing existing field meanings where practical.
 - New fields are allowed. Removing or renaming fields requires a changelog note and, when schema-related, a versioning note.
 - Human-readable text output is allowed to evolve more freely than JSON.
+- Golden drift coverage lives in `tests/golden/` for plan, metrics, trace, Chrome trace, render, schema dump, and doctor JSON.
 
-## Example Header Boundary
+## Adapter-preview stability
+
+Adapter work remains preview/deferred until the observer/API boundary is stable:
+
+- Core/runtime headers must not include ROS 2, OpenTelemetry, Prometheus, Python, Perfetto, or dynamic plugin SDK headers.
+- Adapter-preview docs may describe `ResultSink`, `RuntimeObserver`, `BoundaryBridge`, and `ComponentFactoryProvider`, but those names are not stable implementation APIs until G46/G57 lands.
+- Future adapter SDK headers must either be optional targets or explicitly documented as part of `topoexec::runtime`; they must not silently become transitive dependencies of runtime-only embedders.
+- Adapter failures must not affect runtime scheduling semantics unless represented as ordinary graph input/output in a future, explicitly designed boundary.
+
+## Pure runtime embedding smoke
+
+The pure C++ path links only `topoexec::runtime`:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED)
+target_link_libraries(my_app PRIVATE topoexec::runtime)
+```
+
+Use `GraphBuilder` or direct `GraphSpec` construction, register components in a `ComponentRegistry`, then call `RuntimeRunner::run()`. The package smoke under `tests/cmake/runtime_smoke` compiles this path against only `topoexec::runtime` after install and now verifies:
+
+- minimal app graph construction;
+- component registry registration/creation;
+- GraphBuilder helpers;
+- typed payload publication and consumption;
+- RuntimeRunner execution;
+- `RuntimeRunnerResult` metrics and trace consumption.
+
+## Example header boundary
 
 Ordinary embedding examples should include only stable headers:
 
@@ -97,7 +151,7 @@ Ordinary embedding examples should include only stable headers:
 
 `examples/apps/overload_latest_vs_queue` is intentionally marked as an advanced low-level channel-policy tutorial because it uses `topoexec/runtime/channel.hpp` directly.
 
-## Component Failure Model
+## Component failure model
 
 Existing components can keep overriding the original `void` hooks:
 
@@ -120,18 +174,10 @@ topoexec::Status execute_status(const topoexec::Invocation& invocation,
 
 `RuntimeRunnerResult::errors` preserves legacy human-readable configure, activate, execute, and deactivate failure strings. `RuntimeRunnerResult::runtime_errors` is the structured API for new callers and records phase, component id, lane when known, message, code, trace id when known, and fatality. The runner deactivates already-started components after stop-token shutdown and component errors.
 
-## Pure Runtime Embedding
-
-The pure C++ path links only `topoexec::runtime`:
-
-```cmake
-find_package(topoexec CONFIG REQUIRED)
-target_link_libraries(my_app PRIVATE topoexec::runtime)
-```
-
-Use `GraphBuilder` or direct `GraphSpec` construction, register components in a `ComponentRegistry`, then call `RuntimeRunner::run()`. The package smoke under `tests/cmake/runtime_smoke` compiles this path against only `topoexec::runtime` after install, and `examples/apps/cpp_builder_minimal` shows a larger app-local variant.
-
-
 ## Graph diagnostics
 
 `GraphValidationResult` and `GraphCompileResult` preserve legacy `errors` strings and also expose `diagnostics[]` with `code`, `severity`, `message`, optional graph path/involved ids, and `suggested_fix`. New tooling should prefer diagnostics while keeping `errors` for human-readable compatibility. Stable code descriptors live in `topoexec/runtime/diagnostics.hpp` and are documented in [diagnostics.md](diagnostics.md).
+
+## API change checklist
+
+Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, CLI JSON, schema fields, or adapter-preview boundaries.

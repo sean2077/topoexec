@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-G26 establishes the post-G25 release-candidate baseline for the new plan2 board.
-The next unfinished P0 goal is G27 Public API Stability Pass v2.
+G26 established the post-G25 release-candidate baseline and G27 completed the public API stability pass.
+The next unfinished P0 goal is G28 Runtime Semantic Version Contract.
 
 ## Active / Recent Goals
 
@@ -20,6 +20,7 @@ The next unfinished P0 goal is G27 Public API Stability Pass v2.
 | --- | --- | --- | --- |
 | G0-G25 | archived complete | Previous entries in git history through `b86a586d3a48d84bf4e03ccabde3d061e3073579`, release docs, golden/package/sanitizer evidence. | Do not treat the old board as active work unless a regression is found. |
 | G26 | complete | `docs/current-baseline.md`, `docs/release-progression.md`, `docs/release-checklist.md`, `docs/goals/backlog.md`, `docs/goals/status.md`, `docs/plans/plan2.md`, and expanded `tests/golden/*` coverage. | Protects the post-G25 baseline, recommends `v0.2.0-alpha.0` as the next prerelease decision, and adds golden coverage for Chrome trace, schema dump, and doctor JSON. |
+| G27 | complete | `docs/public-api.md`, `docs/api-change-checklist.md`, installed `include/topoexec/**` stability markers, `tests/cmake/runtime_smoke/main.cpp`, `docs/versioning.md`, and `CHANGELOG.md`. | Public API is classified as stable-v0.2/mixed/experimental; runtime-only downstream smoke covers GraphBuilder, ComponentRegistry, typed payloads, RuntimeRunner, and metrics/trace result consumption. |
 
 ## Validation Evidence
 
@@ -43,6 +44,18 @@ cmake --build build --target topoexec_format_check
 
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
 # passed: 50/50 CTest tests in the ASAN+UBSAN Debug build
+
+./scripts/goal_check.sh package
+# G27 passed: runtime-only downstream smoke covers result metrics/trace consumption
+
+cmake --build build --target topoexec_format_check && ./scripts/goal_check.sh policy
+# G27 passed: format target and architecture/dependency policy smoke
+
+./scripts/agent_check.sh
+# G27 passed: 50/50 CTest tests after API marker and runtime smoke updates
+
+grep -RInE '#include .*(yaml|rclcpp|opentelemetry|prometheus|Python|perfetto|tools/topoexec|src/)' include || true
+# G27 passed: no YAML/CLI/adapter/private includes in installed headers
 ```
 
 ## Blockers

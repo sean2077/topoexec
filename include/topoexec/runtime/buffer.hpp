@@ -1,7 +1,6 @@
 #pragma once
 
-// Public API category: mixed. SharedBuffer/FrameView are stable payload value
-// shapes; BufferPool/LoanedFrame remain experimental before beta.
+// API stability: mixed. SharedBuffer/FrameView are stable-v0.2; BufferPool/LoanedFrame are experimental before beta.
 
 #include <cstddef>
 #include <cstdint>

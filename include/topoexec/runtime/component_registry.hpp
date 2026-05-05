@@ -1,6 +1,6 @@
 #pragma once
 
-// Public API category: stable 0.x component factory registry surface.
+// API stability: stable-v0.2. Component factory registration is intended embedder API.
 
 #include "topoexec/runtime/component.hpp"
 

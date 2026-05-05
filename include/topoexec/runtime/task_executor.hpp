@@ -1,8 +1,6 @@
 #pragma once
 
-// Public API category: experimental optional async task helper. Async edges remain
-// the graph semantic boundary; this executor is an embeddable deterministic
-// utility and is not required for ordinary runtime execution.
+// API stability: experimental. Deterministic task helper may change before threaded executor v2.
 
 #include "topoexec/runtime/payload.hpp"
 

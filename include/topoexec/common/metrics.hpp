@@ -1,5 +1,7 @@
 #pragma once
 
+// API stability: experimental. Metrics helpers are public but exporter/schema contracts are not stable yet.
+
 #include <cstddef>
 #include <map>
 #include <mutex>

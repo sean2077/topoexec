@@ -1,5 +1,7 @@
 #pragma once
 
+// API stability: experimental. Structured logging helpers are public but sink/exporter contracts are not stable yet.
+
 #include <chrono>
 #include <map>
 #include <mutex>

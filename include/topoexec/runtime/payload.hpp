@@ -1,6 +1,6 @@
 #pragma once
 
-// Public API category: stable 0.x built-in payload helpers and typed access.
+// API stability: stable-v0.2. Built-in payload helpers and typed access are intended embedder API.
 
 #include "topoexec/runtime/buffer.hpp"
 

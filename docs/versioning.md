@@ -18,22 +18,29 @@ next prerelease candidate; see docs/release-progression.md
 
 `0.x` releases are pre-1.0 releases. The project may still refine public C++ APIs, but releases should not silently change documented schema v1 runtime semantics.
 
-### Stable Within v0.1.x
+### Stable-v0.2 Embedder Surface
+
+The next prerelease line should treat these as stable-v0.2 source surfaces:
 
 - Schema v1 accepted field names, enum values, defaults, and validation behavior.
 - Edge visibility semantics for `immediate`, `delay`, `state`, and `async`.
 - Non-recursive `GraphContext::publish()` staging.
+- Component/registry/builder/runtime-runner headers marked `API stability: stable-v0.2`.
+- Runtime result metrics/trace/error field meanings exposed through `RuntimeRunnerResult`.
 - CompositeLoop ownership requirements and fixed-point runtime metrics.
 - CMake package target names: `topoexec::core`, `topoexec::runtime`, and `topoexec::yaml`.
-- CLI JSON field names documented in [metrics.md](metrics.md) and [trace-events.md](trace-events.md).
+- CLI JSON field names documented in [metrics.md](metrics.md), [trace-events.md](trace-events.md), schema tooling docs, and G26 goldens.
 
 ### Subject To Change Before 1.0
 
 - C++ component lifecycle return types.
 - Typed input helper APIs.
 - Error propagation surface from component execution to runtime result.
-- Scheduler lane concurrency behavior.
+- Scheduler lane concurrency behavior beyond the current documented MVP.
 - Worker-pool and async max-inflight policy.
+- Experimental headers listed in [public-api.md](public-api.md).
+
+Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, schema fields, or CLI JSON surfaces.
 
 ## Schema Compatibility
 

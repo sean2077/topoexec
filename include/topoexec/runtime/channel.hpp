@@ -1,7 +1,7 @@
 #pragma once
 
-// Public API category: experimental low-level channel and publication routing
-// surface. Prefer RuntimeRunner/GraphContext for ordinary embedding.
+// API stability: experimental. Low-level channel and publication routing APIs may change before beta; prefer
+// RuntimeRunner/GraphContext.
 
 #include "topoexec/runtime/clock.hpp"
 #include "topoexec/runtime/component.hpp"

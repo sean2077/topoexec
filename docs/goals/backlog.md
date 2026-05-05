@@ -19,7 +19,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | ID | Priority | Status | Scope | Acceptance / evidence gate | Validation |
 | --- | --- | --- | --- | --- | --- |
 | G26 | P0 | complete | Release Candidate Baseline 2 | G26 baseline docs/goldens/checks complete | `./scripts/agent_check.sh`; focused goal checks as applicable |
-| G27 | P0 | pending | Public API Stability Pass v2 | 将当前 public API 从“可用”推进到“pre-beta 可依赖”，清晰区分 stable、experimental、internal、adapter-preview。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G27 | P0 | complete | Public API Stability Pass v2 | `docs/public-api.md`, installed header stability markers, `docs/api-change-checklist.md`, runtime-only smoke metrics/trace consumption, and package/policy checks. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh package`; `./scripts/goal_check.sh policy`; format |
 | G28 | P0 | pending | Runtime Semantic Version Contract | 把 runtime 行为从“文档说明”提升成可版本化的 semantic contract，便于后续 schema v2 或 v1 additive fields 不破坏旧用户。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G29 | P0 | pending | Scheduler v2 Design + Contract | 把当前 scheduler lane MVP 推进为 v2 contract，明确哪些是实现能力、哪些是 advisory fields、哪些是未来 extension。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G30 | P1 | pending | Persistent Worker Pool v1 | 将 bounded `thread_pool` 从 batch-style MVP 推进到可解释的 persistent worker pool v1。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G27 Public API Stability Pass v2 is the next unfinished P0 goal after G26.
+G28 Runtime Semantic Version Contract is the next unfinished P0 goal after G27.
 
 ## Blockers
 

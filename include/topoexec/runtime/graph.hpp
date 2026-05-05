@@ -1,6 +1,7 @@
 #pragma once
 
-// Public API category: stable 0.x graph specification and validation model.
+// API stability: stable-v0.2. GraphSpec/validation structs are intended embedder API; YAML loader declarations require
+// topoexec::yaml.
 
 #include "topoexec/runtime/component.hpp"
 #include "topoexec/runtime/component_registry.hpp"

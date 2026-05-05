@@ -1,7 +1,6 @@
 #pragma once
 
-// Public API category: stable 0.x component, invocation, and graph context
-// surface.
+// API stability: stable-v0.2. Component, Invocation, and GraphContext are intended embedder API.
 
 #include "topoexec/common/logging.hpp"
 #include "topoexec/common/metrics.hpp"

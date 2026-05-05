@@ -1,5 +1,7 @@
 #pragma once
 
+// API stability: experimental. Trace helpers are public but timeline/exporter contracts are not stable yet.
+
 #include <chrono>
 #include <map>
 #include <mutex>

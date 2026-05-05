@@ -1,6 +1,6 @@
 #pragma once
 
-// Public API category: experimental low-level event runtime surface.
+// API stability: experimental. Low-level EventRuntime APIs may change before beta.
 
 #include "topoexec/runtime/channel.hpp"
 #include "topoexec/runtime/component.hpp"

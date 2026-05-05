@@ -1,6 +1,6 @@
 #pragma once
 
-// Public API category: experimental trigger readiness engine surface.
+// API stability: experimental. Trigger readiness internals may change before trigger v2.
 
 #include "topoexec/runtime/channel.hpp"
 #include "topoexec/runtime/graph.hpp"

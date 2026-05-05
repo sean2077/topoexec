@@ -1,6 +1,7 @@
 #include "topoexec/runtime/graph_builder.hpp"
 #include "topoexec/runtime/runtime_runner.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -90,6 +91,22 @@ int main() {
   if (result.committed_publication_count != 1u || result.channel_delivery_count != 1u) {
     std::cerr << "unexpected runtime counters\n";
     return 3;
+  }
+  const auto has_metric =
+      std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(), [](const auto& metric) {
+        return metric.name == "runtime.component.execution_count" && metric.component_id == "source" &&
+               metric.value == 1.0;
+      });
+  if (!has_metric || result.metric_samples != result.runtime_metrics.size()) {
+    std::cerr << "runtime metrics were not exposed through RuntimeRunnerResult\n";
+    return 4;
+  }
+  const auto has_trace = std::any_of(result.trace.begin(), result.trace.end(), [](const auto& event) {
+    return event.name == "channel_publish" && event.attributes.count("edge_kind") != 0u;
+  });
+  if (!has_trace || result.trace_event_count != result.trace.size()) {
+    std::cerr << "runtime trace was not exposed through RuntimeRunnerResult\n";
+    return 5;
   }
   std::cout << "runtime_smoke_payload=" << observed_payload << "\n";
   return 0;

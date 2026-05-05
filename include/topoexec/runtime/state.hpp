@@ -1,7 +1,6 @@
 #pragma once
 
-// Public API category: experimental state/config snapshot surface. This API
-// keeps mutable graph-level state explicit and epoch-boundary committed.
+// API stability: experimental. State/config snapshot APIs may change before beta.
 
 #include "topoexec/runtime/component.hpp"
 #include "topoexec/runtime/payload.hpp"

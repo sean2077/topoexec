@@ -1,7 +1,6 @@
 #pragma once
 
-// Public API category: stable 0.x diagnostic code registry. The graph compiler
-// may add new codes, but existing code meanings should remain stable.
+// API stability: stable-v0.2. Diagnostic code registry is stable for tooling integrations.
 
 #include <optional>
 #include <string>

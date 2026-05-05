@@ -1,6 +1,6 @@
 #pragma once
 
-// Public API category: stable 0.x timestamp value types.
+// API stability: stable-v0.2. Timestamp value types are intended embedder API.
 
 #include <cstdint>
 #include <optional>

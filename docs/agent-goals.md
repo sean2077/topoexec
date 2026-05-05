@@ -8,10 +8,10 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-1. G27 Public API Stability Pass v2
-2. G28 Runtime Semantic Version Contract
-3. G66 Architecture Enforcement CI v2
-4. G29 Scheduler v2 Design + Contract
+1. G28 Runtime Semantic Version Contract
+2. G66 Architecture Enforcement CI v2
+3. G29 Scheduler v2 Design + Contract
+4. G30 Persistent Worker Pool v1
 
 After those, continue by the phase ordering in `docs/plans/plan2.md`, always finishing the earliest unfinished P0/P1 goal before opening lower-priority adapter/ecosystem work.
 

@@ -1,6 +1,6 @@
 #pragma once
 
-// Public API category: stable 0.x C++ builder helpers over GraphSpec.
+// API stability: stable-v0.2. GraphBuilder is a convenience layer over GraphSpec.
 
 #include "topoexec/runtime/graph.hpp"
 

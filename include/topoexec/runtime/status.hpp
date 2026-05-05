@@ -1,6 +1,6 @@
 #pragma once
 
-// Public API category: stable 0.x status/result helpers.
+// API stability: stable-v0.2. Status/Result helpers are intended embedder API.
 
 #include <optional>
 #include <string>

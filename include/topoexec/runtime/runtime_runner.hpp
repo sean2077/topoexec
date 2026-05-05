@@ -1,6 +1,6 @@
 #pragma once
 
-// Public API category: stable 0.x embedded runtime execution surface.
+// API stability: stable-v0.2. RuntimeRunner and RuntimeRunnerResult are intended embedder API.
 
 #include "topoexec/runtime/component_registry.hpp"
 #include "topoexec/runtime/graph.hpp"
