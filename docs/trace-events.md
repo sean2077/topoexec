@@ -73,3 +73,7 @@ The runtime includes identifiers where the event source has them:
 - Loop events include `loop_id` and loop-local `iteration`.
 
 Future adapters may add OpenTelemetry, Prometheus, or richer Perfetto metadata, but those adapters are separate from the core runtime contract.
+
+## Error fields
+
+Trace JSON remains event-oriented. Runtime errors are exported through runner/metrics JSON as `runtime_errors[]`, with structured phase/component/code fields that can be correlated with component trace events by component id and future trace id fields.

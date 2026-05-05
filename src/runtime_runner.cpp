@@ -8,6 +8,7 @@
 #include <exception>
 #include <map>
 #include <memory>
+#include <string_view>
 #include <utility>
 
 namespace topoexec {
@@ -61,6 +62,42 @@ void append_runtime_metric(RuntimeRunnerResult& result, std::string name, double
       RuntimeMetricSample{std::move(name), value, std::move(component_id), std::move(lane), std::move(channel_id), {}});
 }
 
+void append_runtime_error(RuntimeRunnerResult& result, RuntimeError error, std::string legacy_message = {}) {
+  if (legacy_message.empty()) {
+    legacy_message = error.message;
+    if (!error.component_id.empty()) {
+      legacy_message = "component " + error.component_id + " " + error.phase + " failed: " + error.message;
+    }
+  }
+  result.runtime_errors.push_back(std::move(error));
+  result.errors.push_back(std::move(legacy_message));
+}
+
+RuntimeError make_runtime_error(std::string phase, std::string component_id, std::string lane, std::string message,
+                                std::string code = {}, bool fatal = true) {
+  RuntimeError error;
+  error.phase = std::move(phase);
+  error.component_id = std::move(component_id);
+  error.lane = std::move(lane);
+  error.message = std::move(message);
+  error.code = std::move(code);
+  error.fatal = fatal;
+  return error;
+}
+
+std::string component_id_from_legacy_error(const std::string& message) {
+  constexpr auto prefix = std::string_view{"component "};
+  constexpr auto failed = std::string_view{" failed:"};
+  if (message.rfind(prefix, 0) != 0u) {
+    return {};
+  }
+  const auto end = message.find(failed, prefix.size());
+  if (end == std::string::npos) {
+    return {};
+  }
+  return message.substr(prefix.size(), end - prefix.size());
+}
+
 std::uint64_t non_negative_duration_ns(std::chrono::steady_clock::duration duration) {
   const auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
   return count < 0 ? 0u : static_cast<std::uint64_t>(count);
@@ -90,7 +127,9 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   result.validation = validate_graph(graph, registry_);
   if (!result.validation.ok) {
     result.ok = false;
-    result.errors = result.validation.errors;
+    for (const auto& error : result.validation.errors) {
+      append_runtime_error(result, make_runtime_error("validate", {}, {}, error, "validation"));
+    }
     return result;
   }
   if (options.mode == RuntimeRunMode::kValidate) {
@@ -100,7 +139,9 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   if (options.mode == RuntimeRunMode::kDryRun) {
     auto dry_run = dry_run_graph(graph, registry_, options.tick_iterations);
     result.ok = dry_run.ok;
-    result.errors = dry_run.errors;
+    for (const auto& error : dry_run.errors) {
+      append_runtime_error(result, make_runtime_error("dry_run", {}, {}, error, "dry_run"));
+    }
     copy_dry_run_to_runner(dry_run, result);
     result.scheduler_stop_reason = SchedulerStopReason::kTickBound;
     return result;
@@ -140,7 +181,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       if (!configure.ok()) {
         result.ok = false;
         result.scheduler_stop_reason = SchedulerStopReason::kError;
-        result.errors.push_back("component " + spec.id + " configure failed: " + configure.message());
+        append_runtime_error(result, make_runtime_error("configure", spec.id, spec.execution.lane, configure.message(),
+                                                        "component_configure"));
         instances.push_back(std::move(instance));
         break;
       }
@@ -149,7 +191,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       if (!activate.ok()) {
         result.ok = false;
         result.scheduler_stop_reason = SchedulerStopReason::kError;
-        result.errors.push_back("component " + spec.id + " activate failed: " + activate.message());
+        append_runtime_error(result, make_runtime_error("activate", spec.id, spec.execution.lane, activate.message(),
+                                                        "component_activate"));
         instances.push_back(std::move(instance));
         break;
       }
@@ -169,7 +212,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
         const auto deactivate = it->component->deactivate_status();
         ++result.stopped_components;
         if (!deactivate.ok()) {
-          result.errors.push_back("component " + it->id + " deactivate failed: " + deactivate.message());
+          append_runtime_error(result, make_runtime_error("deactivate", it->id, {}, deactivate.message(),
+                                                          "component_deactivate", false));
         }
       }
       return result;
@@ -196,7 +240,13 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     result.scheduler_stop_reason = run_result.stop_reason;
     result.tick_calls = run_result.tick_calls;
     result.ticked_components = run_result.ticked_tasks;
-    result.errors = run_result.errors;
+    for (const auto& error : run_result.errors) {
+      const auto component_id = component_id_from_legacy_error(error);
+      append_runtime_error(result,
+                           make_runtime_error(component_id.empty() ? "runtime" : "execute", component_id, {}, error,
+                                              component_id.empty() ? "runtime" : "component_execute"),
+                           error);
+    }
     for (const auto& [lane_id, metrics] : run_result.group_metrics) {
       append_runtime_metric(result, "runtime.scheduler.completed_count", static_cast<double>(metrics.completed_count),
                             {}, lane_id);
@@ -257,7 +307,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       ++result.stopped_components;
       if (!deactivate.ok()) {
         result.ok = false;
-        result.errors.push_back("component " + it->id + " deactivate failed: " + deactivate.message());
+        append_runtime_error(
+            result, make_runtime_error("deactivate", it->id, {}, deactivate.message(), "component_deactivate", false));
       }
     }
     for (const auto& metric : channels.metrics_snapshot()) {
@@ -329,7 +380,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     result.metric_samples = result.runtime_metrics.size();
   } catch (const std::exception& error) {
     result.ok = false;
-    result.errors.push_back(error.what());
+    append_runtime_error(result, make_runtime_error("runtime", {}, {}, error.what(), "exception"));
     for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
       if (!it->started) {
         continue;
@@ -337,7 +388,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       const auto deactivate = it->component->deactivate_status();
       ++result.stopped_components;
       if (!deactivate.ok()) {
-        result.errors.push_back("component " + it->id + " deactivate failed: " + deactivate.message());
+        append_runtime_error(
+            result, make_runtime_error("deactivate", it->id, {}, deactivate.message(), "component_deactivate", false));
       }
     }
   }

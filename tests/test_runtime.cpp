@@ -1763,7 +1763,12 @@ TEST(Runtime, ComponentErrorStopsRuntimeAndDeactivatesStartedComponents) {
   const auto result = runner.run(spec, options);
   EXPECT_FALSE(result.ok);
   ASSERT_FALSE(result.errors.empty());
+  ASSERT_FALSE(result.runtime_errors.empty());
   EXPECT_NE(result.errors.front().find("component throwing failed: boom"), std::string::npos);
+  EXPECT_EQ(result.runtime_errors.front().phase, "execute");
+  EXPECT_EQ(result.runtime_errors.front().component_id, "throwing");
+  EXPECT_EQ(result.runtime_errors.front().code, "component_execute");
+  EXPECT_TRUE(result.runtime_errors.front().fatal);
   EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kError);
   EXPECT_EQ(result.started_components, 1u);
   EXPECT_EQ(result.stopped_components, 1u);
@@ -1783,8 +1788,12 @@ TEST(Runtime, ConfigureStatusFailureIsObservableWithoutThrowing) {
 
   EXPECT_FALSE(result.ok);
   ASSERT_FALSE(result.errors.empty());
+  ASSERT_FALSE(result.runtime_errors.empty());
   EXPECT_NE(result.errors.front().find("component failing configure failed: configure status failed"),
             std::string::npos);
+  EXPECT_EQ(result.runtime_errors.front().phase, "configure");
+  EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
+  EXPECT_EQ(result.runtime_errors.front().code, "component_configure");
   EXPECT_EQ(result.instantiated_components, 1u);
   EXPECT_EQ(result.configured_components, 0u);
   EXPECT_EQ(result.started_components, 0u);
@@ -1804,11 +1813,38 @@ TEST(Runtime, ExecuteStatusFailureStopsRuntimeAndDeactivatesStartedComponents) {
 
   EXPECT_FALSE(result.ok);
   ASSERT_FALSE(result.errors.empty());
+  ASSERT_FALSE(result.runtime_errors.empty());
   EXPECT_NE(result.errors.front().find("component failing failed: execute status failed"), std::string::npos);
+  EXPECT_EQ(result.runtime_errors.front().phase, "execute");
+  EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
+  EXPECT_EQ(result.runtime_errors.front().code, "component_execute");
   EXPECT_EQ(result.started_components, 1u);
   EXPECT_EQ(result.stopped_components, 1u);
   EXPECT_EQ(status_failure_deactivate_count(), 1);
   EXPECT_TRUE(has_component_metric(result, "runtime.component.error_count", "failing"));
+}
+
+TEST(Runtime, ThreadPoolExecuteStatusFailureKeepsStructuredRuntimeError) {
+  const auto reg = delay_registry();
+  auto spec = status_failure_graph("topoexec.test.ExecuteStatusFailure");
+  spec.lanes.front().type = "thread_pool";
+  spec.lanes.front().max_threads = 1;
+  spec.components.front().execution.reentrant = true;
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_throwing_component_state();
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.runtime_errors.empty());
+  EXPECT_EQ(result.runtime_errors.front().phase, "execute");
+  EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
+  EXPECT_EQ(result.runtime_errors.front().code, "component_execute");
+  EXPECT_EQ(result.started_components, 1u);
+  EXPECT_EQ(result.stopped_components, 1u);
 }
 
 TEST(Runtime, ActivateStatusFailureCleansUpStartedComponentsInReverseOrder) {
@@ -1826,7 +1862,11 @@ TEST(Runtime, ActivateStatusFailureCleansUpStartedComponentsInReverseOrder) {
 
   EXPECT_FALSE(result.ok);
   ASSERT_FALSE(result.errors.empty());
+  ASSERT_FALSE(result.runtime_errors.empty());
   EXPECT_NE(result.errors.front().find("component failing activate failed: activate status failed"), std::string::npos);
+  EXPECT_EQ(result.runtime_errors.front().phase, "activate");
+  EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
+  EXPECT_EQ(result.runtime_errors.front().code, "component_activate");
   EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kError);
   EXPECT_EQ(result.instantiated_components, 2u);
   EXPECT_EQ(result.configured_components, 2u);
@@ -1871,8 +1911,13 @@ TEST(Runtime, DeactivateStatusFailureIsReportedWithComponentAndPhase) {
 
   EXPECT_FALSE(result.ok);
   ASSERT_FALSE(result.errors.empty());
+  ASSERT_FALSE(result.runtime_errors.empty());
   EXPECT_NE(result.errors.front().find("component failing deactivate failed: deactivate status failed"),
             std::string::npos);
+  EXPECT_EQ(result.runtime_errors.front().phase, "deactivate");
+  EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
+  EXPECT_EQ(result.runtime_errors.front().code, "component_deactivate");
+  EXPECT_FALSE(result.runtime_errors.front().fatal);
   EXPECT_EQ(result.started_components, 1u);
   EXPECT_EQ(result.stopped_components, 1u);
   EXPECT_EQ(lifecycle_events(), std::vector<std::string>({"failing.configure", "failing.activate", "failing.execute",

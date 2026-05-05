@@ -52,6 +52,7 @@ struct ExecutionSpec {
   bool reentrant{false};
   std::string priority{"normal"};
   int budget_ms{0};
+  std::string on_error{"fail_fast"};
 };
 
 struct ComponentNodeSpec {
@@ -141,9 +142,20 @@ struct GraphCompiledPlan {
   std::vector<std::vector<std::string>> immediate_sccs;
 };
 
+struct GraphDiagnostic {
+  std::string code;
+  std::string severity{"error"};
+  std::string message;
+  std::string graph_path;
+  std::vector<std::string> involved_components;
+  std::vector<std::string> involved_edges;
+  std::string suggested_fix;
+};
+
 struct GraphCompileResult {
   bool ok{true};
   std::vector<std::string> errors;
+  std::vector<GraphDiagnostic> diagnostics;
   GraphCompiledPlan plan;
 };
 
@@ -161,6 +173,7 @@ struct GraphSpec {
 struct GraphValidationResult {
   bool ok{true};
   std::vector<std::string> errors;
+  std::vector<GraphDiagnostic> diagnostics;
   GraphCompiledPlan compiled_plan;
 };
 

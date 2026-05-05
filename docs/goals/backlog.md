@@ -14,9 +14,9 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | --- | --- | --- | --- | --- | --- |
 | G0 | P0 | complete | `docs/current-baseline.md`, `tests/golden/`, `CMakeLists.txt` | Baseline records current local evidence; normalized golden tests cover plan JSON, metrics JSON, trace JSON, and Mermaid render. | `./scripts/agent_check.sh` |
 | G1 | P0 | complete | `docs/public-api.md`, public headers, `tests/cmake/runtime_smoke` | Public API matrix exists; installed runtime-only smoke uses `GraphBuilder`, typed payload helpers, `ComponentRegistry`, and `RuntimeRunner` with only `topoexec::runtime`. | `./scripts/agent_check.sh` |
-| G2 | P0 | partial | runtime lifecycle/error model | Configure/activate/execute/deactivate failure tests exist, but structured `RuntimeError` and policy surface are not complete. | `./scripts/agent_check.sh` |
+| G2 | P0 | complete | runtime lifecycle/error model | `RuntimeRunnerResult::runtime_errors` carries structured phase/component/code/fatal data; configure/activate/execute/deactivate and thread_pool execute failures are tested; non-fail-fast `execution.on_error` values parse but are rejected. | `./scripts/agent_check.sh` |
 | G3 | P0 | partial | runtime invariant tests | Edge visibility, SCC, channel, payload, and lifecycle tests exist; remaining invariants should be collected into an explicit invariant suite or traceable comments. | `./scripts/agent_check.sh` |
-| G4 | P0/P1 | partial | graph compiler diagnostics/plan | Structured plan JSON and SCC diagnostics exist; diagnostic objects/error codes/suggested fixes are not complete. | `./scripts/agent_check.sh` |
+| G4 | P0/P1 | partial | graph compiler diagnostics/plan | Structured plan JSON plus `GraphDiagnostic` code/severity/suggested-fix fields exist; graph_path/involved ids and full edge/trigger tables remain incomplete. | `./scripts/agent_check.sh` |
 | G5 | P1 | complete | `docs/schema-v1.md`, `schema/topoexec.schema.v1.json`, CLI validation tests | Schema reference, strict machine-readable schema, `--schema-only`, `--semantic`, schema contract smoke, valid fixtures, and invalid fixture rejection are present. | `./scripts/agent_check.sh` |
 | G6 | P0/P1 | partial | scheduler docs/runtime/tests | Event-loop/thread-pool MVP and tests exist; persistent pool and full fixed-rate wall-clock behavior remain deferred/partial. | `./scripts/agent_check.sh` |
 | G7 | P1 | not-started | async task runtime | Async edge admission exists, but optional `TaskExecutor`/future runtime is not implemented. | `./scripts/agent_check.sh` |
@@ -41,7 +41,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 
 ## Next goal
 
-Continue with **G2/G3/G4 hardening** unless the user explicitly asks to prioritize P1 productization. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
+Continue with **G3/G4 hardening** unless the user explicitly asks to prioritize P1 productization. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
 
 ## Blockers
 

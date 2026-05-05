@@ -4,47 +4,106 @@
   "title": "TopoExec graph schema v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "graph", "lanes", "components", "edges"],
+  "required": [
+    "schema_version",
+    "graph",
+    "lanes",
+    "components",
+    "edges"
+  ],
   "properties": {
-    "schema_version": {"const": 1},
-    "graph": {"$ref": "#/$defs/graph"},
+    "schema_version": {
+      "const": 1
+    },
+    "graph": {
+      "$ref": "#/$defs/graph"
+    },
     "lanes": {
       "type": "object",
       "minProperties": 1,
-      "additionalProperties": {"$ref": "#/$defs/lane"}
+      "additionalProperties": {
+        "$ref": "#/$defs/lane"
+      }
     },
     "components": {
       "type": "array",
       "minItems": 1,
-      "items": {"$ref": "#/$defs/component"}
+      "items": {
+        "$ref": "#/$defs/component"
+      }
     },
     "edges": {
       "type": "array",
-      "items": {"$ref": "#/$defs/edge"}
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
     },
     "composite_loops": {
       "type": "array",
-      "items": {"$ref": "#/$defs/composite_loop"}
+      "items": {
+        "$ref": "#/$defs/composite_loop"
+      }
     }
   },
   "$defs": {
-    "id": {"type": "string", "minLength": 1, "maxLength": 128},
-    "endpoint": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_.:-]+$"},
-    "string_array": {"type": "array", "items": {"type": "string"}},
-    "clock_domain": {"type": "string", "enum": ["steady", "system", "device", "external"]},
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "endpoint": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "string_array": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "clock_domain": {
+      "type": "string",
+      "enum": [
+        "steady",
+        "system",
+        "device",
+        "external"
+      ]
+    },
     "graph": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "properties": {
-        "name": {"$ref": "#/$defs/id"},
-        "kind": {"type": "string", "default": "runnable", "enum": ["runnable", "internal_test"]},
+        "name": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "type": "string",
+          "default": "runnable",
+          "enum": [
+            "runnable",
+            "internal_test"
+          ]
+        },
         "clock": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "runtime_domain": {"type": "string", "default": "steady", "enum": ["steady"]},
-            "event_domain": {"$ref": "#/$defs/clock_domain", "default": "steady"}
+            "runtime_domain": {
+              "type": "string",
+              "default": "steady",
+              "enum": [
+                "steady"
+              ]
+            },
+            "event_domain": {
+              "$ref": "#/$defs/clock_domain",
+              "default": "steady"
+            }
           }
         }
       }
@@ -52,134 +111,437 @@
     "lane": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": {"type": "string", "enum": ["event_loop", "fixed_rate", "thread_pool"]},
-        "hz": {"type": "number", "minimum": 0, "default": 0},
-        "priority": {"type": "string", "default": ""},
-        "max_callback_ms": {"type": "integer", "minimum": 0, "default": 0},
-        "max_threads": {"type": "integer", "minimum": 0, "default": 0},
-        "thread_name": {"type": "string"},
-        "cpu_affinity": {"type": "array", "items": {"type": "integer"}},
-        "nice_priority": {"type": "integer", "default": 0},
-        "rt_policy": {"type": "string", "default": "none"},
-        "rt_priority": {"type": "integer", "default": 0},
-        "isolation_intent": {"type": "string", "default": "none"}
+        "type": {
+          "type": "string",
+          "enum": [
+            "event_loop",
+            "fixed_rate",
+            "thread_pool"
+          ]
+        },
+        "hz": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "priority": {
+          "type": "string",
+          "default": ""
+        },
+        "max_callback_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "max_threads": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "thread_name": {
+          "type": "string"
+        },
+        "cpu_affinity": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "nice_priority": {
+          "type": "integer",
+          "default": 0
+        },
+        "rt_policy": {
+          "type": "string",
+          "default": "none"
+        },
+        "rt_priority": {
+          "type": "integer",
+          "default": 0
+        },
+        "isolation_intent": {
+          "type": "string",
+          "default": "none"
+        }
       }
     },
     "event_source": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "id": {"$ref": "#/$defs/id"},
-        "type": {"type": "string", "default": "manual", "enum": ["manual", "message", "timer", "request", "action_goal", "action_cancel", "task_ready", "future_ready"]},
-        "inputs": {"$ref": "#/$defs/string_array"},
-        "input": {"type": "string"},
-        "period_ms": {"type": "integer", "minimum": 0, "default": 0}
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "default": "manual",
+          "enum": [
+            "manual",
+            "message",
+            "timer",
+            "request",
+            "action_goal",
+            "action_cancel",
+            "task_ready",
+            "future_ready"
+          ]
+        },
+        "inputs": {
+          "$ref": "#/$defs/string_array"
+        },
+        "input": {
+          "type": "string"
+        },
+        "period_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
       }
     },
     "trigger_policy": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "type": {"type": "string", "default": "manual", "enum": ["manual", "on_event", "any_input", "all_inputs", "time_sync", "batch", "request", "task_ready"]},
-        "inputs": {"$ref": "#/$defs/string_array"},
-        "input": {"type": "string"},
-        "batch_size": {"type": "integer", "minimum": 0, "default": 0},
-        "batch_window_ms": {"type": "integer", "minimum": 0, "default": 0},
-        "sync_slop_ms": {"type": "integer", "minimum": 0, "default": 0},
-        "min_interval_ms": {"type": "integer", "minimum": 0, "default": 0},
-        "max_latency_ms": {"type": "integer", "minimum": 0, "default": 0},
-        "coalesce": {"type": "boolean", "default": false}
+        "type": {
+          "type": "string",
+          "default": "manual",
+          "enum": [
+            "manual",
+            "on_event",
+            "any_input",
+            "all_inputs",
+            "time_sync",
+            "batch",
+            "request",
+            "task_ready"
+          ]
+        },
+        "inputs": {
+          "$ref": "#/$defs/string_array"
+        },
+        "input": {
+          "type": "string"
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "batch_window_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "sync_slop_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "min_interval_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "max_latency_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "coalesce": {
+          "type": "boolean",
+          "default": false
+        }
       }
     },
     "execution": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["lane"],
+      "required": [
+        "lane"
+      ],
       "properties": {
-        "lane": {"$ref": "#/$defs/id"},
-        "reentrant": {"type": "boolean", "default": false},
-        "priority": {"type": "string", "default": "normal"},
-        "budget_ms": {"type": "integer", "minimum": 0, "default": 0}
+        "lane": {
+          "$ref": "#/$defs/id"
+        },
+        "reentrant": {
+          "type": "boolean",
+          "default": false
+        },
+        "priority": {
+          "type": "string",
+          "default": "normal"
+        },
+        "budget_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "on_error": {
+          "type": "string",
+          "default": "fail_fast",
+          "enum": [
+            "fail_fast",
+            "continue",
+            "isolate"
+          ]
+        }
       }
     },
     "boundary": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "role": {"type": "string", "default": "processing", "enum": ["processing", "input", "output", "input_output"]},
-        "descriptor": {"type": "string"}
+        "role": {
+          "type": "string",
+          "default": "processing",
+          "enum": [
+            "processing",
+            "input",
+            "output",
+            "input_output"
+          ]
+        },
+        "descriptor": {
+          "type": "string"
+        }
       }
     },
     "component": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type", "execution"],
+      "required": [
+        "id",
+        "type",
+        "execution"
+      ],
       "properties": {
-        "id": {"$ref": "#/$defs/id"},
-        "type": {"type": "string", "minLength": 1},
-        "event_sources": {"type": "array", "items": {"$ref": "#/$defs/event_source"}},
-        "trigger_policy": {"$ref": "#/$defs/trigger_policy"},
-        "execution": {"$ref": "#/$defs/execution"},
-        "depends_on": {"$ref": "#/$defs/string_array"},
-        "boundary": {"$ref": "#/$defs/boundary"},
-        "config": {"type": "object"}
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event_source"
+          }
+        },
+        "trigger_policy": {
+          "$ref": "#/$defs/trigger_policy"
+        },
+        "execution": {
+          "$ref": "#/$defs/execution"
+        },
+        "depends_on": {
+          "$ref": "#/$defs/string_array"
+        },
+        "boundary": {
+          "$ref": "#/$defs/boundary"
+        },
+        "config": {
+          "type": "object"
+        }
       }
     },
     "edge_policy": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "mode": {"type": "string", "default": "latest", "enum": ["latest", "queue", "ring_buffer", "latched", "barrier", "previous_tick"]},
-        "capacity": {"type": "integer", "minimum": 1, "default": 1},
-        "overflow": {"type": "string", "default": "overwrite", "enum": ["overwrite", "drop_oldest", "drop_newest", "block", "fail_fast", "reject"]},
-        "lifespan_ms": {"type": "integer", "minimum": 0, "default": 0},
-        "deadline_ms": {"type": "integer", "minimum": 0, "default": 0},
-        "max_inflight": {"type": "integer", "minimum": 0, "default": 0},
-        "preserve_order": {"type": "boolean", "default": true},
-        "allow_drop": {"type": "boolean", "default": true},
-        "emit_health_events": {"type": "boolean", "default": true},
-        "timestamp_domain": {"$ref": "#/$defs/clock_domain", "default": "steady"},
-        "copy_policy": {"type": "string", "default": "copy", "enum": ["copy", "shared_view", "loaned_view", "move_only"]},
-        "owner": {"type": "string", "default": "runtime", "enum": ["producer", "runtime", "consumer"]},
-        "readers": {"type": "string", "default": "single", "enum": ["single", "multi"]}
+        "mode": {
+          "type": "string",
+          "default": "latest",
+          "enum": [
+            "latest",
+            "queue",
+            "ring_buffer",
+            "latched",
+            "barrier",
+            "previous_tick"
+          ]
+        },
+        "capacity": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "overflow": {
+          "type": "string",
+          "default": "overwrite",
+          "enum": [
+            "overwrite",
+            "drop_oldest",
+            "drop_newest",
+            "block",
+            "fail_fast",
+            "reject"
+          ]
+        },
+        "lifespan_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "deadline_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "max_inflight": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "preserve_order": {
+          "type": "boolean",
+          "default": true
+        },
+        "allow_drop": {
+          "type": "boolean",
+          "default": true
+        },
+        "emit_health_events": {
+          "type": "boolean",
+          "default": true
+        },
+        "timestamp_domain": {
+          "$ref": "#/$defs/clock_domain",
+          "default": "steady"
+        },
+        "copy_policy": {
+          "type": "string",
+          "default": "copy",
+          "enum": [
+            "copy",
+            "shared_view",
+            "loaned_view",
+            "move_only"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "default": "runtime",
+          "enum": [
+            "producer",
+            "runtime",
+            "consumer"
+          ]
+        },
+        "readers": {
+          "type": "string",
+          "default": "single",
+          "enum": [
+            "single",
+            "multi"
+          ]
+        }
       }
     },
     "edge": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "from", "to", "kind"],
+      "required": [
+        "id",
+        "from",
+        "to",
+        "kind"
+      ],
       "properties": {
-        "id": {"$ref": "#/$defs/id"},
-        "from": {"$ref": "#/$defs/endpoint"},
-        "to": {"$ref": "#/$defs/endpoint"},
-        "kind": {"type": "string", "enum": ["immediate", "delay", "state", "async"]},
-        "policy": {"$ref": "#/$defs/edge_policy"}
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "from": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "to": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "immediate",
+            "delay",
+            "state",
+            "async"
+          ]
+        },
+        "policy": {
+          "$ref": "#/$defs/edge_policy"
+        }
       }
     },
     "loop_policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": {"type": "string", "enum": ["fixed_point", "transaction", "coalesced_event", "async_task"]},
-        "budget_ms": {"type": "integer", "minimum": 0, "default": 0},
-        "max_iterations": {"type": "integer", "minimum": 0, "default": 0},
-        "max_inflight": {"type": "integer", "minimum": 0, "default": 0},
-        "drop_policy": {"type": "string"},
-        "min_interval_ms": {"type": "integer", "minimum": 0, "default": 0},
-        "convergence": {"type": "string"}
+        "type": {
+          "type": "string",
+          "enum": [
+            "fixed_point",
+            "transaction",
+            "coalesced_event",
+            "async_task"
+          ]
+        },
+        "budget_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "max_inflight": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "drop_policy": {
+          "type": "string"
+        },
+        "min_interval_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "convergence": {
+          "type": "string"
+        }
       }
     },
     "composite_loop": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "components", "loop_policy"],
+      "required": [
+        "id",
+        "components",
+        "loop_policy"
+      ],
       "properties": {
-        "id": {"$ref": "#/$defs/id"},
-        "components": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/id"}},
-        "loop_policy": {"$ref": "#/$defs/loop_policy"}
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "loop_policy": {
+          "$ref": "#/$defs/loop_policy"
+        }
       }
     }
   }

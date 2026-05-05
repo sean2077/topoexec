@@ -38,6 +38,16 @@ struct RuntimeTraceEvent {
   std::map<std::string, std::string> attributes;
 };
 
+struct RuntimeError {
+  std::string phase;
+  std::string component_id;
+  std::string lane;
+  std::string message;
+  std::string code;
+  std::string trace_id;
+  bool fatal{true};
+};
+
 struct RuntimeRunnerResult {
   bool ok{false};
   std::string graph_name;
@@ -72,6 +82,7 @@ struct RuntimeRunnerResult {
   std::vector<std::string> trace_events;
   std::vector<RuntimeTraceEvent> trace;
   std::vector<RuntimeMetricSample> runtime_metrics;
+  std::vector<RuntimeError> runtime_errors;
   std::vector<std::string> errors;
 };
 

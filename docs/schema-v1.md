@@ -135,6 +135,7 @@ Allowed fields:
 - `reentrant` optional boolean, default `false`.
 - `priority` optional string, default `normal`.
 - `budget_ms` optional integer, default `0`.
+- `on_error` optional string, default `fail_fast`; declared values are `fail_fast`, `continue`, and `isolate`, but only `fail_fast` is implemented in schema v1 today. Other values parse but semantic validation rejects them rather than silently emulating a policy, using diagnostic code `unsupported_error_policy`.
 
 ### boundary
 

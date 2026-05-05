@@ -154,6 +154,16 @@ int print_validation(const topoexec::GraphValidationResult& result, const std::s
     nlohmann::json value;
     value["ok"] = result.ok;
     value["errors"] = result.errors;
+    value["diagnostics"] = nlohmann::json::array();
+    for (const auto& diagnostic : result.diagnostics) {
+      value["diagnostics"].push_back({{"code", diagnostic.code},
+                                      {"severity", diagnostic.severity},
+                                      {"message", diagnostic.message},
+                                      {"graph_path", diagnostic.graph_path},
+                                      {"involved_components", diagnostic.involved_components},
+                                      {"involved_edges", diagnostic.involved_edges},
+                                      {"suggested_fix", diagnostic.suggested_fix}});
+    }
     value["region_order"] = result.compiled_plan.region_order;
     std::cout << value.dump(2) << "\n";
   } else {
@@ -246,6 +256,20 @@ nlohmann::json runtime_trace_json(const topoexec::RuntimeRunnerResult& result) {
   return events;
 }
 
+nlohmann::json runtime_errors_json(const topoexec::RuntimeRunnerResult& result) {
+  nlohmann::json errors = nlohmann::json::array();
+  for (const auto& error : result.runtime_errors) {
+    errors.push_back({{"phase", error.phase},
+                      {"component_id", error.component_id},
+                      {"lane", error.lane},
+                      {"message", error.message},
+                      {"code", error.code},
+                      {"trace_id", error.trace_id},
+                      {"fatal", error.fatal}});
+  }
+  return errors;
+}
+
 nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result) {
   nlohmann::json events = nlohmann::json::array();
   for (const auto& event : result.trace) {
@@ -267,6 +291,7 @@ nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result) {
 nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
   return {{"ok", result.ok},
           {"errors", result.errors},
+          {"runtime_errors", runtime_errors_json(result)},
           {"graph_name", result.graph_name},
           {"component_count", result.component_count},
           {"channel_count", result.channel_count},

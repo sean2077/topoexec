@@ -474,6 +474,7 @@
   ],
   "ok": true,
   "payload_copy_count": 0,
+  "runtime_errors": [],
   "staged_publication_count": 2,
   "state_publication_count": 0,
   "stop_reason": "tick_bound",

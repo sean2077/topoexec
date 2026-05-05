@@ -18,14 +18,117 @@ namespace {
 
 constexpr int kSupportedSchemaVersion = 1;
 
+std::string diagnostic_code_for(const std::string& error) {
+  if (error.find("unknown component") != std::string::npos ||
+      error.find("unknown target component") != std::string::npos ||
+      error.find("unknown source component") != std::string::npos ||
+      error.find("references missing component") != std::string::npos) {
+    return "unknown_component";
+  }
+  if (error.find("unknown output port") != std::string::npos || error.find("unknown input port") != std::string::npos) {
+    return "unknown_port";
+  }
+  if (error.find("duplicate component") != std::string::npos || error.find("duplicate edge") != std::string::npos ||
+      error.find("duplicate lane") != std::string::npos ||
+      error.find("duplicate composite_loop") != std::string::npos) {
+    return "duplicate_id";
+  }
+  if (error.find("immediate cycle") != std::string::npos) {
+    return "immediate_cycle_without_loop";
+  }
+  if (error.find("does not exactly match") != std::string::npos ||
+      error.find("must match an immediate SCC") != std::string::npos) {
+    return "partial_composite_loop";
+  }
+  if (error.find("does not own a cycle") != std::string::npos) {
+    return "decorative_composite_loop";
+  }
+  if (error.find("multiple writers") != std::string::npos) {
+    return "multi_state_writer";
+  }
+  if (error.find("move_only") != std::string::npos) {
+    return "invalid_move_only_multireader";
+  }
+  if (error.find("policy.") != std::string::npos || error.find("capacity") != std::string::npos ||
+      error.find("overflow") != std::string::npos) {
+    return "invalid_channel_policy";
+  }
+  if (error.find("unsupported type") != std::string::npos && error.find("lane ") != std::string::npos) {
+    return "unsupported_lane_type";
+  }
+  if (error.find("trigger_policy") != std::string::npos && error.find("input") != std::string::npos) {
+    return "trigger_missing_input";
+  }
+  if (error.find("trigger_policy") != std::string::npos || error.find("event_source") != std::string::npos) {
+    return "incompatible_trigger_edge_mode";
+  }
+  if (error.find("execution.on_error") != std::string::npos) {
+    return "unsupported_error_policy";
+  }
+  return "graph_validation_error";
+}
+
+std::string suggested_fix_for(const std::string& code) {
+  if (code == "unknown_component") {
+    return "Check component ids referenced by edges, depends_on, and CompositeLoop declarations.";
+  }
+  if (code == "unknown_port") {
+    return "Check component descriptors and endpoint port names.";
+  }
+  if (code == "duplicate_id") {
+    return "Use unique ids inside each graph section.";
+  }
+  if (code == "immediate_cycle_without_loop") {
+    return "Break the cycle with delay/state/async or declare an exact CompositeLoop.";
+  }
+  if (code == "partial_composite_loop") {
+    return "Make the CompositeLoop component set exactly match one immediate SCC.";
+  }
+  if (code == "decorative_composite_loop") {
+    return "Remove the CompositeLoop or add the immediate feedback edges it owns.";
+  }
+  if (code == "multi_state_writer") {
+    return "Keep one writer per state target until an explicit merge policy exists.";
+  }
+  if (code == "invalid_move_only_multireader") {
+    return "Use readers: single for move_only or switch to shared_view/copy.";
+  }
+  if (code == "invalid_channel_policy") {
+    return "Use a supported bounded channel mode, capacity, overflow, timestamp, owner, and copy policy.";
+  }
+  if (code == "unsupported_lane_type") {
+    return "Use event_loop, fixed_rate, or thread_pool.";
+  }
+  if (code == "trigger_missing_input") {
+    return "Add trigger inputs and matching incoming edges.";
+  }
+  if (code == "incompatible_trigger_edge_mode") {
+    return "Align event_sources, trigger_policy, and incoming edge modes.";
+  }
+  if (code == "unsupported_error_policy") {
+    return "Use fail_fast until continue/isolate policies are implemented.";
+  }
+  return "Inspect the graph path and schema reference for the invalid contract.";
+}
+
+GraphDiagnostic make_diagnostic(std::string error) {
+  GraphDiagnostic diagnostic;
+  diagnostic.message = std::move(error);
+  diagnostic.code = diagnostic_code_for(diagnostic.message);
+  diagnostic.suggested_fix = suggested_fix_for(diagnostic.code);
+  return diagnostic;
+}
+
 void add_error(GraphValidationResult& result, std::string error) {
   result.ok = false;
-  result.errors.push_back(std::move(error));
+  result.diagnostics.push_back(make_diagnostic(error));
+  result.errors.push_back(result.diagnostics.back().message);
 }
 
 void add_error(GraphCompileResult& result, std::string error) {
   result.ok = false;
-  result.errors.push_back(std::move(error));
+  result.diagnostics.push_back(make_diagnostic(error));
+  result.errors.push_back(result.diagnostics.back().message);
 }
 
 std::string component_id_from_endpoint(const std::string& endpoint) {
@@ -539,6 +642,10 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     }
     if (lanes.count(component.execution.lane) == 0u) {
       add_error(result, "component " + component.id + " references missing lane " + component.execution.lane);
+    }
+    if (component.execution.on_error != "fail_fast") {
+      add_error(result, "component " + component.id + " has unsupported execution.on_error " +
+                            component.execution.on_error + " (only fail_fast is implemented)");
     }
     if (component.event_sources.empty()) {
       add_error(result, "component " + component.id + " requires at least one event_source");

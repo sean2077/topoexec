@@ -32,6 +32,8 @@ def main() -> int:
             "edge kind enum drifted")
     require("thread_pool" in defs["lane"]["properties"]["type"]["enum"], "thread_pool lane missing")
     require("time_sync" in defs["trigger_policy"]["properties"]["type"]["enum"], "time_sync trigger missing")
+    require(defs["execution"]["properties"]["on_error"]["enum"] == ["fail_fast", "continue", "isolate"],
+            "execution.on_error enum drifted")
     require("loaned_view" in defs["edge_policy"]["properties"]["copy_policy"]["enum"],
             "loaned_view copy policy missing")
 

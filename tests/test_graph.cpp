@@ -165,6 +165,19 @@ TEST(Graph, LoadsAndValidatesSchemaVersionOne) {
   EXPECT_NE(topoexec::graph_mermaid(graph, result.compiled_plan).find("flowchart TD"), std::string::npos);
 }
 
+TEST(Graph, NonFailFastExecutionPolicyIsParsedButRejected) {
+  auto graph = minimal_graph();
+  graph.components.front().execution.on_error = "continue";
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "unsupported execution.on_error continue"));
+  ASSERT_FALSE(result.diagnostics.empty());
+  EXPECT_EQ(result.diagnostics.front().code, "unsupported_error_policy");
+  EXPECT_EQ(result.diagnostics.front().severity, "error");
+}
+
 TEST(Graph, RejectsUnknownRootFields) {
   EXPECT_THROW((void)topoexec::load_graph_text(R"(
 graph_version: 2

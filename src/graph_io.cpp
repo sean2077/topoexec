@@ -204,12 +204,13 @@ ExecutionSpec read_execution_spec(const YAML::Node& component_node, const std::s
   const auto execution_node = require_node(component_node, "execution", "components." + component_id);
   require_map(execution_node, "components." + component_id + ".execution");
   reject_unknown_fields(execution_node, "components." + component_id + ".execution",
-                        {"lane", "reentrant", "priority", "budget_ms"});
+                        {"lane", "reentrant", "priority", "budget_ms", "on_error"});
   ExecutionSpec spec;
   spec.lane = require_string(execution_node, "lane", "components." + component_id + ".execution");
   spec.reentrant = optional_bool(execution_node, "reentrant");
   spec.priority = optional_string(execution_node, "priority", spec.priority);
   spec.budget_ms = optional_int(execution_node, "budget_ms");
+  spec.on_error = optional_string(execution_node, "on_error", spec.on_error);
   return spec;
 }
 

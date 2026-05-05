@@ -73,3 +73,12 @@ controller --immediate--> estimator
 ```
 
 Without a matching `composite_loops[]` entry, this graph is invalid. With `components: [estimator, controller]` and a `loop_policy`, the compiler condenses the SCC into one CompositeLoop region and the runtime executes that region through the loop owner.
+
+## Runtime Error Propagation
+
+Runtime execution reports failures in two compatible forms:
+
+- `RuntimeRunnerResult::errors` keeps legacy human-readable strings for CLI and existing tests.
+- `RuntimeRunnerResult::runtime_errors` records structured `RuntimeError` entries with `phase`, `component_id`, `lane`, `message`, `code`, `trace_id`, and `fatal`.
+
+Lifecycle phases use `configure`, `activate`, and `deactivate`. Component invocation failures use `execute`; runtime/compiler failures use `validate`, `dry_run`, or `runtime`. Deactivate errors are recorded with `fatal: false` when they are cleanup follow-ons so they do not hide the original fatal error. The default runtime policy remains fail-fast; non-fail-fast policies are still future work and must not be silently emulated.

@@ -116,7 +116,7 @@ topoexec::Status execute_status(const topoexec::Invocation& invocation,
 }
 ```
 
-`RuntimeRunnerResult::errors` records configure, activate, execute, and deactivate failures with the component id. The runner deactivates already-started components after stop-token shutdown and component errors.
+`RuntimeRunnerResult::errors` preserves legacy human-readable configure, activate, execute, and deactivate failure strings. `RuntimeRunnerResult::runtime_errors` is the structured API for new callers and records phase, component id, lane when known, message, code, trace id when known, and fatality. The runner deactivates already-started components after stop-token shutdown and component errors.
 
 ## Pure Runtime Embedding
 
@@ -128,3 +128,8 @@ target_link_libraries(my_app PRIVATE topoexec::runtime)
 ```
 
 Use `GraphBuilder` or direct `GraphSpec` construction, register components in a `ComponentRegistry`, then call `RuntimeRunner::run()`. The package smoke under `tests/cmake/runtime_smoke` compiles this path against only `topoexec::runtime` after install, and `examples/apps/cpp_builder_minimal` shows a larger app-local variant.
+
+
+## Graph diagnostics
+
+`GraphValidationResult` and `GraphCompileResult` preserve legacy `errors` strings and also expose `diagnostics[]` with `code`, `severity`, `message`, optional graph path/involved ids, and `suggested_fix`. New tooling should prefer diagnostics while keeping `errors` for human-readable compatibility.
