@@ -125,6 +125,12 @@ not core schema and belongs in a ROS adapter config layer.
 | C API | Stable FFI boundary over runtime/result/config primitives. | No premature ABI freeze before C++ API and schema stabilize. |
 | Plugin loader | Optional dynamic component discovery. | Current core uses explicit `ComponentRegistry` factories only. |
 
+## Detailed adapter plans
+
+- [ROS 2 adapter plan](adapters/ros2.md) documents boundary mapping, QoS separation,
+  executor interaction, threading, lifecycle, parameters, diagnostics, tracing,
+  and fake-boundary-first tests without adding ROS dependencies.
+
 ## Stub examples
 
 Preview-only stub notes live under `examples/adapters/`. They are intentionally

@@ -44,6 +44,7 @@ inspect a YAML graph in less than 30 minutes by following these pages in order.
 
 - [Architecture guardrails](architecture-guardrails.md)
 - [Adapter boundaries](adapters.md)
+- [ROS 2 adapter plan](adapters/ros2.md)
 - [Performance baselines](performance-baselines.md)
 - [Testing strategy](testing-strategy.md)
 - [Build and package](build-and-package.md)
