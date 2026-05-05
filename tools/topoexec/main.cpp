@@ -4,6 +4,7 @@
 #include <CLI/CLI.hpp>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <map>
@@ -229,6 +230,29 @@ std::string join(const std::vector<std::string>& values) {
     output += values[index];
   }
   return output;
+}
+
+std::string benchmark_case_name(const std::string& path) {
+  const auto slash = path.find_last_of("/\\");
+  const auto begin = slash == std::string::npos ? 0u : slash + 1u;
+  const auto dot = path.find_last_of('.');
+  const auto end = dot == std::string::npos || dot < begin ? path.size() : dot;
+  return path.substr(begin, end - begin);
+}
+
+double percentile(std::vector<double> values, double ratio) {
+  if (values.empty()) {
+    return 0.0;
+  }
+  std::sort(values.begin(), values.end());
+  const auto position = ratio * static_cast<double>(values.size() - 1u);
+  const auto lower = static_cast<std::size_t>(std::floor(position));
+  const auto upper = static_cast<std::size_t>(std::ceil(position));
+  if (lower == upper) {
+    return values[lower];
+  }
+  const auto fraction = position - static_cast<double>(lower);
+  return values[lower] + ((values[upper] - values[lower]) * fraction);
 }
 
 nlohmann::json runtime_metrics_json(const topoexec::RuntimeRunnerResult& result) {
@@ -558,12 +582,21 @@ int print_diff_plan(const std::string& left_path, const std::string& right_path,
 }
 
 int print_bench_result(const std::string& path, std::size_t steps, std::size_t runs, const std::string& format) {
+  if (runs == 0u) {
+    throw std::runtime_error("bench --runs must be positive");
+  }
   const auto started = std::chrono::steady_clock::now();
   std::size_t ok_runs = 0;
   std::size_t tick_calls = 0;
   std::vector<std::string> errors;
+  std::vector<double> run_elapsed_ms;
+  run_elapsed_ms.reserve(runs);
   for (std::size_t run_index = 0; run_index < runs; ++run_index) {
+    const auto run_started = std::chrono::steady_clock::now();
     const auto result = run_graph_file(path, steps, 0);
+    const auto run_elapsed =
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - run_started).count();
+    run_elapsed_ms.push_back(run_elapsed);
     if (result.ok) {
       ++ok_runs;
       tick_calls += result.tick_calls;
@@ -571,25 +604,42 @@ int print_bench_result(const std::string& path, std::size_t steps, std::size_t r
       errors.insert(errors.end(), result.errors.begin(), result.errors.end());
     }
   }
-  const auto elapsed_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+  const auto elapsed = std::chrono::steady_clock::now() - started;
+  const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+  const auto elapsed_seconds = std::chrono::duration<double>(elapsed).count();
+  const auto throughput_tick_calls = elapsed_seconds > 0.0 ? static_cast<double>(tick_calls) / elapsed_seconds : 0.0;
+  const auto throughput_runs = elapsed_seconds > 0.0 ? static_cast<double>(ok_runs) / elapsed_seconds : 0.0;
   if (format == "json") {
     nlohmann::json value;
     value["ok"] = errors.empty();
+    value["case"] = benchmark_case_name(path);
     value["runs"] = runs;
     value["ok_runs"] = ok_runs;
     value["steps"] = steps;
+    value["params"] = {{"file", path}, {"steps", steps}, {"runs", runs}};
     value["tick_calls"] = tick_calls;
     value["elapsed_ms"] = elapsed_ms;
+    value["run_elapsed_ms"] = run_elapsed_ms;
+    value["p50_run_elapsed_ms"] = percentile(run_elapsed_ms, 0.50);
+    value["p95_run_elapsed_ms"] = percentile(run_elapsed_ms, 0.95);
+    value["p99_run_elapsed_ms"] = percentile(run_elapsed_ms, 0.99);
+    value["throughput_tick_calls_per_sec"] = throughput_tick_calls;
+    value["throughput_runs_per_sec"] = throughput_runs;
+    value["environment"] = {{"benchmark_schema", 1}, {"clock", "steady_clock"}, {"runtime", "RuntimeRunner"}};
     value["errors"] = errors;
     std::cout << value.dump(2) << "\n";
   } else {
     std::cout << (errors.empty() ? "ok" : "error") << "\n";
+    std::cout << "case: " << benchmark_case_name(path) << "\n";
     std::cout << "runs: " << runs << "\n";
     std::cout << "ok_runs: " << ok_runs << "\n";
     std::cout << "steps: " << steps << "\n";
     std::cout << "tick_calls: " << tick_calls << "\n";
     std::cout << "elapsed_ms: " << elapsed_ms << "\n";
+    std::cout << "throughput_tick_calls_per_sec: " << throughput_tick_calls << "\n";
+    std::cout << "p50_run_elapsed_ms: " << percentile(run_elapsed_ms, 0.50) << "\n";
+    std::cout << "p95_run_elapsed_ms: " << percentile(run_elapsed_ms, 0.95) << "\n";
+    std::cout << "p99_run_elapsed_ms: " << percentile(run_elapsed_ms, 0.99) << "\n";
     for (const auto& error : errors) {
       std::cout << "- " << error << "\n";
     }
@@ -692,8 +742,8 @@ int main(int argc, char** argv) {
   std::size_t bench_runs{3};
   auto* bench = graph_cmd->add_subcommand("bench", "Run a small local RuntimeRunner benchmark");
   bench->add_option("file", bench_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
-  bench->add_option("--steps", bench_steps, "Bounded event-loop steps per run");
-  bench->add_option("--runs", bench_runs, "Number of repeated runs");
+  bench->add_option("--steps", bench_steps, "Bounded event-loop steps per run")->check(CLI::PositiveNumber);
+  bench->add_option("--runs", bench_runs, "Number of repeated runs")->check(CLI::PositiveNumber);
   bench->add_option("--format", bench_format, "Output format")->check(CLI::IsMember({"text", "json"}));
 
   try {

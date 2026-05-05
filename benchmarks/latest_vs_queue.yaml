@@ -1,0 +1,22 @@
+schema_version: 1
+graph: {name: bench_latest_vs_queue, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: latest_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: queue_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: latest_edge, kind: immediate, from: source.out, to: latest_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: queue_edge, kind: immediate, from: source.out, to: queue_sink.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view}}

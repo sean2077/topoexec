@@ -221,6 +221,10 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph bench ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --runs 2 --format json
   )
   set_tests_properties(cli_bench_json_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"elapsed_ms\"")
+  add_test(NAME cli_bench_json_immediate_chain
+    COMMAND topoexec graph bench ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/immediate_chain.yaml --steps 2 --runs 2 --format json
+  )
+  set_tests_properties(cli_bench_json_immediate_chain PROPERTIES PASS_REGULAR_EXPRESSION "\"throughput_tick_calls_per_sec\"")
   add_test(NAME cli_golden_outputs
     COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/check_cli_golden.py

@@ -1,0 +1,28 @@
+schema_version: 1
+graph: {name: bench_deferred_edges, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: delay_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: state_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: async_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: task_ready, inputs: [in]}]
+    trigger_policy: {type: task_ready, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: delay_edge, kind: delay, from: source.out, to: delay_sink.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: state_edge, kind: state, from: source.out, to: state_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: async_edge, kind: async, from: source.out, to: async_sink.in, policy: {mode: queue, capacity: 8, max_inflight: 8, overflow: drop_oldest, copy_policy: shared_view}}

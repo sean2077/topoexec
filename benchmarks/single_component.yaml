@@ -1,0 +1,10 @@
+schema_version: 1
+graph: {name: bench_single_component, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+edges: []
