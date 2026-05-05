@@ -15,6 +15,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added a documentation index, tutorial/reference pages, and doc-command smoke coverage for the getting-started and CLI paths.
 - Added deterministic graph-input fuzz smoke coverage plus explicit ASAN/UBSAN/TSAN sanitizer build gates.
 - Added optional YAML/CLI/example CMake build switches, runtime-only option smoke coverage, and package-manager draft notes.
+- Added adapter-boundary preview contracts, dependency-free adapter stub notes, and a policy smoke for accidental core adapter SDK dependencies.
 - Added optional deterministic `TaskExecutor`, `GraphContext::submit_task`, bounded task admission metrics, cancellation, and failure completions.
 - Added CompositeLoop internal failure accounting, `runtime.loop.error`, `loop_error` trace events, and docs for external-output commit isolation.
 - Added trigger timeout-drop, batch-flush, and time-sync-drop metrics plus local message correlation ids on `Invocation`.

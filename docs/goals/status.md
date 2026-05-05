@@ -32,6 +32,7 @@ Last updated: 2026-05-05
 | G17 | complete | `docs/README.md`, `docs/getting-started.md`, `docs/concepts.md`, `docs/graph-spec.md`, `docs/components.md`, `docs/lifecycle.md`, `docs/cli.md`, `tests/docs/check_docs.py`, and `docs_command_smoke`. | Docs now provide a tutorial/reference/design/architecture learning path; compileable snippets are represented by app/package smokes and selected tutorial/CLI commands are executable doc tests. |
 | G18 | complete | `tests/fuzz/fuzz_graph_inputs.py`, `fuzz_graph_input_smoke`, `TOPOEXEC_ENABLE_ASAN`, `TOPOEXEC_ENABLE_UBSAN`, `TOPOEXEC_ENABLE_TSAN`, `scripts/sanitizer_check.sh`, `.github/workflows/ci.yml`, and `docs/testing-strategy.md`. | Malformed graph inputs are exercised as a deterministic no-crash fuzz smoke; ASAN+UBSAN is a blocking CI gate and TSAN remains non-blocking until concurrency maturity. |
 | G19 | complete | `TOPOEXEC_BUILD_YAML`, `TOPOEXEC_BUILD_CLI`, `TOPOEXEC_BUILD_EXAMPLES`, `cmake_runtime_only_options_smoke`, `docs/build-and-package.md`, `packaging/vcpkg/README.md`, and `packaging/conan/README.md`. | Runtime-only configure/build/install works with YAML, CLI, examples, and tests disabled; package-manager notes remain drafts and do not add runtime dependencies. |
+| G20 | complete | `docs/adapters.md`, `examples/adapters/README.md`, `tests/policy/check_no_adapter_deps.py`, `policy_no_core_adapter_deps`, and `scripts/goal_check.sh policy`. | Adapter preview defines result sink, observer, boundary bridge, factory-provider, schema policy, and future `topoexec_adapters` target boundaries without adding adapter SDK dependencies. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
 
@@ -39,8 +40,8 @@ Last updated: 2026-05-05
 
 The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
 
-1. G20 adapter architecture preview;
-2. then G21+ P1/P2 adapter/release work.
+1. G21 ROS 2 adapter plan;
+2. then G24+ P1/P2 robustness/release work.
 
 ## Validation Evidence
 
@@ -59,6 +60,7 @@ ctest --test-dir build --output-on-failure -R 'cli_validate_state_config_snapsho
 ctest --test-dir build --output-on-failure -R 'docs_command_smoke'
 ctest --test-dir build --output-on-failure -R 'fuzz_graph_input_smoke'
 ctest --test-dir build --output-on-failure -R 'cmake_package_runtime_smoke|cmake_runtime_only_options_smoke'
+ctest --test-dir build --output-on-failure -R 'policy_no_core_adapter_deps'
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/sanitizer_check.sh
 ```
 

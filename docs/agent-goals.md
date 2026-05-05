@@ -8,10 +8,9 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-1. G20 adapter architecture preview docs/stubs;
-2. G21 ROS 2 adapter plan docs only;
-3. G24 defensive input handling;
-4. G25 release progression tracking.
+1. G21 ROS 2 adapter plan docs only;
+2. G24 defensive input handling;
+3. G25 release progression tracking.
 
 ## Goal handoff template
 
@@ -42,6 +41,7 @@ Blocker protocol:
 - `./scripts/goal_check.sh package` — install/export downstream runtime-only smoke plus runtime-only option smoke.
 - `./scripts/goal_check.sh docs` — executable docs command smoke.
 - `./scripts/goal_check.sh fuzz` — deterministic parser/compiler fuzz smoke.
+- `./scripts/goal_check.sh policy` — architecture/dependency policy smokes.
 - `./scripts/goal_check.sh sanitizer` — ASAN+UBSAN Debug build plus full CTest.
 - `./scripts/goal_check.sh debug` — local Debug GCC build and CTest.
 

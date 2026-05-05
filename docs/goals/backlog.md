@@ -32,7 +32,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | G17 | P1/P2 | complete | documentation system | Tutorial, reference, design, and architecture paths are indexed; getting-started/concepts/graph-spec/components/lifecycle/CLI pages exist; doc-command smokes run embedded tutorial/CLI commands. | `./scripts/agent_check.sh` |
 | G18 | P0/P1 | complete | testing strategy | Unit/semantic/package/golden/docs/example tests are covered; deterministic graph-input fuzz smoke and ASAN+UBSAN/TSAN sanitizer gates are wired through CMake, scripts, and CI. | `./scripts/agent_check.sh` |
 | G19 | P1/P2 | complete | build/package/distribution | Install/export/runtime smoke, runtime-only CMake options, optional YAML/CLI/examples switches, package-manager draft notes, and build/package docs are present and tested. | `./scripts/agent_check.sh` |
-| G20 | P2 | not-started | adapter architecture preview docs/stubs | `docs/adapters.md` exists but needs the full contract/stub layout from plan. No adapter dependency should enter core. | docs review plus `./scripts/agent_check.sh` |
+| G20 | P2 | complete | adapter architecture preview docs/stubs | Adapter contracts, `topoexec_adapters` namespace/target plan, dependency-free stub notes, schema policy, and no-core-adapter-dependency smoke are present. | docs review plus `./scripts/agent_check.sh` |
 | G21 | P2/P3 | not-started | ROS 2 adapter plan | Deferred design doc only; no core ROS dependency. | docs review plus `./scripts/agent_check.sh` |
 | G22 | P1 | complete | `AGENTS.md`, `docs/agent-goals.md`, `scripts/goal_check.sh`, `.github/*`, `docs/contributing.md` | Goal queue, focused validation dispatcher, PR template, issue templates, and contribution policy are present. | `./scripts/agent_check.sh` |
 | G23 | P0/P1 | complete | `docs/architecture-guardrails.md`, CMake package smoke, public API docs | Module ownership, dependency rules, enforced package smoke, and review guardrails are documented. | `./scripts/agent_check.sh` |
@@ -41,7 +41,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 
 ## Next goal
 
-Continue with **G20+ adapter/release productization**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
+Continue with **G21+ adapter/release productization**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
 
 ## Blockers
 
