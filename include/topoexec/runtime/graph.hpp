@@ -1,5 +1,7 @@
 #pragma once
 
+// Public API category: stable 0.x graph specification and validation model.
+
 #include "topoexec/runtime/component.hpp"
 #include "topoexec/runtime/component_registry.hpp"
 

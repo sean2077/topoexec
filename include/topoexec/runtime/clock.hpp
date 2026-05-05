@@ -1,5 +1,7 @@
 #pragma once
 
+// Public API category: stable 0.x timestamp value types.
+
 #include <cstdint>
 #include <optional>
 #include <string>

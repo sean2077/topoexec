@@ -1,14 +1,15 @@
 # Release Checklist
 
-Target: `v0.1.0-alpha`
+Target: `v0.1.0-alpha` tag plus current post-alpha `main`
 
-The release is ready only when each item is checked against the commit being tagged.
+The release is ready only when each item is checked against the commit being tagged. Post-alpha baseline refreshes should record the current `main` commit separately and must not retag a published release.
 
 ## Required Checks
 
 - [x] `git status --short` is clean before tagging.
 - [x] `git diff --check` passes.
 - [x] `./scripts/agent_check.sh` passes locally.
+- [x] Optional `cmake --build build --target topoexec_format_check` is available for local formatting checks.
 - [x] GitHub Actions CI is green for GCC Debug.
 - [x] GitHub Actions CI is green for GCC RelWithDebInfo.
 - [x] GitHub Actions CI is green for Clang Debug.
@@ -21,6 +22,10 @@ The release is ready only when each item is checked against the commit being tag
 
 Evidence:
 
+- Current post-alpha main: `b4886c2 feat(runtime): 补齐并发执行语义边界`.
+- Current local `./scripts/agent_check.sh`: 29/29 CTest tests passed on `b4886c2`.
+- Current GitHub Actions run `25355571811`: GCC/Clang Debug/RelWithDebInfo passed, and the non-blocking clang Debug TSAN job also passed.
+- Optional local format gate: `cmake --build build --target topoexec_format_check` passed.
 - Local `./scripts/agent_check.sh`: 29/29 CTest tests passed.
 - Local Debug GCC check: 29/29 CTest tests passed with `TOPOEXEC_BUILD_TYPE=Debug`.
 - GitHub Actions run `25331487554`: GCC/Clang Debug/RelWithDebInfo all passed for implementation commit `3b5d7c0`.
@@ -50,7 +55,7 @@ cmake --build /tmp/topoexec-runtime-smoke -j
 
 - Worker-pool lanes have bounded MVP execution, but priority, affinity, RT policy, persistent worker naming, and timeout preemption are not implemented.
 - Async `policy.max_inflight` is enforced for deferred completions, but it is not a general async task/future executor.
-- Non-blocking ThreadSanitizer CI is wired after the worker-lane MVP; require a green TSAN job before beta.
+- Non-blocking ThreadSanitizer CI is wired and passed on current post-alpha `main`; keep it non-blocking until sanitizer signal is stable enough for a beta gate.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.
 
 ## Tagging

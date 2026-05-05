@@ -10,6 +10,7 @@ TopoExec is not a distributed runtime, ROS adapter, Python framework, GUI editor
 cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j
 ctest --test-dir build --output-on-failure
+cmake --build build --target topoexec_format_check
 ./build/topoexec_app_cpp_builder_minimal
 ./build/topoexec graph run examples/minimal.yaml --steps 1
 ```
@@ -94,11 +95,12 @@ Each app directory includes a README with graph shape, run command, expected out
 - [FAQ](docs/faq.md)
 - [Adapter boundaries](docs/adapters.md)
 
-Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), and [docs/release-checklist.md](docs/release-checklist.md). The current target is `v0.1.0-alpha`.
+Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), and [docs/release-checklist.md](docs/release-checklist.md). The latest published tag is `v0.1.0-alpha`; current `main` carries post-alpha concurrency and async admission work.
+Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and [docs/goals/status.md](docs/goals/status.md).
 
 ## Known Limitations
 
 - `thread_pool` lanes support a bounded MVP for ready invocations, but priority, affinity, RT policy, persistent worker naming, and timeout-based preemption are advisory or not implemented.
 - Async `policy.max_inflight` admission is implemented for `async` edges; it is an admission limit for deferred completions, not a general async task/future executor.
-- Non-blocking ThreadSanitizer CI is wired for GitHub Actions; local `scripts/agent_check.sh` remains the required agent gate.
+- Non-blocking ThreadSanitizer CI is wired for GitHub Actions and passed on current `main`; local `scripts/agent_check.sh` remains the required agent gate.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <map>
 #include <random>
+#include <string>
 #include <utility>
 
 namespace {
@@ -114,6 +115,40 @@ topoexec::GraphSpec fixed_seed_random_dag(std::mt19937& rng, int graph_index) {
       }
       graph.edges.push_back(random_dag_edge("random_" + std::to_string(edge_index++), graph.components[from].id,
                                             graph.components[to].id));
+    }
+  }
+  return graph;
+}
+
+topoexec::GraphSpec fixed_seed_random_cycle(std::mt19937& rng, int graph_index) {
+  topoexec::GraphSpec graph;
+  graph.schema_version = 1;
+  graph.name = "random_cycle_" + std::to_string(graph_index);
+  graph.kind = "internal_test";
+  graph.lanes = {topoexec::LaneSpec{}};
+  graph.lanes.front().id = "main";
+  graph.lanes.front().type = "event_loop";
+
+  const int component_count = 3 + static_cast<int>(rng() % 4u);
+  for (int index = 0; index < component_count; ++index) {
+    graph.components.push_back(random_dag_component("c" + std::to_string(index)));
+  }
+
+  int edge_index = 0;
+  for (int index = 0; index < component_count; ++index) {
+    const auto& from = graph.components[index].id;
+    const auto& to = graph.components[(index + 1) % component_count].id;
+    graph.edges.push_back(random_dag_edge("cycle_" + std::to_string(edge_index++), from, to));
+  }
+
+  std::bernoulli_distribution include_chord(0.25);
+  for (int from = 0; from < component_count; ++from) {
+    for (int to = 0; to < component_count; ++to) {
+      if (from == to || to == (from + 1) % component_count || !include_chord(rng)) {
+        continue;
+      }
+      graph.edges.push_back(
+          random_dag_edge("chord_" + std::to_string(edge_index++), graph.components[from].id, graph.components[to].id));
     }
   }
   return graph;
@@ -391,9 +426,10 @@ edges:
 }
 
 TEST(Graph, FixedSeedImmediateDagsCompileWithDeterministicRegionOrder) {
-  std::mt19937 rng(0xC0FFEEu);
+  constexpr std::uint32_t kSeed = 0xC0FFEEu;
+  std::mt19937 rng(kSeed);
   for (int graph_index = 0; graph_index < 8; ++graph_index) {
-    SCOPED_TRACE(graph_index);
+    SCOPED_TRACE("seed=" + std::to_string(kSeed) + " graph_index=" + std::to_string(graph_index));
     const auto graph = fixed_seed_random_dag(rng, graph_index);
 
     const auto first = topoexec::validate_graph_structure(graph);
@@ -419,6 +455,41 @@ TEST(Graph, FixedSeedImmediateDagsCompileWithDeterministicRegionOrder) {
       ASSERT_NE(region_position.find(from), region_position.end());
       ASSERT_NE(region_position.find(to), region_position.end());
       EXPECT_LT(region_position.at(from), region_position.at(to));
+    }
+  }
+}
+
+TEST(Graph, FixedSeedImmediateCyclesRejectAndAcceptExactCompositeLoop) {
+  constexpr std::uint32_t kSeed = 0xC1C1E5u;
+  std::mt19937 rng(kSeed);
+  for (int graph_index = 0; graph_index < 8; ++graph_index) {
+    SCOPED_TRACE("seed=" + std::to_string(kSeed) + " graph_index=" + std::to_string(graph_index));
+    auto graph = fixed_seed_random_cycle(rng, graph_index);
+
+    auto rejected = topoexec::validate_graph_structure(graph);
+    EXPECT_FALSE(rejected.ok);
+    EXPECT_TRUE(has_error_containing(rejected.errors, "immediate cycle detected among components"));
+    for (const auto& component : graph.components) {
+      EXPECT_TRUE(has_error_containing(rejected.errors, component.id));
+    }
+
+    topoexec::CompositeLoopSpec loop;
+    loop.id = "cycle_loop_" + std::to_string(graph_index);
+    loop.loop_policy.type = "fixed_point";
+    loop.loop_policy.max_iterations = 3;
+    for (const auto& component : graph.components) {
+      loop.components.push_back(component.id);
+    }
+    graph.composite_loops = {loop};
+
+    const auto accepted = topoexec::validate_graph_structure(graph);
+    ASSERT_TRUE(accepted.ok) << (accepted.errors.empty() ? "" : accepted.errors.front());
+    ASSERT_EQ(accepted.compiled_plan.regions.size(), 1u);
+    EXPECT_EQ(accepted.compiled_plan.regions.front().id, loop.id);
+    EXPECT_EQ(accepted.compiled_plan.regions.front().kind, topoexec::CompiledRegionKind::kCompositeLoop);
+    EXPECT_TRUE(contains_set(accepted.compiled_plan.immediate_sccs, loop.components));
+    for (const auto& component : graph.components) {
+      EXPECT_EQ(accepted.compiled_plan.component_region.at(component.id), loop.id);
     }
   }
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+// Public API category: stable 0.x embedded runtime execution surface.
+
 #include "topoexec/runtime/component_registry.hpp"
 #include "topoexec/runtime/graph.hpp"
 #include "topoexec/runtime/scheduler.hpp"

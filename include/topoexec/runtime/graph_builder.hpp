@@ -1,5 +1,7 @@
 #pragma once
 
+// Public API category: stable 0.x C++ builder helpers over GraphSpec.
+
 #include "topoexec/runtime/graph.hpp"
 
 #include <string>

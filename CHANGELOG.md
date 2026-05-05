@@ -14,6 +14,15 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 ### Changed
 
 - Runtime docs now describe `thread_pool` and async max-inflight as implemented MVP behavior instead of alpha limitations.
+- Current baseline and release checklist now record the post-alpha `main` commit, local CTest count, CI run, tag relationship, and remaining limitations.
+- Added an optional CMake `topoexec_format_check` target for local clang-format validation.
+- Expanded the public API map with stable, mixed, experimental, internal, schema, and CLI JSON compatibility boundaries.
+- Hardened runtime edge-visibility invariant coverage for immediate feed-forward, delayed/state/async epoch boundaries, and staged/committed publication metrics.
+- Hardened lifecycle invariant coverage for activate failure, deactivate failure, partial startup cleanup, and reverse deactivation order.
+- Added fixed-seed graph compiler property coverage for randomized immediate-cycle rejection and exact CompositeLoop acceptance.
+- Expanded scheduler and concurrency docs for event-loop, fixed-rate, and thread-pool lane enforcement boundaries, advisory policy fields, and worker-batch metrics.
+- Hardened async `policy.max_inflight` tests for accept-within-limit, `drop_oldest`, `drop_newest`, `reject`, `fail_fast`, and `block` admission behavior.
+- Hardened payload docs and tests for missing-port lookup, null invocation payload errors, ordered batch payload access, no-copy shared/loaned views, move-only validation, and large-copy rejection.
 
 ## v0.1.0-alpha - 2026-05-05
 

@@ -1,5 +1,7 @@
 #pragma once
 
+// Public API category: stable 0.x component factory registry surface.
+
 #include "topoexec/runtime/component.hpp"
 
 #include <functional>

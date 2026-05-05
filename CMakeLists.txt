@@ -5,6 +5,20 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(TOPOEXEC_BUILD_TESTING "Build TopoExec tests" ON)
 
+find_program(CLANG_FORMAT_EXE NAMES clang-format)
+if(CLANG_FORMAT_EXE)
+  add_custom_target(topoexec_format_check
+    COMMAND ${CMAKE_COMMAND} -E env CLANG_FORMAT=${CLANG_FORMAT_EXE}
+      /usr/bin/env bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/format_check.sh
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Checking C++ formatting with clang-format"
+  )
+else()
+  add_custom_target(topoexec_format_check
+    COMMAND ${CMAKE_COMMAND} -E echo "clang-format not found; install clang-format or set CLANG_FORMAT to run the optional format check"
+  )
+endif()
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()

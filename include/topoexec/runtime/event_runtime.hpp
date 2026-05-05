@@ -1,5 +1,7 @@
 #pragma once
 
+// Public API category: experimental low-level event runtime surface.
+
 #include "topoexec/runtime/channel.hpp"
 #include "topoexec/runtime/component.hpp"
 #include "topoexec/runtime/graph.hpp"

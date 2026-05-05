@@ -1,5 +1,7 @@
 #pragma once
 
+// Public API category: stable 0.x built-in payload helpers and typed access.
+
 #include "topoexec/runtime/buffer.hpp"
 
 #include <cstddef>

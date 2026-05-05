@@ -1,8 +1,10 @@
 #pragma once
 
+// Public API category: stable 0.x status/result helpers.
+
+#include <optional>
 #include <string>
 #include <utility>
-#include <optional>
 
 namespace topoexec {
 

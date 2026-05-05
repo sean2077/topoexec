@@ -1,5 +1,7 @@
 #pragma once
 
+// Public API category: experimental trigger readiness engine surface.
+
 #include "topoexec/runtime/channel.hpp"
 #include "topoexec/runtime/graph.hpp"
 #include "topoexec/runtime/scheduler.hpp"

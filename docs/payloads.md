@@ -27,6 +27,16 @@ if (topoexec::payload_is<topoexec::BinaryBlobPayload>(payload)) {
 
 Bad access throws `std::runtime_error` with context. Components that prefer non-exception reporting can catch that error and return `Status::error(...)` from `execute_status()`.
 
+If an `Invocation` has no primary payload, `try_payload_as<T>()` returns `nullptr` and `payload_as<T>(context)` throws with the supplied context string. Use that context to name the component port, for example `payload_as<TextPayload>("consumer.in")`.
+
+Input lookup by port is nullable:
+
+- `context.inputs().peek_latest("port")` returns `nullptr` when no payload is visible or the port is unknown.
+- `context.inputs().read_latest_update("port")` returns `nullptr` when no unread payload exists.
+- `context.inputs().drain("port")` returns an empty vector when no queued payloads exist or the port is unknown.
+
+Batch triggers expose ordered `Invocation::batch_payloads`; use the same typed helpers on each non-null payload pointer.
+
 ## Copy Policy
 
 Edge `policy.copy_policy` controls how published payloads enter runtime channels:
@@ -45,3 +55,4 @@ Copy metrics are exposed as `runtime.channel.payload_copy_count`. Large payload 
 - Producers should not mutate buffers after publishing them.
 - Consumers should treat all payloads as read-only.
 - Multi-reader edges cannot use `move_only`.
+- `loaned_view` currently preserves in-process `FrameView` / `SharedBuffer` identity; it is not an external shared-memory middleware.

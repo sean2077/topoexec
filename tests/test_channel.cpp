@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <stdexcept>
+#include <string>
 #include <variant>
 
 namespace {
@@ -191,4 +192,43 @@ TEST(Payload, TypedHelpersReturnExpectedPayloadVariants) {
   ASSERT_NE(invocation.try_payload_as<topoexec::TextPayload>(), nullptr);
   EXPECT_EQ(invocation.payload_as<topoexec::TextPayload>().text, "hello");
   EXPECT_THROW((void)invocation.payload_as<topoexec::FrameView>(), std::runtime_error);
+}
+
+TEST(Payload, MissingInvocationPayloadReportsContext) {
+  topoexec::Invocation invocation;
+
+  EXPECT_EQ(invocation.try_payload_as<topoexec::TextPayload>(), nullptr);
+  try {
+    (void)invocation.payload_as<topoexec::TextPayload>("consumer.in");
+    FAIL() << "expected payload_as to throw";
+  } catch (const std::runtime_error& error) {
+    EXPECT_NE(std::string(error.what()).find("consumer.in: invocation payload is null"), std::string::npos);
+  }
+}
+
+TEST(Payload, InputViewMissingPortReturnsNullAndEmptyBatch) {
+  topoexec::RuntimeChannelBus bus({edge("input", "queue", 2)});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+
+  topoexec::GraphContext context;
+  context.channels = &bus;
+  context.component_id = "consumer";
+  const auto inputs = context.inputs();
+
+  EXPECT_EQ(inputs.peek_latest("missing"), nullptr);
+  EXPECT_EQ(inputs.read_latest_update("missing"), nullptr);
+  EXPECT_TRUE(inputs.drain("missing").empty());
+  ASSERT_NE(inputs.peek_latest("in"), nullptr);
+}
+
+TEST(Payload, BatchPayloadsCanUseTypedHelpersInOrder) {
+  topoexec::Invocation invocation;
+  invocation.batch_payloads = {topoexec::make_shared_payload(topoexec::make_text_payload("one")),
+                               topoexec::make_shared_payload(topoexec::make_text_payload("two"))};
+
+  ASSERT_EQ(invocation.batch_payloads.size(), 2u);
+  ASSERT_NE(invocation.batch_payloads[0], nullptr);
+  ASSERT_NE(invocation.batch_payloads[1], nullptr);
+  EXPECT_EQ(topoexec::payload_as<topoexec::TextPayload>(*invocation.batch_payloads[0]).text, "one");
+  EXPECT_EQ(topoexec::payload_as<topoexec::TextPayload>(*invocation.batch_payloads[1]).text, "two");
 }

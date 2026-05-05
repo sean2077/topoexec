@@ -1,5 +1,8 @@
 #pragma once
 
+// Public API category: mixed. Stop tokens/reasons are stable via RuntimeRunner;
+// direct scheduler machinery remains experimental before beta.
+
 #include "topoexec/runtime/component.hpp"
 
 #include <atomic>

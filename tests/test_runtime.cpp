@@ -9,6 +9,7 @@
 #include <chrono>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <utility>
 
@@ -38,6 +39,11 @@ std::vector<RuntimeRecord>& runtime_records() {
   return records;
 }
 
+std::vector<std::string>& lifecycle_events() {
+  static std::vector<std::string> events;
+  return events;
+}
+
 std::mutex& runtime_records_mutex() {
   static std::mutex mutex;
   return mutex;
@@ -51,6 +57,10 @@ PublicationProbeState& publication_probe_state() {
 void reset_runtime_records() {
   std::lock_guard lock(runtime_records_mutex());
   runtime_records().clear();
+}
+
+void reset_lifecycle_events() {
+  lifecycle_events().clear();
 }
 
 void reset_publication_probe_state() {
@@ -172,6 +182,15 @@ bool has_component_metric_at_least(const topoexec::RuntimeRunnerResult& result, 
 bool has_metric_at_least(const topoexec::RuntimeRunnerResult& result, const std::string& name, double value) {
   return std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(),
                      [&](const auto& metric) { return metric.name == name && metric.value >= value; });
+}
+
+std::optional<double> metric_value(const topoexec::RuntimeRunnerResult& result, const std::string& name) {
+  const auto found = std::find_if(result.runtime_metrics.begin(), result.runtime_metrics.end(),
+                                  [&](const auto& metric) { return metric.name == name; });
+  if (found == result.runtime_metrics.end()) {
+    return std::nullopt;
+  }
+  return found->value;
 }
 
 bool has_trace_event(const topoexec::RuntimeRunnerResult& result, const std::string& name) {
@@ -458,6 +477,23 @@ public:
   }
 };
 
+class LenientBurstSourceComponent : public BurstSourceComponent {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    auto descriptor = BurstSourceComponent::describe();
+    descriptor.type = "topoexec.test.LenientBurstSource";
+    return descriptor;
+  }
+
+  void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    record_invocation(invocation, context);
+    for (int index = 1; index <= 3; ++index) {
+      (void)context.publish("out", topoexec::make_text_payload("burst-" + std::to_string(invocation.sequence) + "-" +
+                                                               std::to_string(index)));
+    }
+  }
+};
+
 class ThreadPoolProbeComponent : public topoexec::Component {
 public:
   topoexec::ComponentDescriptor describe() const override {
@@ -612,6 +648,74 @@ public:
   }
 };
 
+class LifecycleProbeComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = type_name();
+    descriptor.name = "lifecycle_probe";
+    descriptor.role = topoexec::ComponentRole::kInputOutputBoundary;
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext& context, const topoexec::ConfigView&) override {
+    id_ = context.component_id;
+    lifecycle_events().push_back(id_ + ".configure");
+  }
+
+  topoexec::Status activate_status() override {
+    lifecycle_events().push_back(id_ + ".activate");
+    return activate_result();
+  }
+
+  topoexec::Status deactivate_status() override {
+    lifecycle_events().push_back(id_ + ".deactivate");
+    return deactivate_result();
+  }
+
+  void execute(const topoexec::Invocation&, topoexec::GraphContext&) override {
+    lifecycle_events().push_back(id_ + ".execute");
+  }
+
+protected:
+  virtual std::string type_name() const {
+    return "topoexec.test.LifecycleProbe";
+  }
+
+  virtual topoexec::Status activate_result() {
+    return topoexec::Status::success();
+  }
+
+  virtual topoexec::Status deactivate_result() {
+    return topoexec::Status::success();
+  }
+
+private:
+  std::string id_;
+};
+
+class ActivateStatusFailureComponent : public LifecycleProbeComponent {
+protected:
+  std::string type_name() const override {
+    return "topoexec.test.ActivateStatusFailure";
+  }
+
+  topoexec::Status activate_result() override {
+    return topoexec::Status::error("activate status failed");
+  }
+};
+
+class DeactivateStatusFailureComponent : public LifecycleProbeComponent {
+protected:
+  std::string type_name() const override {
+    return "topoexec.test.DeactivateStatusFailure";
+  }
+
+  topoexec::Status deactivate_result() override {
+    return topoexec::Status::error("deactivate status failed");
+  }
+};
+
 topoexec::ComponentRegistry registry() {
   topoexec::ComponentRegistry registry;
   registry.register_component({"topoexec.test.Source"}, []() { return std::make_unique<SourceComponent>(); });
@@ -628,6 +732,8 @@ topoexec::ComponentRegistry delay_registry() {
   registry.register_component({"topoexec.test.BatchTarget"}, []() { return std::make_unique<BatchTargetComponent>(); });
   registry.register_component({"topoexec.test.TimerRecord"}, []() { return std::make_unique<TimerRecordComponent>(); });
   registry.register_component({"topoexec.test.BurstSource"}, []() { return std::make_unique<BurstSourceComponent>(); });
+  registry.register_component({"topoexec.test.LenientBurstSource"},
+                              []() { return std::make_unique<LenientBurstSourceComponent>(); });
   registry.register_component({"topoexec.test.ThreadPoolProbe"},
                               []() { return std::make_unique<ThreadPoolProbeComponent>(); });
   registry.register_component({"topoexec.test.LoopEstimator"},
@@ -641,6 +747,12 @@ topoexec::ComponentRegistry delay_registry() {
                               []() { return std::make_unique<ConfigureStatusFailureComponent>(); });
   registry.register_component({"topoexec.test.ExecuteStatusFailure"},
                               []() { return std::make_unique<ExecuteStatusFailureComponent>(); });
+  registry.register_component({"topoexec.test.LifecycleProbe"},
+                              []() { return std::make_unique<LifecycleProbeComponent>(); });
+  registry.register_component({"topoexec.test.ActivateStatusFailure"},
+                              []() { return std::make_unique<ActivateStatusFailureComponent>(); });
+  registry.register_component({"topoexec.test.DeactivateStatusFailure"},
+                              []() { return std::make_unique<DeactivateStatusFailureComponent>(); });
   return registry;
 }
 
@@ -991,6 +1103,28 @@ edges: []
   return graph;
 }
 
+topoexec::GraphSpec lifecycle_graph(std::vector<std::pair<std::string, std::string>> components) {
+  topoexec::GraphSpec graph;
+  graph.schema_version = 1;
+  graph.name = "lifecycle";
+  graph.kind = "runnable";
+  topoexec::LaneSpec lane;
+  lane.id = "main";
+  lane.type = "event_loop";
+  graph.lanes.push_back(std::move(lane));
+  for (const auto& [id, type] : components) {
+    topoexec::ComponentNodeSpec component;
+    component.id = id;
+    component.type = type;
+    component.event_sources = {topoexec::EventSourceSpec{}};
+    component.event_sources.front().type = "manual";
+    component.trigger_policy.type = "manual";
+    component.execution.lane = "main";
+    graph.components.push_back(std::move(component));
+  }
+  return graph;
+}
+
 topoexec::GraphSpec thread_pool_graph(bool reentrant) {
   auto graph = topoexec::load_graph_text(R"(
 schema_version: 1
@@ -1018,8 +1152,9 @@ edges:
   return graph;
 }
 
-topoexec::GraphSpec async_max_inflight_graph() {
-  return topoexec::load_graph_text(R"(
+topoexec::GraphSpec async_max_inflight_graph(std::string overflow = "drop_oldest", int max_inflight = 2,
+                                             std::string source_type = "topoexec.test.BurstSource") {
+  auto graph = topoexec::load_graph_text(R"(
 schema_version: 1
 graph: {name: async_max_inflight, kind: runnable}
 lanes: {main: {type: event_loop}}
@@ -1039,6 +1174,10 @@ components:
 edges:
   - {id: source_join_async, kind: async, from: source.out, to: join.ready, policy: {mode: queue, capacity: 4, overflow: drop_oldest, max_inflight: 2, copy_policy: shared_view}}
 )");
+  graph.components.front().type = std::move(source_type);
+  graph.edges.front().policy.overflow = std::move(overflow);
+  graph.edges.front().policy.max_inflight = max_inflight;
+  return graph;
 }
 
 } // namespace
@@ -1117,6 +1256,37 @@ TEST(Runtime, PublishStagesWithoutRecursiveDownstreamExecute) {
   EXPECT_EQ(result.channel_delivery_count, 1u);
 }
 
+TEST(Runtime, ImmediateFeedForwardIsVisibleInSameEpochAndMetricsMatch) {
+  const auto reg = delay_registry();
+  const auto spec = delay_visibility_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_record(1, "publisher", "in", "tick-1"));
+  EXPECT_TRUE(has_record(1, "gate", "in", "tick-1"));
+  EXPECT_TRUE(has_record(1, "target", "main", "tick-1"));
+  EXPECT_FALSE(has_record(1, "target", "delayed"));
+  EXPECT_EQ(result.staged_publication_count, 4u);
+  EXPECT_EQ(result.committed_publication_count, 3u);
+  EXPECT_EQ(result.delayed_publication_count, 1u);
+
+  const auto staged = metric_value(result, "runtime.publication.staged");
+  const auto committed = metric_value(result, "runtime.publication.committed");
+  const auto delayed = metric_value(result, "runtime.publication.delayed");
+  ASSERT_TRUE(staged.has_value());
+  ASSERT_TRUE(committed.has_value());
+  ASSERT_TRUE(delayed.has_value());
+  EXPECT_DOUBLE_EQ(*staged, 4.0);
+  EXPECT_DOUBLE_EQ(*committed, 3.0);
+  EXPECT_DOUBLE_EQ(*delayed, 1.0);
+}
+
 TEST(Runtime, DelayEdgeCommitsAtNextEpochBoundary) {
   const auto reg = delay_registry();
   const auto spec = delay_visibility_graph();
@@ -1130,6 +1300,7 @@ TEST(Runtime, DelayEdgeCommitsAtNextEpochBoundary) {
   ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
   EXPECT_TRUE(has_record(1, "target", "main", "tick-1"));
   EXPECT_FALSE(has_record(1, "target", "delayed"));
+  EXPECT_EQ(result.staged_publication_count, 4u);
   EXPECT_EQ(result.delayed_publication_count, 1u);
   EXPECT_EQ(result.committed_publication_count, 3u);
 
@@ -1140,6 +1311,7 @@ TEST(Runtime, DelayEdgeCommitsAtNextEpochBoundary) {
   EXPECT_FALSE(has_record(1, "target", "delayed"));
   EXPECT_TRUE(has_record(2, "target", "delayed", "tick-1"));
   EXPECT_TRUE(has_record(2, "target", "main", "tick-2"));
+  EXPECT_EQ(result.staged_publication_count, 8u);
   EXPECT_EQ(result.delayed_publication_count, 2u);
   EXPECT_EQ(result.committed_publication_count, 7u);
 }
@@ -1160,6 +1332,8 @@ TEST(Runtime, StateAndAsyncEdgesCommitAfterCurrentEpoch) {
     ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
     EXPECT_TRUE(has_record(1, "target", "main", "tick-1"));
     EXPECT_FALSE(has_record(1, "target", "delayed"));
+    EXPECT_EQ(result.staged_publication_count, 4u);
+    EXPECT_EQ(result.committed_publication_count, 3u);
 
     reset_runtime_records();
     options.tick_iterations = 2;
@@ -1167,12 +1341,20 @@ TEST(Runtime, StateAndAsyncEdgesCommitAfterCurrentEpoch) {
     ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
     EXPECT_FALSE(has_record(1, "target", "delayed"));
     EXPECT_TRUE(has_record(2, "target", "delayed", "tick-1"));
+    EXPECT_EQ(result.staged_publication_count, 8u);
+    EXPECT_EQ(result.committed_publication_count, 7u);
     if (kind == topoexec::EdgeKind::kState) {
       EXPECT_EQ(result.state_publication_count, 2u);
       EXPECT_EQ(result.async_publication_count, 0u);
+      const auto state = metric_value(result, "runtime.publication.state");
+      ASSERT_TRUE(state.has_value());
+      EXPECT_DOUBLE_EQ(*state, 2.0);
     } else {
       EXPECT_EQ(result.state_publication_count, 0u);
       EXPECT_EQ(result.async_publication_count, 2u);
+      const auto async = metric_value(result, "runtime.publication.async");
+      ASSERT_TRUE(async.has_value());
+      EXPECT_DOUBLE_EQ(*async, 2.0);
     }
   }
 }
@@ -1629,6 +1811,74 @@ TEST(Runtime, ExecuteStatusFailureStopsRuntimeAndDeactivatesStartedComponents) {
   EXPECT_TRUE(has_component_metric(result, "runtime.component.error_count", "failing"));
 }
 
+TEST(Runtime, ActivateStatusFailureCleansUpStartedComponentsInReverseOrder) {
+  const auto reg = delay_registry();
+  const auto spec = lifecycle_graph({{"first", "topoexec.test.LifecycleProbe"},
+                                     {"failing", "topoexec.test.ActivateStatusFailure"},
+                                     {"unreached", "topoexec.test.LifecycleProbe"}});
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_lifecycle_events();
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_NE(result.errors.front().find("component failing activate failed: activate status failed"), std::string::npos);
+  EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kError);
+  EXPECT_EQ(result.instantiated_components, 2u);
+  EXPECT_EQ(result.configured_components, 2u);
+  EXPECT_EQ(result.started_components, 1u);
+  EXPECT_EQ(result.stopped_components, 1u);
+  EXPECT_EQ(lifecycle_events(), std::vector<std::string>({"first.configure", "first.activate", "failing.configure",
+                                                          "failing.activate", "first.deactivate"}));
+}
+
+TEST(Runtime, SuccessfulRunDeactivatesComponentsInReverseStartupOrder) {
+  const auto reg = delay_registry();
+  const auto spec = lifecycle_graph({{"first", "topoexec.test.LifecycleProbe"},
+                                     {"second", "topoexec.test.LifecycleProbe"},
+                                     {"third", "topoexec.test.LifecycleProbe"}});
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_lifecycle_events();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.started_components, 3u);
+  EXPECT_EQ(result.stopped_components, 3u);
+  EXPECT_EQ(lifecycle_events(),
+            std::vector<std::string>({"first.configure", "first.activate", "second.configure", "second.activate",
+                                      "third.configure", "third.activate", "first.execute", "second.execute",
+                                      "third.execute", "third.deactivate", "second.deactivate", "first.deactivate"}));
+}
+
+TEST(Runtime, DeactivateStatusFailureIsReportedWithComponentAndPhase) {
+  const auto reg = delay_registry();
+  const auto spec = lifecycle_graph({{"failing", "topoexec.test.DeactivateStatusFailure"}});
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_lifecycle_events();
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_NE(result.errors.front().find("component failing deactivate failed: deactivate status failed"),
+            std::string::npos);
+  EXPECT_EQ(result.started_components, 1u);
+  EXPECT_EQ(result.stopped_components, 1u);
+  EXPECT_EQ(lifecycle_events(), std::vector<std::string>({"failing.configure", "failing.activate", "failing.execute",
+                                                          "failing.deactivate"}));
+}
+
 TEST(Runtime, ThreadPoolLaneExecutesReentrantInvocationsConcurrently) {
   const auto reg = delay_registry();
   const auto spec = thread_pool_graph(true);
@@ -1646,6 +1896,7 @@ TEST(Runtime, ThreadPoolLaneExecutesReentrantInvocationsConcurrently) {
 
   ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
   EXPECT_GE(thread_pool_max_invocations().load(), 2);
+  EXPECT_LE(thread_pool_max_invocations().load(), 3);
   EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.max_in_flight_count", "worker", 2.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.active_count", 2.0));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
@@ -1695,4 +1946,59 @@ TEST(Runtime, AsyncMaxInflightDropsOldestBeforeChannelCapacity) {
   EXPECT_TRUE(has_metric_at_least(result, "runtime.async.completed_count", 2.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.async.max_in_flight_count", 2.0));
   EXPECT_TRUE(has_trace_event(result, "async_admission"));
+}
+
+TEST(Runtime, AsyncMaxInflightAcceptsWithinLimitBeforeChannelCapacity) {
+  const auto reg = delay_registry();
+  const auto spec = async_max_inflight_graph("drop_oldest", 3);
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-1"));
+  EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-2"));
+  EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-3"));
+  EXPECT_EQ(result.channel_publish_count, 3u);
+  EXPECT_EQ(result.async_publication_count, 6u);
+  EXPECT_EQ(*metric_value(result, "runtime.async.accepted_count"), 6.0);
+  EXPECT_EQ(*metric_value(result, "runtime.async.rejected_count"), 0.0);
+  EXPECT_EQ(*metric_value(result, "runtime.async.dropped_count"), 0.0);
+  EXPECT_EQ(*metric_value(result, "runtime.async.completed_count"), 3.0);
+  EXPECT_EQ(*metric_value(result, "runtime.async.max_in_flight_count"), 3.0);
+}
+
+TEST(Runtime, AsyncMaxInflightRejectPoliciesDoNotCommitRejectedCompletions) {
+  const auto reg = delay_registry();
+  for (const auto& overflow : {"drop_newest", "reject", "fail_fast", "block"}) {
+    SCOPED_TRACE(overflow);
+    const auto spec = async_max_inflight_graph(overflow, 2, "topoexec.test.LenientBurstSource");
+    topoexec::RuntimeRunner runner(reg);
+    topoexec::RuntimeRunnerOptions options;
+    options.mode = topoexec::RuntimeRunMode::kRun;
+    options.tick_iterations = 2;
+
+    reset_runtime_records();
+    const auto result = runner.run(spec, options);
+
+    ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+    EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-1"));
+    EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-2"));
+    EXPECT_FALSE(has_record(2, "join", "ready", "burst-1-3"));
+    EXPECT_EQ(result.channel_publish_count, 2u);
+    EXPECT_EQ(result.async_publication_count, 4u);
+    EXPECT_EQ(*metric_value(result, "runtime.async.accepted_count"), 4.0);
+    EXPECT_EQ(*metric_value(result, "runtime.async.rejected_count"), 2.0);
+    EXPECT_EQ(*metric_value(result, "runtime.async.completed_count"), 2.0);
+    EXPECT_EQ(*metric_value(result, "runtime.async.max_in_flight_count"), 2.0);
+    if (std::string(overflow) == "drop_newest") {
+      EXPECT_EQ(*metric_value(result, "runtime.async.dropped_count"), 2.0);
+    } else {
+      EXPECT_EQ(*metric_value(result, "runtime.async.dropped_count"), 0.0);
+    }
+  }
 }

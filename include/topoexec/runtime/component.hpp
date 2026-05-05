@@ -1,5 +1,8 @@
 #pragma once
 
+// Public API category: stable 0.x component, invocation, and graph context
+// surface.
+
 #include "topoexec/common/logging.hpp"
 #include "topoexec/common/metrics.hpp"
 #include "topoexec/runtime/clock.hpp"

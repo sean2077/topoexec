@@ -1,5 +1,7 @@
 # Overload: Latest Versus Queue
 
+This is an advanced low-level channel-policy tutorial. It includes `topoexec/runtime/channel.hpp` directly to isolate bounded channel behavior; normal embedded applications should prefer the stable `RuntimeRunner` and `GraphContext` APIs.
+
 Graph shape:
 
 ```text
