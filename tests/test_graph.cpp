@@ -212,6 +212,19 @@ TEST(Graph, MoveOnlyPolicyRequiresSingleReader) {
   EXPECT_TRUE(has_error_containing(result.errors, "move_only copy_policy requires readers: single"));
 }
 
+TEST(Graph, MaxInflightPolicyAppliesOnlyToAsyncEdges) {
+  auto graph = minimal_graph();
+  graph.edges.front().policy.max_inflight = 2;
+
+  auto result = topoexec::validate_graph_structure(graph);
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "policy.max_inflight applies only to async edges"));
+
+  graph.edges.front().kind = topoexec::EdgeKind::kAsync;
+  result = topoexec::validate_graph_structure(graph);
+  ASSERT_TRUE(result.ok) << result.errors.front();
+}
+
 TEST(Graph, TriggerPolicyNumericFieldsMustBeNonNegative) {
   auto graph = minimal_graph();
   graph.components.back().trigger_policy.min_interval_ms = -1;

@@ -27,9 +27,9 @@ Scheduler:
 
 - `runtime.scheduler.completed_count`: completed component invocations for a lane.
 - `runtime.scheduler.tick_overrun_count`: lane tick overruns observed by the scheduler.
-- `runtime.scheduler.queue_depth`: queued scheduler tasks for a lane. This is `0` for the current single-thread event loop.
-- `runtime.scheduler.active_count`: active workers for a lane. This is `0` until worker-pool scheduling lands.
-- `runtime.scheduler.in_flight_count`: in-flight scheduler tasks for a lane. This is `0` until worker-pool scheduling lands.
+- `runtime.scheduler.queue_depth`: maximum queued scheduler tasks observed for a lane. This is `0` for the single-thread event loop.
+- `runtime.scheduler.active_count`: maximum active workers observed for a lane. This is `0` for the single-thread event loop.
+- `runtime.scheduler.in_flight_count`: maximum in-flight scheduler tasks observed for a lane. This is `0` for the single-thread event loop.
 - `runtime.scheduler.rejected_count`: scheduler admission rejections for a lane.
 
 Components:
@@ -63,6 +63,16 @@ Publication router:
 - `runtime.publication.state`: publications deferred by `state` edges.
 - `runtime.publication.async`: publications deferred by `async` edges.
 - `runtime.publication.failed_commit`: failed publication commit batches.
+
+Async admission:
+
+- `runtime.async.accepted_count`: async completions accepted by edge-level admission.
+- `runtime.async.rejected_count`: async completions rejected by `policy.max_inflight` admission.
+- `runtime.async.dropped_count`: pending or newest async completions dropped by admission overflow.
+- `runtime.async.in_flight_count`: async completions still pending deferred delivery at the end of the run.
+- `runtime.async.max_in_flight_count`: maximum pending async completions observed during the run.
+- `runtime.async.completed_count`: async completions committed to runtime channels at epoch boundaries.
+- `runtime.async.cancelled_count`: async completions cancelled by shutdown. This is `0` in the current cooperative MVP.
 
 Composite loops:
 

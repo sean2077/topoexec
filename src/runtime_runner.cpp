@@ -38,16 +38,6 @@ std::map<std::string, SchedulerGroupConfig> lane_configs(const GraphSpec& graph)
   return values;
 }
 
-std::vector<std::string> unsupported_runtime_lanes(const GraphSpec& graph) {
-  std::vector<std::string> lanes;
-  for (const auto& lane : graph.lanes) {
-    if (lane.type == "thread_pool") {
-      lanes.push_back(lane.id);
-    }
-  }
-  return lanes;
-}
-
 void copy_dry_run_to_runner(const GraphDryRunResult& dry_run, RuntimeRunnerResult& result) {
   result.dry_run = dry_run;
   result.instantiated_components = dry_run.instantiated_components;
@@ -113,17 +103,6 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     result.errors = dry_run.errors;
     copy_dry_run_to_runner(dry_run, result);
     result.scheduler_stop_reason = SchedulerStopReason::kTickBound;
-    return result;
-  }
-
-  const auto unsupported_lanes = unsupported_runtime_lanes(graph);
-  if (!unsupported_lanes.empty()) {
-    result.ok = false;
-    result.scheduler_stop_reason = SchedulerStopReason::kError;
-    for (const auto& lane : unsupported_lanes) {
-      result.errors.push_back("lane " + lane +
-                              " has type thread_pool, which is schema-visible but not implemented by RuntimeRunner");
-    }
     return result;
   }
 
@@ -316,6 +295,20 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                           static_cast<double>(publication_metrics.async_staged_count));
     append_runtime_metric(result, "runtime.publication.failed_commit",
                           static_cast<double>(publication_metrics.failed_commit_count));
+    append_runtime_metric(result, "runtime.async.accepted_count",
+                          static_cast<double>(publication_metrics.async_admission_accepted_count));
+    append_runtime_metric(result, "runtime.async.rejected_count",
+                          static_cast<double>(publication_metrics.async_admission_rejected_count));
+    append_runtime_metric(result, "runtime.async.dropped_count",
+                          static_cast<double>(publication_metrics.async_admission_dropped_count));
+    append_runtime_metric(result, "runtime.async.in_flight_count",
+                          static_cast<double>(publication_metrics.async_in_flight_count));
+    append_runtime_metric(result, "runtime.async.max_in_flight_count",
+                          static_cast<double>(publication_metrics.async_max_in_flight_count));
+    append_runtime_metric(result, "runtime.async.completed_count",
+                          static_cast<double>(publication_metrics.async_completion_count));
+    append_runtime_metric(result, "runtime.async.cancelled_count",
+                          static_cast<double>(publication_metrics.async_cancelled_count));
     for (const auto& sample : metrics.snapshot()) {
       result.runtime_metrics.push_back(RuntimeMetricSample{sample.name, sample.value, {}, {}, {}, {}});
     }

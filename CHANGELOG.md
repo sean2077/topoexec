@@ -4,7 +4,16 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Added bounded `thread_pool` runtime execution for ready invocations, with `max_threads` worker width and non-reentrant serialization.
+- Added async edge `policy.max_inflight` admission control before channel capacity, with async accepted/rejected/dropped/in-flight/completed metrics.
+- Added a non-blocking GitHub Actions ThreadSanitizer job for the new concurrency surface.
+- Added concurrency docs and runtime tests for reentrant worker overlap, non-reentrant serialization, and async admission drops.
+
+### Changed
+
+- Runtime docs now describe `thread_pool` and async max-inflight as implemented MVP behavior instead of alpha limitations.
 
 ## v0.1.0-alpha - 2026-05-05
 

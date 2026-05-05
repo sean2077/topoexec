@@ -396,7 +396,7 @@ std::vector<LintFinding> lint_graph(const topoexec::GraphSpec& graph,
                             "blocking overflow can stall a single-thread event_loop", edge.id});
       }
     }
-    if (edge.kind == topoexec::EdgeKind::kAsync && edge.policy.capacity <= 1) {
+    if (edge.kind == topoexec::EdgeKind::kAsync && edge.policy.max_inflight <= 0 && edge.policy.capacity <= 1) {
       findings.push_back(
           {"info", "async_capacity", "async edge uses capacity <= 1; excess completions may be dropped", edge.id});
     }

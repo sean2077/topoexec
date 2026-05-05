@@ -44,4 +44,4 @@ Before beta, add optional benchmarks for:
 - shared/loaned large payload no-copy path;
 - CompositeLoop iteration overhead;
 - trigger policies: any/all/batch/time-sync;
-- worker-pool throughput once worker-pool scheduling exists.
+- worker-pool throughput for `thread_pool` lanes.

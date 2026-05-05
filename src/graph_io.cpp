@@ -237,14 +237,15 @@ EdgePolicySpec read_edge_policy(const YAML::Node& edge_node, const std::string& 
   }
   require_map(policy_node, "edges." + edge_id + ".policy");
   reject_unknown_fields(policy_node, "edges." + edge_id + ".policy",
-                        {"mode", "capacity", "overflow", "lifespan_ms", "deadline_ms", "preserve_order", "allow_drop",
-                         "emit_health_events", "timestamp_domain", "copy_policy", "owner", "readers"});
+                        {"mode", "capacity", "overflow", "lifespan_ms", "deadline_ms", "max_inflight", "preserve_order",
+                         "allow_drop", "emit_health_events", "timestamp_domain", "copy_policy", "owner", "readers"});
   EdgePolicySpec policy;
   policy.mode = optional_string(policy_node, "mode", policy.mode);
   policy.capacity = optional_int(policy_node, "capacity", policy.capacity);
   policy.overflow = optional_string(policy_node, "overflow", policy.overflow);
   policy.lifespan_ms = optional_int(policy_node, "lifespan_ms");
   policy.deadline_ms = optional_int(policy_node, "deadline_ms");
+  policy.max_inflight = optional_int(policy_node, "max_inflight");
   policy.preserve_order = optional_bool(policy_node, "preserve_order", policy.preserve_order);
   policy.allow_drop = optional_bool(policy_node, "allow_drop", policy.allow_drop);
   policy.emit_health_events = optional_bool(policy_node, "emit_health_events", policy.emit_health_events);
@@ -418,6 +419,7 @@ std::string graph_plan_json(const GraphSpec& graph, const GraphCompiledPlan& pla
                              {"to", edge.to},
                              {"kind", to_string(edge.kind)},
                              {"mode", edge.policy.mode},
+                             {"max_inflight", edge.policy.max_inflight},
                              {"copy_policy", edge.policy.copy_policy}});
   }
   root["compiled_regions"] = nlohmann::json::array();

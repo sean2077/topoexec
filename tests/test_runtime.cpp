@@ -5,8 +5,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <map>
+#include <mutex>
 #include <thread>
 #include <utility>
 
@@ -36,12 +38,18 @@ std::vector<RuntimeRecord>& runtime_records() {
   return records;
 }
 
+std::mutex& runtime_records_mutex() {
+  static std::mutex mutex;
+  return mutex;
+}
+
 PublicationProbeState& publication_probe_state() {
   static PublicationProbeState state;
   return state;
 }
 
 void reset_runtime_records() {
+  std::lock_guard lock(runtime_records_mutex());
   runtime_records().clear();
 }
 
@@ -59,9 +67,35 @@ int& status_failure_deactivate_count() {
   return count;
 }
 
+std::atomic_int& thread_pool_active_invocations() {
+  static std::atomic_int count{0};
+  return count;
+}
+
+std::atomic_int& thread_pool_max_invocations() {
+  static std::atomic_int count{0};
+  return count;
+}
+
 void reset_throwing_component_state() {
   throwing_deactivate_count() = 0;
   status_failure_deactivate_count() = 0;
+}
+
+void reset_thread_pool_probe_state() {
+  thread_pool_active_invocations().store(0);
+  thread_pool_max_invocations().store(0);
+}
+
+void observe_thread_pool_invocation_begin() {
+  const auto active = thread_pool_active_invocations().fetch_add(1) + 1;
+  auto observed = thread_pool_max_invocations().load();
+  while (active > observed && !thread_pool_max_invocations().compare_exchange_weak(observed, active)) {
+  }
+}
+
+void observe_thread_pool_invocation_end() {
+  thread_pool_active_invocations().fetch_sub(1);
 }
 
 void record_invocation(const topoexec::Invocation& invocation, const topoexec::GraphContext& context) {
@@ -81,6 +115,7 @@ void record_invocation(const topoexec::Invocation& invocation, const topoexec::G
       record.batch_payloads.push_back(payload->text());
     }
   }
+  std::lock_guard lock(runtime_records_mutex());
   runtime_records().push_back(std::move(record));
 }
 
@@ -125,6 +160,18 @@ bool has_component_metric(const topoexec::RuntimeRunnerResult& result, const std
                           const std::string& component_id) {
   return std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(),
                      [&](const auto& metric) { return metric.name == name && metric.component_id == component_id; });
+}
+
+bool has_component_metric_at_least(const topoexec::RuntimeRunnerResult& result, const std::string& name,
+                                   const std::string& component_id, double value) {
+  return std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(), [&](const auto& metric) {
+    return metric.name == name && metric.component_id == component_id && metric.value >= value;
+  });
+}
+
+bool has_metric_at_least(const topoexec::RuntimeRunnerResult& result, const std::string& name, double value) {
+  return std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(),
+                     [&](const auto& metric) { return metric.name == name && metric.value >= value; });
 }
 
 bool has_trace_event(const topoexec::RuntimeRunnerResult& result, const std::string& name) {
@@ -411,6 +458,27 @@ public:
   }
 };
 
+class ThreadPoolProbeComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.ThreadPoolProbe";
+    descriptor.name = "thread_pool_probe";
+    descriptor.role = topoexec::ComponentRole::kOutputBoundary;
+    descriptor.inputs = {{"in", topoexec::kTextPayloadSchema}};
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    observe_thread_pool_invocation_begin();
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    record_invocation(invocation, context);
+    observe_thread_pool_invocation_end();
+  }
+};
+
 class LoopEstimatorComponent : public topoexec::Component {
 public:
   topoexec::ComponentDescriptor describe() const override {
@@ -560,6 +628,8 @@ topoexec::ComponentRegistry delay_registry() {
   registry.register_component({"topoexec.test.BatchTarget"}, []() { return std::make_unique<BatchTargetComponent>(); });
   registry.register_component({"topoexec.test.TimerRecord"}, []() { return std::make_unique<TimerRecordComponent>(); });
   registry.register_component({"topoexec.test.BurstSource"}, []() { return std::make_unique<BurstSourceComponent>(); });
+  registry.register_component({"topoexec.test.ThreadPoolProbe"},
+                              []() { return std::make_unique<ThreadPoolProbeComponent>(); });
   registry.register_component({"topoexec.test.LoopEstimator"},
                               []() { return std::make_unique<LoopEstimatorComponent>(); });
   registry.register_component({"topoexec.test.SlowLoopEstimator"},
@@ -921,12 +991,54 @@ edges: []
   return graph;
 }
 
-topoexec::GraphSpec thread_pool_graph() {
-  auto graph = status_failure_graph("topoexec.test.ExecuteStatusFailure");
-  graph.name = "thread_pool_unsupported";
-  graph.lanes.front().type = "thread_pool";
-  graph.lanes.front().max_threads = 2;
+topoexec::GraphSpec thread_pool_graph(bool reentrant) {
+  auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: thread_pool_runtime, kind: runnable}
+lanes:
+  main: {type: event_loop}
+  pool: {type: thread_pool, max_threads: 3}
+components:
+  - id: source
+    type: topoexec.test.BurstSource
+    boundary: {role: input, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: worker
+    type: topoexec.test.ThreadPoolProbe
+    boundary: {role: output, descriptor: test}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: pool}
+edges:
+  - {id: source_worker, kind: immediate, from: source.out, to: worker.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view}}
+)");
+  graph.components.back().execution.reentrant = reentrant;
   return graph;
+}
+
+topoexec::GraphSpec async_max_inflight_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: async_max_inflight, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: source
+    type: topoexec.test.BurstSource
+    boundary: {role: input, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: join
+    type: topoexec.test.BatchTarget
+    boundary: {role: output, descriptor: test}
+    event_sources: [{type: task_ready, inputs: [ready]}]
+    trigger_policy: {type: task_ready, inputs: [ready]}
+    execution: {lane: main}
+edges:
+  - {id: source_join_async, kind: async, from: source.out, to: join.ready, policy: {mode: queue, capacity: 4, overflow: drop_oldest, max_inflight: 2, copy_policy: shared_view}}
+)");
 }
 
 } // namespace
@@ -1517,9 +1629,9 @@ TEST(Runtime, ExecuteStatusFailureStopsRuntimeAndDeactivatesStartedComponents) {
   EXPECT_TRUE(has_component_metric(result, "runtime.component.error_count", "failing"));
 }
 
-TEST(Runtime, ThreadPoolLaneIsSchemaVisibleButRuntimeUnsupported) {
+TEST(Runtime, ThreadPoolLaneExecutesReentrantInvocationsConcurrently) {
   const auto reg = delay_registry();
-  const auto spec = thread_pool_graph();
+  const auto spec = thread_pool_graph(true);
   const auto validation = topoexec::validate_graph(spec, reg);
   ASSERT_TRUE(validation.ok) << validation.errors.front();
 
@@ -1527,10 +1639,60 @@ TEST(Runtime, ThreadPoolLaneIsSchemaVisibleButRuntimeUnsupported) {
   topoexec::RuntimeRunnerOptions options;
   options.mode = topoexec::RuntimeRunMode::kRun;
   options.tick_iterations = 1;
+
+  reset_runtime_records();
+  reset_thread_pool_probe_state();
   const auto result = runner.run(spec, options);
 
-  EXPECT_FALSE(result.ok);
-  ASSERT_FALSE(result.errors.empty());
-  EXPECT_NE(result.errors.front().find("thread_pool"), std::string::npos);
-  EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kError);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_GE(thread_pool_max_invocations().load(), 2);
+  EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.max_in_flight_count", "worker", 2.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.active_count", 2.0));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-3"));
+}
+
+TEST(Runtime, ThreadPoolLaneSerializesNonReentrantInvocations) {
+  const auto reg = delay_registry();
+  const auto spec = thread_pool_graph(false);
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  reset_thread_pool_probe_state();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(thread_pool_max_invocations().load(), 1);
+  EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.max_in_flight_count", "worker", 1.0));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-3"));
+}
+
+TEST(Runtime, AsyncMaxInflightDropsOldestBeforeChannelCapacity) {
+  const auto reg = delay_registry();
+  const auto spec = async_max_inflight_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_FALSE(has_record(2, "join", "ready", "burst-1-1"));
+  EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-2"));
+  EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-3"));
+  EXPECT_EQ(result.channel_publish_count, 2u);
+  EXPECT_EQ(result.async_publication_count, 6u);
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.async.accepted_count", 6.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.async.dropped_count", 2.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.async.completed_count", 2.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.async.max_in_flight_count", 2.0));
+  EXPECT_TRUE(has_trace_event(result, "async_admission"));
 }

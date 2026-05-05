@@ -645,6 +645,12 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     if (edge.policy.capacity <= 0) {
       add_error(result, "edge " + edge.id + " policy.capacity must be positive");
     }
+    if (edge.policy.max_inflight < 0) {
+      add_error(result, "edge " + edge.id + " policy.max_inflight must be non-negative");
+    }
+    if (edge.policy.max_inflight > 0 && edge.kind != EdgeKind::kAsync) {
+      add_error(result, "edge " + edge.id + " policy.max_inflight applies only to async edges");
+    }
     if (!is_allowed_drop_policy(edge.policy.overflow)) {
       add_error(result, "edge " + edge.id + " has unsupported policy.overflow " + edge.policy.overflow);
     }

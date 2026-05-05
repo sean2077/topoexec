@@ -48,9 +48,9 @@ cmake --build /tmp/topoexec-runtime-smoke -j
 
 ## Known Limitations To Keep In Release Notes
 
-- Worker-pool lanes are schema-visible but not implemented as threaded scheduling.
-- Async max-inflight is deferred; current async backpressure is bounded channel capacity and overflow policy.
-- Sanitizer CI is not required for `v0.1.0-alpha`, but should be added before beta.
+- Worker-pool lanes have bounded MVP execution, but priority, affinity, RT policy, persistent worker naming, and timeout preemption are not implemented.
+- Async `policy.max_inflight` is enforced for deferred completions, but it is not a general async task/future executor.
+- Non-blocking ThreadSanitizer CI is wired after the worker-lane MVP; require a green TSAN job before beta.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.
 
 ## Tagging

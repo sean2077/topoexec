@@ -45,13 +45,16 @@ This audit maps the implementation plan in `docs/spec.md` to concrete repository
 | 22 | CLI supports run, metrics, trace, lint, explain, diff-plan, and bench after runtime examples | `tools/topoexec/main.cpp` | CTest targets `cli_run_minimal`, `cli_metrics_json_minimal`, `cli_trace_minimal`, `cli_lint_control_feedback_delay`, `cli_lint_large_payload_copy`, `cli_explain_minimal`, `cli_diff_plan_minimal_vs_delay`, `cli_bench_minimal` |
 | 23 | Lint includes large payload copy warning and delay epoch boundary explanation | `tools/topoexec/main.cpp`, `examples/large_payload_copy.yaml`, `examples/control_feedback_delay.yaml` | `cli_lint_large_payload_copy` asserts `large_payload_copy`; `cli_lint_control_feedback_delay` asserts `delay_epoch_boundary` |
 | 24 | Schema and public docs describe actual runtime semantics without overclaiming deferred features | `docs/schema-v1.md`, `docs/runtime-semantics.md`, `README.md` | Manual grep confirmed deferred topics are described as later/optional |
+| 25 | `thread_pool` lane MVP executes bounded worker batches and enforces non-reentrant serialization | `src/event_runtime.cpp`, `src/runtime_runner.cpp` | `Runtime.ThreadPoolLaneExecutesReentrantInvocationsConcurrently`, `Runtime.ThreadPoolLaneSerializesNonReentrantInvocations` |
+| 26 | Async `policy.max_inflight` admission is enforced before channel capacity | `src/channel.cpp`, `src/runtime_runner.cpp`, `src/graph_io.cpp` | `Runtime.AsyncMaxInflightDropsOldestBeforeChannelCapacity` |
 
 ## Optional Future Scope
 
 The following items remain outside this core-runtime completion because `docs/spec.md` frames them as later or optional integration scope, and current docs do not claim otherwise:
 
 - ROS 2, OpenTelemetry, Prometheus, Perfetto, Python, and other adapters
-- Real threaded `worker_pool` scheduling and rich async worker-pool `max_inflight` policy beyond the current bounded async channel capacity/drop semantics
+- OS-level worker priority, affinity, RT policy, persistent worker naming, and timeout-based preemption
+- A general async task/future executor beyond async edge completion admission
 
 ## Verification Commands
 
@@ -64,4 +67,4 @@ git status --short --branch
 git rev-list --left-right --count HEAD...origin/main
 ```
 
-Observed result for the full test gate: 22/22 tests passed.
+Observed result for the full test gate: 29/29 CTest tests passed.

@@ -53,6 +53,7 @@ Channels and publication:
 
 - `channel_publish`
 - `channel_commit`
+- `async_admission`
 
 Composite loops:
 
@@ -68,6 +69,7 @@ The runtime includes identifiers where the event source has them:
 - Component events include `component_id` and `lane`.
 - Channel publish events include `channel_id`, `source_component`, `target_component`, and `edge_kind`.
 - Channel commit events include `channel_id` and `edge_kind`.
+- Async admission events include `channel_id`, `accepted`, and `max_inflight`.
 - Loop events include `loop_id` and loop-local `iteration`.
 
 Future adapters may add OpenTelemetry, Prometheus, or richer Perfetto metadata, but those adapters are separate from the core runtime contract.

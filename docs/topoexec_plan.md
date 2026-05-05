@@ -163,11 +163,11 @@ Acceptance:
 
 ---
 
-### Gap 5: Scheduler lanes exist as data, but real concurrency remains future work
+### Gap 5: Scheduler lanes need bounded runtime support
 
-The current plan and audit identify real threaded worker-pool scheduling and richer async worker-pool max-inflight policy as deferred scope.
+Post-alpha status: bounded `thread_pool` execution and async edge `policy.max_inflight` admission now exist with tests. Remaining work is OS-level scheduling policy, persistent worker lifecycle polish, timeout preemption, and TSAN CI.
 
-This is the largest next runtime feature area.
+This remains the largest runtime maturity area.
 
 Do not implement it casually. The recommended path is:
 
@@ -347,7 +347,7 @@ Add microbenchmarks:
 - delay edge epoch overhead;
 - shared/loaned large payload path;
 - CompositeLoop max-iteration overhead;
-- worker-pool throughput once implemented.
+- worker-pool throughput for bounded `thread_pool` lanes.
 
 Acceptance:
 
@@ -878,7 +878,7 @@ The next stage is complete when:
 - Current runnable apps are documented as tutorials.
 - Metrics and trace schemas are documented.
 - Public API is clearly separated from internal implementation.
-- Worker-pool / async max-inflight either exists with tests or is explicitly deferred.
+- Worker-pool / async max-inflight exists with tests or is explicitly deferred.
 - First alpha/beta release checklist is ready.
 
 ---

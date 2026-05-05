@@ -108,6 +108,13 @@ struct RuntimePublicationRouterMetrics {
   std::size_t delayed_staged_count{0};
   std::size_t state_staged_count{0};
   std::size_t async_staged_count{0};
+  std::size_t async_admission_accepted_count{0};
+  std::size_t async_admission_rejected_count{0};
+  std::size_t async_admission_dropped_count{0};
+  std::size_t async_completion_count{0};
+  std::size_t async_in_flight_count{0};
+  std::size_t async_max_in_flight_count{0};
+  std::size_t async_cancelled_count{0};
   std::size_t committed_count{0};
   std::size_t failed_commit_count{0};
 };
@@ -208,6 +215,8 @@ private:
     std::string source_component;
     std::string target_component;
     EdgeKind kind{EdgeKind::kImmediate};
+    int max_inflight{0};
+    std::string overflow;
   };
 
   struct StagedRoutedPublication {
@@ -216,6 +225,9 @@ private:
   };
 
   RuntimeChannelPublishResult commit_batch(std::vector<RuntimeChannelPublication> publications);
+  RuntimeChannelPublishResult admit_async_locked(const RoutedEdge& edge);
+  std::size_t pending_async_count_locked(const std::string& channel_id = {}) const;
+  bool drop_oldest_pending_async_locked(const std::string& channel_id);
 
   RuntimeChannelBus* channels_{nullptr};
   TraceCollector* trace_{nullptr};

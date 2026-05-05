@@ -48,3 +48,32 @@ jobs:
           TOPOEXEC_BUILD_DIR: build-${{ matrix.compiler }}-${{ matrix.build_type }}
           TOPOEXEC_BUILD_TYPE: ${{ matrix.build_type }}
         run: ./scripts/agent_check.sh
+
+  thread-sanitizer:
+    name: clang / Debug / TSAN
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            libcli11-dev \
+            libyaml-cpp-dev \
+            ninja-build \
+            nlohmann-json3-dev \
+            pkg-config
+
+      - name: Configure, build, and test with ThreadSanitizer
+        env:
+          CXX: clang++
+          CXXFLAGS: -fsanitize=thread -fno-omit-frame-pointer
+          LDFLAGS: -fsanitize=thread
+          TOPOEXEC_BUILD_DIR: build-clang-debug-tsan
+          TOPOEXEC_BUILD_TYPE: Debug
+        run: ./scripts/agent_check.sh

@@ -485,7 +485,7 @@ while not stopped:
   update metrics
 ```
 
-Use worker pools only after deterministic single-thread behavior is correct.
+Use worker pools only after deterministic single-thread behavior is correct. Current runtime support is a bounded worker-lane MVP that preserves compiled-region barriers.
 
 ### 6.4 Scheduler lanes
 
@@ -499,7 +499,7 @@ periodic:
   fixed tick lane, can be simulated in tests.
 
 worker_pool:
-  optional later; used for reentrant or async components.
+  bounded worker lane for ready invocations; reentrant components may overlap up to max_threads.
 ```
 
 Rules:
@@ -1119,7 +1119,7 @@ Initial lint rules:
 - large payload with copy policy;
 - blocking overflow on event_loop lane;
 - component budget greater than lane period;
-- async component without max_inflight;
+- async edge without max_inflight when admission needs a bound before channel capacity;
 - state edge with multiple writers;
 - delay edge with ambiguous epoch boundary.
 

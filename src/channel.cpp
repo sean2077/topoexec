@@ -508,8 +508,9 @@ std::vector<std::string> RuntimeChannelBus::channel_ids_for_component_port(const
 RuntimePublicationRouter::RuntimePublicationRouter(RuntimeChannelBus* channels, const std::vector<EdgeSpec>& specs)
     : channels_(channels) {
   for (const auto& spec : specs) {
-    source_to_edges_[spec.from].push_back(
-        RoutedEdge{spec.id, component_id_from_endpoint(spec.from), component_id_from_endpoint(spec.to), spec.kind});
+    source_to_edges_[spec.from].push_back(RoutedEdge{spec.id, component_id_from_endpoint(spec.from),
+                                                     component_id_from_endpoint(spec.to), spec.kind,
+                                                     spec.policy.max_inflight, spec.policy.overflow});
   }
 }
 
@@ -522,6 +523,73 @@ void RuntimePublicationRouter::begin_composite_region(const std::vector<std::str
   active_composite_components_.clear();
   active_composite_components_.insert(components.begin(), components.end());
   composite_external_stage_.clear();
+}
+
+std::size_t RuntimePublicationRouter::pending_async_count_locked(const std::string& channel_id) const {
+  auto matches = [&](const RuntimeChannelPublication& publication) {
+    return publication.kind == EdgeKind::kAsync && (channel_id.empty() || publication.id == channel_id);
+  };
+  auto count =
+      static_cast<std::size_t>(std::count_if(deferred_next_epoch_.begin(), deferred_next_epoch_.end(), matches) +
+                               std::count_if(deferred_ready_.begin(), deferred_ready_.end(), matches));
+  count += static_cast<std::size_t>(
+      std::count_if(composite_external_stage_.begin(), composite_external_stage_.end(), [&](const auto& staged) {
+        return staged.kind == EdgeKind::kAsync && (channel_id.empty() || staged.publication.id == channel_id);
+      }));
+  return count;
+}
+
+bool RuntimePublicationRouter::drop_oldest_pending_async_locked(const std::string& channel_id) {
+  auto matches = [&](const RuntimeChannelPublication& publication) {
+    return publication.kind == EdgeKind::kAsync && publication.id == channel_id;
+  };
+  auto ready = std::find_if(deferred_ready_.begin(), deferred_ready_.end(), matches);
+  if (ready != deferred_ready_.end()) {
+    deferred_ready_.erase(ready);
+    return true;
+  }
+  auto next = std::find_if(deferred_next_epoch_.begin(), deferred_next_epoch_.end(), matches);
+  if (next != deferred_next_epoch_.end()) {
+    deferred_next_epoch_.erase(next);
+    return true;
+  }
+  auto staged = std::find_if(composite_external_stage_.begin(), composite_external_stage_.end(),
+                             [&](const auto& item) { return matches(item.publication); });
+  if (staged != composite_external_stage_.end()) {
+    composite_external_stage_.erase(staged);
+    return true;
+  }
+  return false;
+}
+
+RuntimeChannelPublishResult RuntimePublicationRouter::admit_async_locked(const RoutedEdge& edge) {
+  if (edge.kind != EdgeKind::kAsync) {
+    return {true, {}};
+  }
+
+  auto pending = pending_async_count_locked(edge.channel_id);
+  if (edge.max_inflight > 0 && pending >= static_cast<std::size_t>(edge.max_inflight)) {
+    if (edge.overflow == "drop_oldest" || edge.overflow == "overwrite") {
+      if (drop_oldest_pending_async_locked(edge.channel_id)) {
+        --pending;
+        ++metrics_.async_admission_dropped_count;
+      }
+    } else if (edge.overflow == "drop_newest") {
+      ++metrics_.async_admission_dropped_count;
+      ++metrics_.async_admission_rejected_count;
+      metrics_.async_in_flight_count = pending_async_count_locked();
+      return {false, "async admission dropped newest for channel " + edge.channel_id};
+    } else {
+      ++metrics_.async_admission_rejected_count;
+      metrics_.async_in_flight_count = pending_async_count_locked();
+      return {false, "async admission max_inflight exceeded for channel " + edge.channel_id};
+    }
+  }
+
+  ++metrics_.async_admission_accepted_count;
+  metrics_.async_in_flight_count = pending + 1u;
+  metrics_.async_max_in_flight_count = std::max(metrics_.async_max_in_flight_count, pending + 1u);
+  return {true, {}};
 }
 
 RuntimeChannelPublishResult RuntimePublicationRouter::commit_composite_region_outputs() {
@@ -570,6 +638,16 @@ RuntimePublicationRouter::publish_shared_from(const std::string& source_endpoint
     publication.payload = payload;
     publication.kind = edge.kind;
     publication.event_timestamp = event_timestamp;
+    if (edge.kind == EdgeKind::kAsync) {
+      const auto admission = admit_async_locked(edge);
+      record_trace_event(trace_, "async_admission",
+                         {{"channel_id", edge.channel_id},
+                          {"accepted", admission.accepted ? "true" : "false"},
+                          {"max_inflight", std::to_string(edge.max_inflight)}});
+      if (!admission.accepted) {
+        return admission;
+      }
+    }
     if (!active_composite_components_.empty() && active_composite_components_.count(edge.source_component) != 0u &&
         active_composite_components_.count(edge.target_component) == 0u) {
       composite_external_stage_.push_back(StagedRoutedPublication{edge.kind, std::move(publication)});
@@ -608,11 +686,20 @@ RuntimeChannelPublishResult RuntimePublicationRouter::begin_epoch() {
     channels_->advance_epoch();
   }
   std::vector<RuntimeChannelPublication> ready;
+  std::size_t async_ready_count = 0;
   {
     std::lock_guard lock(mutex_);
     ready.swap(deferred_ready_);
+    async_ready_count = static_cast<std::size_t>(std::count_if(
+        ready.begin(), ready.end(), [](const auto& publication) { return publication.kind == EdgeKind::kAsync; }));
   }
-  return commit_batch(std::move(ready));
+  auto result = commit_batch(std::move(ready));
+  if (result.accepted && async_ready_count > 0u) {
+    std::lock_guard lock(mutex_);
+    metrics_.async_completion_count += async_ready_count;
+    metrics_.async_in_flight_count = pending_async_count_locked();
+  }
+  return result;
 }
 
 RuntimeChannelPublishResult RuntimePublicationRouter::commit_immediate() {

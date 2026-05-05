@@ -74,7 +74,7 @@ The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, run
 - `examples/apps/overload_latest_vs_queue`: latest overwrite versus bounded queue behavior.
 - `examples/apps/control_feedback_delay`: feedback delayed to the next epoch.
 - `examples/apps/composite_loop_fixed_point`: explicit immediate feedback owner.
-- `examples/apps/async_worker`: current async deferred-delivery and bounded queue behavior.
+- `examples/apps/async_worker`: async deferred delivery, bounded queue behavior, and overload semantics.
 - `examples/apps/cpp_builder_minimal`: pure C++ graph builder path.
 
 Each app directory includes a README with graph shape, run command, expected output, semantic lesson, and contrast case.
@@ -87,6 +87,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [Public API stability](docs/public-api.md)
 - [Payloads and ownership](docs/payloads.md)
 - [Scheduler semantics](docs/scheduler.md)
+- [Concurrency](docs/concurrency.md)
 - [Metrics](docs/metrics.md)
 - [Trace events](docs/trace-events.md)
 - [Performance baselines](docs/performance-baselines.md)
@@ -97,7 +98,7 @@ Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md
 
 ## Known Limitations
 
-- `thread_pool` lanes are schema-visible but rejected by `RuntimeRunner` in `run` mode.
-- Async max-inflight admission is deferred; current async backpressure is channel capacity and overflow policy.
-- Sanitizer CI is planned before beta.
+- `thread_pool` lanes support a bounded MVP for ready invocations, but priority, affinity, RT policy, persistent worker naming, and timeout-based preemption are advisory or not implemented.
+- Async `policy.max_inflight` admission is implemented for `async` edges; it is an admission limit for deferred completions, not a general async task/future executor.
+- Non-blocking ThreadSanitizer CI is wired for GitHub Actions; local `scripts/agent_check.sh` remains the required agent gate.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.

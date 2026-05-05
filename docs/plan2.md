@@ -6,6 +6,8 @@ Reviewed branch: `main`
 Latest visible commit on GitHub: `9877209 Tighten trigger policy cleanup boundaries`  
 Review basis: public GitHub files visible from the browser on 2026-05-04. I could not clone/build the repository from this environment, so all build/test statements below are based on repository evidence and should be independently reproduced by CI or a local checkout.
 
+Implementation status note: the current post-alpha branch has since implemented a bounded `thread_pool` runtime MVP and async edge `policy.max_inflight` admission with tests. The gap analysis below is retained as the planning source, while current behavior is documented in `docs/scheduler.md`, `docs/concurrency.md`, `docs/runtime-semantics.md`, and `docs/schema-v1.md`.
+
 ---
 
 ## 1. Executive Summary

@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <exception>
+#include <future>
 #include <map>
 #include <thread>
 #include <utility>
@@ -48,6 +49,16 @@ bool loop_policy_converged_after_iteration(const LoopPolicySpec& policy) {
   return policy.convergence == "single_pass" || policy.convergence == "after_first_iteration" ||
          policy.convergence == "always";
 }
+
+std::size_t worker_count_for_lane(const SchedulerGroupConfig& lane) {
+  return lane.max_threads > 0 ? static_cast<std::size_t>(lane.max_threads) : 1u;
+}
+
+struct ComponentInvocationOutcome {
+  Status status;
+  std::chrono::steady_clock::time_point started_at;
+  std::chrono::steady_clock::time_point finished_at;
+};
 
 constexpr std::size_t kDefaultRunUntilIdleIterationBound = 1000u;
 
@@ -150,43 +161,43 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
             result.trigger_metrics[found->id].coalesced_count += invocations.size();
           }
         }
-        for (const auto& invocation : invocations) {
-          if (!found->spec.execution.reentrant && component_in_flight[found->id] != 0u) {
-            result.ok = false;
-            result.stop_reason = SchedulerStopReason::kError;
-            result.errors.push_back("non-reentrant component " + found->id + " already has an in-flight invocation");
-            return false;
-          }
-          ++component_in_flight[found->id];
-          auto& component_metrics = result.component_metrics[found->id];
-          component_metrics.max_in_flight_count =
-              std::max(component_metrics.max_in_flight_count, component_in_flight[found->id]);
-          const auto component_started_at = std::chrono::steady_clock::now();
+        auto run_invocation = [&](const Invocation& invocation) {
+          ComponentInvocationOutcome outcome;
+          outcome.started_at = std::chrono::steady_clock::now();
           record_trace_event(trace_, "component_execute_begin",
                              {{"component_id", found->id}, {"lane", found->lane.id}});
-          const auto status = found->component->execute_status(invocation, *found->context);
-          const auto component_finished_at = std::chrono::steady_clock::now();
-          const auto duration_ns = non_negative_duration_ns(component_finished_at - component_started_at);
-          --component_in_flight[found->id];
-          ++component_metrics.execution_count;
-          component_metrics.last_duration_ns = duration_ns;
-          component_metrics.max_duration_ns = std::max(component_metrics.max_duration_ns, duration_ns);
-          if (invocation.budget.count() > 0 && component_finished_at - component_started_at > invocation.budget) {
-            ++component_metrics.budget_overrun_count;
+          try {
+            outcome.status = found->component->execute_status(invocation, *found->context);
+          } catch (const std::exception& error) {
+            outcome.status = Status::error(error.what());
           }
-          record_trace_span(trace_, "component_execute", component_started_at, component_finished_at,
+          outcome.finished_at = std::chrono::steady_clock::now();
+          record_trace_span(trace_, "component_execute", outcome.started_at, outcome.finished_at,
                             {{"component_id", found->id},
                              {"lane", found->lane.id},
                              {"trigger", std::to_string(static_cast<int>(invocation.trigger))}});
           record_trace_event(trace_, "component_execute_end", {{"component_id", found->id}, {"lane", found->lane.id}});
-          if (!status.ok()) {
+          return outcome;
+        };
+
+        auto record_invocation_outcome = [&](const Invocation& invocation, const ComponentInvocationOutcome& outcome,
+                                             bool commit_publications) {
+          auto& component_metrics = result.component_metrics[found->id];
+          const auto duration_ns = non_negative_duration_ns(outcome.finished_at - outcome.started_at);
+          ++component_metrics.execution_count;
+          component_metrics.last_duration_ns = duration_ns;
+          component_metrics.max_duration_ns = std::max(component_metrics.max_duration_ns, duration_ns);
+          if (invocation.budget.count() > 0 && outcome.finished_at - outcome.started_at > invocation.budget) {
+            ++component_metrics.budget_overrun_count;
+          }
+          if (!outcome.status.ok()) {
             ++component_metrics.error_count;
             result.ok = false;
             result.stop_reason = SchedulerStopReason::kError;
-            result.errors.push_back("component " + found->id + " failed: " + status.message());
+            result.errors.push_back("component " + found->id + " failed: " + outcome.status.message());
             return false;
           }
-          if (publications_ != nullptr) {
+          if (commit_publications && publications_ != nullptr) {
             const auto commit = publications_->commit_immediate();
             if (!commit.accepted) {
               result.ok = false;
@@ -204,6 +215,82 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           SchedulerMetrics metrics;
           metrics.completed_count = 1;
           result.group_metrics[found->lane.id].completed_count += 1;
+          return true;
+        };
+
+        auto execute_sequential = [&]() {
+          for (const auto& invocation : invocations) {
+            if (!found->spec.execution.reentrant && component_in_flight[found->id] != 0u) {
+              result.ok = false;
+              result.stop_reason = SchedulerStopReason::kError;
+              result.errors.push_back("non-reentrant component " + found->id + " already has an in-flight invocation");
+              return false;
+            }
+            ++component_in_flight[found->id];
+            auto& component_metrics = result.component_metrics[found->id];
+            component_metrics.max_in_flight_count =
+                std::max(component_metrics.max_in_flight_count, component_in_flight[found->id]);
+            const auto outcome = run_invocation(invocation);
+            --component_in_flight[found->id];
+            if (!record_invocation_outcome(invocation, outcome, true)) {
+              return false;
+            }
+          }
+          return true;
+        };
+
+        if (found->lane.type != "thread_pool" || invocations.empty()) {
+          return execute_sequential();
+        }
+
+        const auto worker_count = worker_count_for_lane(found->lane);
+        auto& lane_metrics = result.group_metrics[found->lane.id];
+        lane_metrics.worker_count = std::max(lane_metrics.worker_count, worker_count);
+        lane_metrics.queue_capacity = std::max(lane_metrics.queue_capacity, worker_count);
+
+        const auto batch_limit = found->spec.execution.reentrant ? worker_count : 1u;
+        for (std::size_t offset = 0; offset < invocations.size(); offset += batch_limit) {
+          if (options.stop_token.stop_requested()) {
+            result.stop_reason = SchedulerStopReason::kStopRequested;
+            return false;
+          }
+          const auto batch_size = std::min(batch_limit, invocations.size() - offset);
+          lane_metrics.queue_depth =
+              std::max(lane_metrics.queue_depth,
+                       invocations.size() - offset > batch_size ? invocations.size() - offset - batch_size : 0u);
+          lane_metrics.active_count = std::max(lane_metrics.active_count, batch_size);
+          lane_metrics.in_flight_count = std::max(lane_metrics.in_flight_count, batch_size);
+          auto& component_metrics = result.component_metrics[found->id];
+          component_in_flight[found->id] += batch_size;
+          component_metrics.max_in_flight_count =
+              std::max(component_metrics.max_in_flight_count, component_in_flight[found->id]);
+
+          std::vector<std::future<ComponentInvocationOutcome>> futures;
+          futures.reserve(batch_size);
+          for (std::size_t index = 0; index < batch_size; ++index) {
+            const auto invocation = invocations[offset + index];
+            futures.push_back(std::async(std::launch::async, [&, invocation]() { return run_invocation(invocation); }));
+          }
+
+          for (std::size_t index = 0; index < futures.size(); ++index) {
+            const auto outcome = futures[index].get();
+            if (component_in_flight[found->id] > 0u) {
+              --component_in_flight[found->id];
+            }
+            if (!record_invocation_outcome(invocations[offset + index], outcome, false)) {
+              return false;
+            }
+          }
+          if (publications_ != nullptr) {
+            const auto commit = publications_->commit_immediate();
+            if (!commit.accepted) {
+              result.ok = false;
+              result.stop_reason = SchedulerStopReason::kError;
+              result.errors.push_back("immediate publication commit failed after thread_pool component " + found->id +
+                                      ": " + commit.reason);
+              return false;
+            }
+          }
         }
       } catch (const std::exception& error) {
         if (component_in_flight[found->id] > 0u) {

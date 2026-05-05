@@ -17,7 +17,7 @@ These headers are safe for alpha users to include directly. Additive fields may 
 
 - `topoexec/runtime/event_runtime.hpp`: lower-level event loop surface used by tests and advanced embedders.
 - `topoexec/runtime/channel.hpp`: channel internals are usable, but publication routing and metrics may still grow.
-- `topoexec/runtime/scheduler.hpp`: lane data and metrics are stable enough to observe; worker-pool execution is not implemented.
+- `topoexec/runtime/scheduler.hpp`: lane data, stop tokens, and scheduler metrics are stable enough to observe; worker-pool execution is a bounded MVP.
 - `topoexec/common/metrics.hpp`, `logging.hpp`, and `trace.hpp`: small utility APIs that may gain exporters later.
 
 ## Internal Or Optional

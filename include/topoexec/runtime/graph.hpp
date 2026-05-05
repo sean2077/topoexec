@@ -69,6 +69,7 @@ struct EdgePolicySpec {
   std::string overflow{"overwrite"};
   int lifespan_ms{0};
   int deadline_ms{0};
+  int max_inflight{0};
   bool preserve_order{true};
   bool allow_drop{true};
   bool emit_health_events{true};

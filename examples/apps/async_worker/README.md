@@ -21,6 +21,6 @@ async_drop_count=1
 channel_drop_count=2
 ```
 
-This app demonstrates the current async edge contract. Worker completions are staged for a later epoch, so the join component runs on a `task_ready` event in epoch 2. The async channel is bounded and drops stale completions according to `drop_oldest`.
+This app demonstrates the async edge contract. Worker completions are staged for a later epoch, so the join component runs on a `task_ready` event in epoch 2. The async channel is bounded and drops stale completions according to `drop_oldest`.
 
-Contrast case: this is not a threaded worker pool yet. It proves deferred async visibility and bounded queue behavior; real threaded scheduling and max-inflight policy are future scope.
+Contrast case: this app uses async edge delivery, not a `thread_pool` lane. Use `policy.max_inflight` on an `async` edge when admission must be limited before channel capacity.

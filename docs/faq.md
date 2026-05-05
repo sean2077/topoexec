@@ -22,11 +22,11 @@ No. `GraphContext::publish()` stages output. The runtime commits staged publicat
 
 ## Is `thread_pool` real?
 
-Not in `v0.1.0-alpha`. It is accepted by schema for forward compatibility, but `RuntimeRunner` rejects `thread_pool` lanes in `run` mode. Use `event_loop` for runnable alpha graphs.
+Yes, as a bounded MVP. `RuntimeRunner` runs ready invocations on worker threads up to the lane `max_threads` value, then waits at the component/region barrier before downstream regions run. `execution.reentrant: false` still serializes a component's invocations.
 
 ## Is async max-inflight implemented?
 
-No dedicated async admission controller exists yet. Current async backpressure uses bounded async channels and overflow policy. A future worker/admission path should enforce `max_inflight` independently of channel capacity.
+Yes for async edges. Set `policy.max_inflight` on an `async` edge to limit outstanding deferred completions before channel capacity is considered. It is not a general task executor; it controls admission of async completion events.
 
 ## How do components report errors?
 

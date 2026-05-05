@@ -64,7 +64,7 @@ Fields:
 - `rt_priority` optional integer, default `0`.
 - `isolation_intent` optional string, default `none`.
 
-Runtime support note: `event_loop` is the production runtime lane for `v0.1.0-alpha`. `fixed_rate` is simulated by bounded runtime ticks. `thread_pool` remains schema-visible for forward compatibility but `RuntimeRunner` rejects it in `run` mode until the worker-pool MVP lands; see [scheduler.md](scheduler.md).
+Runtime support note: `event_loop` is the deterministic default. `fixed_rate` is simulated by bounded runtime ticks. `thread_pool` has bounded MVP support for ready invocations with `max_threads`; see [scheduler.md](scheduler.md) and [concurrency.md](concurrency.md).
 
 ## components
 
@@ -181,6 +181,7 @@ Allowed fields:
 - `overflow` optional string, default `overwrite`; allowed values are `overwrite`, `drop_oldest`, `drop_newest`, `block`, `fail_fast`, and `reject`.
 - `lifespan_ms` optional integer, default `0`.
 - `deadline_ms` optional integer, default `0`.
+- `max_inflight` optional non-negative integer, default `0`; applies only to `async` edges and limits deferred completions before channel capacity.
 - `preserve_order` optional boolean, default `true`.
 - `allow_drop` optional boolean, default `true`.
 - `emit_health_events` optional boolean, default `true`.
@@ -189,7 +190,7 @@ Allowed fields:
 - `owner` optional string, default `runtime`; allowed values are `producer`, `runtime`, and `consumer`.
 - `readers` optional string, default `single`; allowed values are `single` and `multi`.
 
-Latest-style modes (`latest`, `latched`, `previous_tick`) cannot use `drop_newest` or `block`. `move_only` requires `readers: single`. State edges currently reject multiple writers to the same target endpoint.
+Latest-style modes (`latest`, `latched`, `previous_tick`) cannot use `drop_newest` or `block`. `move_only` requires `readers: single`. State edges currently reject multiple writers to the same target endpoint. `max_inflight` is invalid on non-`async` edges.
 
 ## composite_loops
 
@@ -221,7 +222,7 @@ Loop policy fields:
 - `min_interval_ms` optional non-negative integer.
 - `convergence` optional string.
 
-Current runtime execution is strongest for `fixed_point`; richer async and worker-pool policies remain future scope.
+Current runtime execution is strongest for `fixed_point`. `loop_policy.max_inflight` is reserved for loop-level async policies and is separate from edge-level async `policy.max_inflight`.
 
 ## Valid Minimal Example
 

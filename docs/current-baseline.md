@@ -67,9 +67,9 @@ CI run 25331487554 on commit 3b5d7c0 completed successfully:
 - clang / RelWithDebInfo
 ```
 
-Known baseline limitations:
+Current branch limitations after the post-alpha scheduler/async pass:
 
-- Threaded worker-pool scheduling is not implemented; `RuntimeRunner` rejects `thread_pool` lanes in `run` mode.
-- Async max-inflight admission is deferred; current async behavior uses bounded async channel capacity and overflow policy.
-- Sanitizer CI is planned before beta.
+- `thread_pool` lanes have bounded MVP execution, but priority, affinity, RT policy, persistent worker naming, and timeout preemption are not implemented.
+- Async `policy.max_inflight` is enforced for deferred completions, but it is not a general async task/future executor.
+- Non-blocking ThreadSanitizer CI is wired for GitHub Actions after the worker-lane MVP; local verification still uses `scripts/agent_check.sh`.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.
