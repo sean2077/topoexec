@@ -20,7 +20,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | G5 | P1 | complete | `docs/schema-v1.md`, `schema/topoexec.schema.v1.json`, CLI validation tests | Schema reference, strict machine-readable schema, `--schema-only`, `--semantic`, schema contract smoke, valid fixtures, and invalid fixture rejection are present. | `./scripts/agent_check.sh` |
 | G6 | P0/P1 | complete | scheduler docs/runtime/tests | Scheduler lane spec parses admission/timing fields; thread_pool bounded-batch v1 covers reentrant overlap, non-reentrant serialization, queue admission overflow, rejected metrics, batch trace spans, stop cleanup, and fixed_rate simulated overrun/jitter metrics. Persistent named workers and wall-clock sleep cadence are explicitly deferred. | `./scripts/agent_check.sh` |
 | G7 | P1 | not-started | async task runtime | Async edge admission exists, but optional `TaskExecutor`/future runtime is not implemented. | `./scripts/agent_check.sh` |
-| G8 | P0/P1 | partial | channel/backpressure docs/runtime/tests | Bounded policies, lifespan stale drops, deadline miss flags/metrics, and channel health metrics exist; fuller multi-reader/backpressure event semantics remain. | `./scripts/agent_check.sh` |
+| G8 | P0/P1 | complete | channel/backpressure docs/runtime/tests | Bounded policies, overflow/reject/overwrite/stale/deadline health metrics, peek/snapshot/bounded drain/read APIs, per-reader queue cursors, and channel docs are implemented and tested. Backpressure remains metric/health-event based, not recursive execution. | `./scripts/agent_check.sh` |
 | G9 | P1 | partial | payload/memory/buffer pool | Built-in payloads and prototype `BufferPool` exist; custom registration, pool metrics, and no-copy examples need completion. | `./scripts/agent_check.sh` |
 | G10 | P1 | partial | trigger engine docs/runtime/tests | Trigger engine supports basic any/all/time-sync/batch paths; request/future/watermark-style completeness remains. | `./scripts/agent_check.sh` |
 | G11 | P1 | partial | CompositeLoop/region runtime | Exact SCC ownership and loop metrics exist; typed convergence/budget/error policy is still incomplete. | `./scripts/agent_check.sh` |
@@ -41,7 +41,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 
 ## Next goal
 
-Continue with **G8/G10/G11 runtime completeness** unless the user explicitly asks to prioritize P1 productization. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
+Continue with **G10/G11 runtime completeness** unless the user explicitly asks to prioritize P1 productization. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
 
 ## Blockers
 

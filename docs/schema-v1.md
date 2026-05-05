@@ -194,7 +194,7 @@ Allowed fields:
 - `timestamp_domain` optional string, default `steady`; allowed values are `steady`, `system`, `device`, and `external`.
 - `copy_policy` optional string, default `copy`; allowed values are `copy`, `shared_view`, `loaned_view`, and `move_only`.
 - `owner` optional string, default `runtime`; allowed values are `producer`, `runtime`, and `consumer`.
-- `readers` optional string, default `single`; allowed values are `single` and `multi`.
+- `readers` optional string, default `single`; allowed values are `single`, `multi`, and `multiple`.
 
 Latest-style modes (`latest`, `latched`, `previous_tick`) cannot use `drop_newest` or `block`. `move_only` requires `readers: single`. State edges currently reject multiple writers to the same target endpoint. `max_inflight` is invalid on non-`async` edges.
 

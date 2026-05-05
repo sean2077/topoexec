@@ -56,7 +56,13 @@ Channels:
 - `runtime.channel.publish_count`: accepted publications for a channel.
 - `runtime.channel.delivery_count`: delivered messages for a channel.
 - `runtime.channel.drop_count`: dropped, overwritten, rejected, or failed-fast channel publications.
+- `runtime.channel.deadline_miss_count`: delivered messages older than `policy.deadline_ms`.
+- `runtime.channel.stale_drop_count`: messages dropped before delivery because `policy.lifespan_ms` expired.
+- `runtime.channel.reject_count`: publications rejected or would-blocked by capacity/backpressure policy.
+- `runtime.channel.overwrite_count`: stored messages overwritten or dropped-oldest to accept newer work.
+- `runtime.channel.health_event_count`: aggregate channel degradation events from overwrite, reject, stale, or deadline paths.
 - `runtime.channel.max_depth`: maximum observed channel depth.
+- `runtime.channel.message_age_ms`: latest observed age at delivery time for that channel.
 - `runtime.channel.payload_copy_count`: payload copies forced by channel copy policy.
 
 Publication router:
@@ -113,6 +119,4 @@ These fields summarize the sample array for quick CLI and test assertions; the s
 
 ## Channel health metrics
 
-- `runtime.channel.deadline_miss_count`: number of delivered messages whose age exceeded `policy.deadline_ms`. The delivered `RuntimeChannelMessage::deadline_missed` flag is set as well.
-- `runtime.channel.message_age_ms`: latest observed age at delivery time for that channel.
-- Stale messages older than `policy.lifespan_ms` are dropped before delivery, increment `runtime.channel.drop_count`, and set the channel degradation reason to `stale message expired`.
+See [channels.md](channels.md) for the channel/backpressure contract. Deadline misses, stale drops, rejects, overwrites, and aggregate health events are exported as stable `runtime.channel.*` metrics.

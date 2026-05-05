@@ -28,9 +28,9 @@ Runtime execution is bounded by steps, duration, stop token, or idle detection. 
 
 Runtime channels are bounded. `latest` with `overwrite` and `capacity=1` is the low-latency default. `queue` with explicit capacity is for ordered event or command streams. `latched` keeps the last committed value for late readers. `previous_tick` exposes only the prior epoch's value. `barrier` with capacity N waits until N queued messages are available before delivering the synchronized batch.
 
-Overflow behavior must be explicit. Dropped, overwritten, blocked, or rejected publications must be observable through channel metrics. Blocking overflow is not appropriate on a single-thread event-loop hot path unless the graph explicitly opts into a blocking runtime mode.
+Overflow behavior must be explicit. Dropped, overwritten, blocked, or rejected publications must be observable through channel metrics. Blocking overflow reports a would-block result on the current non-blocking runtime path and is not allowed to silently block a single-thread event loop. Queue readers are single-reader by default; explicit `readers: multi` / `readers: multiple` uses per-reader cursors over bounded retained history, so a slow reader can still miss messages dropped by overflow.
 
-Copy policy is part of the runtime contract. `copy` owns a copied payload and rejects large payloads that cannot be copied safely. `shared_view` shares immutable payload storage. `loaned_view` preserves `BufferPool` / `LoanedFrame` frame buffers without copying and publishes them as immutable runtime payloads. `move_only` is accepted only for `readers: single`; multi-reader move-only edges are invalid.
+Read policy is part of the runtime contract: low-level APIs distinguish peek, snapshot, bounded drain, and per-reader drain. Copy policy is part of the runtime contract. `copy` owns a copied payload and rejects large payloads that cannot be copied safely. `shared_view` shares immutable payload storage. `loaned_view` preserves `BufferPool` / `LoanedFrame` frame buffers without copying and publishes them as immutable runtime payloads. `move_only` is accepted only for `readers: single`; multi-reader move-only edges are invalid.
 
 ## Trigger Readiness
 

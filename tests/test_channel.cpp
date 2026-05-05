@@ -34,7 +34,10 @@ TEST(Channel, LatestChannelDeliversOnlyNewestPayload) {
   const auto messages = bus.consume_for_component("consumer");
   ASSERT_EQ(messages.size(), 1u);
   EXPECT_EQ(*messages.front().payload, "two");
-  EXPECT_EQ(bus.metrics("frames").drop_count, 1u);
+  const auto metrics = bus.metrics("frames");
+  EXPECT_EQ(metrics.drop_count, 1u);
+  EXPECT_EQ(metrics.overwrite_count, 1u);
+  EXPECT_EQ(metrics.health_event_count, 1u);
 }
 
 TEST(Channel, QueueDropsOldestWhenFull) {
@@ -63,7 +66,10 @@ TEST(Channel, QueueDropNewestRejectsIncomingPayloadWhenFull) {
   const auto messages = bus.consume_for_component("consumer");
   ASSERT_EQ(messages.size(), 1u);
   EXPECT_EQ(*messages.front().payload, "one");
-  EXPECT_EQ(bus.metrics("events").drop_count, 1u);
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.drop_count, 1u);
+  EXPECT_EQ(metrics.reject_count, 1u);
+  EXPECT_EQ(metrics.health_event_count, 1u);
 }
 
 TEST(Channel, QueueBlockReturnsWouldBlockWithoutDroppingExistingPayload) {
@@ -79,7 +85,10 @@ TEST(Channel, QueueBlockReturnsWouldBlockWithoutDroppingExistingPayload) {
   const auto messages = bus.consume_for_component("consumer");
   ASSERT_EQ(messages.size(), 1u);
   EXPECT_EQ(*messages.front().payload, "one");
-  EXPECT_EQ(bus.metrics("events").drop_count, 0u);
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.drop_count, 0u);
+  EXPECT_EQ(metrics.reject_count, 1u);
+  EXPECT_EQ(metrics.health_event_count, 1u);
 }
 
 TEST(Channel, QueueFailFastReturnsCapacityError) {
@@ -91,7 +100,61 @@ TEST(Channel, QueueFailFastReturnsCapacityError) {
   const auto result = bus.publish_from("producer.out", topoexec::make_text_payload("two"));
   EXPECT_FALSE(result.accepted);
   EXPECT_EQ(result.reason, "channel capacity exceeded");
-  EXPECT_EQ(bus.metrics("events").drop_count, 1u);
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.drop_count, 1u);
+  EXPECT_EQ(metrics.reject_count, 1u);
+  EXPECT_EQ(metrics.health_event_count, 1u);
+}
+
+TEST(Channel, QueueDrainMaxBatchPreservesRemainingMessages) {
+  topoexec::RuntimeChannelBus bus({edge("events", "queue", 3)});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+
+  auto first = bus.drain_for_component_port("consumer", "in", 1);
+  ASSERT_EQ(first.size(), 1u);
+  EXPECT_EQ(*first.front().payload, "one");
+  EXPECT_EQ(bus.metrics("events").depth, 1u);
+
+  auto second = bus.drain_for_component_port("consumer", "in", 1);
+  ASSERT_EQ(second.size(), 1u);
+  EXPECT_EQ(*second.front().payload, "two");
+}
+
+TEST(Channel, SnapshotDoesNotConsumeQueuedMessages) {
+  topoexec::RuntimeChannelBus bus({edge("events", "queue", 3)});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+
+  const auto snapshot = bus.snapshot_for_component_port("consumer", "in", 2);
+
+  ASSERT_EQ(snapshot.size(), 2u);
+  EXPECT_EQ(*snapshot[0].payload, "one");
+  EXPECT_EQ(*snapshot[1].payload, "two");
+  EXPECT_EQ(bus.metrics("events").delivered_count, 0u);
+  const auto drained = bus.consume_for_component("consumer");
+  ASSERT_EQ(drained.size(), 2u);
+}
+
+TEST(Channel, QueueMultiReaderMaintainsPerReaderCursor) {
+  auto spec = edge("events", "queue", 3);
+  spec.policy.readers = "multi";
+  topoexec::RuntimeChannelBus bus({spec});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+
+  const auto first_reader = bus.drain_for_reader("events", "reader_a");
+  const auto first_reader_again = bus.drain_for_reader("events", "reader_a");
+  const auto second_reader = bus.drain_for_reader("events", "reader_b");
+
+  ASSERT_EQ(first_reader.size(), 2u);
+  EXPECT_TRUE(first_reader_again.empty());
+  ASSERT_EQ(second_reader.size(), 2u);
+  EXPECT_EQ(*second_reader[0].payload, "one");
+  EXPECT_EQ(*second_reader[1].payload, "two");
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.delivered_count, 4u);
+  EXPECT_EQ(metrics.depth, 2u);
 }
 
 TEST(Channel, DeadlineMissIsMarkedOnLateConsume) {
@@ -107,6 +170,7 @@ TEST(Channel, DeadlineMissIsMarkedOnLateConsume) {
   EXPECT_TRUE(messages.front().deadline_missed);
   const auto metrics = bus.metrics("events");
   EXPECT_EQ(metrics.deadline_miss_count, 1u);
+  EXPECT_EQ(metrics.health_event_count, 1u);
   EXPECT_GT(metrics.message_age_ms, 0.0);
 }
 
@@ -122,6 +186,8 @@ TEST(Channel, LifespanDropsStaleMessageBeforeDelivery) {
   EXPECT_TRUE(messages.empty());
   const auto metrics = bus.metrics("events");
   EXPECT_EQ(metrics.drop_count, 1u);
+  EXPECT_EQ(metrics.stale_drop_count, 1u);
+  EXPECT_EQ(metrics.health_event_count, 1u);
   EXPECT_EQ(metrics.degradation_reason, "stale message expired");
 }
 

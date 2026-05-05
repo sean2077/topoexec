@@ -206,7 +206,7 @@ bool is_allowed_owner(const std::string& owner) {
 }
 
 bool is_allowed_readers(const std::string& readers) {
-  return readers == "single" || readers == "multi";
+  return readers == "single" || readers == "multi" || readers == "multiple";
 }
 
 bool is_allowed_event_source_type(const std::string& type) {

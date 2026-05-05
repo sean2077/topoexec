@@ -40,7 +40,7 @@ These headers are public because tests, advanced examples, or future extension p
 
 | Header | Reason |
 | --- | --- |
-| `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, and channel metrics. The overload tutorial uses it as an advanced channel-policy example. |
+| `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, channel read APIs (`peek`, `snapshot`, bounded drain, explicit per-reader drain), and channel metrics. The overload tutorial uses it as an advanced channel-policy example. |
 | `topoexec/runtime/event_runtime.hpp` | Lower-level event runtime surface used by tests and advanced embedders. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
 | `topoexec/common/metrics.hpp` | Small metrics registry/value helpers that may gain sinks/exporters later. |

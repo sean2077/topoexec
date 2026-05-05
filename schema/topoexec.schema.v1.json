@@ -470,7 +470,8 @@
           "default": "single",
           "enum": [
             "single",
-            "multi"
+            "multi",
+            "multiple"
           ]
         }
       }

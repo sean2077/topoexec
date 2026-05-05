@@ -84,6 +84,10 @@ bool is_latest_style(ChannelType type) {
          type == ChannelType::kPreviousTick;
 }
 
+bool is_multi_reader(const std::string& readers) {
+  return readers == "multi" || readers == "multiple";
+}
+
 std::string large_payload_copy_reason(const RuntimePayload& payload) {
   if (!payload.is_large_payload()) {
     return {};
@@ -130,6 +134,7 @@ RuntimeChannelBus::RuntimeChannelBus(const std::vector<EdgeSpec>& specs) {
     state.config.deadline = std::chrono::milliseconds(spec.policy.deadline_ms);
     state.config.timestamp_domain = timestamp_domain_from_string(spec.policy.timestamp_domain);
     state.config.copy_policy = copy_policy_from_string(spec.policy.copy_policy);
+    state.config.readers = spec.policy.readers;
     state.from = spec.from;
     state.to = spec.to;
     state.metrics.channel_id = spec.id;
@@ -278,14 +283,55 @@ RuntimeChannelReadResult RuntimeChannelBus::peek_latest_for_component_port(const
   const auto ids = channel_ids_for_component_port(component_id, port_name);
   for (const auto& channel_id : ids) {
     auto& state = channels_.at(channel_id);
-    if (state.latest.has_value()) {
-      return {true, state.latest, {}};
-    }
-    if (!state.queue.empty()) {
-      return {true, state.queue.back(), {}};
+    auto snapshot = snapshot_from_state(state, 1);
+    if (!snapshot.empty()) {
+      return {true, std::move(snapshot.front()), {}};
     }
   }
   return {true, std::nullopt, {}};
+}
+
+std::vector<RuntimeChannelMessage> RuntimeChannelBus::drain_for_reader(const std::string& channel_id,
+                                                                       const std::string& reader_id,
+                                                                       std::size_t max_batch) {
+  std::lock_guard lock(mutex_);
+  const auto found = channels_.find(channel_id);
+  if (found == channels_.end()) {
+    return {};
+  }
+  auto& state = found->second;
+  if (is_latest_style(state.config.type)) {
+    auto latest = consume_latest_from_state(state, reader_id);
+    if (latest.has_value()) {
+      std::vector<RuntimeChannelMessage> messages;
+      messages.push_back(std::move(*latest));
+      return messages;
+    }
+    return {};
+  }
+  return consume_from_state(state, reader_id, max_batch);
+}
+
+std::vector<RuntimeChannelMessage> RuntimeChannelBus::snapshot_for_component_port(const std::string& component_id,
+                                                                                  const std::string& port_name,
+                                                                                  std::size_t max_batch) {
+  std::lock_guard lock(mutex_);
+  std::vector<RuntimeChannelMessage> messages;
+  const auto ids = channel_ids_for_component_port(component_id, port_name);
+  for (const auto& channel_id : ids) {
+    if (max_batch != 0u && messages.size() >= max_batch) {
+      break;
+    }
+    const auto remaining = max_batch == 0u ? 0u : max_batch - messages.size();
+    auto snapshot = snapshot_from_state(channels_.at(channel_id), remaining);
+    for (auto& message : snapshot) {
+      if (max_batch != 0u && messages.size() >= max_batch) {
+        break;
+      }
+      messages.push_back(std::move(message));
+    }
+  }
+  return messages;
 }
 
 std::vector<RuntimeChannelMessage> RuntimeChannelBus::drain_for_component_port(const std::string& component_id,
@@ -303,7 +349,11 @@ std::vector<RuntimeChannelMessage> RuntimeChannelBus::drain_for_component_port(c
       }
       continue;
     }
-    auto drained = consume_from_state(state);
+    if (max_batch != 0u && messages.size() >= max_batch) {
+      break;
+    }
+    const auto remaining = max_batch == 0u ? 0u : max_batch - messages.size();
+    auto drained = consume_from_state(state, component_id + "." + port_name, remaining);
     for (auto& message : drained) {
       if (max_batch != 0u && messages.size() >= max_batch) {
         break;
@@ -329,7 +379,7 @@ std::vector<RuntimeChannelMessage> RuntimeChannelBus::consume_for_component(cons
         messages.push_back(std::move(*latest));
       }
     } else {
-      auto drained = consume_from_state(state);
+      auto drained = consume_from_state(state, component_id);
       messages.insert(messages.end(), drained.begin(), drained.end());
     }
   }
@@ -409,6 +459,8 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
     if (state.config.type == ChannelType::kPreviousTick) {
       if (state.pending_previous_tick.has_value()) {
         ++state.metrics.drop_count;
+        ++state.metrics.overwrite_count;
+        ++state.metrics.health_event_count;
       }
       state.pending_previous_tick = message;
       ++state.metrics.published_count;
@@ -420,6 +472,8 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
     if (is_latest_style(state.config.type)) {
       if (state.config.type == ChannelType::kLatestOnly && state.metrics.depth > 0u) {
         ++state.metrics.drop_count;
+        ++state.metrics.overwrite_count;
+        ++state.metrics.health_event_count;
       }
       state.queue.clear();
     } else {
@@ -427,6 +481,8 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
       while (state.queue.size() > state.config.capacity) {
         state.queue.pop_front();
         ++state.metrics.drop_count;
+        ++state.metrics.overwrite_count;
+        ++state.metrics.health_event_count;
       }
     }
     ++state.metrics.published_count;
@@ -441,13 +497,19 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
   if (!is_latest_style(state.config.type) && state.queue.size() >= state.config.capacity) {
     if (state.config.drop_policy == DropPolicy::kDropNewest) {
       ++state.metrics.drop_count;
+      ++state.metrics.reject_count;
+      ++state.metrics.health_event_count;
       return {false, "dropped newest payload"};
     }
     if (state.config.drop_policy == DropPolicy::kBlockProducer) {
+      ++state.metrics.reject_count;
+      ++state.metrics.health_event_count;
       return {false, "would block producer"};
     }
     if (state.config.drop_policy == DropPolicy::kFailFast) {
       ++state.metrics.drop_count;
+      ++state.metrics.reject_count;
+      ++state.metrics.health_event_count;
       return {false, "channel capacity exceeded"};
     }
   }
@@ -463,9 +525,8 @@ std::optional<RuntimeChannelMessage> RuntimeChannelBus::consume_latest_from_stat
   const auto now = std::chrono::steady_clock::now();
   if (message_expired(state, *state.latest, now)) {
     state.latest.reset();
-    ++state.metrics.drop_count;
+    mark_stale_drop(state);
     state.metrics.depth = 0;
-    state.metrics.degradation_reason = "stale message expired";
     return std::nullopt;
   }
   const auto last = state.delivered_latest_sequences.find(reader_id);
@@ -479,25 +540,76 @@ std::optional<RuntimeChannelMessage> RuntimeChannelBus::consume_latest_from_stat
   return message;
 }
 
-std::vector<RuntimeChannelMessage> RuntimeChannelBus::consume_from_state(ChannelState& state) {
+std::vector<RuntimeChannelMessage>
+RuntimeChannelBus::consume_from_state(ChannelState& state, const std::string& reader_id, std::size_t max_batch) {
   if (state.config.type == ChannelType::kBarrier && state.queue.size() < state.config.capacity) {
     return {};
   }
   const auto now = std::chrono::steady_clock::now();
+  const bool multi_reader = is_multi_reader(state.config.readers);
+  const std::uint64_t last_delivered = multi_reader && state.delivered_queue_sequences.count(reader_id) != 0u
+                                           ? state.delivered_queue_sequences.at(reader_id)
+                                           : 0u;
   std::vector<RuntimeChannelMessage> messages;
   messages.reserve(state.queue.size());
+  std::deque<RuntimeChannelMessage> retained;
   for (auto& message : state.queue) {
     if (message_expired(state, message, now)) {
-      ++state.metrics.drop_count;
-      state.metrics.degradation_reason = "stale message expired";
+      mark_stale_drop(state);
       continue;
     }
-    mark_delivery_metrics(state, message, now);
-    messages.push_back(std::move(message));
+    const bool already_delivered_to_reader = multi_reader && message.sequence <= last_delivered;
+    const bool batch_full = max_batch != 0u && messages.size() >= max_batch;
+    if (already_delivered_to_reader || batch_full) {
+      retained.push_back(std::move(message));
+      continue;
+    }
+    auto delivered = message;
+    mark_delivery_metrics(state, delivered, now);
+    if (multi_reader) {
+      state.delivered_queue_sequences[reader_id] = delivered.sequence;
+      retained.push_back(std::move(message));
+    }
+    messages.push_back(std::move(delivered));
   }
   state.metrics.delivered_count += messages.size();
-  state.queue.clear();
-  state.metrics.depth = 0;
+  if (multi_reader || (max_batch != 0u && !retained.empty())) {
+    state.queue = std::move(retained);
+  } else {
+    state.queue.clear();
+  }
+  state.metrics.depth = state.queue.size();
+  return messages;
+}
+
+std::vector<RuntimeChannelMessage> RuntimeChannelBus::snapshot_from_state(ChannelState& state, std::size_t max_batch) {
+  const auto now = std::chrono::steady_clock::now();
+  std::vector<RuntimeChannelMessage> messages;
+  if (is_latest_style(state.config.type)) {
+    if (state.latest.has_value() && message_expired(state, *state.latest, now)) {
+      state.latest.reset();
+      mark_stale_drop(state);
+      state.metrics.depth = 0;
+      return {};
+    }
+    if (state.latest.has_value()) {
+      messages.push_back(*state.latest);
+    }
+    return messages;
+  }
+  std::deque<RuntimeChannelMessage> retained;
+  for (auto& message : state.queue) {
+    if (message_expired(state, message, now)) {
+      mark_stale_drop(state);
+      continue;
+    }
+    if (max_batch == 0u || messages.size() < max_batch) {
+      messages.push_back(message);
+    }
+    retained.push_back(std::move(message));
+  }
+  state.queue = std::move(retained);
+  state.metrics.depth = state.queue.size();
   return messages;
 }
 
@@ -514,8 +626,16 @@ void RuntimeChannelBus::mark_delivery_metrics(ChannelState& state, RuntimeChanne
   if (state.config.deadline.count() > 0 && age > state.config.deadline) {
     message.deadline_missed = true;
     ++state.metrics.deadline_miss_count;
+    ++state.metrics.health_event_count;
     state.metrics.degradation_reason = "deadline missed";
   }
+}
+
+void RuntimeChannelBus::mark_stale_drop(ChannelState& state) {
+  ++state.metrics.drop_count;
+  ++state.metrics.stale_drop_count;
+  ++state.metrics.health_event_count;
+  state.metrics.degradation_reason = "stale message expired";
 }
 
 RuntimeChannelMetrics RuntimeChannelBus::metrics_from_state(const ChannelState& state) const {

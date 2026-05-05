@@ -79,6 +79,7 @@ struct ChannelConfig {
   std::chrono::milliseconds deadline{0};
   TimestampDomain timestamp_domain{TimestampDomain::kSteady};
   CopyPolicy copy_policy{CopyPolicy::kCopy};
+  std::string readers{"single"};
 };
 
 struct RuntimeChannelMessage {
@@ -97,6 +98,10 @@ struct RuntimeChannelMetrics {
   std::size_t delivered_count{0};
   std::size_t drop_count{0};
   std::size_t deadline_miss_count{0};
+  std::size_t stale_drop_count{0};
+  std::size_t reject_count{0};
+  std::size_t overwrite_count{0};
+  std::size_t health_event_count{0};
   std::size_t payload_copy_count{0};
   std::size_t copy_fallback_count{0};
   double message_age_ms{0.0};
@@ -154,6 +159,10 @@ public:
                                                                  const std::string& port_name);
   RuntimeChannelReadResult peek_latest_for_component_port(const std::string& component_id,
                                                           const std::string& port_name);
+  std::vector<RuntimeChannelMessage> drain_for_reader(const std::string& channel_id, const std::string& reader_id,
+                                                      std::size_t max_batch = 0);
+  std::vector<RuntimeChannelMessage>
+  snapshot_for_component_port(const std::string& component_id, const std::string& port_name, std::size_t max_batch = 0);
   std::vector<RuntimeChannelMessage> drain_for_component_port(const std::string& component_id,
                                                               const std::string& port_name, std::size_t max_batch = 0);
   std::vector<RuntimeChannelMessage> consume_for_component(const std::string& component_id);
@@ -174,6 +183,7 @@ private:
     std::optional<RuntimeChannelMessage> pending_previous_tick;
     std::deque<RuntimeChannelMessage> queue;
     std::map<std::string, std::uint64_t> delivered_latest_sequences;
+    std::map<std::string, std::uint64_t> delivered_queue_sequences;
     RuntimeChannelMetrics metrics;
   };
 
@@ -182,11 +192,14 @@ private:
   RuntimeChannelPublishResult publish_to_state(ChannelState& state, RuntimePayloadPtr payload,
                                                std::optional<EventTimestamp> event_timestamp, bool payload_was_copied);
   std::optional<RuntimeChannelMessage> consume_latest_from_state(ChannelState& state, const std::string& reader_id);
-  std::vector<RuntimeChannelMessage> consume_from_state(ChannelState& state);
+  std::vector<RuntimeChannelMessage> consume_from_state(ChannelState& state, const std::string& reader_id,
+                                                        std::size_t max_batch = 0);
+  std::vector<RuntimeChannelMessage> snapshot_from_state(ChannelState& state, std::size_t max_batch = 0);
   bool message_expired(const ChannelState& state, const RuntimeChannelMessage& message,
                        std::chrono::steady_clock::time_point now) const;
   void mark_delivery_metrics(ChannelState& state, RuntimeChannelMessage& message,
                              std::chrono::steady_clock::time_point now);
+  void mark_stale_drop(ChannelState& state);
   RuntimeChannelMetrics metrics_from_state(const ChannelState& state) const;
   std::vector<std::string> channel_ids_for_component_port(const std::string& component_id,
                                                           const std::string& port_name) const;
