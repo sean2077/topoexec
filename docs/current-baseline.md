@@ -11,14 +11,14 @@ current main after v0.1.0-alpha
 Current implementation commit:
 
 ```text
-64892c9 锁定后 MVP 语义基线以支撑后续演进
+fd23c2d G24 defensive input handling implementation checkpoint; the following G25 commit updates release ledgers only
 ```
 
 Release tag relationship:
 
 ```text
 v0.1.0-alpha points to 201d3e0 Prepare alpha release evidence.
-Current main is ahead of v0.1.0-alpha and includes post-alpha thread_pool and async max_inflight work.
+Current main is ahead of v0.1.0-alpha and includes the completed post-MVP goal sweep through G25 release progression docs.
 ```
 
 Environment used for local reproduction:
@@ -66,15 +66,10 @@ Observed result:
 GitHub Actions evidence for current main:
 
 ```text
-Last checked GitHub Actions run 25355571811 on pre-golden commit b4886c2 completed successfully:
-- gcc / Debug
-- gcc / RelWithDebInfo
-- clang / Debug
-- clang / RelWithDebInfo
-- clang / Debug / TSAN (non-blocking job, successful in this run)
+Latest GitHub Actions status was not refreshed during the local G25 release-ledger update. Before tagging, verify the exact candidate commit in GitHub Actions for GCC/Clang Debug/RelWithDebInfo, ASAN+UBSAN, and non-blocking TSAN.
 ```
 
-Current branch limitations after the post-alpha scheduler/async pass:
+Current branch limitations after the completed post-MVP goal sweep:
 
 - `thread_pool` lanes have bounded MVP execution, but priority, affinity, RT policy, persistent worker naming, and timeout preemption are not implemented.
 - Async `policy.max_inflight` is enforced for deferred completions, but it is not a general async task/future executor.

@@ -1,37 +1,42 @@
 # Release Checklist
 
-Target: `v0.1.0-alpha` tag plus current post-alpha `main`
+Target: next prerelease candidate after the completed post-MVP goal sweep.
 
-The release is ready only when each item is checked against the commit being tagged. Post-alpha baseline refreshes should record the current `main` commit separately and must not retag a published release.
+This checklist is for the commit being tagged. Do not retag `v0.1.0-alpha`; if a
+published release is wrong, fix forward with a new prerelease tag.
 
-## Required Checks
+## Required local checks
 
-- [x] `git status --short` is clean before tagging.
-- [x] `git diff --check` passes.
-- [x] `./scripts/agent_check.sh` passes locally.
-- [x] Optional `cmake --build build --target topoexec_format_check` is available for local formatting checks.
-- [x] GitHub Actions CI is green for GCC Debug.
-- [x] GitHub Actions CI is green for GCC RelWithDebInfo.
-- [x] GitHub Actions CI is green for Clang Debug.
-- [x] GitHub Actions CI is green for Clang RelWithDebInfo.
-- [x] `cmake_package_runtime_smoke` passes in CI.
-- [x] `CHANGELOG.md` has the release section updated.
-- [x] `docs/versioning.md` matches the intended tag.
-- [x] `docs/schema-v1.md`, `docs/runtime-semantics.md`, `docs/metrics.md`, and `docs/trace-events.md` describe current behavior.
-- [x] Runnable app READMEs match current app output.
+- [ ] `git status --short` is clean before tagging.
+- [ ] `git diff --check` passes.
+- [ ] `./scripts/agent_check.sh` passes locally.
+- [ ] `cmake --build build --target topoexec_format_check` passes.
+- [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/sanitizer_check.sh` passes.
+- [ ] `cmake_runtime_only_options_smoke` passes as part of CTest.
+- [ ] `cmake_package_runtime_smoke` passes as part of CTest.
+- [ ] `docs/release-progression.md` names the intended stage and remaining limitations.
+- [ ] `CHANGELOG.md` has the release section updated.
+- [ ] `docs/versioning.md` matches the intended tag.
 
-Evidence:
+Current local evidence from the completed goal sweep:
 
-- Current post-alpha main: `b4886c2 feat(runtime): 补齐并发执行语义边界`.
-- Current local `./scripts/agent_check.sh`: 33/33 CTest tests passed after normalized golden/schema gates were added on top of `64892c9`.
-- Current GitHub Actions run `25355571811`: GCC/Clang Debug/RelWithDebInfo passed, and the non-blocking clang Debug TSAN job also passed.
-- Optional local format gate: `cmake --build build --target topoexec_format_check` passed.
-- Local `./scripts/agent_check.sh`: 33/33 CTest tests passed, including `cli_golden_outputs` and `schema_v1_contract_smoke`.
-- Local Debug GCC check: 33/33 CTest tests passed with `TOPOEXEC_BUILD_TYPE=Debug`.
-- GitHub Actions run `25331487554`: GCC/Clang Debug/RelWithDebInfo all passed for implementation commit `3b5d7c0`.
-- Isolated release smoke build/install/downstream package executable passed.
+- Last implementation goal commit before this release-ledger update: `fd23c2d`.
+- Default local gate: 50/50 CTest tests passed through `./scripts/agent_check.sh`.
+- Local ASAN+UBSAN gate: 50/50 CTest tests passed through `scripts/sanitizer_check.sh`.
+- Local format gate: `topoexec_format_check` passed.
+- Runtime-only configure/build/install smoke passed with YAML, CLI, examples, and tests disabled.
+- Adapter SDK policy smoke passed; no core/build adapter SDK tokens were detected.
 
-## Artifact Smoke
+## Required CI checks
+
+- [ ] GitHub Actions CI is green for GCC Debug.
+- [ ] GitHub Actions CI is green for GCC RelWithDebInfo.
+- [ ] GitHub Actions CI is green for Clang Debug.
+- [ ] GitHub Actions CI is green for Clang RelWithDebInfo.
+- [ ] GitHub Actions ASAN+UBSAN job is green.
+- [ ] GitHub Actions TSAN job result is recorded; it remains non-blocking until beta.
+
+## Artifact smoke
 
 Build from a clean checkout:
 
@@ -51,20 +56,33 @@ cmake --build /tmp/topoexec-runtime-smoke -j
 /tmp/topoexec-runtime-smoke/topoexec_runtime_smoke
 ```
 
-## Known Limitations To Keep In Release Notes
+Runtime-only option smoke:
 
-- Worker-pool lanes have bounded MVP execution, but priority, affinity, RT policy, persistent worker naming, and timeout preemption are not implemented.
-- Async `policy.max_inflight` is enforced for deferred completions, but it is not a general async task/future executor.
-- Non-blocking ThreadSanitizer CI is wired and passed on current post-alpha `main`; keep it non-blocking until sanitizer signal is stable enough for a beta gate.
-- ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.
+```bash
+cmake -S . -B build-runtime-only -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DTOPOEXEC_BUILD_YAML=OFF \
+  -DTOPOEXEC_BUILD_CLI=OFF \
+  -DTOPOEXEC_BUILD_EXAMPLES=OFF \
+  -DTOPOEXEC_BUILD_TESTING=OFF
+cmake --build build-runtime-only --target topoexec_runtime -j
+cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
+```
+
+## Known limitations for release notes
+
+- Scheduler priority, affinity, RT policy, persistent worker naming, and timeout
+  preemption are still not implemented.
+- ThreadSanitizer is non-blocking.
+- Deterministic fuzz smoke exists, but coverage-guided fuzzing is future beta work.
+- ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and
+  external Perfetto adapters remain deferred.
+- Package-manager recipes under `packaging/` are drafts, not published ports.
 
 ## Tagging
 
-After all required checks pass:
+After all required checks pass on the exact candidate commit:
 
 ```bash
-git tag -a v0.1.0-alpha -m "v0.1.0-alpha"
-git push origin v0.1.0-alpha
+git tag -a <version> -m "<version>"
+git push origin <version>
 ```
-
-Do not retag a public release. If the release candidate is wrong after publication, fix forward with a new prerelease tag.

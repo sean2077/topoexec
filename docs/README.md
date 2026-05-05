@@ -50,6 +50,7 @@ inspect a YAML graph in less than 30 minutes by following these pages in order.
 - [Testing strategy](testing-strategy.md)
 - [Build and package](build-and-package.md)
 - [Release checklist](release-checklist.md)
+- [Release progression](release-progression.md)
 - [Contributing](contributing.md)
 - [Agent goals](agent-goals.md)
 - [Current baseline](current-baseline.md)

@@ -107,6 +107,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [Build and package](docs/build-and-package.md)
 - [Defensive input handling](docs/defensive-input.md)
 - [Performance baselines](docs/performance-baselines.md)
+- [Release progression](docs/release-progression.md)
 - [FAQ](docs/faq.md)
 - [Adapter boundaries](docs/adapters.md)
 

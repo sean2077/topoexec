@@ -37,12 +37,13 @@ Last updated: 2026-05-05
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
 | G24 | complete | `src/graph_io.cpp` parser limits, `schema/topoexec.schema.v1.json` count/id limits, `GraphInputLimits.*`, `fuzz_graph_input_smoke`, and `docs/defensive-input.md`. | Loader rejects oversized graph text, excessive component counts, overlong ids, and deep config before runtime; CLI has no output-file path surface today and block overflow behavior is documented as bounded. |
+| G25 | complete | `docs/release-progression.md`, `docs/release-checklist.md`, `docs/versioning.md`, `docs/goals/backlog.md`, and `docs/goals/status.md`. | Release docs map the completed goal sweep to prerelease candidates, required evidence, and remaining limitations without tagging or retagging a public release. |
 
 ## Current Stage
 
-The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
+The repository has completed the currently tracked `docs/plans/plan.md` goal board.
 
-1. G25 release progression work.
+Next work should be an explicit release-tagging task, a new plan, or a user-scoped follow-up. Do not add adapter implementations unless the user explicitly opens that scope.
 
 ## Validation Evidence
 

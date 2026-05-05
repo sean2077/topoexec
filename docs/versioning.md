@@ -11,7 +11,7 @@ Current package version:
 Current release target:
 
 ```text
-v0.1.0-alpha
+next prerelease candidate; see docs/release-progression.md
 ```
 
 ## Stability Levels
@@ -54,3 +54,12 @@ git push origin v0.1.0-alpha
 ```
 
 Do not tag a release until [release-checklist.md](release-checklist.md) is complete for the intended target.
+
+## Progression Notes
+
+Use [release-progression.md](release-progression.md) to decide whether the next
+tag is a `v0.1.x` stabilization alpha, `v0.2.0-alpha` runtime-completeness alpha,
+or a later preview. Release stage names must reflect implemented behavior, not
+only design docs. Adapter implementation tags should not be claimed while ROS 2,
+OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external
+Perfetto integrations remain docs-only/deferred.

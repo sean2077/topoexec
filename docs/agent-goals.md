@@ -8,7 +8,9 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-1. G25 release progression tracking.
+All goals currently tracked in `docs/goals/backlog.md` are complete. Start a new
+plan, explicit release-tagging task, or user-scoped follow-up before changing
+runtime or adapter behavior.
 
 ## Goal handoff template
 

@@ -37,11 +37,11 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | G22 | P1 | complete | `AGENTS.md`, `docs/agent-goals.md`, `scripts/goal_check.sh`, `.github/*`, `docs/contributing.md` | Goal queue, focused validation dispatcher, PR template, issue templates, and contribution policy are present. | `./scripts/agent_check.sh` |
 | G23 | P0/P1 | complete | `docs/architecture-guardrails.md`, CMake package smoke, public API docs | Module ownership, dependency rules, enforced package smoke, and review guardrails are documented. | `./scripts/agent_check.sh` |
 | G24 | P2 | complete | defensive input handling | Parser limits, schema limit checks, deterministic fuzz smoke, no-output-path CLI policy, block-overflow safety docs, and loader limit tests are present. | `./scripts/agent_check.sh` |
-| G25 | P1/P2 | partial | release progression | Release checklist/versioning exist; progression docs should track goal completion. | `./scripts/agent_check.sh` |
+| G25 | P1/P2 | complete | release progression | Release progression, checklist, versioning notes, and goal ledger now track completed plan goals, candidate stages, release evidence, and remaining deferred limitations. | `./scripts/agent_check.sh` |
 
 ## Next goal
 
-Continue with **G25 release progression**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
+All currently tracked goals from `docs/plans/plan.md` are complete. Future work should start from a new plan, a release-tagging task, or explicit user scope.
 
 ## Blockers
 
