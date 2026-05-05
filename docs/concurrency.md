@@ -43,6 +43,12 @@ Runtime behavior:
 
 Advisory fields such as priority, CPU affinity, RT policy, thread name, and isolation intent are parsed but not enforced by the current runtime. Unsupported policy should be documented as advisory rather than silently claimed.
 
+Validation emits advisory diagnostics when those fields are set, and plan JSON
+reports the lane capability summary. Treat runtime priority and OS priority as
+separate concepts: `execution.priority` is not admission ordering yet, while
+`nice_priority`/`rt_policy`/`cpu_affinity` are OS hints that TopoExec does not
+apply today.
+
 ## Fixed Rate Lane
 
 `fixed_rate` is accepted by schema v1 and current execution is still bounded by runner ticks. It reports simulated overrun and positive jitter when an iteration exceeds `hz`, `period_ms`, or `tick_budget_ms`; it does not yet sleep to maintain wall-clock cadence or guarantee OS jitter bounds.

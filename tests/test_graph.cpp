@@ -48,6 +48,13 @@ bool has_error_containing(const std::vector<std::string>& errors, const std::str
   return false;
 }
 
+bool has_diagnostic(const std::vector<topoexec::GraphDiagnostic>& diagnostics, const std::string& code,
+                    const std::string& severity, const std::string& path) {
+  return std::any_of(diagnostics.begin(), diagnostics.end(), [&](const auto& diagnostic) {
+    return diagnostic.code == code && diagnostic.severity == severity && diagnostic.graph_path == path;
+  });
+}
+
 std::vector<std::string> sorted(std::vector<std::string> values) {
   std::sort(values.begin(), values.end());
   return values;
@@ -291,6 +298,57 @@ edges: []
   EXPECT_EQ(graph.lanes.front().tick_budget_ms, 8);
   const auto result = topoexec::validate_graph_structure(graph);
   ASSERT_TRUE(result.ok) << result.errors.front();
+}
+
+TEST(Graph, AdvisorySchedulerFieldsProduceDiagnosticsWithoutFailingValidation) {
+  auto graph = minimal_graph();
+  auto& lane = graph.lanes.front();
+  lane.priority = "high";
+  lane.thread_name = "worker-a";
+  lane.cpu_affinity = {0, 1};
+  lane.rt_policy = "fifo";
+  lane.wall_clock_enabled = true;
+  graph.components.front().execution.priority = "high";
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(result.errors.empty());
+  EXPECT_TRUE(has_diagnostic(result.diagnostics, "advisory_lane_field_ignored", "advisory", "lanes.main.priority"));
+  EXPECT_TRUE(has_diagnostic(result.diagnostics, "advisory_lane_field_ignored", "advisory", "lanes.main.cpu_affinity"));
+  EXPECT_TRUE(
+      has_diagnostic(result.diagnostics, "advisory_lane_field_ignored", "advisory", "lanes.main.wall_clock_enabled"));
+  EXPECT_TRUE(has_diagnostic(result.diagnostics, "advisory_execution_field_ignored", "advisory",
+                             "components.a.execution.priority"));
+}
+
+TEST(Graph, PlanJsonIncludesSchedulerLaneCapabilitySummary) {
+  const auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: lane_capabilities, kind: internal_test}
+lanes:
+  pool:
+    type: thread_pool
+    max_threads: 2
+    queue_capacity: 4
+    overflow: reject_new
+components:
+  - id: a
+    type: topoexec.test.Source
+    boundary: {role: input, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: pool}
+edges: []
+)");
+
+  const auto result = topoexec::validate_graph_structure(graph);
+  ASSERT_TRUE(result.ok) << result.errors.front();
+  const auto plan_json = topoexec::graph_plan_json(graph, result.compiled_plan);
+  EXPECT_NE(plan_json.find("\"lane_capabilities\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"bounded_batch_worker_width\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"persistent_worker_lifecycle\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"scheduler_contract_version\": \"0.2\""), std::string::npos);
 }
 
 TEST(Graph, RejectsInvalidSchedulerLaneAdmissionFields) {

@@ -5,7 +5,7 @@ TopoExec graph diagnostics are the machine-readable counterpart to legacy `error
 Each diagnostic has:
 
 - `code`: stable machine-readable id;
-- `severity`: currently `error` for validation/compile failures;
+- `severity`: `error` for validation/compile failures, or advisory/warning levels for accepted-but-not-enforced fields;
 - `message`: concrete human-readable failure;
 - `graph_path`: best-effort schema path such as `components.source` or `edges.source_sink`;
 - `involved_components` / `involved_edges`: ids useful for editor highlights;
@@ -36,7 +36,8 @@ Current stable codes:
 | `trigger_missing_input` | Trigger input is missing or lacks an incoming edge. |
 | `incompatible_trigger_edge_mode` | Trigger/event-source declarations do not match incoming edge shape. |
 | `unsupported_error_policy` | Non-`fail_fast` execution error policy requested. |
+| `advisory_lane_field_ignored` | A scheduler lane field is parsed and preserved but not enforced by the current runtime. |
+| `advisory_execution_field_ignored` | A component execution field is parsed and preserved but not enforced by the current runtime. |
 | `graph_validation_error` | Generic fallback validation error. |
 
 Add new codes rather than changing existing meanings. If a code meaning must change, update `docs/versioning.md` and the changelog.
-

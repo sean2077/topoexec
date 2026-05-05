@@ -112,10 +112,42 @@
   ],
   "graph": "feedback_controller",
   "kind": "internal_test",
+  "lane_capabilities": [
+    {
+      "advisory_fields": [
+        "priority",
+        "thread_name",
+        "cpu_affinity",
+        "nice_priority",
+        "rt_policy",
+        "rt_priority",
+        "isolation_intent"
+      ],
+      "future_extensions": [
+        "manual_step_lane"
+      ],
+      "id": "main",
+      "implemented": [
+        "deterministic_region_order",
+        "bounded_runner_stop_checks",
+        "runtime_owned_publication_commit"
+      ],
+      "max_threads": 0,
+      "overflow": "reject",
+      "queue_capacity": 0,
+      "type": "event_loop",
+      "unsupported_claims": [
+        "hard_preemption",
+        "hard_real_time",
+        "implicit_os_scheduler_tuning"
+      ]
+    }
+  ],
   "region_order": [
     "sensor",
     "actuator",
     "estimator_controller_loop"
   ],
+  "scheduler_contract_version": "0.2",
   "schema_version": 1
 }

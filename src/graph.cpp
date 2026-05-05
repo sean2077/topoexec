@@ -112,6 +112,16 @@ void add_error(GraphValidationResult& result, std::string error) {
   result.errors.push_back(result.diagnostics.back().message);
 }
 
+void add_advisory(GraphValidationResult& result, std::string code, std::string message, std::string graph_path) {
+  GraphDiagnostic diagnostic;
+  diagnostic.code = std::move(code);
+  diagnostic.severity = "advisory";
+  diagnostic.message = std::move(message);
+  diagnostic.graph_path = std::move(graph_path);
+  diagnostic.suggested_fix = suggested_fix_for(diagnostic.code);
+  result.diagnostics.push_back(std::move(diagnostic));
+}
+
 void add_error(GraphCompileResult& result, std::string error) {
   result.ok = false;
   result.diagnostics.push_back(make_diagnostic(error));
@@ -158,6 +168,34 @@ bool is_allowed_drop_policy(const std::string& policy) {
 
 bool is_allowed_lane_overflow(const std::string& policy) {
   return is_allowed_drop_policy(policy) || policy == "reject_new";
+}
+
+bool is_non_default_advisory_lane_field(const LaneSpec& lane, const std::string& field) {
+  if (field == "priority") {
+    return !lane.priority.empty();
+  }
+  if (field == "thread_name") {
+    return !lane.thread_name.empty();
+  }
+  if (field == "cpu_affinity") {
+    return !lane.cpu_affinity.empty();
+  }
+  if (field == "nice_priority") {
+    return lane.nice_priority != 0;
+  }
+  if (field == "rt_policy") {
+    return !lane.rt_policy.empty() && lane.rt_policy != "none";
+  }
+  if (field == "rt_priority") {
+    return lane.rt_priority != 0;
+  }
+  if (field == "isolation_intent") {
+    return !lane.isolation_intent.empty() && lane.isolation_intent != "none";
+  }
+  if (field == "wall_clock_enabled") {
+    return lane.wall_clock_enabled;
+  }
+  return false;
 }
 
 bool is_allowed_copy_policy(const std::string& policy) {
@@ -626,6 +664,15 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     if (!is_allowed_lane_overflow(lane.overflow)) {
       add_error(result, "lane " + lane.id + " has unsupported overflow " + lane.overflow);
     }
+    for (const auto& field : {"priority", "thread_name", "cpu_affinity", "nice_priority", "rt_policy", "rt_priority",
+                              "isolation_intent", "wall_clock_enabled"}) {
+      if (is_non_default_advisory_lane_field(lane, field)) {
+        add_advisory(result, "advisory_lane_field_ignored",
+                     "lane " + lane.id + " advisory field " + field +
+                         " is parsed and preserved but not enforced by the current runtime",
+                     "lanes." + lane.id + "." + field);
+      }
+    }
   }
 
   std::set<std::string> component_ids;
@@ -645,6 +692,12 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     }
     if (lanes.count(component.execution.lane) == 0u) {
       add_error(result, "component " + component.id + " references missing lane " + component.execution.lane);
+    }
+    if (!component.execution.priority.empty() && component.execution.priority != "normal") {
+      add_advisory(result, "advisory_execution_field_ignored",
+                   "component " + component.id +
+                       " execution.priority is parsed and preserved but not used for runtime admission yet",
+                   "components." + component.id + ".execution.priority");
     }
     if (component.execution.on_error != "fail_fast") {
       add_error(result, "component " + component.id + " has unsupported execution.on_error " +

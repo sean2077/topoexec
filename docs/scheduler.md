@@ -24,6 +24,12 @@ epoch
 | `event_loop` | Deterministic in-process execution in compiled region order. | Region order, trigger readiness, edge commit boundaries, stop-token checks before iterations. | Wall-clock rate, OS priority/affinity/RT policy. |
 | `fixed_rate` | Accepted by schema and executed through bounded simulated ticks. | Bounded tick count, component budget metric checks, simulated overrun count, last callback duration, and positive jitter when iteration duration exceeds `hz`, `period_ms`, or `tick_budget_ms`. | Real wall-clock sleep cadence and OS jitter control. |
 | `thread_pool` | Bounded worker-batch execution for ready invocations. | `max_threads` active batch width, optional `queue_capacity`, overflow admission, non-reentrant serialization, reentrant overlap within the lane bound, region barrier before downstream work. | Persistent worker lifecycle, OS priority/affinity/RT policy, worker naming, timeout preemption. |
+| future `isolated_thread` | Dedicated thread per lane or component. | Not supported by schema v1/runtime. | All behavior future. |
+| future `manual_step` | Host application manually advances a lane. | Not supported by schema v1/runtime. | All behavior future. |
+
+`topoexec graph plan --format json` includes a `lane_capabilities[]` summary so
+tooling can see what each lane type actually implements, which fields are
+advisory, and which capabilities remain future extensions.
 
 ## Thread Pool MVP
 
@@ -108,6 +114,17 @@ The following schema fields are parsed and preserved but advisory in the current
 - execution `priority`.
 
 The runtime must not claim OS priority, CPU affinity, hard real-time scheduling, or named persistent workers until platform-specific enforcement and tests exist.
+
+When advisory fields are set to non-default values, validation still succeeds
+but emits machine-readable diagnostics:
+
+- `advisory_lane_field_ignored` for lane `priority`, `thread_name`,
+  `cpu_affinity`, `nice_priority`, `rt_policy`, `rt_priority`,
+  `isolation_intent`, and `wall_clock_enabled` where applicable.
+- `advisory_execution_field_ignored` for component `execution.priority`.
+
+These diagnostics are warnings/advisories, not validation failures. They exist to
+prevent schema fields from looking implemented merely because they parse.
 
 ## Remaining Work
 

@@ -467,11 +467,46 @@ GraphSpec load_graph_file(const std::string& path) {
   text << input.rdbuf();
   return load_graph_text(text.str());
 }
+
+nlohmann::json lane_capability_summary(const LaneSpec& lane) {
+  nlohmann::json summary;
+  summary["id"] = lane.id;
+  summary["type"] = lane.type;
+  summary["advisory_fields"] = {"priority",  "thread_name", "cpu_affinity",    "nice_priority",
+                                "rt_policy", "rt_priority", "isolation_intent"};
+  summary["unsupported_claims"] = {"hard_preemption", "hard_real_time", "implicit_os_scheduler_tuning"};
+  if (lane.type == "event_loop") {
+    summary["implemented"] = {"deterministic_region_order", "bounded_runner_stop_checks",
+                              "runtime_owned_publication_commit"};
+    summary["future_extensions"] = {"manual_step_lane"};
+  } else if (lane.type == "fixed_rate") {
+    summary["implemented"] = {"bounded_simulated_ticks", "overrun_metrics", "jitter_metrics"};
+    summary["advisory_fields"].push_back("wall_clock_enabled");
+    summary["future_extensions"] = {"wall_clock_sleep_cadence", "overrun_policy"};
+  } else if (lane.type == "thread_pool") {
+    summary["implemented"] = {"bounded_batch_worker_width", "queue_admission", "overflow_policy",
+                              "non_reentrant_serialization", "batch_trace_span"};
+    summary["future_extensions"] = {"persistent_worker_lifecycle", "worker_id_trace", "priority_queue"};
+  } else {
+    summary["implemented"] = nlohmann::json::array();
+    summary["future_extensions"] = {"isolated_thread", "manual_step"};
+  }
+  summary["max_threads"] = lane.max_threads;
+  summary["queue_capacity"] = lane.queue_capacity;
+  summary["overflow"] = lane.overflow;
+  return summary;
+}
+
 std::string graph_plan_json(const GraphSpec& graph, const GraphCompiledPlan& plan) {
   nlohmann::json root;
   root["graph"] = graph.name;
   root["kind"] = graph.kind;
   root["schema_version"] = graph.schema_version;
+  root["scheduler_contract_version"] = topoexec::kTopoExecSemanticContractVersion;
+  root["lane_capabilities"] = nlohmann::json::array();
+  for (const auto& lane : graph.lanes) {
+    root["lane_capabilities"].push_back(lane_capability_summary(lane));
+  }
   root["components"] = nlohmann::json::array();
   for (const auto& component : graph.components) {
     root["components"].push_back({{"id", component.id},
