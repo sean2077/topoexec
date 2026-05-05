@@ -27,6 +27,7 @@ Last updated: 2026-05-05
 | G12 | complete | `Runtime.StateEdgeKeepsCommittedSnapshotIsolatedUntilNextEpoch`, `Runtime.ComponentConfigUpdatesApplyOnEpochBoundary`, `StateStore.*`, `ConfigSnapshotStore.ComponentConfigUpdatesRespectEpochBoundary`, `Graph.ParsesGraphLevelConfigSnapshot`, and `docs/state.md`. | State edges and optional blackboard/config stores are snapshot-based and epoch-boundary committed; single-writer blackboard semantics are enforced until an explicit merge policy exists. |
 | G13 | complete | `Common.MetricsSnapshotIncludesCountersGaugesAndHistograms`, `Graph.DiagnosticRegistryExposesStableCodesAndFixes`, `docs/metrics.md`, `docs/trace-events.md`, and `docs/diagnostics.md`. | Observability now has scriptable metrics/trace JSON, Chrome trace, histogram percentile summaries, state/config metrics, and a stable diagnostic descriptor registry. |
 | G14 | complete | `benchmarks/*.yaml`, `benchmarks/README.md`, `docs/performance-baselines.md`, `cli_bench_json_minimal`, and `cli_bench_json_immediate_chain`. | Benchmark output is scriptable and richer, but CI remains correctness-only and docs explicitly avoid cross-machine performance claims. |
+| G15 | complete | `cli_doctor_json`, `cli_schema_dump_json`, `cli_schema_check_minimal_json`, README CLI docs, and schema docs. | CLI now has scriptable schema and doctor entry points while keeping replay/record/format-graph deferred until runtime event logs and formatter policy are stable. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
 
@@ -34,8 +35,8 @@ Last updated: 2026-05-05
 
 The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
 
-1. G15 CLI/tooling productization;
-2. then G16+ P1/P2 examples/docs/testing/package work.
+1. G16 examples/app expansion;
+2. then G17+ P1/P2 docs/testing/package work.
 
 ## Validation Evidence
 
@@ -49,6 +50,7 @@ ctest --test-dir build --output-on-failure -R 'schema_v1_contract_smoke|cli_gold
 ctest --test-dir build --output-on-failure -R 'test_state|test_runtime|test_graph|cli_golden_outputs|schema_v1_contract_smoke'
 ctest --test-dir build --output-on-failure -R 'test_common|test_graph|cli_golden_outputs'
 ctest --test-dir build --output-on-failure -R 'cli_bench_json_minimal|cli_bench_json_immediate_chain'
+ctest --test-dir build --output-on-failure -R 'cli_doctor_json|cli_schema_dump_json|cli_schema_check_minimal_json'
 ```
 
 Run `./scripts/agent_check.sh` before declaring a repo-changing stage complete.

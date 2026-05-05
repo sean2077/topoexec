@@ -128,6 +128,7 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/topoexecConfigVersion.cmake
   DESTINATION lib/cmake/topoexec
 )
+install(FILES schema/topoexec.schema.v1.json DESTINATION share/topoexec/schema)
 
 include(CTest)
 if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
@@ -238,6 +239,27 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       --schema ${CMAKE_CURRENT_SOURCE_DIR}/schema/topoexec.schema.v1.json
       --topoexec $<TARGET_FILE:topoexec_cli>
       --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+  add_test(NAME cli_doctor_json
+    COMMAND $<TARGET_FILE:topoexec_cli> doctor --format json
+  )
+  set_tests_properties(cli_doctor_json PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    PASS_REGULAR_EXPRESSION "\"schema_found\": true"
+  )
+  add_test(NAME cli_schema_dump_json
+    COMMAND $<TARGET_FILE:topoexec_cli> schema dump --format json
+  )
+  set_tests_properties(cli_schema_dump_json PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    PASS_REGULAR_EXPRESSION "\"schema_version\""
+  )
+  add_test(NAME cli_schema_check_minimal_json
+    COMMAND $<TARGET_FILE:topoexec_cli> schema check examples/minimal.yaml --format json
+  )
+  set_tests_properties(cli_schema_check_minimal_json PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    PASS_REGULAR_EXPRESSION "\"ok\": true"
   )
   add_test(NAME cli_reject_invalid_unknown_field
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_unknown_field.yaml

@@ -6,10 +6,13 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -238,6 +241,52 @@ std::string benchmark_case_name(const std::string& path) {
   const auto dot = path.find_last_of('.');
   const auto end = dot == std::string::npos || dot < begin ? path.size() : dot;
   return path.substr(begin, end - begin);
+}
+
+std::string read_text_file(const std::string& path) {
+  std::ifstream input(path);
+  if (!input) {
+    throw std::runtime_error("failed to open file: " + path);
+  }
+  std::ostringstream text;
+  text << input.rdbuf();
+  return text.str();
+}
+
+std::string find_schema_path() {
+  if (const auto* env = std::getenv("TOPOEXEC_SCHEMA_PATH"); env != nullptr && std::string(env).size() > 0u) {
+    return env;
+  }
+  const std::vector<std::string> candidates = {
+      "schema/topoexec.schema.v1.json",
+      "../share/topoexec/schema/topoexec.schema.v1.json",
+      "share/topoexec/schema/topoexec.schema.v1.json",
+  };
+  for (const auto& candidate : candidates) {
+    std::ifstream input(candidate);
+    if (input) {
+      return candidate;
+    }
+  }
+  return {};
+}
+
+std::vector<std::string> existing_yaml_files(const std::string& directory) {
+  std::vector<std::string> values;
+  const std::vector<std::string> names = {
+      directory + "/minimal.yaml",          directory + "/control_feedback_delay.yaml",
+      directory + "/composite_loop.yaml",   directory + "/large_payload_copy.yaml",
+      directory + "/single_component.yaml", directory + "/immediate_chain.yaml",
+      directory + "/latest_vs_queue.yaml",  directory + "/deferred_edges.yaml",
+      directory + "/thread_pool.yaml",
+  };
+  for (const auto& name : names) {
+    std::ifstream input(name);
+    if (input) {
+      values.push_back(name);
+    }
+  }
+  return values;
 }
 
 double percentile(std::vector<double> values, double ratio) {
@@ -647,6 +696,66 @@ int print_bench_result(const std::string& path, std::size_t steps, std::size_t r
   return errors.empty() ? 0 : 1;
 }
 
+int print_doctor(const std::string& format) {
+  const auto schema_path = find_schema_path();
+  const auto examples = existing_yaml_files("examples");
+  const auto benchmarks = existing_yaml_files("benchmarks");
+  const bool ok = !schema_path.empty() && !examples.empty();
+  if (format == "json") {
+    nlohmann::json value;
+    value["ok"] = ok;
+    value["version"] = "0.1.0";
+    value["cxx_standard"] = static_cast<long>(__cplusplus);
+    value["schema_found"] = !schema_path.empty();
+    value["schema_path"] = schema_path;
+    value["examples"] = examples;
+    value["benchmarks"] = benchmarks;
+    value["features"] = {{"runtime", true}, {"yaml", true}, {"json", true}, {"sanitizers", "external-ci"}};
+    std::cout << value.dump(2) << "\n";
+  } else {
+    std::cout << (ok ? "ok" : "error") << "\n";
+    std::cout << "version: 0.1.0\n";
+    std::cout << "cxx_standard: " << __cplusplus << "\n";
+    std::cout << "schema_found: " << (!schema_path.empty() ? "true" : "false") << "\n";
+    if (!schema_path.empty()) {
+      std::cout << "schema_path: " << schema_path << "\n";
+    }
+    std::cout << "examples: " << examples.size() << "\n";
+    std::cout << "benchmarks: " << benchmarks.size() << "\n";
+    std::cout << "sanitizers: external-ci\n";
+  }
+  return ok ? 0 : 1;
+}
+
+int print_schema_dump(const std::string& format) {
+  const auto schema_path = find_schema_path();
+  if (schema_path.empty()) {
+    throw std::runtime_error("schema/topoexec.schema.v1.json not found; set TOPOEXEC_SCHEMA_PATH");
+  }
+  const auto text = read_text_file(schema_path);
+  if (format == "json") {
+    std::cout << nlohmann::json::parse(text).dump(2) << "\n";
+  } else {
+    std::cout << text;
+    if (!text.empty() && text.back() != '\n') {
+      std::cout << "\n";
+    }
+  }
+  return 0;
+}
+
+int print_schema_check(const std::string& path, const std::string& format) {
+  topoexec::GraphValidationResult result;
+  try {
+    (void)topoexec::load_graph_file(path);
+    result.ok = true;
+  } catch (const std::exception& error) {
+    result.ok = false;
+    result.errors.push_back(error.what());
+  }
+  return print_validation(result, format);
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -655,6 +764,21 @@ int main(int argc, char** argv) {
 
   auto* graph_cmd = app.add_subcommand("graph", "Graph inspection commands");
   graph_cmd->require_subcommand(1);
+
+  std::string doctor_format{"text"};
+  auto* doctor = app.add_subcommand("doctor", "Check local TopoExec CLI/runtime assets");
+  doctor->add_option("--format", doctor_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+
+  auto* schema_cmd = app.add_subcommand("schema", "Schema tooling");
+  schema_cmd->require_subcommand(1);
+  std::string schema_dump_format{"json"};
+  auto* schema_dump = schema_cmd->add_subcommand("dump", "Print the bundled schema v1 JSON");
+  schema_dump->add_option("--format", schema_dump_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  std::string schema_check_path;
+  std::string schema_check_format{"text"};
+  auto* schema_check = schema_cmd->add_subcommand("check", "Check graph file against the strict schema loader");
+  schema_check->add_option("file", schema_check_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
+  schema_check->add_option("--format", schema_check_format, "Output format")->check(CLI::IsMember({"text", "json"}));
 
   std::string validate_path;
   std::string validate_format{"text"};
@@ -748,6 +872,15 @@ int main(int argc, char** argv) {
 
   try {
     app.parse(argc, argv);
+    if (*doctor) {
+      return print_doctor(doctor_format);
+    }
+    if (*schema_dump) {
+      return print_schema_dump(schema_dump_format);
+    }
+    if (*schema_check) {
+      return print_schema_check(schema_check_path, schema_check_format);
+    }
     if (*validate) {
       if (validate_schema_only && validate_semantic) {
         throw std::runtime_error("--schema-only and --semantic are mutually exclusive");

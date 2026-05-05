@@ -296,6 +296,15 @@ topoexec graph validate examples/minimal.yaml --semantic --format json
 
 `--schema-only` checks the strict loader contract (required fields, known fields, basic scalar shapes). `--semantic` is the default and additionally runs the compiler/validator checks.
 
+The standalone tooling surface is:
+
+```bash
+topoexec schema dump --format json
+topoexec schema check examples/minimal.yaml --format json
+```
+
+`schema dump` reads the bundled schema (or `TOPOEXEC_SCHEMA_PATH` when set). `schema check` intentionally mirrors strict loader validation only; use `topoexec graph validate` for semantic graph/compiler diagnostics.
+
 ## Versioning
 
 Schema v1 is strict and compatibility-preserving. Additive fields require a schema update only when v1 validation or runtime meaning would change. Breaking semantic changes should bump the schema version rather than silently changing v1 behavior.

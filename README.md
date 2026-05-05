@@ -65,9 +65,12 @@ topoexec graph lint examples/control_feedback_delay.yaml
 topoexec graph explain examples/minimal.yaml
 topoexec graph diff-plan examples/minimal.yaml examples/control_feedback_delay.yaml
 topoexec graph bench examples/minimal.yaml --steps 1 --runs 2
+topoexec schema dump --format json
+topoexec schema check examples/minimal.yaml --format json
+topoexec doctor --format json
 ```
 
-The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, runs demo graphs, prints metrics/trace events, and provides lightweight lint/explain/diff/bench output derived from the runtime contract.
+The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, runs demo graphs, prints metrics/trace events, and provides lightweight lint/explain/diff/bench/schema/doctor output derived from the runtime contract.
 
 ## Examples
 
