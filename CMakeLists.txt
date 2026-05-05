@@ -344,14 +344,14 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   )
   set_tests_properties(cli_doctor_json PROPERTIES
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    PASS_REGULAR_EXPRESSION "\"schema_found\": true"
+    PASS_REGULAR_EXPRESSION "\"semantic_contract_version\""
   )
   add_test(NAME cli_schema_dump_json
     COMMAND $<TARGET_FILE:topoexec_cli> schema dump --format json
   )
   set_tests_properties(cli_schema_dump_json PROPERTIES
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    PASS_REGULAR_EXPRESSION "\"schema_version\""
+    PASS_REGULAR_EXPRESSION "\"x-topoexec-semantic_contract_version\""
   )
   add_test(NAME cli_schema_check_minimal_json
     COMMAND $<TARGET_FILE:topoexec_cli> schema check examples/minimal.yaml --format json

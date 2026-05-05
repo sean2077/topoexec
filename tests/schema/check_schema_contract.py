@@ -23,6 +23,8 @@ def main() -> int:
     args = parser.parse_args()
 
     schema = json.loads(args.schema.read_text(encoding="utf-8"))
+    require(schema.get("x-topoexec-semantic_contract_version") == "0.2",
+            "semantic contract version annotation drifted")
     require(schema.get("additionalProperties") is False, "root must be strict")
     require(schema.get("required") == ["schema_version", "graph", "lanes", "components", "edges"],
             "root required fields drifted")

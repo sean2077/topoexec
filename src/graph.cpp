@@ -18,8 +18,6 @@
 namespace topoexec {
 namespace {
 
-constexpr int kSupportedSchemaVersion = 1;
-
 std::string diagnostic_code_for(const std::string& error) {
   if (error.find("unknown component") != std::string::npos ||
       error.find("unknown target component") != std::string::npos ||
@@ -583,8 +581,8 @@ const PortDescriptor* find_port(const std::vector<PortDescriptor>& ports, const 
 
 GraphValidationResult validate_graph_impl(const GraphSpec& graph, const ComponentRegistry* registry) {
   GraphValidationResult result;
-  if (graph.schema_version != kSupportedSchemaVersion) {
-    add_error(result, "schema_version must be 1");
+  if (graph.schema_version != kTopoExecSchemaVersion) {
+    add_error(result, "schema_version must be " + std::to_string(kTopoExecSchemaVersion));
   }
   if (graph.name.empty()) {
     add_error(result, "graph.name must not be empty");

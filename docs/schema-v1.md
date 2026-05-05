@@ -2,7 +2,7 @@
 
 Schema v1 describes a single-process TopoExec runtime graph. The loader is strict: unknown fields are rejected at the root and inside known sections.
 
-Runtime visibility rules for edge kinds, epochs, transactions, commits, triggers, and CompositeLoop ownership are defined in [runtime-semantics.md](runtime-semantics.md).
+Runtime visibility rules for edge kinds, epochs, transactions, commits, triggers, and CompositeLoop ownership are defined in [runtime-semantics.md](runtime-semantics.md). Versioned runtime meaning is tracked separately in [semantic-contract.md](semantic-contract.md); schema v1 controls graph shape, while the semantic contract controls behavior meaning.
 
 ## Root
 

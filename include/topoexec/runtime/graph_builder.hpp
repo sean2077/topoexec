@@ -13,7 +13,7 @@ namespace topoexec {
 class GraphBuilder {
 public:
   explicit GraphBuilder(std::string name, std::string kind = "runnable") {
-    graph_.schema_version = 1;
+    graph_.schema_version = kTopoExecSchemaVersion;
     graph_.name = std::move(name);
     graph_.kind = std::move(kind);
   }

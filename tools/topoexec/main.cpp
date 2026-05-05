@@ -718,6 +718,8 @@ int print_doctor(const std::string& format) {
     nlohmann::json value;
     value["ok"] = ok;
     value["version"] = "0.1.0";
+    value["semantic_contract_version"] = topoexec::kTopoExecSemanticContractVersion;
+    value["schema_version"] = topoexec::kTopoExecSchemaVersion;
     value["cxx_standard"] = static_cast<long>(__cplusplus);
     value["schema_found"] = !schema_path.empty();
     value["schema_path"] = schema_path;
@@ -728,6 +730,8 @@ int print_doctor(const std::string& format) {
   } else {
     std::cout << (ok ? "ok" : "error") << "\n";
     std::cout << "version: 0.1.0\n";
+    std::cout << "semantic_contract_version: " << topoexec::kTopoExecSemanticContractVersion << "\n";
+    std::cout << "schema_version: " << topoexec::kTopoExecSchemaVersion << "\n";
     std::cout << "cxx_standard: " << __cplusplus << "\n";
     std::cout << "schema_found: " << (!schema_path.empty() ? "true" : "false") << "\n";
     if (!schema_path.empty()) {

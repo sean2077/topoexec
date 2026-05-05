@@ -14,9 +14,25 @@ Current release target:
 next prerelease candidate; see docs/release-progression.md
 ```
 
+Current runtime semantic contract:
+
+```text
+0.2
+```
+
 ## Stability Levels
 
 `0.x` releases are pre-1.0 releases. The project may still refine public C++ APIs, but releases should not silently change documented schema v1 runtime semantics.
+
+## Schema Version vs Semantic Contract Version
+
+- `schema_version` is a graph input field. It defines the accepted YAML/JSON shape, strict fields, enum values, defaults, and validation envelope.
+- `semantic_contract_version` is runtime/tool metadata. It defines what accepted graphs mean during execution: epoch boundaries, transactions, staged publication, commit visibility, trigger readiness, channel capacity, loop output commit, async deferral, and state/config snapshots.
+- Schema-v1 additive fields are allowed only when the existing runtime meaning stays compatible.
+- A semantic change can require a contract-version update even if the schema shape does not change.
+- A schema bump can be required when old graph files would be rejected or would mean something different.
+
+The current semantic contract is documented in [semantic-contract.md](semantic-contract.md) and exposed through `topoexec doctor` plus the schema dump annotation `x-topoexec-semantic_contract_version`.
 
 ### Stable-v0.2 Embedder Surface
 

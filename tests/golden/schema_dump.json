@@ -584,5 +584,6 @@
     "edges"
   ],
   "title": "TopoExec graph schema v1",
-  "type": "object"
+  "type": "object",
+  "x-topoexec-semantic_contract_version": "0.2"
 }

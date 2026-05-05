@@ -22,6 +22,7 @@ inspect a YAML graph in less than 30 minutes by following these pages in order.
 - [Public API stability](public-api.md)
 - [Schema v1](schema-v1.md)
 - [Runtime semantics](runtime-semantics.md)
+- [Runtime semantic contract](semantic-contract.md)
 - [Runtime invariant coverage](runtime-invariants.md)
 - [Metrics](metrics.md)
 - [Trace events](trace-events.md)

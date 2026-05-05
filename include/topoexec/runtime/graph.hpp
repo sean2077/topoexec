@@ -13,6 +13,9 @@
 
 namespace topoexec {
 
+inline constexpr int kTopoExecSchemaVersion = 1;
+inline constexpr const char* kTopoExecSemanticContractVersion = "0.2";
+
 struct LaneSpec {
   std::string id;
   std::string type;

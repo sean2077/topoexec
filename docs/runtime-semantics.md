@@ -2,7 +2,7 @@
 
 TopoExec is a single-process, in-process semantic graph runtime. A graph is compiled before execution, and the compiled plan is the runtime source of truth for component order, CompositeLoop ownership, and immediate-cycle validation.
 
-This document defines the schema v1 execution contract. Some runtime behaviors are still being implemented; those gaps should stay visible in tests, examples, and release notes rather than being hidden behind compatibility aliases or optimistic examples.
+This document explains runtime behavior. The versioned compatibility surface is summarized in [semantic-contract.md](semantic-contract.md), currently `semantic_contract_version: 0.2`. Some runtime behaviors are still being implemented; those gaps should stay visible in tests, examples, and release notes rather than being hidden behind compatibility aliases or optimistic examples.
 
 ## Time And Commit Model
 
