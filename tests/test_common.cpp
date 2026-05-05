@@ -2,6 +2,7 @@
 #include "topoexec/common/metrics.hpp"
 #include "topoexec/common/trace.hpp"
 
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <thread>
 
@@ -13,7 +14,16 @@ TEST(Common, MetricsSnapshotIncludesCountersGaugesAndHistograms) {
   registry.histogram("latency_ms").observe(30.0);
 
   const auto samples = registry.snapshot();
-  EXPECT_GE(samples.size(), 6u);
+  EXPECT_GE(samples.size(), 9u);
+  auto value_for = [&](const std::string& name) {
+    const auto found =
+        std::find_if(samples.begin(), samples.end(), [&](const auto& sample) { return sample.name == name; });
+    return found == samples.end() ? 0.0 : found->value;
+  };
+  EXPECT_DOUBLE_EQ(value_for("latency_ms.count"), 2.0);
+  EXPECT_DOUBLE_EQ(value_for("latency_ms.p50"), 20.0);
+  EXPECT_DOUBLE_EQ(value_for("latency_ms.p95"), 29.0);
+  EXPECT_DOUBLE_EQ(value_for("latency_ms.p99"), 29.8);
 }
 
 TEST(Common, StructuredLoggerStoresJsonSerializableRecords) {

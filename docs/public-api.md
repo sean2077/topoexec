@@ -21,6 +21,7 @@ These headers are safe for ordinary runtime users to include directly. In `0.x`,
 | `topoexec/runtime/payload.hpp` | Built-in payload variants, schema constants, typed access helpers | Uses `FrameView` and `SharedBuffer` from `buffer.hpp`; custom payload extension remains future work. |
 | `topoexec/runtime/component.hpp` | `Component`, `ComponentDescriptor`, `GraphContext`, `Invocation`, `InputView`, publication result | `GraphContext::publish()` stages through the runtime publisher and returns an observable publish result. `GraphContext` also carries optional state/config snapshot store pointers for components that include the experimental snapshot header. |
 | `topoexec/runtime/component_registry.hpp` | Component factory registration and lookup | Stable registry entry point for embedders and examples. |
+| `topoexec/runtime/diagnostics.hpp` | Stable graph diagnostic descriptor registry | Maps diagnostic codes to severity, summary, and suggested fix text for editor/tooling integrations. |
 | `topoexec/runtime/graph.hpp` | `GraphSpec`, edge/channel/trigger policy specs, validation and compile result structs | C++ graph model is stable. YAML loader declarations in this header require linking `topoexec::yaml`. |
 | `topoexec/runtime/graph_builder.hpp` | Thin C++ helpers over `GraphSpec` | Convenience only; it does not create a second graph model. |
 | `topoexec/runtime/runtime_runner.hpp` | `RuntimeRunner`, `RuntimeRunnerOptions`, `RuntimeRunnerResult`, `RuntimeTraceEvent` | Primary execution API for embedded applications. |
@@ -133,4 +134,4 @@ Use `GraphBuilder` or direct `GraphSpec` construction, register components in a 
 
 ## Graph diagnostics
 
-`GraphValidationResult` and `GraphCompileResult` preserve legacy `errors` strings and also expose `diagnostics[]` with `code`, `severity`, `message`, optional graph path/involved ids, and `suggested_fix`. New tooling should prefer diagnostics while keeping `errors` for human-readable compatibility.
+`GraphValidationResult` and `GraphCompileResult` preserve legacy `errors` strings and also expose `diagnostics[]` with `code`, `severity`, `message`, optional graph path/involved ids, and `suggested_fix`. New tooling should prefer diagnostics while keeping `errors` for human-readable compatibility. Stable code descriptors live in `topoexec/runtime/diagnostics.hpp` and are documented in [diagnostics.md](diagnostics.md).

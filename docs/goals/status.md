@@ -25,6 +25,7 @@ Last updated: 2026-05-05
 | G10 | complete | `Runtime.RequestTriggerUsesRequestInvocationKind`, `Runtime.RequestTriggerDropsTimedOutPendingMessage`, `Runtime.FutureReadyEventSourceUsesFutureReadyEventKind`, `Runtime.TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign`, `Runtime.BatchTriggerFlushesPartialBatchAfterWindowExpires`, `docs/triggers.md`, and trigger metrics golden output. | Trigger engine owns readiness, timeout drop, batch flush, time-sync drop, and local correlation metadata; watermark/condition triggers remain future extensions. |
 | G11 | complete | `Runtime.CompositeLoopRegionOwnsInternalFixedPointIterations`, `Runtime.CompositeLoopConvergenceStopsBeforeMaxIterations`, `Runtime.CompositeLoopBudgetOverrunStopsLoopAndReportsMetric`, `Runtime.CompositeLoopInternalFailureStopsLoopAndSuppressesExternalCommit`, `docs/composite-loops.md`, and loop metrics/trace docs. | CompositeLoop regions are bounded, observable, and prevent half-updated external output commits on internal failure; solver-style typed convergence remains future work. |
 | G12 | complete | `Runtime.StateEdgeKeepsCommittedSnapshotIsolatedUntilNextEpoch`, `Runtime.ComponentConfigUpdatesApplyOnEpochBoundary`, `StateStore.*`, `ConfigSnapshotStore.ComponentConfigUpdatesRespectEpochBoundary`, `Graph.ParsesGraphLevelConfigSnapshot`, and `docs/state.md`. | State edges and optional blackboard/config stores are snapshot-based and epoch-boundary committed; single-writer blackboard semantics are enforced until an explicit merge policy exists. |
+| G13 | complete | `Common.MetricsSnapshotIncludesCountersGaugesAndHistograms`, `Graph.DiagnosticRegistryExposesStableCodesAndFixes`, `docs/metrics.md`, `docs/trace-events.md`, and `docs/diagnostics.md`. | Observability now has scriptable metrics/trace JSON, Chrome trace, histogram percentile summaries, state/config metrics, and a stable diagnostic descriptor registry. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
 
@@ -32,8 +33,8 @@ Last updated: 2026-05-05
 
 The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
 
-1. G13 observability registry / histogram / diagnostics hardening;
-2. then G14+ P1/P2 productization work.
+1. G14 benchmark suite hardening;
+2. then G15+ P1/P2 productization work.
 
 ## Validation Evidence
 
@@ -45,6 +46,7 @@ cmake --build build -j
 ctest --test-dir build --output-on-failure -R 'cli_validate_schema_only_minimal|cli_validate_semantic_minimal|schema_v1_contract_smoke|cli_golden_outputs'
 ctest --test-dir build --output-on-failure -R 'schema_v1_contract_smoke|cli_golden_outputs|cmake_package_runtime_smoke'
 ctest --test-dir build --output-on-failure -R 'test_state|test_runtime|test_graph|cli_golden_outputs|schema_v1_contract_smoke'
+ctest --test-dir build --output-on-failure -R 'test_common|test_graph|cli_golden_outputs'
 ```
 
 Run `./scripts/agent_check.sh` before declaring a repo-changing stage complete.

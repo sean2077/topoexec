@@ -1,6 +1,7 @@
 #include "topoexec/common/metrics.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace topoexec {
@@ -73,8 +74,14 @@ double Histogram::percentile(double ratio) const {
   }
   auto values = values_;
   std::sort(values.begin(), values.end());
-  const auto index = static_cast<std::size_t>(ratio * static_cast<double>(values.size() - 1u));
-  return values[index];
+  const auto position = ratio * static_cast<double>(values.size() - 1u);
+  const auto lower = static_cast<std::size_t>(std::floor(position));
+  const auto upper = static_cast<std::size_t>(std::ceil(position));
+  if (lower == upper) {
+    return values[lower];
+  }
+  const auto fraction = position - static_cast<double>(lower);
+  return values[lower] + ((values[upper] - values[lower]) * fraction);
 }
 
 Counter& MetricRegistry::counter(const std::string& name) {
@@ -95,7 +102,7 @@ Histogram& MetricRegistry::histogram(const std::string& name) {
 std::vector<MetricSample> MetricRegistry::snapshot() const {
   std::lock_guard lock(mutex_);
   std::vector<MetricSample> samples;
-  samples.reserve(counters_.size() + gauges_.size() + histograms_.size() * 4u);
+  samples.reserve(counters_.size() + gauges_.size() + histograms_.size() * 7u);
   for (const auto& [name, counter] : counters_) {
     samples.push_back({name, counter.value(), {}});
   }
@@ -107,6 +114,9 @@ std::vector<MetricSample> MetricRegistry::snapshot() const {
     samples.push_back({name + ".min", histogram.min(), {}});
     samples.push_back({name + ".max", histogram.max(), {}});
     samples.push_back({name + ".avg", histogram.average(), {}});
+    samples.push_back({name + ".p50", histogram.percentile(0.50), {}});
+    samples.push_back({name + ".p95", histogram.percentile(0.95), {}});
+    samples.push_back({name + ".p99", histogram.percentile(0.99), {}});
   }
   return samples;
 }

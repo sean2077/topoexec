@@ -1,6 +1,7 @@
 #include "topoexec/runtime/graph.hpp"
 
 #include "topoexec/runtime/channel.hpp"
+#include "topoexec/runtime/diagnostics.hpp"
 #include "topoexec/runtime/trigger_policy.hpp"
 
 #include <algorithm>
@@ -70,44 +71,8 @@ std::string diagnostic_code_for(const std::string& error) {
 }
 
 std::string suggested_fix_for(const std::string& code) {
-  if (code == "unknown_component") {
-    return "Check component ids referenced by edges, depends_on, and CompositeLoop declarations.";
-  }
-  if (code == "unknown_port") {
-    return "Check component descriptors and endpoint port names.";
-  }
-  if (code == "duplicate_id") {
-    return "Use unique ids inside each graph section.";
-  }
-  if (code == "immediate_cycle_without_loop") {
-    return "Break the cycle with delay/state/async or declare an exact CompositeLoop.";
-  }
-  if (code == "partial_composite_loop") {
-    return "Make the CompositeLoop component set exactly match one immediate SCC.";
-  }
-  if (code == "decorative_composite_loop") {
-    return "Remove the CompositeLoop or add the immediate feedback edges it owns.";
-  }
-  if (code == "multi_state_writer") {
-    return "Keep one writer per state target until an explicit merge policy exists.";
-  }
-  if (code == "invalid_move_only_multireader") {
-    return "Use readers: single for move_only or switch to shared_view/copy.";
-  }
-  if (code == "invalid_channel_policy") {
-    return "Use a supported bounded channel mode, capacity, overflow, timestamp, owner, and copy policy.";
-  }
-  if (code == "unsupported_lane_type") {
-    return "Use event_loop, fixed_rate, or thread_pool.";
-  }
-  if (code == "trigger_missing_input") {
-    return "Add trigger inputs and matching incoming edges.";
-  }
-  if (code == "incompatible_trigger_edge_mode") {
-    return "Align event_sources, trigger_policy, and incoming edge modes.";
-  }
-  if (code == "unsupported_error_policy") {
-    return "Use fail_fast until continue/isolate policies are implemented.";
+  if (const auto descriptor = graph_diagnostic_descriptor(code); descriptor.has_value()) {
+    return descriptor->suggested_fix;
   }
   return "Inspect the graph path and schema reference for the invalid contract.";
 }

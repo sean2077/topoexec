@@ -1,3 +1,4 @@
+#include "topoexec/runtime/diagnostics.hpp"
 #include "topoexec/runtime/graph.hpp"
 
 #include <gtest/gtest.h>
@@ -459,6 +460,16 @@ edges:
 
   EXPECT_FALSE(result.ok);
   EXPECT_TRUE(has_error_containing(result.errors, "state edge target has multiple writers: sink.state"));
+}
+
+TEST(Graph, DiagnosticRegistryExposesStableCodesAndFixes) {
+  const auto registry = topoexec::graph_diagnostic_registry();
+  EXPECT_GE(registry.size(), 10u);
+  const auto descriptor = topoexec::graph_diagnostic_descriptor("multi_state_writer");
+  ASSERT_TRUE(descriptor.has_value());
+  EXPECT_EQ(descriptor->severity, "error");
+  EXPECT_NE(descriptor->suggested_fix.find("one writer"), std::string::npos);
+  EXPECT_FALSE(topoexec::graph_diagnostic_descriptor("missing_code").has_value());
 }
 
 TEST(Graph, ParsesGraphLevelConfigSnapshot) {

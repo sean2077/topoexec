@@ -21,6 +21,8 @@ The JSON output is a `RuntimeRunnerResult` object. Its `metrics` field is an arr
 
 Metric names are part of the public observability contract. Prefer adding new names over changing the meaning of existing names.
 
+`MetricRegistry::histogram(name)` exports lightweight in-process histogram summaries without external dependencies. Snapshot suffixes are `name.count`, `name.min`, `name.max`, `name.avg`, `name.p50`, `name.p95`, and `name.p99`; percentile values use deterministic linear interpolation over the observed sample set.
+
 ## Stable Names
 
 Scheduler:
@@ -112,6 +114,10 @@ State/config snapshots:
 Trace:
 
 - `runtime.trace.event_count`: structured trace events emitted during the run.
+
+Custom histograms:
+
+- `<name>.count`, `<name>.min`, `<name>.max`, `<name>.avg`, `<name>.p50`, `<name>.p95`, `<name>.p99`: summaries emitted by `MetricRegistry::histogram(name)`.
 
 ## Aggregate Counters
 

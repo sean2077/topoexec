@@ -25,7 +25,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | G10 | P1 | complete | trigger engine docs/runtime/tests | Runtime-owned trigger readiness covers any/all/time-sync/batch/request/task/future-ready paths, coalescing/min-interval/max-latency timeout, local correlation ids, and trigger metrics for timeout drops, batch flushes, and time-sync drops. Watermark/condition triggers remain future extensions. | `./scripts/agent_check.sh` |
 | G11 | P1 | complete | CompositeLoop/region runtime | Exact SCC ownership, bounded iterations, convergence, budget overrun, internal failure accounting, external-output commit isolation, loop metrics, loop trace events, and CompositeLoop docs are implemented and tested. Solver-style/typed convergence callbacks remain future extensions. | `./scripts/agent_check.sh` |
 | G12 | P1/P2 | complete | state/config snapshot docs/runtime/tests | State edges preserve committed snapshot isolation until the next epoch, state commit metrics are exposed, graph-level config parses, and optional epoch-boundary `RuntimeStateStore` / `ConfigSnapshotStore` APIs are implemented and tested. | `./scripts/agent_check.sh` |
-| G13 | P1 | partial | metrics/trace/diagnostics | Metrics/trace JSON and Chrome trace exist and have golden coverage; histograms and stable diagnostics registry remain. | `./scripts/agent_check.sh` |
+| G13 | P1 | complete | metrics/trace/diagnostics | Metrics/trace JSON and Chrome trace have golden coverage; histograms export count/min/max/avg/p50/p95/p99; stable diagnostic descriptors are exposed through `topoexec/runtime/diagnostics.hpp` and `docs/diagnostics.md`. | `./scripts/agent_check.sh` |
 | G14 | P1/P2 | partial | benchmark suite | CLI bench JSON exists; broader deterministic benchmark cases and docs remain. | `./scripts/agent_check.sh` |
 | G15 | P2 | partial | CLI/tooling | Existing CLI commands are covered by smokes/goldens; doctor/schema dump/expanded lint/explain are not all complete. | `./scripts/agent_check.sh` |
 | G16 | P1/P2 | partial | examples/apps | Core examples build/run; additional state, batch/time-sync, large payload, service, registry, and boundary-pattern examples remain. | `./scripts/agent_check.sh` |
@@ -41,7 +41,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 
 ## Next goal
 
-Continue with **G13+ productization/runtime hardening**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
+Continue with **G14+ productization/runtime hardening**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
 
 ## Blockers
 

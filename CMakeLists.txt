@@ -45,6 +45,7 @@ add_library(topoexec_runtime
   src/clock.cpp
   src/component.cpp
   src/component_registry.cpp
+  src/diagnostics.cpp
   src/event_runtime.cpp
   src/graph.cpp
   src/logging.cpp
