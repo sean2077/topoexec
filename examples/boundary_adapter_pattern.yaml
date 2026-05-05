@@ -1,0 +1,25 @@
+schema_version: 1
+graph: {name: boundary_adapter_pattern, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: external_input
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: app-defined-input-adapter}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: app_logic
+    type: topoexec.transforms.Identity
+    config: {mode: pass_through}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: external_output
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: app-defined-output-adapter}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: input_logic, kind: immediate, from: external_input.out, to: app_logic.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: logic_output, kind: immediate, from: app_logic.out, to: external_output.in, policy: {mode: latest, copy_policy: shared_view}}

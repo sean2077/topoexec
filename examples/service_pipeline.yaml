@@ -1,0 +1,31 @@
+schema_version: 1
+graph: {name: service_pipeline, kind: runnable}
+lanes:
+  main: {type: event_loop}
+components:
+  - id: client_boundary
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: request-boundary}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: validator
+    type: topoexec.transforms.Validator
+    event_sources: [{type: request, inputs: [request]}]
+    trigger_policy: {type: request, inputs: [request]}
+    execution: {lane: main}
+  - id: worker_result
+    type: topoexec.transforms.AsyncWorker
+    event_sources: [{type: task_ready, inputs: [ready]}]
+    trigger_policy: {type: task_ready, inputs: [ready]}
+    execution: {lane: main}
+  - id: response_boundary
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: response-boundary}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: request_to_validator, kind: immediate, from: client_boundary.out, to: validator.request, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: validator_to_worker, kind: async, from: validator.out, to: worker_result.ready, policy: {mode: queue, capacity: 8, max_inflight: 4, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: worker_to_response, kind: immediate, from: worker_result.out, to: response_boundary.in, policy: {mode: latest, copy_policy: shared_view}}

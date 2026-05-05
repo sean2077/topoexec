@@ -164,6 +164,18 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   add_test(NAME cli_validate_control_feedback_delay
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/control_feedback_delay.yaml
   )
+  add_test(NAME cli_validate_state_config_snapshot
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/state_config_snapshot.yaml
+  )
+  add_test(NAME cli_validate_batch_time_sync
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/batch_time_sync.yaml
+  )
+  add_test(NAME cli_validate_service_pipeline
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/service_pipeline.yaml
+  )
+  add_test(NAME cli_validate_boundary_adapter_pattern
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/boundary_adapter_pattern.yaml
+  )
   add_test(NAME cli_validate_schema_only_minimal
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --schema-only --format json
   )
@@ -182,6 +194,22 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph run ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1
   )
   set_tests_properties(cli_run_minimal PROPERTIES PASS_REGULAR_EXPRESSION "runtime_publication_committed: 2")
+  add_test(NAME cli_run_state_config_snapshot
+    COMMAND topoexec graph run ${CMAKE_CURRENT_SOURCE_DIR}/examples/state_config_snapshot.yaml --steps 2
+  )
+  set_tests_properties(cli_run_state_config_snapshot PROPERTIES PASS_REGULAR_EXPRESSION "order: config_source,config_source,consumer")
+  add_test(NAME cli_run_batch_time_sync
+    COMMAND topoexec graph run ${CMAKE_CURRENT_SOURCE_DIR}/examples/batch_time_sync.yaml --steps 1
+  )
+  set_tests_properties(cli_run_batch_time_sync PROPERTIES PASS_REGULAR_EXPRESSION "order: left_sensor,right_sensor,sync_join,sink")
+  add_test(NAME cli_run_service_pipeline
+    COMMAND topoexec graph run ${CMAKE_CURRENT_SOURCE_DIR}/examples/service_pipeline.yaml --steps 2
+  )
+  set_tests_properties(cli_run_service_pipeline PROPERTIES PASS_REGULAR_EXPRESSION "order: client_boundary,validator,client_boundary,worker_result,validator,response_boundary")
+  add_test(NAME cli_run_boundary_adapter_pattern
+    COMMAND topoexec graph run ${CMAKE_CURRENT_SOURCE_DIR}/examples/boundary_adapter_pattern.yaml --steps 1
+  )
+  set_tests_properties(cli_run_boundary_adapter_pattern PROPERTIES PASS_REGULAR_EXPRESSION "order: external_input,app_logic,external_output")
   add_test(NAME cli_metrics_json_minimal
     COMMAND topoexec graph metrics ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --format json
   )

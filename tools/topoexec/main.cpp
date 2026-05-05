@@ -119,6 +119,19 @@ topoexec::ComponentRegistry demo_registry() {
   register_demo_component(
       registry, descriptor("topoexec.transforms.Identity", topoexec::ComponentRole::kProcessing, {text_in}, {text_out}),
       DemoBehavior::kForward);
+  register_demo_component(registry,
+                          descriptor("topoexec.transforms.Join", topoexec::ComponentRole::kProcessing,
+                                     {{"left", topoexec::kTextPayloadSchema}, {"right", topoexec::kTextPayloadSchema}},
+                                     {text_out}),
+                          DemoBehavior::kForward);
+  register_demo_component(registry,
+                          descriptor("topoexec.transforms.Validator", topoexec::ComponentRole::kProcessing,
+                                     {{"request", topoexec::kTextPayloadSchema}}, {text_out}),
+                          DemoBehavior::kForward);
+  register_demo_component(registry,
+                          descriptor("topoexec.transforms.AsyncWorker", topoexec::ComponentRole::kProcessing,
+                                     {{"ready", topoexec::kTextPayloadSchema}}, {text_out}),
+                          DemoBehavior::kForward);
   register_demo_component(
       registry, descriptor("topoexec.boundary.Output", topoexec::ComponentRole::kOutputBoundary, {text_in}, {}),
       DemoBehavior::kSink);

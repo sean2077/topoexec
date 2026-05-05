@@ -42,7 +42,7 @@ git diff --check
 Observed result:
 
 ```text
-38/38 CTest tests passed in the default local RelWithDebInfo GCC run, including normalized CLI golden outputs, schema contract smoke, state/config snapshot tests, benchmark JSON smokes, schema tooling smokes, and doctor JSON smoke.
+46/46 CTest tests passed in the default local RelWithDebInfo GCC run, including normalized CLI golden outputs, schema contract smoke, state/config snapshot tests, example validation/run smokes, benchmark JSON smokes, schema tooling smokes, and doctor JSON smoke.
 ```
 
 Release artifact smoke:
@@ -60,7 +60,7 @@ cmake --build "$RUNTIME_SMOKE_DIR" -j
 Observed result:
 
 ```text
-38/38 CTest tests passed; downstream topoexec::runtime package smoke executable linked only topoexec::runtime and exited 0.
+46/46 CTest tests passed; downstream topoexec::runtime package smoke executable linked only topoexec::runtime and exited 0.
 ```
 
 GitHub Actions evidence for current main:

@@ -1,0 +1,21 @@
+schema_version: 1
+graph:
+  name: state_config_snapshot
+  kind: runnable
+  config: {profile: demo}
+lanes: {main: {type: event_loop}}
+components:
+  - id: config_source
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: app-config-source}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: consumer
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: app-config-consumer}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: config_snapshot, kind: state, from: config_source.out, to: consumer.in, policy: {mode: latest, copy_policy: shared_view}}

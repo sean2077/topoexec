@@ -42,6 +42,10 @@ def main() -> int:
         "examples/control_feedback_delay.yaml",
         "examples/composite_loop.yaml",
         "examples/large_payload_copy.yaml",
+        "examples/state_config_snapshot.yaml",
+        "examples/batch_time_sync.yaml",
+        "examples/service_pipeline.yaml",
+        "examples/boundary_adapter_pattern.yaml",
     ]
     for example in valid_examples:
         completed = subprocess.run(

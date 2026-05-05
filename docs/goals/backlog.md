@@ -28,7 +28,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | G13 | P1 | complete | metrics/trace/diagnostics | Metrics/trace JSON and Chrome trace have golden coverage; histograms export count/min/max/avg/p50/p95/p99; stable diagnostic descriptors are exposed through `topoexec/runtime/diagnostics.hpp` and `docs/diagnostics.md`. | `./scripts/agent_check.sh` |
 | G14 | P1/P2 | complete | benchmark suite | `benchmarks/` deterministic cases cover single component, immediate chain, latest/queue, deferred edges, and thread_pool paths; bench JSON includes case/params/per-run latency percentiles/throughput/environment and docs avoid performance claims. | `./scripts/agent_check.sh` |
 | G15 | P2 | complete | CLI/tooling | Existing graph commands are covered by smokes/goldens; `schema dump`, `schema check`, and `doctor` provide scriptable tooling entry points without adding broad runtime commands. Expanded lint/explain remain incremental enhancements. | `./scripts/agent_check.sh` |
-| G16 | P1/P2 | partial | examples/apps | Core examples build/run; additional state, batch/time-sync, large payload, service, registry, and boundary-pattern examples remain. | `./scripts/agent_check.sh` |
+| G16 | P1/P2 | complete | examples/apps | Core apps and YAML examples now cover minimal, low latency/event queue, delay feedback, state/config snapshot, CompositeLoop, async/service-style flow, batch/time-sync, large payload linting, app registry, and boundary-adapter patterns without adapter dependencies. | `./scripts/agent_check.sh` |
 | G17 | P1/P2 | partial | documentation system | Reference docs exist; tutorial path and snippet/doc tests need completion. | `./scripts/agent_check.sh` |
 | G18 | P0/P1 | partial | testing strategy | Unit/semantic/package/golden tests exist; fuzz and sanitizer gates are not complete. | `./scripts/agent_check.sh` |
 | G19 | P1/P2 | partial | build/package/distribution | Install/export/runtime smoke exists; optional target switches and package-manager drafts remain. | `./scripts/agent_check.sh` |
@@ -41,7 +41,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 
 ## Next goal
 
-Continue with **G16+ examples/docs/testing/package productization**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
+Continue with **G17+ docs/testing/package productization**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
 
 ## Blockers
 
