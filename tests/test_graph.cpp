@@ -461,6 +461,26 @@ edges:
   EXPECT_TRUE(has_error_containing(result.errors, "state edge target has multiple writers: sink.state"));
 }
 
+TEST(Graph, ParsesGraphLevelConfigSnapshot) {
+  const auto spec = topoexec::load_graph_text(R"(
+schema_version: 1
+graph:
+  name: graph_config
+  kind: internal_test
+  config:
+    profile: alpha
+    nested: {mode: safe}
+lanes: {main: {type: event_loop}}
+components:
+  - {id: source, type: topoexec.test.Source, event_sources: [{type: manual}], trigger_policy: {type: manual}, execution: {lane: main}}
+edges: []
+)");
+
+  EXPECT_EQ(spec.config.values.at("profile"), "alpha");
+  EXPECT_TRUE(spec.config.is_nested("nested"));
+  EXPECT_NE(spec.config.values.at("nested").find("safe"), std::string::npos);
+}
+
 TEST(Graph, BranchingImmediateDagRegionOrderIsDeterministic) {
   const auto graph = topoexec::load_graph_text(R"(
 schema_version: 1

@@ -896,6 +896,12 @@ RuntimePublicationRouter::commit_batch(std::vector<RuntimeChannelPublication> pu
   if (result.accepted) {
     metrics_.committed_count += publications.size();
     for (std::size_t index = 0; index < publications.size(); ++index) {
+      if (publications[index].kind == EdgeKind::kState) {
+        ++metrics_.state_commit_count;
+        record_trace_event(
+            trace_, "state_commit",
+            {{"channel_id", publications[index].id}, {"edge_kind", to_string(publications[index].kind)}});
+      }
       record_trace_event(trace_, "channel_commit",
                          {{"channel_id", publications[index].id}, {"edge_kind", to_string(publications[index].kind)}});
     }

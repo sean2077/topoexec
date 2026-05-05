@@ -105,6 +105,9 @@
               "default": "steady"
             }
           }
+        },
+        "config": {
+          "type": "object"
         }
       }
     },

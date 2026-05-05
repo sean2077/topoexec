@@ -3,6 +3,7 @@
 #include "topoexec/common/trace.hpp"
 #include "topoexec/runtime/channel.hpp"
 #include "topoexec/runtime/event_runtime.hpp"
+#include "topoexec/runtime/state.hpp"
 
 #include <algorithm>
 #include <exception>
@@ -157,6 +158,12 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   TraceCollector trace;
   publications.set_trace_collector(&trace);
   MetricRegistry metrics;
+  RuntimeStateStore state_store;
+  ConfigSnapshotStore config_store;
+  config_store.set_graph_config(graph.config);
+  for (const auto& spec : graph.components) {
+    config_store.set_component_config(spec.id, spec.config);
+  }
   MemoryLogSink logs;
   StructuredLogger logger(graph.name);
   logger.attach_sink(&logs);
@@ -180,6 +187,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       instance.context.logger = &logger;
       instance.context.channels = &channels;
       instance.context.publisher = &publications;
+      instance.context.state_store = &state_store;
+      instance.context.config_store = &config_store;
       instance.context.graph_name = graph.name;
       instance.context.component_id = spec.id;
       const auto configure = instance.component->configure_status(instance.context, spec.config);
@@ -226,6 +235,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
 
     EventRuntime runtime(&channels, result.validation.compiled_plan, &publications);
     runtime.set_trace_collector(&trace);
+    runtime.set_state_store(&state_store);
+    runtime.set_config_store(&config_store);
     for (const auto& spec : graph.components) {
       auto instance =
           std::find_if(instances.begin(), instances.end(), [&spec](const auto& item) { return item.id == spec.id; });
@@ -366,6 +377,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     result.committed_publication_count = publication_metrics.committed_count;
     result.delayed_publication_count = publication_metrics.delayed_staged_count;
     result.state_publication_count = publication_metrics.state_staged_count;
+    result.state_commit_count = publication_metrics.state_commit_count;
     result.async_publication_count = publication_metrics.async_staged_count;
     result.failed_publication_commit_count = publication_metrics.failed_commit_count;
     append_runtime_metric(result, "runtime.publication.staged", static_cast<double>(publication_metrics.staged_count));
@@ -375,6 +387,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                           static_cast<double>(publication_metrics.delayed_staged_count));
     append_runtime_metric(result, "runtime.publication.state",
                           static_cast<double>(publication_metrics.state_staged_count));
+    append_runtime_metric(result, "runtime.publication.state_committed",
+                          static_cast<double>(publication_metrics.state_commit_count));
     append_runtime_metric(result, "runtime.publication.async",
                           static_cast<double>(publication_metrics.async_staged_count));
     append_runtime_metric(result, "runtime.publication.failed_commit",
@@ -393,6 +407,35 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                           static_cast<double>(publication_metrics.async_completion_count));
     append_runtime_metric(result, "runtime.async.cancelled_count",
                           static_cast<double>(publication_metrics.async_cancelled_count));
+    const auto state_metrics = state_store.metrics();
+    if (state_metrics.staged_write_count != 0u || state_metrics.committed_write_count != 0u ||
+        state_metrics.rejected_write_count != 0u || state_metrics.snapshot_read_count != 0u) {
+      append_runtime_metric(result, "runtime.state.staged_write_count",
+                            static_cast<double>(state_metrics.staged_write_count));
+      append_runtime_metric(result, "runtime.state.committed_write_count",
+                            static_cast<double>(state_metrics.committed_write_count));
+      append_runtime_metric(result, "runtime.state.rejected_write_count",
+                            static_cast<double>(state_metrics.rejected_write_count));
+      append_runtime_metric(result, "runtime.state.snapshot_read_count",
+                            static_cast<double>(state_metrics.snapshot_read_count));
+      append_runtime_metric(result, "runtime.state.current_value_count",
+                            static_cast<double>(state_metrics.current_value_count));
+    }
+    const auto config_metrics = config_store.metrics();
+    if (config_metrics.staged_update_count != 0u || config_metrics.committed_update_count != 0u ||
+        config_metrics.immediate_update_count != 0u || config_metrics.rejected_update_count != 0u ||
+        config_metrics.snapshot_read_count != 0u) {
+      append_runtime_metric(result, "runtime.config.staged_update_count",
+                            static_cast<double>(config_metrics.staged_update_count));
+      append_runtime_metric(result, "runtime.config.committed_update_count",
+                            static_cast<double>(config_metrics.committed_update_count));
+      append_runtime_metric(result, "runtime.config.immediate_update_count",
+                            static_cast<double>(config_metrics.immediate_update_count));
+      append_runtime_metric(result, "runtime.config.rejected_update_count",
+                            static_cast<double>(config_metrics.rejected_update_count));
+      append_runtime_metric(result, "runtime.config.snapshot_read_count",
+                            static_cast<double>(config_metrics.snapshot_read_count));
+    }
     for (const auto& sample : metrics.snapshot()) {
       result.runtime_metrics.push_back(RuntimeMetricSample{sample.name, sample.value, {}, {}, {}, {}});
     }

@@ -70,6 +70,7 @@ struct RuntimeRunnerResult {
   std::size_t committed_publication_count{0};
   std::size_t delayed_publication_count{0};
   std::size_t state_publication_count{0};
+  std::size_t state_commit_count{0};
   std::size_t async_publication_count{0};
   std::size_t failed_publication_commit_count{0};
   std::size_t trace_event_count{0};

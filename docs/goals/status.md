@@ -24,6 +24,7 @@ Last updated: 2026-05-05
 | G9 | complete | `Payload.OpaqueCustomPayloadPreservesSchemaAddressAndSummary`, `Channel.BufferPoolReusesReleasedFramesAndReportsMetrics`, `Channel.LoanedViewPreservesLoanedFrameBufferWithoutCopying`, `docs/payloads.md`, and `docs/memory.md`. | Custom type-erased payloads and in-process BufferPool metrics are available; external shared-memory zero-copy remains out of scope. |
 | G10 | complete | `Runtime.RequestTriggerUsesRequestInvocationKind`, `Runtime.RequestTriggerDropsTimedOutPendingMessage`, `Runtime.FutureReadyEventSourceUsesFutureReadyEventKind`, `Runtime.TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign`, `Runtime.BatchTriggerFlushesPartialBatchAfterWindowExpires`, `docs/triggers.md`, and trigger metrics golden output. | Trigger engine owns readiness, timeout drop, batch flush, time-sync drop, and local correlation metadata; watermark/condition triggers remain future extensions. |
 | G11 | complete | `Runtime.CompositeLoopRegionOwnsInternalFixedPointIterations`, `Runtime.CompositeLoopConvergenceStopsBeforeMaxIterations`, `Runtime.CompositeLoopBudgetOverrunStopsLoopAndReportsMetric`, `Runtime.CompositeLoopInternalFailureStopsLoopAndSuppressesExternalCommit`, `docs/composite-loops.md`, and loop metrics/trace docs. | CompositeLoop regions are bounded, observable, and prevent half-updated external output commits on internal failure; solver-style typed convergence remains future work. |
+| G12 | complete | `Runtime.StateEdgeKeepsCommittedSnapshotIsolatedUntilNextEpoch`, `Runtime.ComponentConfigUpdatesApplyOnEpochBoundary`, `StateStore.*`, `ConfigSnapshotStore.ComponentConfigUpdatesRespectEpochBoundary`, `Graph.ParsesGraphLevelConfigSnapshot`, and `docs/state.md`. | State edges and optional blackboard/config stores are snapshot-based and epoch-boundary committed; single-writer blackboard semantics are enforced until an explicit merge policy exists. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
 
@@ -31,8 +32,8 @@ Last updated: 2026-05-05
 
 The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
 
-1. G12/G13+ productization/runtime hardening work;
-2. then G12/G13+ P1/P2 productization work.
+1. G13 observability registry / histogram / diagnostics hardening;
+2. then G14+ P1/P2 productization work.
 
 ## Validation Evidence
 
@@ -43,6 +44,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j
 ctest --test-dir build --output-on-failure -R 'cli_validate_schema_only_minimal|cli_validate_semantic_minimal|schema_v1_contract_smoke|cli_golden_outputs'
 ctest --test-dir build --output-on-failure -R 'schema_v1_contract_smoke|cli_golden_outputs|cmake_package_runtime_smoke'
+ctest --test-dir build --output-on-failure -R 'test_state|test_runtime|test_graph|cli_golden_outputs|schema_v1_contract_smoke'
 ```
 
 Run `./scripts/agent_check.sh` before declaring a repo-changing stage complete.

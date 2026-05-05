@@ -124,13 +124,12 @@ void reject_unknown_fields(const YAML::Node& node, const std::string& context, c
   }
 }
 
-ConfigView read_config(const YAML::Node& component_node, const std::string& component_id) {
+ConfigView read_config_node(const YAML::Node& config, const std::string& context) {
   ConfigView view;
-  const auto config = component_node["config"];
   if (!config || config.IsNull()) {
     return view;
   }
-  require_map(config, "components." + component_id + ".config");
+  require_map(config, context);
   for (const auto& item : config) {
     const auto key = item.first.as<std::string>();
     if (item.second.IsMap() || item.second.IsSequence()) {
@@ -143,6 +142,10 @@ ConfigView read_config(const YAML::Node& component_node, const std::string& comp
     }
   }
   return view;
+}
+
+ConfigView read_config(const YAML::Node& component_node, const std::string& component_id) {
+  return read_config_node(component_node["config"], "components." + component_id + ".config");
 }
 
 EventSourceSpec read_event_source(const YAML::Node& source_node, const std::string& context) {
@@ -295,9 +298,10 @@ GraphSpec load_graph_node(const YAML::Node& root) {
 
   const auto graph_node = require_node(root, "graph", "runtime graph");
   require_map(graph_node, "runtime graph.graph");
-  reject_unknown_fields(graph_node, "runtime graph.graph", {"name", "kind", "clock"});
+  reject_unknown_fields(graph_node, "runtime graph.graph", {"name", "kind", "clock", "config"});
   graph.name = require_string(graph_node, "name", "runtime graph.graph");
   graph.kind = optional_string(graph_node, "kind", "runnable");
+  graph.config = read_config_node(graph_node["config"], "runtime graph.graph.config");
   const auto clock_node = graph_node["clock"];
   if (clock_node && !clock_node.IsNull()) {
     require_map(clock_node, "runtime graph.graph.clock");

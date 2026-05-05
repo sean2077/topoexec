@@ -25,6 +25,8 @@
 namespace topoexec {
 
 class RuntimeChannelBus;
+class RuntimeStateStore;
+class ConfigSnapshotStore;
 
 struct RuntimeChannelPublishResult {
   bool accepted{false};
@@ -137,6 +139,8 @@ struct GraphContext {
   RuntimeChannelBus* channels{nullptr};
   GraphOutputPublisher* publisher{nullptr};
   TaskExecutor* task_executor{nullptr};
+  RuntimeStateStore* state_store{nullptr};
+  ConfigSnapshotStore* config_store{nullptr};
   std::string graph_name;
   std::string component_id;
 

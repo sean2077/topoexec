@@ -169,6 +169,7 @@ struct GraphSpec {
   std::string name;
   std::string kind{"internal_test"};
   ClockPolicySpec clock;
+  ConfigView config;
   std::vector<LaneSpec> lanes;
   std::vector<ComponentNodeSpec> components;
   std::vector<EdgeSpec> edges;

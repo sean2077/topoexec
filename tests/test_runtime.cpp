@@ -1,6 +1,7 @@
 #include "topoexec/runtime/channel.hpp"
 #include "topoexec/runtime/event_runtime.hpp"
 #include "topoexec/runtime/runtime_runner.hpp"
+#include "topoexec/runtime/state.hpp"
 
 #include <gtest/gtest.h>
 
@@ -45,6 +46,11 @@ std::vector<std::string>& lifecycle_events() {
   return events;
 }
 
+std::vector<std::string>& config_observations() {
+  static std::vector<std::string> values;
+  return values;
+}
+
 std::mutex& runtime_records_mutex() {
   static std::mutex mutex;
   return mutex;
@@ -62,6 +68,10 @@ void reset_runtime_records() {
 
 void reset_lifecycle_events() {
   lifecycle_events().clear();
+}
+
+void reset_config_observations() {
+  config_observations().clear();
 }
 
 void reset_publication_probe_state() {
@@ -627,6 +637,51 @@ public:
   }
 };
 
+class ConfigUpdaterComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.ConfigUpdater";
+    descriptor.name = "config_updater";
+    descriptor.outputs = {{"out", topoexec::kTextPayloadSchema}};
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    topoexec::ConfigView update;
+    update.values["value"] = "updated-" + std::to_string(invocation.sequence);
+    const auto staged = context.config_store->stage_component_config_update("observer", update);
+    if (!staged.accepted) {
+      throw std::runtime_error(staged.reason);
+    }
+    const auto result = context.publish("out", topoexec::make_text_payload("config-ready"));
+    if (!result.accepted) {
+      throw std::runtime_error(result.reason);
+    }
+  }
+};
+
+class ConfigObserverComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.ConfigObserver";
+    descriptor.name = "config_observer";
+    descriptor.inputs = {{"in", topoexec::kTextPayloadSchema}};
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  void execute(const topoexec::Invocation&, topoexec::GraphContext& context) override {
+    const auto config = context.config_store->component_config(context.component_id);
+    const auto found = config.values.find("value");
+    config_observations().push_back(found == config.values.end() ? "<missing>" : found->second);
+  }
+};
+
 class ThrowingComponent : public topoexec::Component {
 public:
   topoexec::ComponentDescriptor describe() const override {
@@ -798,6 +853,10 @@ topoexec::ComponentRegistry delay_registry() {
                               []() { return std::make_unique<ActivateStatusFailureComponent>(); });
   registry.register_component({"topoexec.test.DeactivateStatusFailure"},
                               []() { return std::make_unique<DeactivateStatusFailureComponent>(); });
+  registry.register_component({"topoexec.test.ConfigUpdater"},
+                              []() { return std::make_unique<ConfigUpdaterComponent>(); });
+  registry.register_component({"topoexec.test.ConfigObserver"},
+                              []() { return std::make_unique<ConfigObserverComponent>(); });
   return registry;
 }
 
@@ -906,6 +965,31 @@ topoexec::GraphSpec deferred_visibility_graph(topoexec::EdgeKind kind) {
     }
   }
   return graph;
+}
+
+topoexec::GraphSpec config_snapshot_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph:
+  name: config_snapshot
+  kind: internal_test
+  config: {profile: alpha}
+lanes: {main: {type: event_loop}}
+components:
+  - id: updater
+    type: topoexec.test.ConfigUpdater
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: observer
+    type: topoexec.test.ConfigObserver
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+    config: {value: initial}
+edges:
+  - {id: updater_observer, kind: immediate, from: updater.out, to: observer.in, policy: {mode: latest, copy_policy: shared_view}}
+)");
 }
 
 topoexec::GraphSpec task_ready_graph() {
@@ -1424,6 +1508,60 @@ TEST(Runtime, StateAndAsyncEdgesCommitAfterCurrentEpoch) {
       EXPECT_DOUBLE_EQ(*async, 2.0);
     }
   }
+}
+
+TEST(Runtime, StateEdgeKeepsCommittedSnapshotIsolatedUntilNextEpoch) {
+  topoexec::EdgeSpec edge;
+  edge.id = "state_edge";
+  edge.from = "producer.out";
+  edge.to = "consumer.state";
+  edge.kind = topoexec::EdgeKind::kState;
+  edge.has_kind = true;
+  edge.policy.mode = "latest";
+  edge.policy.overflow = "overwrite";
+  edge.policy.copy_policy = "shared_view";
+
+  topoexec::RuntimeChannelBus bus({edge});
+  topoexec::RuntimePublicationRouter router(&bus, {edge});
+
+  ASSERT_TRUE(bus.publish("state_edge", topoexec::make_text_payload("old")).accepted);
+  ASSERT_TRUE(router.publish_from("producer.out", topoexec::make_text_payload("new")).accepted);
+
+  auto during_epoch = bus.peek_latest_for_component_port("consumer", "state");
+  ASSERT_TRUE(during_epoch.ok);
+  ASSERT_TRUE(during_epoch.message.has_value());
+  EXPECT_EQ(*during_epoch.message->payload, "old");
+
+  router.end_epoch();
+  ASSERT_TRUE(router.begin_epoch().accepted);
+
+  auto next_epoch = bus.peek_latest_for_component_port("consumer", "state");
+  ASSERT_TRUE(next_epoch.ok);
+  ASSERT_TRUE(next_epoch.message.has_value());
+  EXPECT_EQ(*next_epoch.message->payload, "new");
+
+  const auto metrics = router.metrics();
+  EXPECT_EQ(metrics.state_staged_count, 1u);
+  EXPECT_EQ(metrics.state_commit_count, 1u);
+}
+
+TEST(Runtime, ComponentConfigUpdatesApplyOnEpochBoundary) {
+  const auto reg = delay_registry();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_config_observations();
+  const auto result = runner.run(config_snapshot_graph(), options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_EQ(config_observations().size(), 2u);
+  EXPECT_EQ(config_observations()[0], "initial");
+  EXPECT_EQ(config_observations()[1], "updated-1");
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.config.staged_update_count", 2.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.config.committed_update_count", 1.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.config.snapshot_read_count", 2.0));
 }
 
 TEST(Runtime, TaskExecutorCompletesDeterministicTasksInOrder) {

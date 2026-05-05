@@ -306,6 +306,7 @@ nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
           {"committed_publication_count", result.committed_publication_count},
           {"delayed_publication_count", result.delayed_publication_count},
           {"state_publication_count", result.state_publication_count},
+          {"state_commit_count", result.state_commit_count},
           {"async_publication_count", result.async_publication_count},
           {"failed_publication_commit_count", result.failed_publication_commit_count},
           {"trace_event_count", result.trace_event_count},

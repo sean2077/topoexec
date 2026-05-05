@@ -13,6 +13,8 @@
 namespace topoexec {
 
 class TraceCollector;
+class RuntimeStateStore;
+class ConfigSnapshotStore;
 
 struct EventRuntimeComponent {
   std::string id;
@@ -32,6 +34,8 @@ public:
   void set_compiled_plan(GraphCompiledPlan compiled_plan);
   void set_publication_router(RuntimePublicationRouter* publications);
   void set_trace_collector(TraceCollector* trace);
+  void set_state_store(RuntimeStateStore* state_store);
+  void set_config_store(ConfigSnapshotStore* config_store);
   SchedulerRunResult run(const SchedulerRunOptions& options);
   std::size_t component_count() const;
 
@@ -39,6 +43,8 @@ private:
   RuntimeChannelBus* channels_{nullptr};
   RuntimePublicationRouter* publications_{nullptr};
   TraceCollector* trace_{nullptr};
+  RuntimeStateStore* state_store_{nullptr};
+  ConfigSnapshotStore* config_store_{nullptr};
   GraphCompiledPlan compiled_plan_;
   std::vector<EventRuntimeComponent> components_;
 };

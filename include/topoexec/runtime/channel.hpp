@@ -116,6 +116,7 @@ struct RuntimePublicationRouterMetrics {
   std::size_t immediate_staged_count{0};
   std::size_t delayed_staged_count{0};
   std::size_t state_staged_count{0};
+  std::size_t state_commit_count{0};
   std::size_t async_staged_count{0};
   std::size_t async_admission_accepted_count{0};
   std::size_t async_admission_rejected_count{0};

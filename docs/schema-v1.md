@@ -26,6 +26,8 @@ Allowed root fields are exactly `schema_version`, `graph`, `lanes`, `components`
 graph:
   name: minimal
   kind: runnable
+  config:
+    profile: alpha
   clock:
     runtime_domain: steady
     event_domain: steady
@@ -35,6 +37,7 @@ Fields:
 
 - `name` required string.
 - `kind` optional string, default `runnable`; allowed values are `runnable` and `internal_test`.
+- `config` optional mapping of graph-level snapshot values. Nested mappings/sequences are preserved as serialized strings and marked as nested in `ConfigView`.
 - `clock.runtime_domain` optional string, default `steady`; only `steady` is currently accepted.
 - `clock.event_domain` optional string, default `steady`; allowed values are `steady`, `system`, `device`, and `external`.
 

@@ -1,6 +1,7 @@
 #include "topoexec/runtime/event_runtime.hpp"
 
 #include "topoexec/common/trace.hpp"
+#include "topoexec/runtime/state.hpp"
 #include "topoexec/runtime/trigger_policy.hpp"
 
 #include <algorithm>
@@ -104,6 +105,14 @@ void EventRuntime::set_trace_collector(TraceCollector* trace) {
   trace_ = trace;
 }
 
+void EventRuntime::set_state_store(RuntimeStateStore* state_store) {
+  state_store_ = state_store;
+}
+
+void EventRuntime::set_config_store(ConfigSnapshotStore* config_store) {
+  config_store_ = config_store;
+}
+
 SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
   SchedulerRunResult result;
   result.stop_reason = SchedulerStopReason::kTickBound;
@@ -147,6 +156,12 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
     }
     const auto iteration_started_at = std::chrono::steady_clock::now();
     record_trace_event(trace_, "scheduler_iteration_begin", {{"iteration", std::to_string(iteration + 1u)}});
+    if (state_store_ != nullptr) {
+      state_store_->commit_epoch_boundary();
+    }
+    if (config_store_ != nullptr) {
+      config_store_->commit_epoch_boundary();
+    }
     if (publications_ != nullptr) {
       const auto commit = publications_->begin_epoch();
       if (!commit.accepted) {

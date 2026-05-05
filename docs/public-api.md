@@ -19,7 +19,7 @@ These headers are safe for ordinary runtime users to include directly. In `0.x`,
 | `topoexec/runtime/status.hpp` | `Status`, `Result<T>` | Status-returning hooks use this instead of exceptions when failures are expected. |
 | `topoexec/runtime/clock.hpp` | `TimestampDomain`, `EventTimestamp` | Stable timestamp value types for event-time payloads and policies. |
 | `topoexec/runtime/payload.hpp` | Built-in payload variants, schema constants, typed access helpers | Uses `FrameView` and `SharedBuffer` from `buffer.hpp`; custom payload extension remains future work. |
-| `topoexec/runtime/component.hpp` | `Component`, `ComponentDescriptor`, `GraphContext`, `Invocation`, `InputView`, publication result | `GraphContext::publish()` stages through the runtime publisher and returns an observable publish result. |
+| `topoexec/runtime/component.hpp` | `Component`, `ComponentDescriptor`, `GraphContext`, `Invocation`, `InputView`, publication result | `GraphContext::publish()` stages through the runtime publisher and returns an observable publish result. `GraphContext` also carries optional state/config snapshot store pointers for components that include the experimental snapshot header. |
 | `topoexec/runtime/component_registry.hpp` | Component factory registration and lookup | Stable registry entry point for embedders and examples. |
 | `topoexec/runtime/graph.hpp` | `GraphSpec`, edge/channel/trigger policy specs, validation and compile result structs | C++ graph model is stable. YAML loader declarations in this header require linking `topoexec::yaml`. |
 | `topoexec/runtime/graph_builder.hpp` | Thin C++ helpers over `GraphSpec` | Convenience only; it does not create a second graph model. |
@@ -42,6 +42,7 @@ These headers are public because tests, advanced examples, or future extension p
 | --- | --- |
 | `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, channel read APIs (`peek`, `snapshot`, bounded drain, explicit per-reader drain), and channel metrics. The overload tutorial uses it as an advanced channel-policy example. |
 | `topoexec/runtime/event_runtime.hpp` | Lower-level event runtime surface used by tests and advanced embedders. |
+| `topoexec/runtime/state.hpp` | Experimental namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
 | `topoexec/common/metrics.hpp` | Small metrics registry/value helpers that may gain sinks/exporters later. |
 | `topoexec/common/logging.hpp` | Structured logging helper; adapter/exporter boundary is not stable yet. |

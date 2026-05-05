@@ -52,6 +52,7 @@ add_library(topoexec_runtime
   src/payload.cpp
   src/runtime_runner.cpp
   src/scheduler.cpp
+  src/state.cpp
   src/task_executor.cpp
   src/trace.cpp
   src/trigger_policy.cpp
@@ -152,6 +153,7 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   topoexec_add_test(test_common tests/test_common.cpp)
   topoexec_add_test(test_graph tests/test_graph.cpp)
   topoexec_add_test(test_channel tests/test_channel.cpp)
+  topoexec_add_test(test_state tests/test_state.cpp)
   topoexec_add_test(test_runtime tests/test_runtime.cpp)
 
   add_test(NAME cli_validate_minimal

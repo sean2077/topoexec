@@ -32,6 +32,12 @@ Overflow behavior must be explicit. Dropped, overwritten, blocked, or rejected p
 
 Read policy is part of the runtime contract: low-level APIs distinguish peek, snapshot, bounded drain, and per-reader drain. Copy policy is part of the runtime contract. `copy` owns a copied payload and rejects large payloads that cannot be copied safely. `shared_view` shares immutable payload storage. `loaned_view` preserves `BufferPool` / `LoanedFrame` frame buffers without copying and publishes them as immutable runtime payloads. `move_only` is accepted only for `readers: single`; multi-reader move-only edges are invalid.
 
+## State And Config Snapshots
+
+State is never a hidden mutable global. `RuntimeStateStore` exposes an optional namespaced blackboard with immutable `RuntimeStateSnapshot` reads and explicit `component.port` writers. Writes are staged and become current only when the runtime crosses an epoch boundary. The initial merge policy is single-writer per namespace/key; a second writer is rejected until a future explicit merge function exists.
+
+Graph-level `graph.config` values are parsed into `GraphSpec::config` and copied into `ConfigSnapshotStore` by `RuntimeRunner`. Component configs are also snapshotted there. A component may stage a component config update through `ConfigSnapshotStore`; by default it applies on the next epoch boundary, so other components in the publishing epoch still observe the previously committed config snapshot. This API does not re-run `configure()` automatically; it is a runtime snapshot/config-data surface.
+
 ## Trigger Readiness
 
 Components implement one `execute()` method. Readiness belongs to the trigger engine, not to component code.

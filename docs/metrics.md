@@ -74,6 +74,7 @@ Publication router:
 - `runtime.publication.committed`: staged publications committed to runtime channels.
 - `runtime.publication.delayed`: publications deferred by `delay` edges.
 - `runtime.publication.state`: publications deferred by `state` edges.
+- `runtime.publication.state_committed`: state-edge publications committed at epoch boundaries.
 - `runtime.publication.async`: publications deferred by `async` edges.
 - `runtime.publication.failed_commit`: failed publication commit batches.
 
@@ -95,6 +96,19 @@ Composite loops:
 - `runtime.loop.max_iterations_hit`: max-iteration stops for a CompositeLoop region. `component_id` carries the loop id.
 - `runtime.loop.error`: internal CompositeLoop component failures. `component_id` carries the loop id.
 
+State/config snapshots:
+
+- `runtime.state.staged_write_count`: blackboard writes staged for an epoch-boundary commit.
+- `runtime.state.committed_write_count`: blackboard writes applied at epoch boundaries.
+- `runtime.state.rejected_write_count`: blackboard writes rejected by empty namespace/key/writer, null payload, or single-writer policy.
+- `runtime.state.snapshot_read_count`: blackboard snapshots/read calls.
+- `runtime.state.current_value_count`: current committed blackboard values.
+- `runtime.config.staged_update_count`: component config snapshots staged for an epoch-boundary update.
+- `runtime.config.committed_update_count`: component config snapshots applied at epoch boundaries.
+- `runtime.config.immediate_update_count`: explicitly immediate component config updates.
+- `runtime.config.rejected_update_count`: rejected config updates.
+- `runtime.config.snapshot_read_count`: graph/component config snapshot reads.
+
 Trace:
 
 - `runtime.trace.event_count`: structured trace events emitted during the run.
@@ -111,6 +125,7 @@ The top-level JSON result also carries aggregate counters for common dashboards:
 - `committed_publication_count`
 - `delayed_publication_count`
 - `state_publication_count`
+- `state_commit_count`
 - `async_publication_count`
 - `failed_publication_commit_count`
 - `loop_iteration_count`

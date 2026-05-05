@@ -595,6 +595,14 @@
       "channel_id": "",
       "component_id": "",
       "lane": "",
+      "name": "runtime.publication.state_committed",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
       "name": "runtime.publication.async",
       "tags": [],
       "value": 0.0
@@ -676,6 +684,7 @@
   "payload_copy_count": 0,
   "runtime_errors": [],
   "staged_publication_count": 2,
+  "state_commit_count": 0,
   "state_publication_count": 0,
   "stop_reason": "tick_bound",
   "tick_calls": 3,
