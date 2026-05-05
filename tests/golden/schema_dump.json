@@ -1,0 +1,588 @@
+{
+  "$defs": {
+    "boundary": {
+      "additionalProperties": false,
+      "properties": {
+        "descriptor": {
+          "type": "string"
+        },
+        "role": {
+          "default": "processing",
+          "enum": [
+            "processing",
+            "input",
+            "output",
+            "input_output"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "clock_domain": {
+      "enum": [
+        "steady",
+        "system",
+        "device",
+        "external"
+      ],
+      "type": "string"
+    },
+    "component": {
+      "additionalProperties": false,
+      "properties": {
+        "boundary": {
+          "$ref": "#/$defs/boundary"
+        },
+        "config": {
+          "type": "object"
+        },
+        "depends_on": {
+          "$ref": "#/$defs/string_array"
+        },
+        "event_sources": {
+          "items": {
+            "$ref": "#/$defs/event_source"
+          },
+          "type": "array"
+        },
+        "execution": {
+          "$ref": "#/$defs/execution"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "trigger_policy": {
+          "$ref": "#/$defs/trigger_policy"
+        },
+        "type": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "execution"
+      ],
+      "type": "object"
+    },
+    "composite_loop": {
+      "additionalProperties": false,
+      "properties": {
+        "components": {
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "loop_policy": {
+          "$ref": "#/$defs/loop_policy"
+        }
+      },
+      "required": [
+        "id",
+        "components",
+        "loop_policy"
+      ],
+      "type": "object"
+    },
+    "edge": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/endpoint"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "immediate",
+            "delay",
+            "state",
+            "async"
+          ],
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/edge_policy"
+        },
+        "to": {
+          "$ref": "#/$defs/endpoint"
+        }
+      },
+      "required": [
+        "id",
+        "from",
+        "to",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "edge_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_drop": {
+          "default": true,
+          "type": "boolean"
+        },
+        "capacity": {
+          "default": 1,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "copy_policy": {
+          "default": "copy",
+          "enum": [
+            "copy",
+            "shared_view",
+            "loaned_view",
+            "move_only"
+          ],
+          "type": "string"
+        },
+        "deadline_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "emit_health_events": {
+          "default": true,
+          "type": "boolean"
+        },
+        "lifespan_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_inflight": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "mode": {
+          "default": "latest",
+          "enum": [
+            "latest",
+            "queue",
+            "ring_buffer",
+            "latched",
+            "barrier",
+            "previous_tick"
+          ],
+          "type": "string"
+        },
+        "overflow": {
+          "default": "overwrite",
+          "enum": [
+            "overwrite",
+            "drop_oldest",
+            "drop_newest",
+            "block",
+            "fail_fast",
+            "reject"
+          ],
+          "type": "string"
+        },
+        "owner": {
+          "default": "runtime",
+          "enum": [
+            "producer",
+            "runtime",
+            "consumer"
+          ],
+          "type": "string"
+        },
+        "preserve_order": {
+          "default": true,
+          "type": "boolean"
+        },
+        "readers": {
+          "default": "single",
+          "enum": [
+            "single",
+            "multi",
+            "multiple"
+          ],
+          "type": "string"
+        },
+        "timestamp_domain": {
+          "$ref": "#/$defs/clock_domain",
+          "default": "steady"
+        }
+      },
+      "type": "object"
+    },
+    "endpoint": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "type": "string"
+    },
+    "event_source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "input": {
+          "type": "string"
+        },
+        "inputs": {
+          "$ref": "#/$defs/string_array"
+        },
+        "period_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "default": "manual",
+          "enum": [
+            "manual",
+            "message",
+            "timer",
+            "request",
+            "action_goal",
+            "action_cancel",
+            "task_ready",
+            "future_ready"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "execution": {
+      "additionalProperties": false,
+      "properties": {
+        "budget_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lane": {
+          "$ref": "#/$defs/id"
+        },
+        "on_error": {
+          "default": "fail_fast",
+          "enum": [
+            "fail_fast",
+            "continue",
+            "isolate"
+          ],
+          "type": "string"
+        },
+        "priority": {
+          "default": "normal",
+          "type": "string"
+        },
+        "reentrant": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "lane"
+      ],
+      "type": "object"
+    },
+    "graph": {
+      "additionalProperties": false,
+      "properties": {
+        "clock": {
+          "additionalProperties": false,
+          "properties": {
+            "event_domain": {
+              "$ref": "#/$defs/clock_domain",
+              "default": "steady"
+            },
+            "runtime_domain": {
+              "default": "steady",
+              "enum": [
+                "steady"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "config": {
+          "type": "object"
+        },
+        "kind": {
+          "default": "runnable",
+          "enum": [
+            "runnable",
+            "internal_test"
+          ],
+          "type": "string"
+        },
+        "name": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "type": "string"
+    },
+    "lane": {
+      "additionalProperties": false,
+      "properties": {
+        "cpu_affinity": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "hz": {
+          "default": 0,
+          "minimum": 0,
+          "type": "number"
+        },
+        "isolation_intent": {
+          "default": "none",
+          "type": "string"
+        },
+        "max_callback_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_threads": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "nice_priority": {
+          "default": 0,
+          "type": "integer"
+        },
+        "overflow": {
+          "default": "reject",
+          "enum": [
+            "overwrite",
+            "drop_oldest",
+            "drop_newest",
+            "reject",
+            "reject_new",
+            "fail_fast",
+            "block"
+          ],
+          "type": "string"
+        },
+        "period_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "priority": {
+          "default": "",
+          "type": "string"
+        },
+        "queue_capacity": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rt_policy": {
+          "default": "none",
+          "type": "string"
+        },
+        "rt_priority": {
+          "default": 0,
+          "type": "integer"
+        },
+        "thread_name": {
+          "type": "string"
+        },
+        "tick_budget_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "event_loop",
+            "fixed_rate",
+            "thread_pool"
+          ],
+          "type": "string"
+        },
+        "wall_clock_enabled": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "loop_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "budget_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "convergence": {
+          "type": "string"
+        },
+        "drop_policy": {
+          "type": "string"
+        },
+        "max_inflight": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_iterations": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "min_interval_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "fixed_point",
+            "transaction",
+            "coalesced_event",
+            "async_task"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "string_array": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "trigger_policy": {
+      "additionalProperties": false,
+      "properties": {
+        "batch_size": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "batch_window_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "coalesce": {
+          "default": false,
+          "type": "boolean"
+        },
+        "input": {
+          "type": "string"
+        },
+        "inputs": {
+          "$ref": "#/$defs/string_array"
+        },
+        "max_latency_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "min_interval_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "sync_slop_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "default": "manual",
+          "enum": [
+            "manual",
+            "on_event",
+            "any_input",
+            "all_inputs",
+            "time_sync",
+            "batch",
+            "request",
+            "task_ready"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "https://topoexec.dev/schema/topoexec.schema.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "components": {
+      "items": {
+        "$ref": "#/$defs/component"
+      },
+      "maxItems": 4096,
+      "minItems": 1,
+      "type": "array"
+    },
+    "composite_loops": {
+      "items": {
+        "$ref": "#/$defs/composite_loop"
+      },
+      "maxItems": 1024,
+      "type": "array"
+    },
+    "edges": {
+      "items": {
+        "$ref": "#/$defs/edge"
+      },
+      "maxItems": 8192,
+      "type": "array"
+    },
+    "graph": {
+      "$ref": "#/$defs/graph"
+    },
+    "lanes": {
+      "additionalProperties": {
+        "$ref": "#/$defs/lane"
+      },
+      "maxProperties": 256,
+      "minProperties": 1,
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "graph",
+    "lanes",
+    "components",
+    "edges"
+  ],
+  "title": "TopoExec graph schema v1",
+  "type": "object"
+}

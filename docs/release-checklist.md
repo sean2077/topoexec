@@ -1,9 +1,16 @@
 # Release Checklist
 
-Target: next prerelease candidate after the completed post-MVP goal sweep.
+Target: next prerelease candidate after the completed post-G25 goal sweep and the
+G26 plan2 baseline.
 
-This checklist is for the commit being tagged. Do not retag `v0.1.0-alpha`; if a
-published release is wrong, fix forward with a new prerelease tag.
+Do not retag `v0.1.0-alpha`; if a published release is wrong, fix forward with a
+new prerelease tag.
+
+Recommended next prerelease after G26:
+
+```text
+v0.2.0-alpha.0
+```
 
 ## Required local checks
 
@@ -11,21 +18,38 @@ published release is wrong, fix forward with a new prerelease tag.
 - [ ] `git diff --check` passes.
 - [ ] `./scripts/agent_check.sh` passes locally.
 - [ ] `cmake --build build --target topoexec_format_check` passes.
-- [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/sanitizer_check.sh` passes.
-- [ ] `cmake_runtime_only_options_smoke` passes as part of CTest.
-- [ ] `cmake_package_runtime_smoke` passes as part of CTest.
+- [ ] `./scripts/goal_check.sh package` passes.
+- [ ] `./scripts/goal_check.sh golden` passes.
+- [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer` passes.
+- [ ] `cmake_runtime_only_options_smoke` passes as part of CTest/package smoke.
+- [ ] `cmake_package_runtime_smoke` passes as part of CTest/package smoke.
 - [ ] `docs/release-progression.md` names the intended stage and remaining limitations.
 - [ ] `CHANGELOG.md` has the release section updated.
 - [ ] `docs/versioning.md` matches the intended tag.
 
-Current local evidence from the completed goal sweep:
+Current local evidence for G26:
 
-- Last implementation goal commit before this release-ledger update: `fd23c2d`.
-- Default local gate: 50/50 CTest tests passed through `./scripts/agent_check.sh`.
-- Local ASAN+UBSAN gate: 50/50 CTest tests passed through `scripts/sanitizer_check.sh`.
-- Local format gate: `topoexec_format_check` passed.
-- Runtime-only configure/build/install smoke passed with YAML, CLI, examples, and tests disabled.
-- Adapter SDK policy smoke passed; no core/build adapter SDK tokens were detected.
+```text
+./scripts/agent_check.sh: passed, 50/50 CTest tests.
+cmake --build build --target topoexec_format_check: passed.
+./scripts/goal_check.sh package: passed, 2/2 package tests.
+./scripts/goal_check.sh golden: passed, cli_golden_outputs.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 50/50 ASAN+UBSAN CTest tests.
+```
+
+## Golden drift surfaces
+
+The release candidate must preserve or intentionally update these goldens:
+
+- [ ] `tests/golden/plan_composite_loop.json`
+- [ ] `tests/golden/metrics_minimal.json`
+- [ ] `tests/golden/trace_minimal.json`
+- [ ] `tests/golden/trace_minimal_chrome.json`
+- [ ] `tests/golden/render_minimal.mmd`
+- [ ] `tests/golden/schema_dump.json`
+- [ ] `tests/golden/doctor.json`
+
+Intentional changes to these files require a changelog and semantic/API/doc note.
 
 ## Required CI checks
 
@@ -70,8 +94,8 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 
 ## Known limitations for release notes
 
-- Scheduler priority, affinity, RT policy, persistent worker naming, and timeout
-  preemption are still not implemented.
+- Scheduler priority, affinity, RT policy, persistent worker lifecycle/naming,
+  wall-clock fixed-rate scheduling, and timeout preemption are still not implemented.
 - ThreadSanitizer is non-blocking.
 - Deterministic fuzz smoke exists, but coverage-guided fuzzing is future beta work.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and

@@ -1,0 +1,26 @@
+{
+  "benchmarks": [
+    "benchmarks/single_component.yaml",
+    "benchmarks/immediate_chain.yaml",
+    "benchmarks/latest_vs_queue.yaml",
+    "benchmarks/deferred_edges.yaml",
+    "benchmarks/thread_pool.yaml"
+  ],
+  "cxx_standard": 202002,
+  "examples": [
+    "examples/minimal.yaml",
+    "examples/control_feedback_delay.yaml",
+    "examples/composite_loop.yaml",
+    "examples/large_payload_copy.yaml"
+  ],
+  "features": {
+    "json": true,
+    "runtime": true,
+    "sanitizers": "external-ci",
+    "yaml": true
+  },
+  "ok": true,
+  "schema_found": true,
+  "schema_path": "schema/topoexec.schema.v1.json",
+  "version": "0.1.0"
+}

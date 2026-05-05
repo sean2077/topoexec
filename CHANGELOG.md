@@ -6,6 +6,8 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 ### Added
 
+- Added the post-G25 `docs/plans/plan2.md` goal board and G26 release-candidate baseline docs for the next architecture-stabilization stage.
+- Added normalized golden coverage for Chrome trace shape, schema dump JSON, and doctor JSON.
 - Added `OpaquePayload`/`make_custom_payload` and BufferPool loan/release/byte metrics with memory docs.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.

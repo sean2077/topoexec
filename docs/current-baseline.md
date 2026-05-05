@@ -1,78 +1,85 @@
 # Current Baseline
 
-Date: 2026-05-05
+Date: 2026-05-06 (Asia/Singapore)
 
 Baseline snapshot target:
 
 ```text
-current main after v0.1.0-alpha
+post-G25 main protected as the starting point for docs/plans/plan2.md (G26+)
 ```
 
-Current implementation commit:
+Baseline commit before G26 documentation/test capture:
 
 ```text
-fd23c2d G24 defensive input handling implementation checkpoint; the following G25 commit updates release ledgers only
+b86a586d3a48d84bf4e03ccabde3d061e3073579 记录完成后的发布阶梯与证据要求
 ```
 
 Release tag relationship:
 
 ```text
-v0.1.0-alpha points to 201d3e0 Prepare alpha release evidence.
-Current main is ahead of v0.1.0-alpha and includes the completed post-MVP goal sweep through G25 release progression docs.
+v0.1.0-alpha points to 201d3e0c75a4334f404085d57282415fa9678fe9.
+The post-G25 baseline is v0.1.0-alpha-27-gb86a586 and includes the completed G0-G25 sweep.
+No public tag exists yet for the plan2/G26+ baseline.
+```
+
+Release decision note:
+
+```text
+Recommended next prerelease: v0.2.0-alpha.0.
+Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while persistent worker pools, wall-clock fixed-rate lanes, semantic-contract versioning, and observer/exporter APIs remain explicit future work.
+Human release approval should still verify CI on the exact tag commit before creating the annotated tag.
 ```
 
 Environment used for local reproduction:
 
 ```text
-OS: Ubuntu 24.04.4 LTS, Linux 6.17.0-22-generic x86_64
+OS: Ubuntu 24.04.4 LTS, Linux 6.17.0-23-generic x86_64
 C++ compiler: g++ 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1)
-Clang: clang++ not installed locally; covered by GitHub Actions
 CMake: 3.28.3
 CTest: 3.28.3
-clang-format: available via /usr/bin/clang-format
+clang-format: /usr/bin/clang-format, Ubuntu clang-format 22.1.3
 ```
 
-Commands reproduced locally for this baseline:
+Commands required for this baseline:
 
 ```bash
 git diff --check
 ./scripts/agent_check.sh
+cmake --build build --target topoexec_format_check
+./scripts/goal_check.sh package
+./scripts/goal_check.sh golden
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
 ```
 
-Observed result:
+Observed G26 local result:
 
 ```text
-50/50 CTest tests passed in the default local RelWithDebInfo GCC run, including normalized CLI golden outputs, schema contract smoke, docs command smoke, deterministic fuzz smoke, adapter-boundary policy smoke, runtime-only option smoke, state/config snapshot tests, example validation/run smokes, benchmark JSON smokes, schema tooling smokes, and doctor JSON smoke.
+git diff --check passed through ./scripts/agent_check.sh.
+./scripts/agent_check.sh passed: 50/50 CTest tests in the default RelWithDebInfo GCC build.
+cmake --build build --target topoexec_format_check passed.
+./scripts/goal_check.sh package passed: cmake_package_runtime_smoke and cmake_runtime_only_options_smoke.
+./scripts/goal_check.sh golden passed: cli_golden_outputs.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 50/50 CTest tests in the ASAN+UBSAN Debug build.
 ```
 
-Release artifact smoke:
+Golden output surfaces protected after G26:
 
-```bash
-cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build "$BUILD_DIR" -j
-ctest --test-dir "$BUILD_DIR" --output-on-failure
-cmake --install "$BUILD_DIR" --prefix "$INSTALL_DIR"
-cmake -S tests/cmake/runtime_smoke -B "$RUNTIME_SMOKE_DIR" -DCMAKE_PREFIX_PATH="$INSTALL_DIR"
-cmake --build "$RUNTIME_SMOKE_DIR" -j
-"$RUNTIME_SMOKE_DIR/topoexec_runtime_smoke"
-```
+- `tests/golden/plan_composite_loop.json` — graph plan JSON.
+- `tests/golden/metrics_minimal.json` — metrics JSON.
+- `tests/golden/trace_minimal.json` — structured trace JSON.
+- `tests/golden/trace_minimal_chrome.json` — Chrome trace shape with volatile timing and trace ids normalized.
+- `tests/golden/render_minimal.mmd` — Mermaid render output.
+- `tests/golden/schema_dump.json` — schema dump JSON.
+- `tests/golden/doctor.json` — doctor JSON.
 
-Observed result:
+Current branch limitations at the G26 baseline:
 
-```text
-50/50 CTest tests passed; downstream topoexec::runtime package smoke executable linked only topoexec::runtime and exited 0, and runtime-only options configure/build/install without YAML, CLI, examples, or tests.
-```
-
-GitHub Actions evidence for current main:
-
-```text
-Latest GitHub Actions status was not refreshed during the local G25 release-ledger update. Before tagging, verify the exact candidate commit in GitHub Actions for GCC/Clang Debug/RelWithDebInfo, ASAN+UBSAN, and non-blocking TSAN.
-```
-
-Current branch limitations after the completed post-MVP goal sweep:
-
-- `thread_pool` lanes have bounded MVP execution, but priority, affinity, RT policy, persistent worker naming, and timeout preemption are not implemented.
-- Async `policy.max_inflight` is enforced for deferred completions, but it is not a general async task/future executor.
-- Normalized CLI golden tests now cover plan JSON, metrics JSON, trace JSON, and Mermaid render drift locally.
-- Non-blocking ThreadSanitizer CI is wired. ASAN+UBSAN sanitizer configuration is available through `scripts/sanitizer_check.sh` and passed locally with GCC Debug over 50/50 CTest tests, including defensive parser limits, fuzz, policy, runtime-only option, and downstream package smokes.
-- ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.
+- `thread_pool` lanes remain bounded batch-style MVP behavior: runtime priority, CPU affinity, RT policy, persistent worker naming, persistent worker lifecycle, and timeout preemption are not implemented.
+- `fixed_rate` lane behavior remains deterministic/simulated for normal tests; wall-clock fixed-rate scheduling is not implemented.
+- Async `policy.max_inflight` controls async edge admission, but it is not a complete threaded task/future executor.
+- `TaskExecutor` remains deterministic by default; threaded executor pools are future work.
+- Metrics/trace/diagnostics exist, but observer/exporter APIs and metric/trace v2 contracts are not stable yet.
+- Deterministic fuzz smoke exists; coverage-guided fuzzing remains future work.
+- ThreadSanitizer remains non-blocking.
+- ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external Perfetto adapters remain deferred and must not be claimed as implemented.
+- Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

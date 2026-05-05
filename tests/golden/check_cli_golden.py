@@ -3,7 +3,7 @@
 
 The CLI intentionally emits runtime-specific durations, offsets and trace ids.
 This checker normalizes those volatile fields while preserving semantic fields so
-plan/metrics/trace/render drift fails in CTest.
+plan/metrics/trace/Chrome-trace/render/schema/doctor drift fails in CTest.
 """
 
 from __future__ import annotations
@@ -81,8 +81,23 @@ def main() -> int:
             "json",
         ),
         (
+            "trace_minimal_chrome.json",
+            ["graph", "trace", "examples/minimal.yaml", "--steps", "1", "--format", "chrome"],
+            "json",
+        ),
+        (
             "plan_composite_loop.json",
             ["graph", "plan", "examples/composite_loop.yaml", "--format", "json"],
+            "json",
+        ),
+        (
+            "schema_dump.json",
+            ["schema", "dump", "--format", "json"],
+            "json",
+        ),
+        (
+            "doctor.json",
+            ["doctor", "--format", "json"],
             "json",
         ),
         (

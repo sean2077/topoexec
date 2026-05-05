@@ -1,47 +1,72 @@
 # Goal Backlog
 
-This backlog is derived from `docs/plans/plan.md` and is ordered for agents that are asked to continue the long-running plan without a narrower goal. Status is evidence-based; do not mark a goal complete unless its acceptance criteria have code/docs/tests evidence and `./scripts/agent_check.sh` passes.
+This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The completed G0-G25 board from `docs/plans/plan.md` is archived and must not be treated as active work.
 
 ## Active ordering rule
 
-1. Finish the earliest `partial` P0/P1 goal before starting a new subsystem.
-2. Prefer tests/docs that harden runtime semantics over new adapters or broad CLI surface.
-3. Keep adapter implementation deferred until core/runtime/API/concurrency goals are complete.
+1. Finish the earliest unfinished P0/P1 goal before starting a new subsystem.
+2. Prefer runtime semantics, public API stability, concurrency hardening, tests, and packaging over new adapters or broad CLI surface.
+3. Keep adapter implementation deferred until core/runtime/API/concurrency P0/P1 goals are complete or explicitly opened by the user.
+4. For each goal, update this backlog, `docs/goals/status.md`, docs/tests, and `CHANGELOG.md` when behavior, API, release evidence, or public docs change.
 
-## Goal board
+## Archived prior board
+
+- G0-G25 from `docs/plans/plan.md`: complete as of the post-G25 baseline commit `b86a586d3a48d84bf4e03ccabde3d061e3073579`.
+- Evidence remains in git history, `docs/goals/status.md`, release docs, and the golden/package/sanitizer checks. Do not reopen G0-G25 unless a regression is found.
+
+## Plan2 goal board
 
 | ID | Priority | Status | Scope | Acceptance / evidence gate | Validation |
 | --- | --- | --- | --- | --- | --- |
-| G0 | P0 | complete | `docs/current-baseline.md`, `tests/golden/`, `CMakeLists.txt` | Baseline records current local evidence; normalized golden tests cover plan JSON, metrics JSON, trace JSON, and Mermaid render. | `./scripts/agent_check.sh` |
-| G1 | P0 | complete | `docs/public-api.md`, public headers, `tests/cmake/runtime_smoke` | Public API matrix exists; installed runtime-only smoke uses `GraphBuilder`, typed payload helpers, `ComponentRegistry`, and `RuntimeRunner` with only `topoexec::runtime`. | `./scripts/agent_check.sh` |
-| G2 | P0 | complete | runtime lifecycle/error model | `RuntimeRunnerResult::runtime_errors` carries structured phase/component/code/fatal data; configure/activate/execute/deactivate and thread_pool execute failures are tested; non-fail-fast `execution.on_error` values parse but are rejected. | `./scripts/agent_check.sh` |
-| G3 | P0 | complete | `docs/runtime-invariants.md`, runtime/graph/channel tests, golden tests | All 20 plan invariants are mapped to concrete CI tests or golden checks; maintenance rule requires updating coverage with semantic changes. | `./scripts/agent_check.sh` |
-| G4 | P0/P1 | complete | graph compiler diagnostics/plan | Structured plan JSON, compiled regions/SCCs, `GraphDiagnostic` code/severity/path/involved ids/suggested-fix, and CLI validate JSON diagnostics are present. | `./scripts/agent_check.sh` |
-| G5 | P1 | complete | `docs/schema-v1.md`, `schema/topoexec.schema.v1.json`, CLI validation tests | Schema reference, strict machine-readable schema, `--schema-only`, `--semantic`, schema contract smoke, valid fixtures, and invalid fixture rejection are present. | `./scripts/agent_check.sh` |
-| G6 | P0/P1 | complete | scheduler docs/runtime/tests | Scheduler lane spec parses admission/timing fields; thread_pool bounded-batch v1 covers reentrant overlap, non-reentrant serialization, queue admission overflow, rejected metrics, batch trace spans, stop cleanup, and fixed_rate simulated overrun/jitter metrics. Persistent named workers and wall-clock sleep cadence are explicitly deferred. | `./scripts/agent_check.sh` |
-| G7 | P1 | complete | async task runtime | Optional deterministic `TaskExecutor`, bounded task admission, cancellation, failure completions, metrics, and `GraphContext::submit_task()` completion publication are implemented and tested. Threaded task pools remain a future extension. | `./scripts/agent_check.sh` |
-| G8 | P0/P1 | complete | channel/backpressure docs/runtime/tests | Bounded policies, overflow/reject/overwrite/stale/deadline health metrics, peek/snapshot/bounded drain/read APIs, per-reader queue cursors, and channel docs are implemented and tested. Backpressure remains metric/health-event based, not recursive execution. | `./scripts/agent_check.sh` |
-| G9 | P1 | complete | payload/memory/buffer pool | Built-in payloads, type-erased `OpaquePayload` custom schemas, BufferPool loan/release/byte metrics, copy-policy tests, no-copy loaned-frame tests, and memory docs are implemented. External shared-memory/zero-copy middleware remains out of scope. | `./scripts/agent_check.sh` |
-| G10 | P1 | complete | trigger engine docs/runtime/tests | Runtime-owned trigger readiness covers any/all/time-sync/batch/request/task/future-ready paths, coalescing/min-interval/max-latency timeout, local correlation ids, and trigger metrics for timeout drops, batch flushes, and time-sync drops. Watermark/condition triggers remain future extensions. | `./scripts/agent_check.sh` |
-| G11 | P1 | complete | CompositeLoop/region runtime | Exact SCC ownership, bounded iterations, convergence, budget overrun, internal failure accounting, external-output commit isolation, loop metrics, loop trace events, and CompositeLoop docs are implemented and tested. Solver-style/typed convergence callbacks remain future extensions. | `./scripts/agent_check.sh` |
-| G12 | P1/P2 | complete | state/config snapshot docs/runtime/tests | State edges preserve committed snapshot isolation until the next epoch, state commit metrics are exposed, graph-level config parses, and optional epoch-boundary `RuntimeStateStore` / `ConfigSnapshotStore` APIs are implemented and tested. | `./scripts/agent_check.sh` |
-| G13 | P1 | complete | metrics/trace/diagnostics | Metrics/trace JSON and Chrome trace have golden coverage; histograms export count/min/max/avg/p50/p95/p99; stable diagnostic descriptors are exposed through `topoexec/runtime/diagnostics.hpp` and `docs/diagnostics.md`. | `./scripts/agent_check.sh` |
-| G14 | P1/P2 | complete | benchmark suite | `benchmarks/` deterministic cases cover single component, immediate chain, latest/queue, deferred edges, and thread_pool paths; bench JSON includes case/params/per-run latency percentiles/throughput/environment and docs avoid performance claims. | `./scripts/agent_check.sh` |
-| G15 | P2 | complete | CLI/tooling | Existing graph commands are covered by smokes/goldens; `schema dump`, `schema check`, and `doctor` provide scriptable tooling entry points without adding broad runtime commands. Expanded lint/explain remain incremental enhancements. | `./scripts/agent_check.sh` |
-| G16 | P1/P2 | complete | examples/apps | Core apps and YAML examples now cover minimal, low latency/event queue, delay feedback, state/config snapshot, CompositeLoop, async/service-style flow, batch/time-sync, large payload linting, app registry, and boundary-adapter patterns without adapter dependencies. | `./scripts/agent_check.sh` |
-| G17 | P1/P2 | complete | documentation system | Tutorial, reference, design, and architecture paths are indexed; getting-started/concepts/graph-spec/components/lifecycle/CLI pages exist; doc-command smokes run embedded tutorial/CLI commands. | `./scripts/agent_check.sh` |
-| G18 | P0/P1 | complete | testing strategy | Unit/semantic/package/golden/docs/example tests are covered; deterministic graph-input fuzz smoke and ASAN+UBSAN/TSAN sanitizer gates are wired through CMake, scripts, and CI. | `./scripts/agent_check.sh` |
-| G19 | P1/P2 | complete | build/package/distribution | Install/export/runtime smoke, runtime-only CMake options, optional YAML/CLI/examples switches, package-manager draft notes, and build/package docs are present and tested. | `./scripts/agent_check.sh` |
-| G20 | P2 | complete | adapter architecture preview docs/stubs | Adapter contracts, `topoexec_adapters` namespace/target plan, dependency-free stub notes, schema policy, and no-core-adapter-dependency smoke are present. | docs review plus `./scripts/agent_check.sh` |
-| G21 | P2/P3 | complete | ROS 2 adapter plan | Deferred ROS 2 adapter design doc covers boundary mapping, QoS separation, executor/threading, lifecycle/shutdown, parameters, diagnostics/tracing, and fake-boundary-first tests without core ROS dependency. | docs review plus `./scripts/agent_check.sh` |
-| G22 | P1 | complete | `AGENTS.md`, `docs/agent-goals.md`, `scripts/goal_check.sh`, `.github/*`, `docs/contributing.md` | Goal queue, focused validation dispatcher, PR template, issue templates, and contribution policy are present. | `./scripts/agent_check.sh` |
-| G23 | P0/P1 | complete | `docs/architecture-guardrails.md`, CMake package smoke, public API docs | Module ownership, dependency rules, enforced package smoke, and review guardrails are documented. | `./scripts/agent_check.sh` |
-| G24 | P2 | complete | defensive input handling | Parser limits, schema limit checks, deterministic fuzz smoke, no-output-path CLI policy, block-overflow safety docs, and loader limit tests are present. | `./scripts/agent_check.sh` |
-| G25 | P1/P2 | complete | release progression | Release progression, checklist, versioning notes, and goal ledger now track completed plan goals, candidate stages, release evidence, and remaining deferred limitations. | `./scripts/agent_check.sh` |
+| G26 | P0 | complete | Release Candidate Baseline 2 | G26 baseline docs/goldens/checks complete | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G27 | P0 | pending | Public API Stability Pass v2 | 将当前 public API 从“可用”推进到“pre-beta 可依赖”，清晰区分 stable、experimental、internal、adapter-preview。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G28 | P0 | pending | Runtime Semantic Version Contract | 把 runtime 行为从“文档说明”提升成可版本化的 semantic contract，便于后续 schema v2 或 v1 additive fields 不破坏旧用户。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G29 | P0 | pending | Scheduler v2 Design + Contract | 把当前 scheduler lane MVP 推进为 v2 contract，明确哪些是实现能力、哪些是 advisory fields、哪些是未来 extension。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G30 | P1 | pending | Persistent Worker Pool v1 | 将 bounded `thread_pool` 从 batch-style MVP 推进到可解释的 persistent worker pool v1。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G31 | P1 | pending | Fixed-Rate Lane v1 | 将 `fixed_rate` 从 simulated tick 推进为可选 wall-clock fixed-rate lane v1。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G32 | P1 | pending | Scheduler Priority and Admission Policy v1 | 实现轻量的 runtime-level priority/admission，不涉及 OS priority。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G33 | P1 | pending | Cooperative Cancellation and Timeout Semantics | 为 long-running component、task、CompositeLoop 提供 cooperative cancellation contract，而不是伪装为硬 preemption。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G34 | P1/P2 | pending | TaskExecutor v2: Threaded Executor Preview | 将 deterministic `TaskExecutor` 扩展为可选 threaded executor preview，同时保持 deterministic mode 作为测试默认。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G35 | P2 | pending | Trigger Engine v2: Watermark and Condition Triggers | 扩展 trigger policy，但不破坏现有 v1 trigger semantics。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G36 | P1 | pending | Correlation, Causality, and Invocation Metadata | 让 runtime trace/metrics 能从输入事件追踪到下游 outputs，支持调试复杂 graph。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G37 | P1 | pending | Channel v2: Explicit Backpressure Events | 将 backpressure 从 metrics-only 提升为 optional runtime health event，不改变执行控制流。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G38 | P1 | pending | Channel v2: Multi-Reader and Move-Only Hardening | 加强 multi-reader、single-reader、move-only、shared/loaned view 的 correctness 和 explainability。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G39 | P1/P2 | pending | Payload and Memory v2 | 将 payload system 从 useful helper 推进为可嵌入应用的内存策略层。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G40 | P1 | pending | Graph Compiler v2: Typed Ports and Constraints | 从 string endpoint validation 走向 typed port contract，减少错误连接。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G41 | P2 | pending | Hierarchical Graph / Subgraph Design | 支持复杂应用的层次化组织，但不要过早引入复杂 runtime nesting。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G42 | P2/P3 | pending | Graph Templates and Reusable Patterns | 为常见 patterns 提供可复用 graph snippets，而不是复制 YAML。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G43 | P1/P2 | pending | Component Lifecycle v2: Reset, Snapshot, Restore | 支持真实应用中组件重置、状态快照和恢复，不只是 configure/activate/deactivate。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G44 | P1/P2 | pending | Config Hot Reload Transaction | 让 graph-level config 和 component config 支持安全热更新。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G45 | P2 | pending | CompositeLoop v2: Solver-Style Policies | 将 CompositeLoop 从 fixed-point MVP 推进为可用于优化/迭代算法的 region runtime。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G46 | P0/P1 | pending | Runtime Observer API v1 | 在不引入 OTel/Prometheus/Perfetto 依赖的情况下，建立稳定 observer contract。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G47 | P1 | pending | Metrics v2: Cardinality and Schema Contract | 让 metrics 能服务真实应用和 future exporters，避免 label explosion。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G48 | P1 | pending | Trace v2: Timeline and Causality | 让 trace 从事件列表升级为可调试 timeline。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G49 | P1/P2 | pending | Diagnostics v2: More Actionable Graph Errors | 让 graph diagnostics 不只是 reject，而能告诉用户如何修图。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G50 | P0/P1 | pending | Defensive Input Handling v2 | 将 schema/parser limits 从 smoke 推进到 robust defensive behavior。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G51 | P1/P2 | pending | Coverage-Guided Fuzzing | 从 deterministic fuzz smoke 进入 coverage-guided fuzzing，提升 schema/compiler robustness。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G52 | P1/P2 | pending | Stress and Soak Tests | 验证 scheduler/channel/task 在较长运行和高负载下不会出现 obvious deadlock/leak/unbounded growth。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G53 | P1/P2 | pending | Benchmark v2 and Regression Policy | 将 benchmark 从 output-shape smoke 推进到可用的 baseline tracking，但避免不可靠 CI 阈值。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G54 | P1 | pending | Packaging v2 | 把 CMake package 从 smoke 可用推进到可被外部用户稳定消费。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G55 | P1/P2 | pending | Documentation System v2 | 把文档从“齐全”推进到“用户可学习、Agent 可执行、维护可持续”。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G56 | P1/P2 | pending | Example Applications v2 | 从 toy examples 扩展为更接近真实应用的 reference apps，但仍不引入 external adapters。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G57 | P1/P2 | pending | Adapter SDK v0 | 在不实现具体 adapter 的情况下，先稳定 adapter SDK 边界。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G58 | P2/P3 | pending | OpenTelemetry Exporter Preview | 实现第一个 optional exporter preview，验证 observer API，但不让 core 依赖 OTel。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G59 | P2/P3 | pending | Prometheus Exporter Preview | 通过 scrape/exporter 证明 metrics schema 可被外部系统消费。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G60 | P2/P3 | pending | ROS 2 Adapter Preview | 验证 TopoExec 在 ROS 2 系统中作为 in-process semantic runtime 的 adapter，但不让 core 变成 ROS package。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G61 | P2/P3 | pending | C API / FFI Design | 规划 C API，为 Python/Rust/C plugins 或 external embedding 提供未来路径，但不急于冻结 ABI。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G62 | P3 | pending | Python Binding Preview for Config/Test | 提供 Python 用于配置、测试、CLI-like automation，而不是高性能 payload path。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G63 | P2/P3 | pending | Dynamic Plugin Loading Preview | 让应用可以动态注册 components，但在安全/ABI/版本策略清楚前不默认启用。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G64 | P2 | pending | Schema v2 Exploration | 判断哪些新增能力需要 schema v2，而不是继续往 strict schema v1 塞字段。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G65 | P3 | pending | Editor / LSP / JSON Schema UX | 提升 graph authoring 体验，但保持 runtime 优先。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G66 | P0/P1 | pending | Architecture Enforcement CI v2 | 让架构边界被 CI 自动守住，而不是只靠文档。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G67 | P1 | pending | Release Automation and Artifact Reproducibility | 让 prerelease 发布流程可靠、可重复、可被 Agent 执行。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G68 | P2 | pending | Community and Contribution Readiness | 让开源用户和贡献者可以参与，而不需要你解释所有上下文。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G69 | P1/P2 | pending | Real-World Pilot App | 选择一个真实但无外部依赖的 pilot app，证明 TopoExec 不只是 demo runtime。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G70 | P0 before beta | pending | Beta Readiness Review | 在进入 beta 前做一次系统审查。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 
 ## Next goal
 
-All currently tracked goals from `docs/plans/plan.md` are complete. Future work should start from a new plan, a release-tagging task, or explicit user scope.
+G27 Public API Stability Pass v2 is the next unfinished P0 goal after G26.
 
 ## Blockers
 

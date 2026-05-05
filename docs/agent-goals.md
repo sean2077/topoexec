@@ -1,6 +1,6 @@
 # Agent Goals
 
-This file is the human-readable entry point for continuing `docs/plans/plan.md` work.
+This file is the human-readable entry point for continuing `docs/plans/plan2.md` work.
 
 ## Current queue
 
@@ -8,15 +8,23 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-All goals currently tracked in `docs/goals/backlog.md` are complete. Start a new
-plan, explicit release-tagging task, or user-scoped follow-up before changing
-runtime or adapter behavior.
+1. G27 Public API Stability Pass v2
+2. G28 Runtime Semantic Version Contract
+3. G66 Architecture Enforcement CI v2
+4. G29 Scheduler v2 Design + Contract
+
+After those, continue by the phase ordering in `docs/plans/plan2.md`, always finishing the earliest unfinished P0/P1 goal before opening lower-priority adapter/ecosystem work.
 
 ## Goal handoff template
 
 ```md
 Goal ID:
 Title:
+
+Plan source:
+- docs/plans/plan2.md
+- docs/goals/backlog.md
+- docs/goals/status.md
 
 Scope:
 - Allowed files:
@@ -26,7 +34,7 @@ Acceptance criteria:
 - ...
 
 Validation:
-- ./scripts/goal_check.sh all
+- ./scripts/agent_check.sh
 - optional focused check: ./scripts/goal_check.sh <mode>
 
 Blocker protocol:
@@ -36,13 +44,14 @@ Blocker protocol:
 ## Validation shortcuts
 
 - `./scripts/goal_check.sh quick` — fast build plus golden/schema drift checks.
-- `./scripts/goal_check.sh golden` — normalized CLI plan/metrics/trace/render golden checks.
+- `./scripts/goal_check.sh golden` — normalized CLI plan/metrics/trace/Chrome-trace/render/schema/doctor golden checks.
 - `./scripts/goal_check.sh schema` — schema v1 contract and CLI schema/semantic validation split.
 - `./scripts/goal_check.sh package` — install/export downstream runtime-only smoke plus runtime-only option smoke.
 - `./scripts/goal_check.sh docs` — executable docs command smoke.
 - `./scripts/goal_check.sh fuzz` — deterministic parser/compiler fuzz smoke.
 - `./scripts/goal_check.sh policy` — architecture/dependency policy smokes.
 - `./scripts/goal_check.sh sanitizer` — ASAN+UBSAN Debug build plus full CTest.
+- `./scripts/goal_check.sh format` — clang-format target.
 - `./scripts/goal_check.sh debug` — local Debug GCC build and CTest.
 
-Always run `./scripts/goal_check.sh all` before declaring repository changes complete.
+Always run `./scripts/agent_check.sh` before declaring repository changes complete. Use focused goal checks as additional evidence, not as a replacement for the full gate unless a blocker is documented.

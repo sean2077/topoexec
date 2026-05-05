@@ -1,0 +1,233 @@
+{
+  "displayTimeUnit": "ns",
+  "traceEvents": [
+    {
+      "args": {
+        "iteration": "1",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "scheduler_iteration_begin",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "component_id": "source",
+        "lane": "main",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "component_execute_begin",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "channel_id": "source_to_transform",
+        "edge_kind": "immediate",
+        "source_component": "source",
+        "target_component": "transform",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "channel_publish",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "component_id": "source",
+        "lane": "main",
+        "trace_id": "<volatile>",
+        "trigger": "8"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "component_execute",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "component_id": "source",
+        "lane": "main",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "component_execute_end",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "channel_id": "source_to_transform",
+        "edge_kind": "immediate",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "channel_commit",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "component_id": "transform",
+        "lane": "main",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "component_execute_begin",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "channel_id": "transform_to_sink",
+        "edge_kind": "immediate",
+        "source_component": "transform",
+        "target_component": "sink",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "channel_publish",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "component_id": "transform",
+        "lane": "main",
+        "trace_id": "<volatile>",
+        "trigger": "3"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "component_execute",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "component_id": "transform",
+        "lane": "main",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "component_execute_end",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "channel_id": "transform_to_sink",
+        "edge_kind": "immediate",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "channel_commit",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "component_id": "sink",
+        "lane": "main",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "component_execute_begin",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "component_id": "sink",
+        "lane": "main",
+        "trace_id": "<volatile>",
+        "trigger": "3"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "component_execute",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "component_id": "sink",
+        "lane": "main",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "component_execute_end",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "iteration": "1",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "scheduler_iteration",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "iteration": "1",
+        "trace_id": "<volatile>"
+      },
+      "cat": "topoexec",
+      "dur": 0,
+      "name": "scheduler_iteration_end",
+      "ph": "X",
+      "pid": 1,
+      "tid": 0,
+      "ts": 0
+    }
+  ]
+}
