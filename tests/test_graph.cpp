@@ -176,6 +176,8 @@ TEST(Graph, NonFailFastExecutionPolicyIsParsedButRejected) {
   ASSERT_FALSE(result.diagnostics.empty());
   EXPECT_EQ(result.diagnostics.front().code, "unsupported_error_policy");
   EXPECT_EQ(result.diagnostics.front().severity, "error");
+  EXPECT_EQ(result.diagnostics.front().graph_path, "components.a");
+  EXPECT_EQ(result.diagnostics.front().involved_components, std::vector<std::string>({"a"}));
 }
 
 TEST(Graph, RejectsUnknownRootFields) {

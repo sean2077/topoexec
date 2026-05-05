@@ -11,6 +11,7 @@
 #include <set>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
 namespace topoexec {
@@ -116,6 +117,29 @@ GraphDiagnostic make_diagnostic(std::string error) {
   diagnostic.message = std::move(error);
   diagnostic.code = diagnostic_code_for(diagnostic.message);
   diagnostic.suggested_fix = suggested_fix_for(diagnostic.code);
+  auto token_after = [&](std::string_view prefix) -> std::string {
+    if (diagnostic.message.rfind(prefix, 0) != 0u) {
+      return {};
+    }
+    const auto begin = prefix.size();
+    const auto end = diagnostic.message.find(' ', begin);
+    return diagnostic.message.substr(begin, end == std::string::npos ? std::string::npos : end - begin);
+  };
+  if (auto component = token_after("component "); !component.empty()) {
+    diagnostic.graph_path = "components." + component;
+    diagnostic.involved_components.push_back(std::move(component));
+  } else if (auto edge = token_after("edge "); !edge.empty()) {
+    diagnostic.graph_path = "edges." + edge;
+    diagnostic.involved_edges.push_back(std::move(edge));
+  } else if (auto lane = token_after("lane "); !lane.empty()) {
+    diagnostic.graph_path = "lanes." + lane;
+  } else if (auto loop = token_after("composite_loop "); !loop.empty()) {
+    diagnostic.graph_path = "composite_loops." + loop;
+  } else if (diagnostic.message.find("graph.clock") == 0u) {
+    diagnostic.graph_path = "graph.clock";
+  } else if (diagnostic.message.find("runnable graph") == 0u) {
+    diagnostic.graph_path = "graph";
+  }
   return diagnostic;
 }
 
