@@ -12,7 +12,7 @@ Work in this repository should keep TopoExec small, embeddable, C++20-first, sem
 - Do not add ROS, Python, OpenTelemetry, or Prometheus adapters before the core/runtime/API boundary is stable.
 - Do not add new runtime dependencies without a documented reason.
 - Prefer tests over new features.
-- When implementing plan work from `docs/topoexec_plan.md` or `docs/plan3.md`, start with the earliest unfinished P0 goal in `docs/goals/backlog.md` unless the user narrows scope.
+- When implementing plan work from `docs/plans/plan.md` or `docs/topoexec_plan.md`, start with the earliest unfinished P0/P1 goal in `docs/goals/backlog.md` unless the user narrows scope.
 - Treat `docs/goals/status.md` as the current goal ledger. Update it when a goal starts, completes, is blocked, or is intentionally deferred.
 - Each goal must have scope, allowed files, acceptance criteria, validation, and blocker handling before edits spread beyond documentation.
 - If a goal needs a product/API decision, write a blocker note under `docs/goals/blockers/`, recommend one option, and continue only with a safe independent goal.
@@ -22,3 +22,4 @@ Work in this repository should keep TopoExec small, embeddable, C++20-first, sem
 ## Required Checks
 
 Run `scripts/agent_check.sh` before declaring repo changes complete. If it cannot run in the environment, report the exact blocker and the closest checks that did run.
+Use `scripts/goal_check.sh` for focused goal-specific checks, but do not treat it as a replacement for the required full gate unless a blocker is documented.

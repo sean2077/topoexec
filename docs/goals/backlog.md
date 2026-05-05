@@ -34,8 +34,8 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | G19 | P1/P2 | partial | build/package/distribution | Install/export/runtime smoke exists; optional target switches and package-manager drafts remain. | `./scripts/agent_check.sh` |
 | G20 | P2 | not-started | adapter architecture preview docs/stubs | `docs/adapters.md` exists but needs the full contract/stub layout from plan. No adapter dependency should enter core. | docs review plus `./scripts/agent_check.sh` |
 | G21 | P2/P3 | not-started | ROS 2 adapter plan | Deferred design doc only; no core ROS dependency. | docs review plus `./scripts/agent_check.sh` |
-| G22 | P1 | partial | agent workflow | AGENTS/goals docs exist; `goal_check.sh`, PR/issue templates, and contributing docs remain. | `./scripts/agent_check.sh` |
-| G23 | P0/P1 | partial | architecture guardrails | Public API and package smoke enforce some boundaries; dependency graph/guardrail doc should be made explicit. | `./scripts/agent_check.sh` |
+| G22 | P1 | complete | `AGENTS.md`, `docs/agent-goals.md`, `scripts/goal_check.sh`, `.github/*`, `docs/contributing.md` | Goal queue, focused validation dispatcher, PR template, issue templates, and contribution policy are present. | `./scripts/agent_check.sh` |
+| G23 | P0/P1 | complete | `docs/architecture-guardrails.md`, CMake package smoke, public API docs | Module ownership, dependency rules, enforced package smoke, and review guardrails are documented. | `./scripts/agent_check.sh` |
 | G24 | P2 | not-started | defensive input handling | Strict unknown-field parsing exists; parser limits/fuzz/path guards remain. | `./scripts/agent_check.sh` |
 | G25 | P1/P2 | partial | release progression | Release checklist/versioning exist; progression docs should track goal completion. | `./scripts/agent_check.sh` |
 
