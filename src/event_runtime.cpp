@@ -170,12 +170,17 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       tick.stop_requested = [token = options.stop_token]() { return token.stop_requested(); };
       try {
         auto invocations = trigger.collect_ready_invocations(tick, found->spec, found->lane);
+        auto& trigger_metrics = result.trigger_metrics[found->id];
+        const auto trigger_stats = trigger.take_last_stats(found->id);
+        trigger_metrics.timeout_drop_count += trigger_stats.timeout_drop_count;
+        trigger_metrics.batch_flush_count += trigger_stats.batch_flush_count;
+        trigger_metrics.time_sync_drop_count += trigger_stats.time_sync_drop_count;
         if (invocations.empty() && has_message_event_source(found->spec)) {
-          ++result.trigger_metrics[found->id].suppressed_count;
+          ++trigger_metrics.suppressed_count;
         } else {
-          result.trigger_metrics[found->id].ready_count += invocations.size();
+          trigger_metrics.ready_count += invocations.size();
           if (found->spec.trigger_policy.coalesce) {
-            result.trigger_metrics[found->id].coalesced_count += invocations.size();
+            trigger_metrics.coalesced_count += invocations.size();
           }
         }
         auto run_invocation = [&](const Invocation& invocation) {

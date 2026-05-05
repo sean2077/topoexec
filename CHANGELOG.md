@@ -6,6 +6,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 ### Added
 
+- Added trigger timeout-drop, batch-flush, and time-sync-drop metrics plus local message correlation ids on `Invocation`.
 - Added channel snapshot, bounded-drain, explicit per-reader queue drain, multi-reader cursor semantics, and channel health metrics for stale/drop/reject/overwrite/deadline paths.
 - Added explicit scheduler lane admission fields (`queue_capacity`, `overflow`, `period_ms`, `tick_budget_ms`, `wall_clock_enabled`) with thread-pool queue admission metrics and `thread_pool_batch` trace spans.
 - Added bounded `thread_pool` runtime execution for ready invocations, with `max_threads` worker width and non-reentrant serialization.

@@ -20,6 +20,7 @@ struct RuntimeRecord {
   std::string component_id;
   topoexec::EventKind event{topoexec::EventKind::kManual};
   topoexec::TriggerKind trigger{topoexec::TriggerKind::kManual};
+  std::string correlation_id;
   std::vector<std::string> ready_inputs;
   std::map<std::string, std::string> payloads_by_port;
   std::vector<std::string> batch_payloads;
@@ -114,6 +115,7 @@ void record_invocation(const topoexec::Invocation& invocation, const topoexec::G
   record.component_id = context.component_id;
   record.event = invocation.event;
   record.trigger = invocation.trigger;
+  record.correlation_id = invocation.correlation_id;
   record.ready_inputs = invocation.ready_inputs;
   for (const auto& [port, payload] : invocation.payloads_by_port) {
     if (payload != nullptr) {
@@ -202,6 +204,14 @@ bool has_trace_event_attribute(const topoexec::RuntimeRunnerResult& result, cons
   return std::any_of(result.trace.begin(), result.trace.end(), [&](const auto& event) {
     const auto found = event.attributes.find(key);
     return event.name == name && found != event.attributes.end() && found->second == value;
+  });
+}
+
+bool has_correlation_record(std::uint64_t sequence, const std::string& component_id,
+                            const std::string& correlation_id) {
+  return std::any_of(runtime_records().begin(), runtime_records().end(), [&](const RuntimeRecord& record) {
+    return record.sequence == sequence && record.component_id == component_id &&
+           record.correlation_id == correlation_id;
   });
 }
 
@@ -1439,6 +1449,46 @@ TEST(Runtime, RequestTriggerUsesRequestInvocationKind) {
   ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
   EXPECT_TRUE(has_record(1, "service", "request", "tick-1"));
   EXPECT_TRUE(has_trigger_record(1, "service", topoexec::EventKind::kRequest, topoexec::TriggerKind::kRequest));
+  EXPECT_TRUE(has_correlation_record(1, "service", "source_service#1"));
+}
+
+TEST(Runtime, RequestTriggerDropsTimedOutPendingMessage) {
+  topoexec::RuntimeChannelBus channels({runtime_edge("source_service", "source.out", "service.request")});
+  ASSERT_TRUE(channels.publish_from("source.out", topoexec::make_text_payload("expired")).accepted);
+  std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
+  BatchTargetComponent service;
+  topoexec::GraphContext context;
+  context.channels = &channels;
+  context.component_id = "service";
+
+  topoexec::ComponentNodeSpec service_spec;
+  service_spec.id = "service";
+  service_spec.type = "topoexec.test.BatchTarget";
+  service_spec.event_sources = {topoexec::EventSourceSpec{}};
+  service_spec.event_sources.front().type = "request";
+  service_spec.event_sources.front().inputs = {"request"};
+  service_spec.trigger_policy.type = "request";
+  service_spec.trigger_policy.inputs = {"request"};
+  service_spec.trigger_policy.max_latency_ms = 1;
+  service_spec.execution.lane = "main";
+
+  topoexec::SchedulerGroupConfig lane;
+  lane.id = "main";
+  lane.type = "event_loop";
+  topoexec::EventRuntime runtime(&channels);
+  runtime.add_component({"service", &service, &context, service_spec, lane});
+  topoexec::SchedulerRunOptions options;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runtime.run(options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_FALSE(has_component_record(1, "service"));
+  ASSERT_NE(result.trigger_metrics.find("service"), result.trigger_metrics.end());
+  EXPECT_EQ(result.trigger_metrics.at("service").timeout_drop_count, 1u);
+  EXPECT_EQ(result.trigger_metrics.at("service").suppressed_count, 1u);
 }
 
 TEST(Runtime, AllInputsWaitsForEveryRequiredPort) {
@@ -1529,6 +1579,8 @@ TEST(Runtime, TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign) {
   EXPECT_TRUE(has_record(2, "join", "main", "left-aligned"));
   EXPECT_TRUE(has_record(2, "join", "delayed", "right"));
   EXPECT_TRUE(has_trigger_record(2, "join", topoexec::EventKind::kMessage, topoexec::TriggerKind::kTimeSync));
+  ASSERT_NE(result.trigger_metrics.find("join"), result.trigger_metrics.end());
+  EXPECT_EQ(result.trigger_metrics.at("join").time_sync_drop_count, 1u);
 }
 
 TEST(Runtime, BatchTriggerPreservesPartialBatchUntilThreshold) {
@@ -1612,6 +1664,8 @@ TEST(Runtime, BatchTriggerFlushesPartialBatchAfterWindowExpires) {
     ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
     EXPECT_TRUE(has_batch_record(1, "batch", {"one", "two"}));
     EXPECT_TRUE(has_trigger_record(1, "batch", topoexec::EventKind::kMessage, topoexec::TriggerKind::kBatch));
+    ASSERT_NE(result.trigger_metrics.find("batch"), result.trigger_metrics.end());
+    EXPECT_EQ(result.trigger_metrics.at("batch").batch_flush_count, 1u);
   }
 }
 

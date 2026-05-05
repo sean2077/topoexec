@@ -127,7 +127,7 @@ Allowed fields:
 - `batch_window_ms` optional non-negative integer.
 - `sync_slop_ms` optional non-negative integer.
 - `min_interval_ms` optional non-negative integer.
-- `max_latency_ms` optional non-negative integer.
+- `max_latency_ms` optional non-negative integer; when positive, pending trigger input messages older than this limit are dropped before readiness is evaluated.
 - `coalesce` optional boolean, default `false`.
 
 Input-driven trigger policies require incoming edges for every listed input. `batch` requires `batch_size` or `batch_window_ms`.

@@ -20,6 +20,7 @@ Last updated: 2026-05-05
 | G3 | complete | `docs/runtime-invariants.md` maps all 20 invariants to existing runtime, graph, channel, CLI, and golden tests. | No duplicate test file was added because the invariant coverage already exists in CI; the mapping is now explicit. |
 | G6 | complete | `Runtime.ThreadPoolLaneExecutesReentrantInvocationsConcurrently`, `Runtime.ThreadPoolLaneSerializesNonReentrantInvocations`, `Runtime.ThreadPoolLaneQueueCapacityRejectsNewestWhenFull`, `Runtime.ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured`, `Runtime.FixedRateSimulatedLaneReportsOverrunMetric`, `Graph.ParsesAndValidatesSchedulerLaneAdmissionFields`, `docs/scheduler.md`, and `docs/concurrency.md`. | Bounded-batch thread_pool v1 and simulated fixed_rate metrics are covered; persistent named workers and wall-clock sleep cadence remain explicit future work, not alpha claims. |
 | G8 | complete | `Channel.QueueDrainMaxBatchPreservesRemainingMessages`, `Channel.SnapshotDoesNotConsumeQueuedMessages`, `Channel.QueueMultiReaderMaintainsPerReaderCursor`, `Channel.DeadlineMissIsMarkedOnLateConsume`, `Channel.LifespanDropsStaleMessageBeforeDelivery`, runtime channel health metrics, `docs/channels.md`, and `docs/metrics.md`. | Channel/backpressure v1 is explicit and bounded; health/backpressure is observable through metrics and degradation reasons without recursive upstream execution. |
+| G10 | complete | `Runtime.RequestTriggerUsesRequestInvocationKind`, `Runtime.RequestTriggerDropsTimedOutPendingMessage`, `Runtime.FutureReadyEventSourceUsesFutureReadyEventKind`, `Runtime.TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign`, `Runtime.BatchTriggerFlushesPartialBatchAfterWindowExpires`, `docs/triggers.md`, and trigger metrics golden output. | Trigger engine owns readiness, timeout drop, batch flush, time-sync drop, and local correlation metadata; watermark/condition triggers remain future extensions. |
 | G22 | complete | `scripts/goal_check.sh`, `docs/agent-goals.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/*`, and `docs/contributing.md`. | Agents and reviewers have goal-specific validation, handoff, PR, issue, and contribution surfaces. |
 | G23 | complete | `docs/architecture-guardrails.md`, `docs/public-api.md`, and runtime-only package smoke. | Module boundaries and dependency constraints are explicit and partially enforced by install smoke. |
 
@@ -27,7 +28,7 @@ Last updated: 2026-05-05
 
 The repository has moved beyond the initial P0 baseline/API/schema lock. The next safe implementation stage is to finish the partial P0/P1 runtime hardening goals in this order:
 
-1. G10/G11 runtime completeness work;
+1. G11 runtime completeness work;
 2. then G7/G9/G12/G13+ P1/P2 productization work.
 
 ## Validation Evidence

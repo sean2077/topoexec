@@ -65,6 +65,9 @@ struct TriggerRuntimeMetrics {
   std::size_t ready_count{0};
   std::size_t suppressed_count{0};
   std::size_t coalesced_count{0};
+  std::size_t timeout_drop_count{0};
+  std::size_t batch_flush_count{0};
+  std::size_t time_sync_drop_count{0};
 };
 
 class SchedulerStopToken {

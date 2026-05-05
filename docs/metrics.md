@@ -50,6 +50,9 @@ Triggers:
 - `runtime.trigger.ready_count`: invocations admitted by trigger readiness for a component.
 - `runtime.trigger.suppressed_count`: event-driven checks that did not admit an invocation.
 - `runtime.trigger.coalesced_count`: invocations admitted through a coalescing trigger policy.
+- `runtime.trigger.timeout_drop_count`: pending messages dropped by trigger `max_latency_ms`.
+- `runtime.trigger.batch_flush_count`: batch invocations flushed by size or window.
+- `runtime.trigger.time_sync_drop_count`: oldest out-of-slop samples dropped by `time_sync`.
 
 Channels:
 

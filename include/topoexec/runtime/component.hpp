@@ -180,6 +180,7 @@ struct Invocation {
   TriggerKind trigger{TriggerKind::kManual};
   std::string port;
   std::string channel_id;
+  std::string correlation_id;
   RuntimePayloadPtr payload;
   std::vector<std::string> ready_inputs;
   std::map<std::string, RuntimePayloadPtr> payloads_by_port;

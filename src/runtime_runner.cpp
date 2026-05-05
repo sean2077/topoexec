@@ -294,6 +294,12 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                             component_id);
       append_runtime_metric(result, "runtime.trigger.coalesced_count", static_cast<double>(metrics.coalesced_count),
                             component_id);
+      append_runtime_metric(result, "runtime.trigger.timeout_drop_count",
+                            static_cast<double>(metrics.timeout_drop_count), component_id);
+      append_runtime_metric(result, "runtime.trigger.batch_flush_count", static_cast<double>(metrics.batch_flush_count),
+                            component_id);
+      append_runtime_metric(result, "runtime.trigger.time_sync_drop_count",
+                            static_cast<double>(metrics.time_sync_drop_count), component_id);
     }
     for (const auto& [loop_id, count] : run_result.loop_iteration_count) {
       result.loop_iteration_count += count;
