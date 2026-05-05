@@ -10,6 +10,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added normalized golden coverage for Chrome trace shape, schema dump JSON, and doctor JSON.
 - Added explicit stable-v0.2/mixed/experimental public API markers, an API change checklist, and stronger runtime-only downstream smoke coverage for result metrics/trace consumption.
 - Added `docs/semantic-contract.md` and exposed `semantic_contract_version` through doctor/schema dump outputs.
+- Added architecture policy checks for installed-header markers, runtime/YAML/CLI target boundaries, private include leaks, semantic-bypass CLI includes, and planted-violation self-tests.
 - Added `OpaquePayload`/`make_custom_payload` and BufferPool loan/release/byte metrics with memory docs.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.

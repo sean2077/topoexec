@@ -339,6 +339,11 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/policy/check_no_adapter_deps.py
       --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
   )
+  add_test(NAME policy_architecture_self_test
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/policy/check_no_adapter_deps.py
+      --self-test
+  )
   add_test(NAME cli_doctor_json
     COMMAND $<TARGET_FILE:topoexec_cli> doctor --format json
   )

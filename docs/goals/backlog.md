@@ -58,7 +58,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G63 | P2/P3 | pending | Dynamic Plugin Loading Preview | 让应用可以动态注册 components，但在安全/ABI/版本策略清楚前不默认启用。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G64 | P2 | pending | Schema v2 Exploration | 判断哪些新增能力需要 schema v2，而不是继续往 strict schema v1 塞字段。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G65 | P3 | pending | Editor / LSP / JSON Schema UX | 提升 graph authoring 体验，但保持 runtime 优先。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
-| G66 | P0/P1 | pending | Architecture Enforcement CI v2 | 让架构边界被 CI 自动守住，而不是只靠文档。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G66 | P0/P1 | complete | Architecture Enforcement CI v2 | `tests/policy/check_no_adapter_deps.py`, `policy_architecture_self_test`, CMake target/include audits, and `docs/architecture-guardrails.md` enforce module boundaries. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh policy`; format |
 | G67 | P1 | pending | Release Automation and Artifact Reproducibility | 让 prerelease 发布流程可靠、可重复、可被 Agent 执行。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G68 | P2 | pending | Community and Contribution Readiness | 让开源用户和贡献者可以参与，而不需要你解释所有上下文。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G69 | P1/P2 | pending | Real-World Pilot App | 选择一个真实但无外部依赖的 pilot app，证明 TopoExec 不只是 demo runtime。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G66 Architecture Enforcement CI v2 is the next unfinished P0/P1 goal after G28 in Phase A.
+G29 Scheduler v2 Design + Contract is the next unfinished P0 goal after Phase A.
 
 ## Blockers
 

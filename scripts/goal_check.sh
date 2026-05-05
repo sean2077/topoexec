@@ -60,7 +60,7 @@ case "$MODE" in
     ;;
   policy)
     configure_build
-    ctest --test-dir "$BUILD_DIR" --output-on-failure -R policy_no_core_adapter_deps
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'policy_.*'
     ;;
   sanitizer)
     ./scripts/sanitizer_check.sh
