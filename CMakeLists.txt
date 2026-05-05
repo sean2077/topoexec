@@ -52,6 +52,7 @@ add_library(topoexec_runtime
   src/payload.cpp
   src/runtime_runner.cpp
   src/scheduler.cpp
+  src/task_executor.cpp
   src/trace.cpp
   src/trigger_policy.cpp
 )

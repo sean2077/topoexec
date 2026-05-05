@@ -1426,6 +1426,69 @@ TEST(Runtime, StateAndAsyncEdgesCommitAfterCurrentEpoch) {
   }
 }
 
+TEST(Runtime, TaskExecutorCompletesDeterministicTasksInOrder) {
+  topoexec::TaskExecutorConfig config;
+  config.max_inflight = 2;
+  topoexec::TaskExecutor executor(config);
+
+  const auto first = executor.submit([]() { return topoexec::make_text_payload("one"); });
+  const auto second = executor.submit([]() { return topoexec::make_text_payload("two"); });
+  const auto completions = executor.run_ready();
+
+  ASSERT_TRUE(first.accepted) << first.reason;
+  ASSERT_TRUE(second.accepted) << second.reason;
+  ASSERT_EQ(completions.size(), 2u);
+  ASSERT_TRUE(completions[0].ok);
+  ASSERT_TRUE(completions[1].ok);
+  EXPECT_EQ(*completions[0].payload, "one");
+  EXPECT_EQ(*completions[1].payload, "two");
+  const auto metrics = executor.metrics();
+  EXPECT_EQ(metrics.submitted_count, 2u);
+  EXPECT_EQ(metrics.completed_count, 2u);
+  EXPECT_EQ(metrics.max_inflight_count, 2u);
+}
+
+TEST(Runtime, TaskExecutorRejectsAndCancelsBoundedBacklog) {
+  topoexec::TaskExecutorConfig config;
+  config.max_inflight = 1;
+  config.overflow = "reject";
+  topoexec::TaskExecutor executor(config);
+
+  EXPECT_TRUE(executor.submit([]() { return topoexec::make_text_payload("one"); }).accepted);
+  const auto rejected = executor.submit([]() { return topoexec::make_text_payload("two"); });
+
+  EXPECT_FALSE(rejected.accepted);
+  EXPECT_EQ(rejected.reason, "task executor queue full");
+  EXPECT_EQ(executor.cancel_pending(), 1u);
+  const auto metrics = executor.metrics();
+  EXPECT_EQ(metrics.rejected_count, 1u);
+  EXPECT_EQ(metrics.cancelled_count, 1u);
+}
+
+TEST(Runtime, TaskExecutorReportsFailureAndGraphContextPublishesCompletion) {
+  topoexec::TaskExecutor executor;
+  ASSERT_TRUE(executor.submit([]() -> topoexec::RuntimePayload { throw std::runtime_error("task boom"); }).accepted);
+  const auto failed = executor.run_ready();
+  ASSERT_EQ(failed.size(), 1u);
+  EXPECT_FALSE(failed.front().ok);
+  EXPECT_EQ(failed.front().error, "task boom");
+  EXPECT_EQ(executor.metrics().failed_count, 1u);
+
+  topoexec::RuntimeChannelBus channels({runtime_edge("worker_join", "worker.done", "join.ready")});
+  topoexec::GraphContext context;
+  context.channels = &channels;
+  context.component_id = "worker";
+  context.task_executor = &executor;
+
+  const auto submitted = context.submit_task("done", []() { return topoexec::make_text_payload("complete"); });
+  ASSERT_TRUE(submitted.accepted) << submitted.reason;
+  const auto completed = executor.run_ready();
+  ASSERT_EQ(completed.size(), 1u);
+  const auto messages = channels.consume_for_component("join");
+  ASSERT_EQ(messages.size(), 1u);
+  EXPECT_EQ(*messages.front().payload, "complete");
+}
+
 TEST(Runtime, AsyncTaskReadyTriggersDownstreamOnLaterEpoch) {
   const auto reg = delay_registry();
   const auto spec = task_ready_graph();

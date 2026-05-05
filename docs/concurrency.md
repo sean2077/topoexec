@@ -77,7 +77,7 @@ Async admission metrics use the `runtime.async.*` namespace; channel metrics rep
 
 ## What Is Still Deferred
 
-- General async task/future executor surface.
+- Threaded async task/future executor surface; deterministic `TaskExecutor` helper exists for bounded submission and tests.
 - Persistent worker-pool lifecycle and worker naming.
 - Wall-clock fixed-rate sleep cadence.
 - OS priority, affinity, and hard real-time policy enforcement.

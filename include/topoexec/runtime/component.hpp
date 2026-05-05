@@ -8,6 +8,7 @@
 #include "topoexec/runtime/clock.hpp"
 #include "topoexec/runtime/payload.hpp"
 #include "topoexec/runtime/status.hpp"
+#include "topoexec/runtime/task_executor.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -135,6 +136,7 @@ struct GraphContext {
   StructuredLogger* logger{nullptr};
   RuntimeChannelBus* channels{nullptr};
   GraphOutputPublisher* publisher{nullptr};
+  TaskExecutor* task_executor{nullptr};
   std::string graph_name;
   std::string component_id;
 
@@ -146,6 +148,7 @@ struct GraphContext {
                                       std::optional<EventTimestamp> event_timestamp = std::nullopt) const;
   RuntimeChannelPublishResult publish_shared(const std::string& port, RuntimePayloadPtr payload,
                                              std::optional<EventTimestamp> event_timestamp = std::nullopt) const;
+  TaskSubmissionResult submit_task(const std::string& completion_port, TaskExecutor::Work work) const;
 };
 
 using ComponentContext = GraphContext;
