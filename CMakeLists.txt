@@ -128,6 +128,8 @@ install(FILES
 
 include(CTest)
 if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
   find_package(GTest QUIET)
   if(NOT GTest_FOUND)
     include(FetchContent)
@@ -157,6 +159,14 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   add_test(NAME cli_validate_control_feedback_delay
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/control_feedback_delay.yaml
   )
+  add_test(NAME cli_validate_schema_only_minimal
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --schema-only --format json
+  )
+  set_tests_properties(cli_validate_schema_only_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"ok\": true")
+  add_test(NAME cli_validate_semantic_minimal
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --semantic --format json
+  )
+  set_tests_properties(cli_validate_semantic_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"region_order\"")
   add_test(NAME cli_render_mermaid
     COMMAND topoexec graph render ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --format mermaid
   )
@@ -207,6 +217,20 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph bench ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --runs 2 --format json
   )
   set_tests_properties(cli_bench_json_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"elapsed_ms\"")
+  add_test(NAME cli_golden_outputs
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/check_cli_golden.py
+      --topoexec $<TARGET_FILE:topoexec_cli>
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+      --golden-dir ${CMAKE_CURRENT_SOURCE_DIR}/tests/golden
+  )
+  add_test(NAME schema_v1_contract_smoke
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/schema/check_schema_contract.py
+      --schema ${CMAKE_CURRENT_SOURCE_DIR}/schema/topoexec.schema.v1.json
+      --topoexec $<TARGET_FILE:topoexec_cli>
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+  )
   add_test(NAME cli_reject_invalid_unknown_field
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_unknown_field.yaml
   )

@@ -1,51 +1,48 @@
 # Goal Backlog
 
-This backlog is derived from `docs/plan3.md`. It is ordered for agents that are asked to implement the plan without a narrower goal.
+This backlog is derived from `docs/plans/plan.md` and is ordered for agents that are asked to continue the long-running plan without a narrower goal. Status is evidence-based; do not mark a goal complete unless its acceptance criteria have code/docs/tests evidence and `./scripts/agent_check.sh` passes.
 
-## P0 Infrastructure
+## Active ordering rule
 
-| ID | Priority | Status | Scope | Acceptance | Validation |
+1. Finish the earliest `partial` P0/P1 goal before starting a new subsystem.
+2. Prefer tests/docs that harden runtime semantics over new adapters or broad CLI surface.
+3. Keep adapter implementation deferred until core/runtime/API/concurrency goals are complete.
+
+## Goal board
+
+| ID | Priority | Status | Scope | Acceptance / evidence gate | Validation |
 | --- | --- | --- | --- | --- | --- |
-| A1 | P0 | complete | `docs/current-baseline.md`, `README.md`, `CHANGELOG.md`, `docs/release-checklist.md` | Baseline records current commit, local and CI evidence, CTest count, limitations, and `v0.1.0-alpha` tag relationship. | `./scripts/agent_check.sh` |
-| A2 | P0 | complete | `AGENTS.md`, `docs/goals/README.md`, `docs/goals/backlog.md`, `docs/goals/status.md` | Goal format includes scope, allowed files, acceptance, validation, and blocker protocol; adapters and new major CLI commands are gated until core goals finish. | `./scripts/agent_check.sh` |
-| A3 | P0 | complete | `.github/workflows/ci.yml`, `CMakeLists.txt`, `scripts/`, `README.md`, `docs/release-checklist.md` | CI covers GCC/Clang Debug/RelWithDebInfo, sanitizer status is explicit, package smoke proves downstream use, and local quality commands are documented. | `./scripts/agent_check.sh`; optional `cmake --build build --target topoexec_format_check` |
+| G0 | P0 | complete | `docs/current-baseline.md`, `tests/golden/`, `CMakeLists.txt` | Baseline records current local evidence; normalized golden tests cover plan JSON, metrics JSON, trace JSON, and Mermaid render. | `./scripts/agent_check.sh` |
+| G1 | P0 | complete | `docs/public-api.md`, public headers, `tests/cmake/runtime_smoke` | Public API matrix exists; installed runtime-only smoke uses `GraphBuilder`, typed payload helpers, `ComponentRegistry`, and `RuntimeRunner` with only `topoexec::runtime`. | `./scripts/agent_check.sh` |
+| G2 | P0 | partial | runtime lifecycle/error model | Configure/activate/execute/deactivate failure tests exist, but structured `RuntimeError` and policy surface are not complete. | `./scripts/agent_check.sh` |
+| G3 | P0 | partial | runtime invariant tests | Edge visibility, SCC, channel, payload, and lifecycle tests exist; remaining invariants should be collected into an explicit invariant suite or traceable comments. | `./scripts/agent_check.sh` |
+| G4 | P0/P1 | partial | graph compiler diagnostics/plan | Structured plan JSON and SCC diagnostics exist; diagnostic objects/error codes/suggested fixes are not complete. | `./scripts/agent_check.sh` |
+| G5 | P1 | complete | `docs/schema-v1.md`, `schema/topoexec.schema.v1.json`, CLI validation tests | Schema reference, strict machine-readable schema, `--schema-only`, `--semantic`, schema contract smoke, valid fixtures, and invalid fixture rejection are present. | `./scripts/agent_check.sh` |
+| G6 | P0/P1 | partial | scheduler docs/runtime/tests | Event-loop/thread-pool MVP and tests exist; persistent pool and full fixed-rate wall-clock behavior remain deferred/partial. | `./scripts/agent_check.sh` |
+| G7 | P1 | not-started | async task runtime | Async edge admission exists, but optional `TaskExecutor`/future runtime is not implemented. | `./scripts/agent_check.sh` |
+| G8 | P0/P1 | partial | channel/backpressure docs/runtime/tests | Bounded latest/queue/drop policies and metrics exist; lifespan/deadline health events and fuller read semantics need completion. | `./scripts/agent_check.sh` |
+| G9 | P1 | partial | payload/memory/buffer pool | Built-in payloads and prototype `BufferPool` exist; custom registration, pool metrics, and no-copy examples need completion. | `./scripts/agent_check.sh` |
+| G10 | P1 | partial | trigger engine docs/runtime/tests | Trigger engine supports basic any/all/time-sync/batch paths; request/future/watermark-style completeness remains. | `./scripts/agent_check.sh` |
+| G11 | P1 | partial | CompositeLoop/region runtime | Exact SCC ownership and loop metrics exist; typed convergence/budget/error policy is still incomplete. | `./scripts/agent_check.sh` |
+| G12 | P1/P2 | not-started | state/config snapshot docs/runtime/tests | State edge visibility exists; blackboard/config snapshot API is not implemented. | `./scripts/agent_check.sh` |
+| G13 | P1 | partial | metrics/trace/diagnostics | Metrics/trace JSON and Chrome trace exist and have golden coverage; histograms and stable diagnostics registry remain. | `./scripts/agent_check.sh` |
+| G14 | P1/P2 | partial | benchmark suite | CLI bench JSON exists; broader deterministic benchmark cases and docs remain. | `./scripts/agent_check.sh` |
+| G15 | P2 | partial | CLI/tooling | Existing CLI commands are covered by smokes/goldens; doctor/schema dump/expanded lint/explain are not all complete. | `./scripts/agent_check.sh` |
+| G16 | P1/P2 | partial | examples/apps | Core examples build/run; additional state, batch/time-sync, large payload, service, registry, and boundary-pattern examples remain. | `./scripts/agent_check.sh` |
+| G17 | P1/P2 | partial | documentation system | Reference docs exist; tutorial path and snippet/doc tests need completion. | `./scripts/agent_check.sh` |
+| G18 | P0/P1 | partial | testing strategy | Unit/semantic/package/golden tests exist; fuzz and sanitizer gates are not complete. | `./scripts/agent_check.sh` |
+| G19 | P1/P2 | partial | build/package/distribution | Install/export/runtime smoke exists; optional target switches and package-manager drafts remain. | `./scripts/agent_check.sh` |
+| G20 | P2 | not-started | adapter architecture preview docs/stubs | `docs/adapters.md` exists but needs the full contract/stub layout from plan. No adapter dependency should enter core. | docs review plus `./scripts/agent_check.sh` |
+| G21 | P2/P3 | not-started | ROS 2 adapter plan | Deferred design doc only; no core ROS dependency. | docs review plus `./scripts/agent_check.sh` |
+| G22 | P1 | partial | agent workflow | AGENTS/goals docs exist; `goal_check.sh`, PR/issue templates, and contributing docs remain. | `./scripts/agent_check.sh` |
+| G23 | P0/P1 | partial | architecture guardrails | Public API and package smoke enforce some boundaries; dependency graph/guardrail doc should be made explicit. | `./scripts/agent_check.sh` |
+| G24 | P2 | not-started | defensive input handling | Strict unknown-field parsing exists; parser limits/fuzz/path guards remain. | `./scripts/agent_check.sh` |
+| G25 | P1/P2 | partial | release progression | Release checklist/versioning exist; progression docs should track goal completion. | `./scripts/agent_check.sh` |
 
-## P0 Core Goals
+## Next goal
 
-| ID | Priority | Status | Scope | Acceptance | Validation |
-| --- | --- | --- | --- | --- | --- |
-| 001 | P0 | complete | `docs/current-baseline.md`, `README.md`, `CHANGELOG.md`, `docs/release-checklist.md` | Docs agree on current status of thread_pool, async max_inflight, sanitizer CI, adapters; current commit and CTest count recorded; no runtime code changes. | `./scripts/agent_check.sh` |
-| 002 | P0 | complete | `docs/public-api.md`, public headers under `include/topoexec/runtime`, examples if needed | Stable, experimental, and internal APIs categorized; examples include only stable headers unless marked advanced; no behavior change. | `./scripts/agent_check.sh` |
-| 003 | P0 | complete | `tests/test_runtime.cpp`, runtime files only if tests expose bugs | Immediate, delay, state, and async visibility are tested across epochs; metrics checked for staged/committed counts; no new CLI feature. | `./scripts/agent_check.sh` |
-| 004 | P0 | complete | `tests/test_runtime.cpp`, `include/topoexec/runtime/component.hpp`, `src/runtime_runner.cpp` | Configure, activate, execute, and deactivate failures covered; runner errors include phase and component id; cleanup/deactivate order deterministic. | `./scripts/agent_check.sh` |
-| 005 | P0 | complete | `tests/test_graph.cpp`, `src/graph.cpp` only if needed | Fixed-seed random DAG/cycle tests; exact SCC CompositeLoop rules tested; overlapping cycles handled. | `./scripts/agent_check.sh` |
-| 006 | P0 | complete | `docs/scheduler.md`, `docs/concurrency.md`, `tests/test_runtime.cpp` | Event-loop, fixed-rate, and thread-pool lanes defined precisely; tests prove non-reentrant serialization and reentrant overlap; README limitations updated if needed. | `./scripts/agent_check.sh` |
-| 007 | P0 | complete | async edge code, tests, and docs | Tests cover max_inflight accept/reject/drop policies; metrics match docs; shutdown behavior documented. | `./scripts/agent_check.sh` |
-| 008 | P0 | complete | `docs/payloads.md`, `include/topoexec/runtime/payload.hpp`, runtime or payload tests | Typed access tests cover wrong type and missing port; copy/shared/loaned/move-only semantics documented and tested; large copy rejection visible. | `./scripts/agent_check.sh` |
+Continue with **G2/G3/G4 hardening** unless the user explicitly asks to prioritize P1 productization. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
 
-## P1 Goals
+## Blockers
 
-| ID | Priority | Status | Scope | Acceptance | Validation |
-| --- | --- | --- | --- | --- | --- |
-| 009 | P1 | not-started | scheduler docs/runtime/tests | Persistent worker pool is designed with explicit deferral or implemented with leak/teardown tests; README does not overclaim. | `./scripts/agent_check.sh` |
-| 010 | P1 | not-started | fixed-rate scheduler docs/runtime/tests | Fixed-rate simulation is deterministic; overrun metrics tested; wall-clock mode documented if implemented. | `./scripts/agent_check.sh` |
-| 011 | P1 | not-started | trigger policy docs/runtime/tests | Time-sync `sync_slop` behavior implemented/tested; timestamp domain rules documented; out-of-window drops counted. | `./scripts/agent_check.sh` |
-| 012 | P1 | not-started | trigger policy docs/runtime/tests | Batch size and batch window tested with fake clock; partial flush behavior documented. | `./scripts/agent_check.sh` |
-| 013 | P1 | not-started | CompositeLoop docs/runtime/tests | Convergence policy is no longer stringly typed where public; converged/max/budget/error covered; loop trace spans include iteration. | `./scripts/agent_check.sh` |
-| 014 | P1 | not-started | metrics docs/tests/CLI JSON tests | Metrics JSON golden-like tests; docs match exact field names; durations tested as present/non-negative. | `./scripts/agent_check.sh` |
-| 015 | P1 | not-started | trace docs/tests/examples | Trace demonstrates minimal DAG and thread_pool concurrency; Chrome trace output remains valid; docs show inspection path. | `./scripts/agent_check.sh` |
-| 016 | P1 | not-started | benchmark docs/runtime/CLI tests | Benchmarks cover immediate chain, latest vs queue, large payload, and thread_pool cases; machine-readable output stays stable. | `./scripts/agent_check.sh` |
-| 017 | P1 | not-started | CMake packaging and CI | Runtime package smoke proves no YAML/CLI dependency; YAML package smoke proves YAML path; install tree inspected in CI. | `./scripts/agent_check.sh` |
-| 018 | P1 | not-started | channel/backpressure docs/runtime/tests | Watermark/stale/deadline health events designed or implemented; metrics surfaced; no unbounded health queue. | `./scripts/agent_check.sh` |
-
-## P2/P3 Goals
-
-| ID | Priority | Status | Scope | Acceptance | Validation |
-| --- | --- | --- | --- | --- | --- |
-| 019 | P2 | not-started | hierarchical graph docs | Hierarchical subgraph design covers runtime model and API impact; no implementation unless impact is clear. | docs review plus `./scripts/agent_check.sh` |
-| 020 | P2 | not-started | buffer/payload docs/runtime/tests | In-process BufferPool or LoanedFrame prototype; no-copy identity tests; no external SHM dependency. | `./scripts/agent_check.sh` |
-| 021 | P2 | not-started | explain docs/runtime/CLI tests | `explain` can show why something ran, dropped, or stopped, derived from runtime metrics/trace. | `./scripts/agent_check.sh` |
-| 022 | P2 | not-started | lint docs/runtime/CLI tests | Error/warning/info severity model; machine-readable lint output; warning rules documented. | `./scripts/agent_check.sh` |
-| 023 | P2 | not-started | `docs/adapters.md` | Adapter target conventions and runtime hooks documented; no adapter code required. | docs review plus `./scripts/agent_check.sh` |
-| 024 | P3 | not-started | optional ROS 2 adapter docs/spike only after core stability | Design or minimal optional build only after runtime/API stable; no core dependency. | explicit approval plus adapter-specific checks |
-| 025 | P3 | not-started | optional Prometheus/OTel docs/spike only after core stability | Optional exporter target; no core dependency; metrics docs remain source of truth. | explicit approval plus adapter-specific checks |
+No active blockers. Use `docs/goals/blockers/<goal-id>.md` if a product/API decision is required before implementation.

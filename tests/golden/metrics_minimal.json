@@ -1,0 +1,671 @@
+{
+  "async_publication_count": 0,
+  "channel_count": 2,
+  "channel_delivery_count": 2,
+  "channel_drop_count": 0,
+  "channel_publish_count": 2,
+  "committed_publication_count": 2,
+  "component_count": 3,
+  "delayed_publication_count": 0,
+  "errors": [],
+  "failed_publication_commit_count": 0,
+  "graph_name": "minimal",
+  "loop_budget_overrun_count": 0,
+  "loop_converged_count": 0,
+  "loop_iteration_count": 0,
+  "loop_max_iteration_hit_count": 0,
+  "metrics": [
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.completed_count",
+      "tags": [],
+      "value": 3.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.tick_overrun_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.queue_depth",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.active_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.in_flight_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.rejected_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.component.execution_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.component.error_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.component.last_duration_ns",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.component.max_duration_ns",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.component.budget_overrun_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.component.max_in_flight_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.component.execution_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.component.error_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.component.last_duration_ns",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.component.max_duration_ns",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.component.budget_overrun_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.component.max_in_flight_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.component.execution_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.component.error_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.component.last_duration_ns",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.component.max_duration_ns",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.component.budget_overrun_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.component.max_in_flight_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.trigger.ready_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.trigger.suppressed_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.trigger.coalesced_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.trigger.ready_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.trigger.suppressed_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.trigger.coalesced_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.trigger.ready_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.trigger.suppressed_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.trigger.coalesced_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "source_to_transform",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.publish_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "source_to_transform",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.delivery_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "source_to_transform",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.drop_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "source_to_transform",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.max_depth",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "source_to_transform",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.payload_copy_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "transform_to_sink",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.publish_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "transform_to_sink",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.delivery_count",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "transform_to_sink",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.drop_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "transform_to_sink",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.max_depth",
+      "tags": [],
+      "value": 1.0
+    },
+    {
+      "channel_id": "transform_to_sink",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.channel.payload_copy_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.publication.staged",
+      "tags": [],
+      "value": 2.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.publication.committed",
+      "tags": [],
+      "value": 2.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.publication.delayed",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.publication.state",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.publication.async",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.publication.failed_commit",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.async.accepted_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.async.rejected_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.async.dropped_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.async.in_flight_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.async.max_in_flight_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.async.completed_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.async.cancelled_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.trace.event_count",
+      "tags": [],
+      "value": 16.0
+    }
+  ],
+  "ok": true,
+  "payload_copy_count": 0,
+  "staged_publication_count": 2,
+  "state_publication_count": 0,
+  "stop_reason": "tick_bound",
+  "tick_calls": 3,
+  "ticked_components": [
+    "source",
+    "transform",
+    "sink"
+  ],
+  "trace": [
+    {
+      "attributes": {
+        "iteration": "1"
+      },
+      "duration_ns": 0,
+      "name": "scheduler_iteration_begin",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "source",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_begin",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "channel_id": "source_to_transform",
+        "edge_kind": "immediate",
+        "source_component": "source",
+        "target_component": "transform"
+      },
+      "duration_ns": 0,
+      "name": "channel_publish",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "source",
+        "lane": "main",
+        "trigger": "8"
+      },
+      "duration_ns": 0,
+      "name": "component_execute",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "source",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_end",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "channel_id": "source_to_transform",
+        "edge_kind": "immediate"
+      },
+      "duration_ns": 0,
+      "name": "channel_commit",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "transform",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_begin",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "channel_id": "transform_to_sink",
+        "edge_kind": "immediate",
+        "source_component": "transform",
+        "target_component": "sink"
+      },
+      "duration_ns": 0,
+      "name": "channel_publish",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "transform",
+        "lane": "main",
+        "trigger": "3"
+      },
+      "duration_ns": 0,
+      "name": "component_execute",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "transform",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_end",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "channel_id": "transform_to_sink",
+        "edge_kind": "immediate"
+      },
+      "duration_ns": 0,
+      "name": "channel_commit",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "sink",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_begin",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "sink",
+        "lane": "main",
+        "trigger": "3"
+      },
+      "duration_ns": 0,
+      "name": "component_execute",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "sink",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_end",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "iteration": "1"
+      },
+      "duration_ns": 0,
+      "name": "scheduler_iteration",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "iteration": "1"
+      },
+      "duration_ns": 0,
+      "name": "scheduler_iteration_end",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    }
+  ],
+  "trace_event_count": 16,
+  "trace_events": [
+    "scheduler_iteration_begin",
+    "component_execute_begin",
+    "channel_publish",
+    "component_execute",
+    "component_execute_end",
+    "channel_commit",
+    "component_execute_begin",
+    "channel_publish",
+    "component_execute",
+    "component_execute_end",
+    "channel_commit",
+    "component_execute_begin",
+    "component_execute",
+    "component_execute_end",
+    "scheduler_iteration",
+    "scheduler_iteration_end"
+  ]
+}

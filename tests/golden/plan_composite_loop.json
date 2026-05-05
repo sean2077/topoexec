@@ -1,0 +1,121 @@
+{
+  "compiled_regions": [
+    {
+      "components": [
+        "controller",
+        "estimator"
+      ],
+      "id": "estimator_controller_loop",
+      "incoming_regions": [
+        "sensor"
+      ],
+      "kind": "composite_loop",
+      "loop_policy": "fixed_point",
+      "outgoing_regions": []
+    },
+    {
+      "components": [
+        "sensor"
+      ],
+      "id": "sensor",
+      "incoming_regions": [],
+      "kind": "component",
+      "loop_policy": "",
+      "outgoing_regions": [
+        "estimator_controller_loop"
+      ]
+    },
+    {
+      "components": [
+        "actuator"
+      ],
+      "id": "actuator",
+      "incoming_regions": [],
+      "kind": "component",
+      "loop_policy": "",
+      "outgoing_regions": []
+    }
+  ],
+  "component_region": {
+    "actuator": "actuator",
+    "controller": "estimator_controller_loop",
+    "estimator": "estimator_controller_loop",
+    "sensor": "sensor"
+  },
+  "components": [
+    {
+      "boundary_descriptor": "synthetic_sensor",
+      "boundary_role": "input",
+      "id": "sensor",
+      "lane": "main",
+      "type": "topoexec.boundary.Input"
+    },
+    {
+      "boundary_descriptor": "",
+      "boundary_role": "processing",
+      "id": "estimator",
+      "lane": "main",
+      "type": "topoexec.transforms.Estimator"
+    },
+    {
+      "boundary_descriptor": "",
+      "boundary_role": "processing",
+      "id": "controller",
+      "lane": "main",
+      "type": "topoexec.transforms.Controller"
+    },
+    {
+      "boundary_descriptor": "synthetic_actuator",
+      "boundary_role": "output",
+      "id": "actuator",
+      "lane": "main",
+      "type": "topoexec.boundary.Output"
+    }
+  ],
+  "edges": [
+    {
+      "copy_policy": "shared_view",
+      "from": "sensor.out",
+      "id": "measurement",
+      "kind": "immediate",
+      "max_inflight": 0,
+      "mode": "latest",
+      "to": "estimator.measurement"
+    },
+    {
+      "copy_policy": "shared_view",
+      "from": "estimator.state",
+      "id": "state",
+      "kind": "immediate",
+      "max_inflight": 0,
+      "mode": "latest",
+      "to": "controller.state"
+    },
+    {
+      "copy_policy": "shared_view",
+      "from": "controller.correction",
+      "id": "correction",
+      "kind": "immediate",
+      "max_inflight": 0,
+      "mode": "latest",
+      "to": "estimator.correction"
+    },
+    {
+      "copy_policy": "shared_view",
+      "from": "controller.command",
+      "id": "command",
+      "kind": "delay",
+      "max_inflight": 0,
+      "mode": "queue",
+      "to": "actuator.command"
+    }
+  ],
+  "graph": "feedback_controller",
+  "kind": "internal_test",
+  "region_order": [
+    "sensor",
+    "actuator",
+    "estimator_controller_loop"
+  ],
+  "schema_version": 1
+}

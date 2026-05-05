@@ -11,7 +11,7 @@ current main after v0.1.0-alpha
 Current implementation commit:
 
 ```text
-b4886c2 feat(runtime): 补齐并发执行语义边界
+64892c9 锁定后 MVP 语义基线以支撑后续演进
 ```
 
 Release tag relationship:
@@ -42,7 +42,7 @@ git diff --check
 Observed result:
 
 ```text
-29/29 CTest tests passed in the default local RelWithDebInfo GCC run.
+33/33 CTest tests passed in the default local RelWithDebInfo GCC run, including normalized CLI golden outputs and schema contract smoke.
 ```
 
 Release artifact smoke:
@@ -60,13 +60,13 @@ cmake --build "$RUNTIME_SMOKE_DIR" -j
 Observed result:
 
 ```text
-29/29 CTest tests passed; downstream topoexec::runtime package smoke executable exited 0.
+33/33 CTest tests passed; downstream topoexec::runtime package smoke executable linked only topoexec::runtime and exited 0.
 ```
 
 GitHub Actions evidence for current main:
 
 ```text
-CI run 25355571811 on commit b4886c2 completed successfully:
+Last checked GitHub Actions run 25355571811 on pre-golden commit b4886c2 completed successfully:
 - gcc / Debug
 - gcc / RelWithDebInfo
 - clang / Debug
@@ -78,5 +78,6 @@ Current branch limitations after the post-alpha scheduler/async pass:
 
 - `thread_pool` lanes have bounded MVP execution, but priority, affinity, RT policy, persistent worker naming, and timeout preemption are not implemented.
 - Async `policy.max_inflight` is enforced for deferred completions, but it is not a general async task/future executor.
-- Non-blocking ThreadSanitizer CI is wired and passed for current main; local verification still uses `scripts/agent_check.sh` because local `clang++` is unavailable.
+- Normalized CLI golden tests now cover plan JSON, metrics JSON, trace JSON, and Mermaid render drift locally.
+- Non-blocking ThreadSanitizer CI is wired and passed for the pre-golden baseline; local verification still uses `scripts/agent_check.sh` because local `clang++` is unavailable.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.

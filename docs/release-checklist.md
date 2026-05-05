@@ -23,11 +23,11 @@ The release is ready only when each item is checked against the commit being tag
 Evidence:
 
 - Current post-alpha main: `b4886c2 feat(runtime): 补齐并发执行语义边界`.
-- Current local `./scripts/agent_check.sh`: 29/29 CTest tests passed on `b4886c2`.
+- Current local `./scripts/agent_check.sh`: 33/33 CTest tests passed after normalized golden/schema gates were added on top of `64892c9`.
 - Current GitHub Actions run `25355571811`: GCC/Clang Debug/RelWithDebInfo passed, and the non-blocking clang Debug TSAN job also passed.
 - Optional local format gate: `cmake --build build --target topoexec_format_check` passed.
-- Local `./scripts/agent_check.sh`: 29/29 CTest tests passed.
-- Local Debug GCC check: 29/29 CTest tests passed with `TOPOEXEC_BUILD_TYPE=Debug`.
+- Local `./scripts/agent_check.sh`: 33/33 CTest tests passed, including `cli_golden_outputs` and `schema_v1_contract_smoke`.
+- Local Debug GCC check: 33/33 CTest tests passed with `TOPOEXEC_BUILD_TYPE=Debug`.
 - GitHub Actions run `25331487554`: GCC/Clang Debug/RelWithDebInfo all passed for implementation commit `3b5d7c0`.
 - Isolated release smoke build/install/downstream package executable passed.
 

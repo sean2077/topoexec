@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""Cheap schema contract smoke without adding a JSON Schema dependency."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--schema", required=True, type=Path)
+    parser.add_argument("--topoexec", required=True, type=Path)
+    parser.add_argument("--source-dir", required=True, type=Path)
+    args = parser.parse_args()
+
+    schema = json.loads(args.schema.read_text(encoding="utf-8"))
+    require(schema.get("additionalProperties") is False, "root must be strict")
+    require(schema.get("required") == ["schema_version", "graph", "lanes", "components", "edges"],
+            "root required fields drifted")
+    defs = schema["$defs"]
+    require(defs["edge"]["additionalProperties"] is False, "edge schema must be strict")
+    require(defs["edge"]["properties"]["kind"]["enum"] == ["immediate", "delay", "state", "async"],
+            "edge kind enum drifted")
+    require("thread_pool" in defs["lane"]["properties"]["type"]["enum"], "thread_pool lane missing")
+    require("time_sync" in defs["trigger_policy"]["properties"]["type"]["enum"], "time_sync trigger missing")
+    require("loaned_view" in defs["edge_policy"]["properties"]["copy_policy"]["enum"],
+            "loaned_view copy policy missing")
+
+    valid_examples = [
+        "examples/minimal.yaml",
+        "examples/control_feedback_delay.yaml",
+        "examples/composite_loop.yaml",
+        "examples/large_payload_copy.yaml",
+    ]
+    for example in valid_examples:
+        completed = subprocess.run(
+            [str(args.topoexec), "graph", "validate", example],
+            cwd=args.source_dir,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if completed.returncode != 0:
+            sys.stderr.write(f"{example} failed validation\n{completed.stdout}\n{completed.stderr}\n")
+            return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -582,9 +582,14 @@ int main(int argc, char** argv) {
 
   std::string validate_path;
   std::string validate_format{"text"};
+  bool validate_schema_only{false};
+  bool validate_semantic{false};
   auto* validate = graph_cmd->add_subcommand("validate", "Validate a TopoExec graph");
   validate->add_option("file", validate_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
   validate->add_option("--format", validate_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  validate->add_flag("--schema-only", validate_schema_only,
+                     "Only parse the strict schema/field contract; skip semantic graph validation");
+  validate->add_flag("--semantic", validate_semantic, "Run full semantic validation; this is the default");
 
   std::string plan_path;
   std::string plan_format{"text"};
@@ -668,8 +673,17 @@ int main(int argc, char** argv) {
   try {
     app.parse(argc, argv);
     if (*validate) {
+      if (validate_schema_only && validate_semantic) {
+        throw std::runtime_error("--schema-only and --semantic are mutually exclusive");
+      }
       topoexec::GraphSpec graph;
-      const auto result = load_and_validate(validate_path, graph);
+      topoexec::GraphValidationResult result;
+      if (validate_schema_only) {
+        graph = topoexec::load_graph_file(validate_path);
+        result.ok = true;
+      } else {
+        result = load_and_validate(validate_path, graph);
+      }
       return print_validation(result, validate_format);
     }
     if (*plan) {

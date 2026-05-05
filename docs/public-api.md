@@ -127,4 +127,4 @@ find_package(topoexec CONFIG REQUIRED)
 target_link_libraries(my_app PRIVATE topoexec::runtime)
 ```
 
-Use `GraphBuilder` or direct `GraphSpec` construction, register components in a `ComponentRegistry`, then call `RuntimeRunner::run()`. See `examples/apps/cpp_builder_minimal`.
+Use `GraphBuilder` or direct `GraphSpec` construction, register components in a `ComponentRegistry`, then call `RuntimeRunner::run()`. The package smoke under `tests/cmake/runtime_smoke` compiles this path against only `topoexec::runtime` after install, and `examples/apps/cpp_builder_minimal` shows a larger app-local variant.

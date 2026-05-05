@@ -1,0 +1,190 @@
+{
+  "errors": [],
+  "graph_name": "minimal",
+  "ok": true,
+  "trace": [
+    {
+      "attributes": {
+        "iteration": "1"
+      },
+      "duration_ns": 0,
+      "name": "scheduler_iteration_begin",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "source",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_begin",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "channel_id": "source_to_transform",
+        "edge_kind": "immediate",
+        "source_component": "source",
+        "target_component": "transform"
+      },
+      "duration_ns": 0,
+      "name": "channel_publish",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "source",
+        "lane": "main",
+        "trigger": "8"
+      },
+      "duration_ns": 0,
+      "name": "component_execute",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "source",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_end",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "channel_id": "source_to_transform",
+        "edge_kind": "immediate"
+      },
+      "duration_ns": 0,
+      "name": "channel_commit",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "transform",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_begin",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "channel_id": "transform_to_sink",
+        "edge_kind": "immediate",
+        "source_component": "transform",
+        "target_component": "sink"
+      },
+      "duration_ns": 0,
+      "name": "channel_publish",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "transform",
+        "lane": "main",
+        "trigger": "3"
+      },
+      "duration_ns": 0,
+      "name": "component_execute",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "transform",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_end",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "channel_id": "transform_to_sink",
+        "edge_kind": "immediate"
+      },
+      "duration_ns": 0,
+      "name": "channel_commit",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "sink",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_begin",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "sink",
+        "lane": "main",
+        "trigger": "3"
+      },
+      "duration_ns": 0,
+      "name": "component_execute",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "component_id": "sink",
+        "lane": "main"
+      },
+      "duration_ns": 0,
+      "name": "component_execute_end",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "iteration": "1"
+      },
+      "duration_ns": 0,
+      "name": "scheduler_iteration",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    },
+    {
+      "attributes": {
+        "iteration": "1"
+      },
+      "duration_ns": 0,
+      "name": "scheduler_iteration_end",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>"
+    }
+  ],
+  "trace_event_count": 16,
+  "trace_events": [
+    "scheduler_iteration_begin",
+    "component_execute_begin",
+    "channel_publish",
+    "component_execute",
+    "component_execute_end",
+    "channel_commit",
+    "component_execute_begin",
+    "channel_publish",
+    "component_execute",
+    "component_execute_end",
+    "channel_commit",
+    "component_execute_begin",
+    "component_execute",
+    "component_execute_end",
+    "scheduler_iteration",
+    "scheduler_iteration_end"
+  ]
+}

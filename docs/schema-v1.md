@@ -272,6 +272,21 @@ edges:
 
 Both cases are covered by CLI validation fixtures under `examples/invalid_*.yaml`.
 
+## Machine-Readable Schema
+
+A machine-readable Draft 2020-12 JSON Schema is checked in at [`../schema/topoexec.schema.v1.json`](../schema/topoexec.schema.v1.json). It mirrors the strict loader field set and enum surface documented here. The `schema_v1_contract_smoke` CTest parses that schema and validates representative checked-in graph fixtures through the runtime validator so schema documentation and executable validation do not silently drift.
+
+The JSON Schema is a documentation and generation contract today; semantic rules such as SCC ownership, registry-backed port compatibility, multi-state-writer rejection, and trigger/input compatibility remain enforced by the C++ validator.
+
+CLI validation exposes the same split:
+
+```bash
+topoexec graph validate examples/minimal.yaml --schema-only --format json
+topoexec graph validate examples/minimal.yaml --semantic --format json
+```
+
+`--schema-only` checks the strict loader contract (required fields, known fields, basic scalar shapes). `--semantic` is the default and additionally runs the compiler/validator checks.
+
 ## Versioning
 
 Schema v1 is strict and compatibility-preserving. Additive fields require a schema update only when v1 validation or runtime meaning would change. Breaking semantic changes should bump the schema version rather than silently changing v1 behavior.
