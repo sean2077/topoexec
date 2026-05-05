@@ -317,6 +317,10 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       result.loop_max_iteration_hit_count += count;
       append_runtime_metric(result, "runtime.loop.max_iterations_hit", static_cast<double>(count), loop_id);
     }
+    for (const auto& [loop_id, count] : run_result.loop_error_count) {
+      result.loop_error_count += count;
+      append_runtime_metric(result, "runtime.loop.error", static_cast<double>(count), loop_id);
+    }
     for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
       if (!it->started) {
         continue;

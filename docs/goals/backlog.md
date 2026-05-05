@@ -23,7 +23,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 | G8 | P0/P1 | complete | channel/backpressure docs/runtime/tests | Bounded policies, overflow/reject/overwrite/stale/deadline health metrics, peek/snapshot/bounded drain/read APIs, per-reader queue cursors, and channel docs are implemented and tested. Backpressure remains metric/health-event based, not recursive execution. | `./scripts/agent_check.sh` |
 | G9 | P1 | partial | payload/memory/buffer pool | Built-in payloads and prototype `BufferPool` exist; custom registration, pool metrics, and no-copy examples need completion. | `./scripts/agent_check.sh` |
 | G10 | P1 | complete | trigger engine docs/runtime/tests | Runtime-owned trigger readiness covers any/all/time-sync/batch/request/task/future-ready paths, coalescing/min-interval/max-latency timeout, local correlation ids, and trigger metrics for timeout drops, batch flushes, and time-sync drops. Watermark/condition triggers remain future extensions. | `./scripts/agent_check.sh` |
-| G11 | P1 | partial | CompositeLoop/region runtime | Exact SCC ownership and loop metrics exist; typed convergence/budget/error policy is still incomplete. | `./scripts/agent_check.sh` |
+| G11 | P1 | complete | CompositeLoop/region runtime | Exact SCC ownership, bounded iterations, convergence, budget overrun, internal failure accounting, external-output commit isolation, loop metrics, loop trace events, and CompositeLoop docs are implemented and tested. Solver-style/typed convergence callbacks remain future extensions. | `./scripts/agent_check.sh` |
 | G12 | P1/P2 | not-started | state/config snapshot docs/runtime/tests | State edge visibility exists; blackboard/config snapshot API is not implemented. | `./scripts/agent_check.sh` |
 | G13 | P1 | partial | metrics/trace/diagnostics | Metrics/trace JSON and Chrome trace exist and have golden coverage; histograms and stable diagnostics registry remain. | `./scripts/agent_check.sh` |
 | G14 | P1/P2 | partial | benchmark suite | CLI bench JSON exists; broader deterministic benchmark cases and docs remain. | `./scripts/agent_check.sh` |
@@ -41,7 +41,7 @@ This backlog is derived from `docs/plans/plan.md` and is ordered for agents that
 
 ## Next goal
 
-Continue with **G11 runtime completeness**, then G7/G9/G12/G13+ productization, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
+Continue with **G7/G9/G12/G13+ productization/runtime hardening**, unless the user explicitly asks otherwise. Do not start adapter code before the partial P0/P1 runtime goals above are complete.
 
 ## Blockers
 

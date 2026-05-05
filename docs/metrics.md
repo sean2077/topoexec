@@ -93,6 +93,7 @@ Composite loops:
 - `runtime.loop.converged`: convergence stops for a CompositeLoop region. `component_id` carries the loop id.
 - `runtime.loop.budget_overrun`: budget stops for a CompositeLoop region. `component_id` carries the loop id.
 - `runtime.loop.max_iterations_hit`: max-iteration stops for a CompositeLoop region. `component_id` carries the loop id.
+- `runtime.loop.error`: internal CompositeLoop component failures. `component_id` carries the loop id.
 
 Trace:
 

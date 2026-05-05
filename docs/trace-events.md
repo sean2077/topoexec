@@ -61,6 +61,7 @@ Composite loops:
 - `loop_iteration`
 - `loop_iteration_begin`
 - `loop_iteration_end`
+- `loop_error`
 
 ## Attributes
 

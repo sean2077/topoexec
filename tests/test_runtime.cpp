@@ -613,6 +613,20 @@ public:
   }
 };
 
+class FailingLoopControllerComponent : public LoopControllerComponent {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    auto descriptor = LoopControllerComponent::describe();
+    descriptor.type = "topoexec.test.FailingLoopController";
+    return descriptor;
+  }
+
+  void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    record_invocation(invocation, context);
+    throw std::runtime_error("loop controller failed");
+  }
+};
+
 class ThrowingComponent : public topoexec::Component {
 public:
   topoexec::ComponentDescriptor describe() const override {
@@ -771,6 +785,8 @@ topoexec::ComponentRegistry delay_registry() {
                               []() { return std::make_unique<SlowLoopEstimatorComponent>(); });
   registry.register_component({"topoexec.test.LoopController"},
                               []() { return std::make_unique<LoopControllerComponent>(); });
+  registry.register_component({"topoexec.test.FailingLoopController"},
+                              []() { return std::make_unique<FailingLoopControllerComponent>(); });
   registry.register_component({"topoexec.test.Throwing"}, []() { return std::make_unique<ThrowingComponent>(); });
   registry.register_component({"topoexec.test.ConfigureStatusFailure"},
                               []() { return std::make_unique<ConfigureStatusFailureComponent>(); });
@@ -1096,6 +1112,12 @@ topoexec::GraphSpec budget_overrun_composite_loop_runtime_graph() {
   graph.components[1].type = "topoexec.test.SlowLoopEstimator";
   graph.composite_loops.front().loop_policy.max_iterations = 5;
   graph.composite_loops.front().loop_policy.budget_ms = 1;
+  return graph;
+}
+
+topoexec::GraphSpec failing_composite_loop_runtime_graph() {
+  auto graph = composite_loop_runtime_graph();
+  graph.components[2].type = "topoexec.test.FailingLoopController";
   return graph;
 }
 
@@ -1797,6 +1819,27 @@ TEST(Runtime, CompositeLoopBudgetOverrunStopsLoopAndReportsMetric) {
   EXPECT_EQ(result.loop_budget_overrun_count, 1u);
   EXPECT_EQ(result.loop_max_iteration_hit_count, 0u);
   EXPECT_TRUE(has_metric(result, "runtime.loop.budget_overrun"));
+}
+
+TEST(Runtime, CompositeLoopInternalFailureStopsLoopAndSuppressesExternalCommit) {
+  const auto reg = delay_registry();
+  const auto spec = failing_composite_loop_runtime_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.runtime_errors.empty());
+  EXPECT_EQ(result.runtime_errors.front().component_id, "controller");
+  EXPECT_EQ(result.runtime_errors.front().phase, "execute");
+  EXPECT_EQ(result.loop_error_count, 1u);
+  EXPECT_FALSE(has_component_record(1, "sink"));
+  EXPECT_TRUE(has_metric(result, "runtime.loop.error"));
+  EXPECT_TRUE(has_trace_event(result, "loop_error"));
 }
 
 TEST(Runtime, RunUntilIdleStopsAfterMessageDrivenInputsDrain) {

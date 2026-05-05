@@ -42,7 +42,7 @@ An `Invocation` carries event kind, trigger kind, channel id, local correlation 
 
 ## CompositeLoop Ownership
 
-A `composite_loops[]` entry owns an immediate cyclic SCC only when its `components` set exactly matches that SCC. Partial declarations and decorative loop declarations are invalid.
+A `composite_loops[]` entry owns an immediate cyclic SCC only when its `components` set exactly matches that SCC. Partial declarations and decorative loop declarations are invalid. Runtime external outputs from loop-owned components are staged until the loop finishes successfully; internal failure records loop error metrics and does not commit half-updated external outputs.
 
 At runtime, a CompositeLoop compiled region owns its internal component scheduling. For `loop_policy.type: fixed_point`, the current runtime executes internal components in deterministic compiled order up to `max_iterations` and emits loop iteration metrics. `loop_policy.convergence: single_pass` stops after the first iteration and records convergence. `budget_ms` stops the loop when elapsed loop time exceeds the budget and records a budget overrun. Publications from loop-internal components to components outside the loop are staged and committed only when the CompositeLoop region finishes.
 

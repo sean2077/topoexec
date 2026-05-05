@@ -369,6 +369,11 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           ++result.loop_iteration_count[region.id];
           for (const auto& component_id : region.components) {
             if (!execute_component(component_id)) {
+              ++result.loop_error_count[region.id];
+              record_trace_event(trace_, "loop_error",
+                                 {{"loop_id", region.id},
+                                  {"component_id", component_id},
+                                  {"iteration", std::to_string(loop_iteration + 1u)}});
               return result;
             }
           }

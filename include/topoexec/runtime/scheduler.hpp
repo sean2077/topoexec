@@ -131,6 +131,7 @@ struct SchedulerRunResult {
   std::map<std::string, std::size_t> loop_converged_count;
   std::map<std::string, std::size_t> loop_budget_overrun_count;
   std::map<std::string, std::size_t> loop_max_iteration_hit_count;
+  std::map<std::string, std::size_t> loop_error_count;
   std::vector<std::string> ticked_tasks;
 };
 
