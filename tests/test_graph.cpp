@@ -56,6 +56,13 @@ bool has_diagnostic(const std::vector<topoexec::GraphDiagnostic>& diagnostics, c
   });
 }
 
+const topoexec::GraphDiagnostic* find_diagnostic(const std::vector<topoexec::GraphDiagnostic>& diagnostics,
+                                                 const std::string& code) {
+  const auto found = std::find_if(diagnostics.begin(), diagnostics.end(),
+                                  [&](const auto& diagnostic) { return diagnostic.code == code; });
+  return found == diagnostics.end() ? nullptr : &*found;
+}
+
 std::vector<std::string> sorted(std::vector<std::string> values) {
   std::sort(values.begin(), values.end());
   return values;
@@ -489,6 +496,61 @@ TEST(Graph, AdvisorySchedulerFieldsProduceDiagnosticsWithoutFailingValidation) {
                               "components.a.execution.priority"));
 }
 
+TEST(Graph, WarningDiagnosticsDoNotFailValidationAndCarryCategory) {
+  auto graph = minimal_graph();
+  auto& edge = graph.edges.front();
+  edge.policy.mode = "queue";
+  edge.policy.capacity = 512;
+  edge.policy.overflow = "block";
+  edge.policy.copy_policy = "copy";
+  const auto registry = registry_for({
+      component_descriptor("topoexec.test.Source", topoexec::ComponentRole::kInputBoundary, {},
+                           {port("out", topoexec::kFrameViewPayloadSchema)}),
+      component_descriptor(
+          "topoexec.test.Sink", topoexec::ComponentRole::kOutputBoundary,
+          {port("in", topoexec::kFrameViewPayloadSchema, {}, topoexec::PortMultiplicity::kSingle, true)}, {}),
+  });
+
+  const auto result = topoexec::validate_graph(graph, registry);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(result.errors.empty());
+  const auto* backpressure = find_diagnostic(result.diagnostics, "backpressure_risk");
+  ASSERT_NE(backpressure, nullptr);
+  EXPECT_EQ(backpressure->severity, "warning");
+  EXPECT_EQ(backpressure->category, "channel");
+  EXPECT_EQ(backpressure->graph_path, "edges.e");
+  const auto* latency = find_diagnostic(result.diagnostics, "high_queue_depth_latency_risk");
+  ASSERT_NE(latency, nullptr);
+  EXPECT_EQ(latency->category, "channel");
+  EXPECT_NE(latency->suggested_fix.find("Reduce capacity"), std::string::npos);
+  const auto* payload = find_diagnostic(result.diagnostics, "large_payload_copy");
+  ASSERT_NE(payload, nullptr);
+  EXPECT_EQ(payload->severity, "warning");
+  EXPECT_EQ(payload->category, "payload");
+  EXPECT_EQ(payload->involved_edges, std::vector<std::string>({"e"}));
+}
+
+TEST(Graph, TriggerNeverReadyWarningDoesNotFailValidation) {
+  auto graph = minimal_graph();
+  auto& sink = graph.components.back();
+  topoexec::EventSourceSpec timer;
+  timer.type = "timer";
+  timer.period_ms = 10;
+  sink.event_sources = {timer};
+  sink.trigger_policy.type = "all_inputs";
+  sink.trigger_policy.inputs = {"in"};
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto* diagnostic = find_diagnostic(result.diagnostics, "trigger_never_ready");
+  ASSERT_NE(diagnostic, nullptr);
+  EXPECT_EQ(diagnostic->severity, "warning");
+  EXPECT_EQ(diagnostic->category, "trigger");
+  EXPECT_EQ(diagnostic->graph_path, "components.b.trigger_policy");
+}
+
 TEST(Graph, PlanJsonIncludesSchedulerLaneCapabilitySummary) {
   const auto graph = topoexec::load_graph_text(R"(
 schema_version: 1
@@ -821,11 +883,17 @@ edges:
 
 TEST(Graph, DiagnosticRegistryExposesStableCodesAndFixes) {
   const auto registry = topoexec::graph_diagnostic_registry();
-  EXPECT_GE(registry.size(), 10u);
+  EXPECT_GE(registry.size(), 25u);
   const auto descriptor = topoexec::graph_diagnostic_descriptor("multi_state_writer");
   ASSERT_TRUE(descriptor.has_value());
   EXPECT_EQ(descriptor->severity, "error");
+  EXPECT_EQ(descriptor->category, "channel");
   EXPECT_NE(descriptor->suggested_fix.find("one writer"), std::string::npos);
+  const auto warning = topoexec::graph_diagnostic_descriptor("large_payload_copy");
+  ASSERT_TRUE(warning.has_value());
+  EXPECT_EQ(warning->severity, "warning");
+  EXPECT_EQ(warning->category, "payload");
+  EXPECT_EQ(topoexec::graph_diagnostic_category("trigger_never_ready"), "trigger");
   EXPECT_FALSE(topoexec::graph_diagnostic_descriptor("missing_code").has_value());
 }
 

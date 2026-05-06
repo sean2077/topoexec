@@ -92,6 +92,7 @@ GraphDiagnostic make_diagnostic(std::string error) {
   diagnostic.message = std::move(error);
   diagnostic.code = diagnostic_code_for(diagnostic.message);
   diagnostic.suggested_fix = suggested_fix_for(diagnostic.code);
+  diagnostic.category = graph_diagnostic_category(diagnostic.code);
   auto token_after = [&](std::string_view prefix) -> std::string {
     if (diagnostic.message.rfind(prefix, 0) != 0u) {
       return {};
@@ -124,14 +125,29 @@ void add_error(GraphValidationResult& result, std::string error) {
   result.errors.push_back(result.diagnostics.back().message);
 }
 
-void add_advisory(GraphValidationResult& result, std::string code, std::string message, std::string graph_path) {
+void add_diagnostic(GraphValidationResult& result, std::string code, std::string severity, std::string message,
+                    std::string graph_path, std::vector<std::string> involved_components = {},
+                    std::vector<std::string> involved_edges = {}) {
   GraphDiagnostic diagnostic;
   diagnostic.code = std::move(code);
-  diagnostic.severity = "advisory";
+  diagnostic.severity = std::move(severity);
   diagnostic.message = std::move(message);
   diagnostic.graph_path = std::move(graph_path);
+  diagnostic.involved_components = std::move(involved_components);
+  diagnostic.involved_edges = std::move(involved_edges);
   diagnostic.suggested_fix = suggested_fix_for(diagnostic.code);
+  diagnostic.category = graph_diagnostic_category(diagnostic.code);
   result.diagnostics.push_back(std::move(diagnostic));
+}
+
+void add_advisory(GraphValidationResult& result, std::string code, std::string message, std::string graph_path) {
+  add_diagnostic(result, std::move(code), "advisory", std::move(message), std::move(graph_path));
+}
+
+void add_warning(GraphValidationResult& result, std::string code, std::string message, std::string graph_path,
+                 std::vector<std::string> involved_components = {}, std::vector<std::string> involved_edges = {}) {
+  add_diagnostic(result, std::move(code), "warning", std::move(message), std::move(graph_path),
+                 std::move(involved_components), std::move(involved_edges));
 }
 
 void add_error(GraphCompileResult& result, std::string error) {
@@ -258,6 +274,14 @@ bool is_multi_reader_value(const std::string& readers) {
 
 bool slow_reader_drop_risk(const EdgePolicySpec& policy) {
   return is_multi_reader_value(policy.readers) && (policy.overflow == "drop_oldest" || policy.overflow == "overwrite");
+}
+
+bool high_queue_depth_latency_risk(const EdgePolicySpec& policy) {
+  return (policy.mode == "queue" || policy.mode == "ring_buffer") && policy.capacity > 256;
+}
+
+bool is_large_payload_schema(const std::string& schema) {
+  return schema == kFrameViewPayloadSchema || schema == kBinaryBlobPayloadSchema;
 }
 
 bool is_allowed_event_source_type(const std::string& type) {
@@ -840,6 +864,14 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
         component.trigger_policy.batch_window_ms <= 0) {
       add_error(result, "component " + component.id + " batch trigger_policy requires batch_size or batch_window_ms");
     }
+    if ((component.trigger_policy.type == "all_inputs" || component.trigger_policy.type == "time_sync" ||
+         component.trigger_policy.type == "batch") &&
+        !trigger_policy_inputs_for(component).empty() && !has_message_event_source(component)) {
+      add_warning(result, "trigger_never_ready",
+                  "component " + component.id + " trigger_policy " + component.trigger_policy.type +
+                      " names message inputs but has no message event_source",
+                  "components." + component.id + ".trigger_policy", {component.id});
+    }
     if (component.boundary.role != ComponentRole::kProcessing) {
       has_input_boundary = has_input_boundary || component_role_has_input(component.boundary.role);
       has_output_boundary = has_output_boundary || component_role_has_output(component.boundary.role);
@@ -945,6 +977,20 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     if (edge.policy.copy_policy == "move_only" && edge.policy.readers != "single") {
       add_error(result, "edge " + edge.id + " move_only copy_policy requires readers: single");
     }
+    if (edge.policy.overflow == "block") {
+      add_warning(result, "backpressure_risk",
+                  "edge " + edge.id + " uses blocking overflow and may stall upstream execution", "edges." + edge.id,
+                  {}, {edge.id});
+    } else if (slow_reader_drop_risk(edge.policy)) {
+      add_warning(result, "backpressure_risk", "edge " + edge.id + " is multi-reader with slow-reader drop risk",
+                  "edges." + edge.id, {}, {edge.id});
+    }
+    if (high_queue_depth_latency_risk(edge.policy)) {
+      add_warning(result, "high_queue_depth_latency_risk",
+                  "edge " + edge.id + " queue capacity " + std::to_string(edge.policy.capacity) +
+                      " can hide tail latency",
+                  "edges." + edge.id + ".policy.capacity", {}, {edge.id});
+    }
 
     const auto from_component = component_id_from_endpoint(edge.from);
     const auto to_component = component_id_from_endpoint(edge.to);
@@ -988,6 +1034,11 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
       if (!port_contracts_compatible(*output_port, *input_port, reason)) {
         add_error(result, "edge " + edge.id + " payload type mismatch: " + edge.from + " -> " + edge.to + " " + reason);
       }
+    }
+    if (output_port != nullptr && edge.policy.copy_policy == "copy" && is_large_payload_schema(output_port->schema)) {
+      add_warning(result, "large_payload_copy",
+                  "edge " + edge.id + " copies large payload schema " + output_port->schema, "edges." + edge.id,
+                  {from_component, to_component}, {edge.id});
     }
   }
 

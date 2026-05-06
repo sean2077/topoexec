@@ -239,6 +239,15 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --semantic --format json
   )
   set_tests_properties(cli_validate_semantic_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"region_order\"")
+  add_test(NAME cli_validate_warning_diagnostics_do_not_fail
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/diagnostic_warnings.yaml --format json
+  )
+  set_tests_properties(cli_validate_warning_diagnostics_do_not_fail PROPERTIES PASS_REGULAR_EXPRESSION "\"high_queue_depth_latency_risk\"")
+  add_test(NAME cli_validate_strict_diagnostics_fail_warnings
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/diagnostic_warnings.yaml --strict-diagnostics --format json
+  )
+  set_tests_properties(cli_validate_strict_diagnostics_fail_warnings PROPERTIES
+    WILL_FAIL TRUE)
   add_test(NAME cli_render_mermaid
     COMMAND topoexec graph render ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --format mermaid
   )

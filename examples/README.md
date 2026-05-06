@@ -20,6 +20,7 @@ ctest --test-dir build --output-on-failure -R 'app_|cli_run_|cli_validate_'
 | `control_feedback_delay.yaml` | Feedback delayed to the next epoch. | `./build/topoexec graph run examples/control_feedback_delay.yaml --steps 2` |
 | `composite_loop.yaml` | Declared immediate feedback SCC. | `./build/topoexec graph plan examples/composite_loop.yaml --format json` |
 | `large_payload_copy.yaml` | Lintable large-payload copy policy. | `./build/topoexec graph lint examples/large_payload_copy.yaml` |
+| `diagnostic_warnings.yaml` | Warning diagnostics and strict-diagnostics behavior. | `./build/topoexec graph validate examples/diagnostic_warnings.yaml --strict-diagnostics --format json` |
 | `state_config_snapshot.yaml` | State/config snapshot visibility. | `./build/topoexec graph run examples/state_config_snapshot.yaml --steps 2` |
 | `batch_time_sync.yaml` | Two-input time-sync trigger. | `./build/topoexec graph run examples/batch_time_sync.yaml --steps 1` |
 | `service_pipeline.yaml` | Request, async, and task-ready pipeline shape. | `./build/topoexec graph run examples/service_pipeline.yaml --steps 2` |

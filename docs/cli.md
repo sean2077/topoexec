@@ -10,6 +10,7 @@ without CLI or YAML.
 ./build/topoexec graph validate examples/minimal.yaml
 ./build/topoexec graph validate examples/minimal.yaml --schema-only --format json
 ./build/topoexec graph validate examples/minimal.yaml --semantic --format json
+./build/topoexec graph validate examples/diagnostic_warnings.yaml --strict-diagnostics --format json
 ./build/topoexec graph plan examples/composite_loop.yaml --format json
 ./build/topoexec graph render examples/minimal.yaml --format mermaid
 ./build/topoexec graph run examples/minimal.yaml --steps 1
@@ -25,7 +26,9 @@ without CLI or YAML.
 future exporter adapters can verify the descriptor/cardinality contract they are
 mapping. `graph trace --format json` and `graph trace --format chrome` include
 `trace_schema_version` so trace consumers can verify the timeline/causality
-contract before mapping spans or tracks.
+contract before mapping spans or tracks. `graph validate --format json` includes
+`diagnostics_schema_version`, diagnostic `category`, and `suggested_fix`;
+`--strict-diagnostics` fails warning diagnostics for stricter CI/editor workflows.
 
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --schema-only --format json -->
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --semantic --format json -->
@@ -63,8 +66,9 @@ runtime contract as `semantic_contract_version` alongside the graph
 ## Debugging sequence
 
 1. `validate --schema-only` catches shape and unknown-field issues.
-2. `validate --semantic` adds compiler diagnostics and region order.
-3. `plan --format json` shows what will execute.
-4. `lint` flags risky or invalid edge policies such as large copies, slow-reader drop risk, `move_only` multi-reader misuse, and loaned views without an explicit producer/pool owner.
-5. `run`, `metrics`, and `trace` confirm runtime behavior.
-6. `diff-plan` explains semantic drift between two graph revisions.
+2. `validate --semantic` adds compiler diagnostics and region order. Use `--strict-diagnostics` when warning diagnostics should fail CI.
+3. `explain --format json` groups diagnostics by graph structure, scheduler, channel, payload, and trigger categories.
+4. `plan --format json` shows what will execute.
+5. `lint` flags risky or invalid edge policies such as large copies, slow-reader drop risk, `move_only` multi-reader misuse, and loaned views without an explicit producer/pool owner.
+6. `run`, `metrics`, and `trace` confirm runtime behavior.
+7. `diff-plan` explains semantic drift between two graph revisions.

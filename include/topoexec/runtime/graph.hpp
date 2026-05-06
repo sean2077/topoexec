@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace topoexec {
@@ -153,6 +154,14 @@ struct GraphCompiledPlan {
 };
 
 struct GraphDiagnostic {
+  GraphDiagnostic() = default;
+  GraphDiagnostic(std::string code_value, std::string severity_value, std::string message_value,
+                  std::string graph_path_value, std::vector<std::string> involved_components_value,
+                  std::vector<std::string> involved_edges_value, std::string suggested_fix_value)
+      : code(std::move(code_value)), severity(std::move(severity_value)), message(std::move(message_value)),
+        graph_path(std::move(graph_path_value)), involved_components(std::move(involved_components_value)),
+        involved_edges(std::move(involved_edges_value)), suggested_fix(std::move(suggested_fix_value)) {}
+
   std::string code;
   std::string severity{"error"};
   std::string message;
@@ -160,6 +169,7 @@ struct GraphDiagnostic {
   std::vector<std::string> involved_components;
   std::vector<std::string> involved_edges;
   std::string suggested_fix;
+  std::string category{"graph_structure"};
 };
 
 struct GraphCompileResult {

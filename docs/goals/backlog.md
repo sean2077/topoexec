@@ -41,7 +41,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G46 | P0/P1 | complete | Runtime Observer API v1 | Stable-v0.2 in-process `RuntimeObserver`/sink callbacks, runner option registration, no-op and bounded in-memory observers, observer failure/drop metrics, and non-fatal failure semantics are complete without exporter dependencies. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G47 | P1 | complete | Metrics v2: Cardinality and Schema Contract | Runtime metric schema version 1, descriptor metadata, sample validation, allowed-label/cardinality rules, forbidden correlation/trace/request labels, docs, tests, and metrics JSON schema-version output are complete. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G48 | P1 | complete | Trace v2: Timeline and Causality | Trace schema version 1, ordered timeline fields, explicit phase/component/channel/lane/worker/epoch/transaction/correlation/causation identifiers, Chrome trace phase tracks, docs, tests, and updated goldens are complete. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
-| G49 | P1/P2 | pending | Diagnostics v2: More Actionable Graph Errors | 让 graph diagnostics 不只是 reject，而能告诉用户如何修图。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G49 | P1/P2 | complete | Diagnostics v2: More Actionable Graph Errors | Diagnostic schema version 1, stable category/severity/suggested-fix descriptors, warning diagnostics, grouped explain output, strict warning failure mode, docs, and tests are complete. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_graph|cli_validate_warning_diagnostics_do_not_fail|cli_validate_strict_diagnostics_fail_warnings|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G50 | P0/P1 | pending | Defensive Input Handling v2 | 将 schema/parser limits 从 smoke 推进到 robust defensive behavior。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G51 | P1/P2 | pending | Coverage-Guided Fuzzing | 从 deterministic fuzz smoke 进入 coverage-guided fuzzing，提升 schema/compiler robustness。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G52 | P1/P2 | pending | Stress and Soak Tests | 验证 scheduler/channel/task 在较长运行和高负载下不会出现 obvious deadlock/leak/unbounded growth。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G49 Diagnostics v2: More Actionable Graph Errors is the next unfinished P1/P2 goal after G48; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
+G50 Defensive Input Handling v2 is the next unfinished P0/P1 goal after G49; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Blockers
 

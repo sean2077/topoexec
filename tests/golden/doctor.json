@@ -11,7 +11,8 @@
     "examples/minimal.yaml",
     "examples/control_feedback_delay.yaml",
     "examples/composite_loop.yaml",
-    "examples/large_payload_copy.yaml"
+    "examples/large_payload_copy.yaml",
+    "examples/diagnostic_warnings.yaml"
   ],
   "features": {
     "health_events": true,

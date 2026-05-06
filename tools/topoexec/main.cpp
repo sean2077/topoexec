@@ -1,3 +1,4 @@
+#include "topoexec/runtime/diagnostics.hpp"
 #include "topoexec/runtime/graph.hpp"
 #include "topoexec/runtime/metric_schema.hpp"
 #include "topoexec/runtime/runtime_runner.hpp"
@@ -167,20 +168,57 @@ topoexec::ComponentRegistry demo_registry() {
   return registry;
 }
 
+std::string diagnostic_category(const topoexec::GraphDiagnostic& diagnostic) {
+  return diagnostic.category.empty() ? topoexec::graph_diagnostic_category(diagnostic.code) : diagnostic.category;
+}
+
+nlohmann::json diagnostic_json(const topoexec::GraphDiagnostic& diagnostic) {
+  return {{"code", diagnostic.code},
+          {"severity", diagnostic.severity},
+          {"category", diagnostic_category(diagnostic)},
+          {"message", diagnostic.message},
+          {"graph_path", diagnostic.graph_path},
+          {"involved_components", diagnostic.involved_components},
+          {"involved_edges", diagnostic.involved_edges},
+          {"suggested_fix", diagnostic.suggested_fix}};
+}
+
+nlohmann::json grouped_diagnostics_json(const std::vector<topoexec::GraphDiagnostic>& diagnostics) {
+  nlohmann::json groups = nlohmann::json::object();
+  for (const auto& category : {"graph_structure", "scheduler", "channel", "payload", "trigger"}) {
+    groups[category] = nlohmann::json::array();
+  }
+  for (const auto& diagnostic : diagnostics) {
+    groups[diagnostic_category(diagnostic)].push_back(diagnostic_json(diagnostic));
+  }
+  return groups;
+}
+
+void apply_strict_diagnostics(topoexec::GraphValidationResult& result) {
+  std::vector<std::string> warning_codes;
+  for (const auto& diagnostic : result.diagnostics) {
+    if (diagnostic.severity == "warning") {
+      warning_codes.push_back(diagnostic.code);
+    }
+  }
+  if (warning_codes.empty()) {
+    return;
+  }
+  result.ok = false;
+  for (const auto& code : warning_codes) {
+    result.errors.push_back("strict diagnostics rejected warning: " + code);
+  }
+}
+
 int print_validation(const topoexec::GraphValidationResult& result, const std::string& format) {
   if (format == "json") {
     nlohmann::json value;
     value["ok"] = result.ok;
     value["errors"] = result.errors;
+    value["diagnostics_schema_version"] = topoexec::kGraphDiagnosticSchemaVersion;
     value["diagnostics"] = nlohmann::json::array();
     for (const auto& diagnostic : result.diagnostics) {
-      value["diagnostics"].push_back({{"code", diagnostic.code},
-                                      {"severity", diagnostic.severity},
-                                      {"message", diagnostic.message},
-                                      {"graph_path", diagnostic.graph_path},
-                                      {"involved_components", diagnostic.involved_components},
-                                      {"involved_edges", diagnostic.involved_edges},
-                                      {"suggested_fix", diagnostic.suggested_fix}});
+      value["diagnostics"].push_back(diagnostic_json(diagnostic));
     }
     value["region_order"] = result.compiled_plan.region_order;
     std::cout << value.dump(2) << "\n";
@@ -188,6 +226,16 @@ int print_validation(const topoexec::GraphValidationResult& result, const std::s
     std::cout << (result.ok ? "ok" : "error") << "\n";
     for (const auto& error : result.errors) {
       std::cout << "- " << error << "\n";
+    }
+    for (const auto& diagnostic : result.diagnostics) {
+      if (diagnostic.severity == "error") {
+        continue;
+      }
+      std::cout << "- " << diagnostic.severity << " " << diagnostic.code;
+      if (!diagnostic.graph_path.empty()) {
+        std::cout << " " << diagnostic.graph_path;
+      }
+      std::cout << ": " << diagnostic.message << "\n";
     }
   }
   return result.ok ? 0 : 1;
@@ -309,10 +357,15 @@ std::string find_schema_path() {
 std::vector<std::string> existing_yaml_files(const std::string& directory) {
   std::vector<std::string> values;
   const std::vector<std::string> names = {
-      directory + "/minimal.yaml",          directory + "/control_feedback_delay.yaml",
-      directory + "/composite_loop.yaml",   directory + "/large_payload_copy.yaml",
-      directory + "/single_component.yaml", directory + "/immediate_chain.yaml",
-      directory + "/latest_vs_queue.yaml",  directory + "/deferred_edges.yaml",
+      directory + "/minimal.yaml",
+      directory + "/control_feedback_delay.yaml",
+      directory + "/composite_loop.yaml",
+      directory + "/large_payload_copy.yaml",
+      directory + "/diagnostic_warnings.yaml",
+      directory + "/single_component.yaml",
+      directory + "/immediate_chain.yaml",
+      directory + "/latest_vs_queue.yaml",
+      directory + "/deferred_edges.yaml",
       directory + "/thread_pool.yaml",
   };
   for (const auto& name : names) {
@@ -697,6 +750,8 @@ int print_explain(const topoexec::GraphSpec& graph, const topoexec::GraphValidat
     for (const auto& edge : graph.edges) {
       value["edge_policies"].push_back(edge_policy_json(edge));
     }
+    value["diagnostics_schema_version"] = topoexec::kGraphDiagnosticSchemaVersion;
+    value["diagnostic_groups"] = grouped_diagnostics_json(validation.diagnostics);
     value["region_order"] = validation.compiled_plan.region_order;
     std::cout << value.dump(2) << "\n";
   } else {
@@ -704,6 +759,21 @@ int print_explain(const topoexec::GraphSpec& graph, const topoexec::GraphValidat
     std::cout << "publish: staged by runtime; never directly executes downstream components\n";
     std::cout << "immediate: current epoch by compiled region order\n";
     std::cout << "delay/state/async: deferred to next epoch boundary\n";
+    const auto groups = grouped_diagnostics_json(validation.diagnostics);
+    if (!validation.diagnostics.empty()) {
+      std::cout << "diagnostics:\n";
+      for (const auto& category : {"graph_structure", "scheduler", "channel", "payload", "trigger"}) {
+        if (!groups.contains(category) || groups.at(category).empty()) {
+          continue;
+        }
+        std::cout << "- " << category << ":\n";
+        for (const auto& diagnostic : groups.at(category)) {
+          std::cout << "  - " << diagnostic.at("severity").get<std::string>() << " "
+                    << diagnostic.at("code").get<std::string>() << " " << diagnostic.at("graph_path").get<std::string>()
+                    << ": " << diagnostic.at("message").get<std::string>() << "\n";
+        }
+      }
+    }
     std::cout << topoexec::graph_plan_text(graph, validation.compiled_plan);
   }
   return validation.ok ? 0 : 1;
@@ -916,12 +986,15 @@ int main(int argc, char** argv) {
   std::string validate_format{"text"};
   bool validate_schema_only{false};
   bool validate_semantic{false};
+  bool validate_strict_diagnostics{false};
   auto* validate = graph_cmd->add_subcommand("validate", "Validate a TopoExec graph");
   validate->add_option("file", validate_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
   validate->add_option("--format", validate_format, "Output format")->check(CLI::IsMember({"text", "json"}));
   validate->add_flag("--schema-only", validate_schema_only,
                      "Only parse the strict schema/field contract; skip semantic graph validation");
   validate->add_flag("--semantic", validate_semantic, "Run full semantic validation; this is the default");
+  validate->add_flag("--strict-diagnostics", validate_strict_diagnostics,
+                     "Fail validation when warning diagnostics are emitted");
 
   std::string plan_path;
   std::string plan_format{"text"};
@@ -1024,6 +1097,9 @@ int main(int argc, char** argv) {
         result.ok = true;
       } else {
         result = load_and_validate(validate_path, graph);
+      }
+      if (validate_strict_diagnostics) {
+        apply_strict_diagnostics(result);
       }
       return print_validation(result, validate_format);
     }

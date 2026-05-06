@@ -1,0 +1,35 @@
+schema_version: 1
+graph:
+  name: diagnostic_warnings
+  kind: internal_test
+lanes:
+  main:
+    type: event_loop
+components:
+  - id: source
+    type: topoexec.test.Source
+    event_sources:
+      - {type: manual}
+    trigger_policy:
+      type: manual
+    execution:
+      lane: main
+  - id: sink
+    type: topoexec.test.Sink
+    event_sources:
+      - {type: message, inputs: [in]}
+    trigger_policy:
+      type: any_input
+      inputs: [in]
+    execution:
+      lane: main
+edges:
+  - id: deep_blocking_queue
+    kind: immediate
+    from: source.out
+    to: sink.in
+    policy:
+      mode: queue
+      capacity: 512
+      overflow: block
+      copy_policy: shared_view

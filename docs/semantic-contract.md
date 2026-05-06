@@ -52,6 +52,7 @@ This document is the reference target for future goals that change runtime behav
 | TaskExecutor deterministic/threaded helpers | `experimental` | `ITaskExecutor` is the embedder interface, `TaskExecutor` remains the deterministic compatibility path, and `ThreadedTaskExecutor` is an opt-in bounded worker preview. Pending cancellation is cooperative, active work is not forcibly killed, completion callbacks route through publisher/channel boundaries, and threaded details may change before beta. |
 | Cooperative cancellation and timeout | `experimental` | `CancellationToken`/`CancellationSource`, `GraphContext::cancel_requested()`, `Invocation::cancel_requested()`, component timeout-budget metrics, CompositeLoop between-iteration cancellation, and TaskExecutor pending-task cancellation are implemented. No hard thread termination or timeout preemption is implemented. |
 | Runtime observer API | `v0.2 stable` | `RuntimeRunnerOptions::observers` delivers best-effort result/metric/trace/health/error records after run assembly; observer failures are non-fatal diagnostics. Exporter adapters remain future work. |
+| Graph diagnostics | `v0.2 stable` | Diagnostic schema version `1` defines code/severity/category/path/involved-id/suggested-fix fields. Warning diagnostics do not fail validation unless CLI strict diagnostics are requested. |
 
 ## Schema v1 relationship
 

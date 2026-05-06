@@ -28,6 +28,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added RuntimeObserver v1 with result/metric/trace/health/error callbacks, runner option registration, no-op and bounded in-memory observers, and non-fatal observer failure/drop metrics.
 - Added runtime metric schema version 1 with descriptor metadata, cardinality validation, forbidden high-cardinality default-label checks, and CLI metrics JSON schema-version output.
 - Added runtime trace schema version 1 with ordered timeline fields, explicit phase/component/channel/lane/worker/epoch/transaction/correlation/causation identifiers, and Chrome trace phase tracks.
+- Added graph diagnostic schema version 1 with stable severity/category fields, warning diagnostics for backpressure/deep queues/large copies/never-ready triggers, grouped explain output, and CLI strict-diagnostics failure mode.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
 - Added deterministic benchmark case YAMLs and richer `bench --format json` output with case, params, per-run latency percentiles, throughput, and environment summary.

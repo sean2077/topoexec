@@ -1352,6 +1352,8 @@ Priority: P1/P2
 - Tooling becomes useful for users building large graphs.
 - Diagnostics are stable machine-readable inputs for editor/LSP later.
 
+Implementation note: the G49 pass adds diagnostic schema version `1`, stable category/severity/suggested-fix output, warning diagnostics for backpressure/deep queues/large payload copies/never-ready triggers, grouped `explain` diagnostics, and `graph validate --strict-diagnostics` so warning diagnostics can fail strict CI/editor workflows.
+
 ---
 
 ## G50. Defensive Input Handling v2
