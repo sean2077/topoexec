@@ -10,8 +10,9 @@ exporter. Adapter packages are deferred until the core runtime API is stable.
   point. Components publish outputs through `GraphContext`.
 - **ComponentRegistry**: maps type names to factories. Embedded apps own their
   registry; the CLI has a tiny demo registry for examples.
-- **GraphSpec**: lanes, components, edges, triggers, optional graph config, and
-  optional CompositeLoop declarations.
+- **GraphSpec**: lanes, components, edges, triggers, optional graph config,
+  optional CompositeLoop declarations, and optional `subgraphs[]` compile-time
+  namespace expansion for organizing larger graphs without runtime nesting.
 - **CompiledPlan**: validated graph regions, SCC ownership, trigger wiring, and
   deterministic region order.
 - **RuntimeRunner**: executes the compiled graph, owns publication routing, and

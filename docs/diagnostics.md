@@ -49,7 +49,7 @@ Current stable codes:
 | `large_payload_copy` | warning | payload | A large frame/blob payload edge uses copy semantics. |
 | `high_queue_depth_latency_risk` | warning | channel | A deep queue can hide latency and grow tail delays. |
 | `trigger_never_ready` | warning | trigger | A trigger configuration is accepted but unlikely to become ready at runtime. |
-| `subgraph_hidden_cycle` | warning | graph_structure | Reserved for future subgraph boundaries that hide immediate cycles. |
+| `subgraph_hidden_cycle` | warning | graph_structure | Reserved for future nested/runtime subgraph boundaries; phase-1 `subgraphs[]` expand before validation so immediate cycles are not hidden. |
 | `diagnostic_note` | info | graph_structure | Reserved informational diagnostic note. |
 | `graph_validation_error` | error | graph_structure | Generic fallback validation error. |
 

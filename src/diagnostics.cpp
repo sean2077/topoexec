@@ -73,8 +73,10 @@ const std::vector<GraphDiagnosticDescriptor>& graph_diagnostic_registry() {
        "Align event_sources with trigger_policy inputs or switch to a manual/timer trigger when no message edge drives "
        "it."},
       {"subgraph_hidden_cycle", "warning", "graph_structure",
-       "A future subgraph boundary could hide an immediate cycle from local reasoning.",
-       "Expose the cycle at the parent graph boundary or declare the exact CompositeLoop owner."},
+       "A future nested/runtime subgraph boundary could hide an immediate cycle from local reasoning.",
+       "Keep phase-1 subgraphs as compile-time expansion, expose the cycle at the parent graph boundary, or declare "
+       "the "
+       "exact CompositeLoop owner."},
       {"diagnostic_note", "info", "graph_structure", "Informational diagnostic note.",
        "No action required unless a stricter workflow promotes informational diagnostics."},
       {"graph_validation_error", "error", "graph_structure", "Generic graph validation failure.",

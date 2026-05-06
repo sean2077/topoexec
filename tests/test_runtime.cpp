@@ -1200,6 +1200,37 @@ edges:
 )");
 }
 
+topoexec::GraphSpec hierarchical_runtime_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: hierarchical_runtime, kind: runnable}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+subgraphs:
+  - id: cell
+    components:
+      - id: source
+        type: topoexec.test.Source
+        event_sources: [{type: manual}]
+        trigger_policy: {type: manual}
+        execution: {lane: main}
+      - id: echo
+        type: topoexec.test.Echo
+        event_sources: [{type: message, inputs: [in]}]
+        trigger_policy: {type: any_input, inputs: [in]}
+        execution: {lane: main}
+      - id: sink
+        type: topoexec.test.Sink
+        event_sources: [{type: message, inputs: [in]}]
+        trigger_policy: {type: any_input, inputs: [in]}
+        execution: {lane: main}
+    edges:
+      - {id: source_echo, kind: immediate, from: source.out, to: echo.in, policy: {mode: latest, copy_policy: shared_view}}
+      - {id: echo_sink, kind: immediate, from: echo.out, to: sink.in, policy: {mode: latest, copy_policy: shared_view}}
+)");
+}
+
 topoexec::GraphSpec publication_probe_graph() {
   return topoexec::load_graph_text(R"(
 schema_version: 1
@@ -1886,6 +1917,30 @@ TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {
   EXPECT_TRUE(has_component_metric(result, "runtime.trigger.ready_count", "sink"));
   EXPECT_TRUE(has_metric(result, "runtime.trace.event_count"));
   EXPECT_NE(std::find(result.ticked_components.begin(), result.ticked_components.end(), "sink"),
+            result.ticked_components.end());
+}
+
+TEST(Runtime, HierarchicalGraphMetricsPreserveExpandedComponentPath) {
+  const auto reg = registry();
+  const auto spec = hierarchical_runtime_graph();
+  const auto validation = topoexec::validate_graph(spec, reg);
+  ASSERT_TRUE(validation.ok) << (validation.errors.empty() ? "" : validation.errors.front());
+
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_metric(result, "runtime.channel.publish_count", "cell.source_echo"));
+  EXPECT_TRUE(has_metric(result, "runtime.channel.delivery_count", "cell.echo_sink"));
+  EXPECT_TRUE(has_component_metric(result, "runtime.component.execution_count", "cell.source"));
+  EXPECT_TRUE(has_component_metric(result, "runtime.component.execution_count", "cell.echo"));
+  EXPECT_TRUE(has_component_metric(result, "runtime.trigger.ready_count", "cell.sink"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_execute_begin", "component_id", "cell.source"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "channel_publish", "channel_id", "cell.source_echo"));
+  EXPECT_NE(std::find(result.ticked_components.begin(), result.ticked_components.end(), "cell.sink"),
             result.ticked_components.end());
 }
 

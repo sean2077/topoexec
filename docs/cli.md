@@ -33,6 +33,9 @@ contract before mapping spans or tracks. `graph validate --format json` includes
 `graph bench --format json` includes benchmark schema v2 metadata such as
 `graph_hash`, compiler, build type, CPU info, and commit for local baseline
 tracking without global timing thresholds.
+`graph plan --format json` includes `hierarchy[]` when schema-v1 `subgraphs[]`
+compile-time namespace expansion is used; empty hierarchy is emitted as `[]` for
+stable scripting.
 Graph-reading commands also accept per-invocation defensive parser overrides:
 `--max-graph-input-bytes`, `--max-lanes`, `--max-components`, `--max-edges`,
 `--max-composite-loops`, `--max-identifier-bytes`, `--max-config-depth`,

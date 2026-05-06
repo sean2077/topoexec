@@ -26,6 +26,11 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added `BufferPoolConfig`, bounded pool allocation stats, payload schema summaries, and loaned-view pool-owner lint coverage for in-process large-payload memory planning.
 - Added `OpaquePayload`/`make_custom_payload` and BufferPool loan/release/byte metrics with memory docs.
 - Added descriptor-backed typed port validation for schema/payload-type compatibility, required and optional inputs, input multiplicity, and boundary role mismatches without adding schema v1 port fields.
+- Added hierarchical `subgraphs[]` as schema-v1 compile-time namespace
+  expansion, with expanded `GraphHierarchyEntry` plan metadata, last-dot
+  endpoint parsing for namespaced component ids, CompositeLoop ownership after
+  expansion, and graph/runtime tests proving hierarchy does not hide cycles or
+  metric paths.
 - Added experimental component reset, snapshot, and restore lifecycle hooks with start-epoch runner options, post-run snapshot capture, lifecycle metrics, trace events, and cleanup-on-failure coverage.
 - Added experimental config hot-reload transactions with component validate/apply hooks, epoch-boundary commit, transaction/version metrics, and rollback coverage for invalid or failed applies.
 - Added RuntimeObserver v1 with result/metric/trace/health/error callbacks, runner option registration, no-op and bounded in-memory observers, and non-fatal observer failure/drop metrics.

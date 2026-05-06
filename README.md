@@ -20,7 +20,8 @@ Dependencies are CMake, a C++20 compiler, `yaml-cpp`, `CLI11`, `nlohmann_json`, 
 ## Core Concepts
 
 - `Component`: user code with lifecycle hooks and one `execute()` / `execute_status()` entry point.
-- `GraphSpec`: declarative lanes, components, edges, and optional CompositeLoops.
+- `GraphSpec`: declarative lanes, components, edges, optional CompositeLoops,
+  and optional compile-time `subgraphs[]` namespace expansion.
 - Edge kinds: `immediate`, `delay`, `state`, and `async`.
 - Channel policy: latest, queue, barrier, previous-tick, overflow behavior, and copy policy.
 - Trigger policy: manual, any/all input, time sync, batch, request, and task-ready.
@@ -97,6 +98,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [Concepts](docs/concepts.md)
 - [Robot cell pilot case study](docs/case-study-robot-cell.md)
 - [Graph spec](docs/graph-spec.md)
+- [Hierarchical graphs](docs/hierarchical-graphs.md)
 - [Components](docs/components.md)
 - [Component lifecycle](docs/lifecycle.md)
 - [CLI](docs/cli.md)

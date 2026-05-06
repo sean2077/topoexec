@@ -14,6 +14,20 @@ A commit is the point where staged publications become visible according to thei
 
 Runtime execution is bounded by steps, duration, stop token, or idle detection. `run_until_idle` still uses the configured step bound as a safety limit, but stops early once a full event-loop iteration executes no components.
 
+## Hierarchical Graph Expansion
+
+`subgraphs[]` are a schema-v1 organization aid. The YAML loader expands each
+subgraph at load time into namespaced flat component, edge, and CompositeLoop ids
+such as `cell.source`, `cell.source_sink`, and `cell.feedback`. The runtime does
+not create nested schedulers or hidden CompositeComponents; validation,
+compilation, scheduling, metrics, and trace all operate on the expanded flat
+`GraphSpec`.
+
+Endpoint parsing uses the last `.` as the component/port separator. This allows
+expanded component ids such as `cell.sink` while preserving the normal
+`component.port` contract. Immediate-cycle validation runs after expansion, so
+subgraph boundaries cannot hide feedback loops.
+
 ## Edge Visibility
 
 `immediate` edges are same-transaction dependencies. They participate in immediate dependency SCC analysis, and a nontrivial immediate SCC is rejected unless it exactly matches one declared `composite_loops[]` entry. In a DAG, immediate publications may become visible to downstream components during the same epoch according to compiled region order.

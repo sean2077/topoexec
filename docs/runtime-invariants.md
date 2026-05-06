@@ -32,6 +32,7 @@ This document maps the invariants from `docs/plans/plan.md` G3 to concrete CI te
 | 25 | Core/runtime/YAML/CLI/adapter boundaries do not leak private or deferred dependencies into stable embedding surfaces. | `policy_no_core_adapter_deps`; `policy_architecture_self_test`; `tests/policy/check_no_adapter_deps.py`; package/runtime-only CMake smokes. |
 | 26 | Release preparation is reproducible and non-publishing unless a human performs the tag/push step. | `release_prepare_smoke`; `tests/release/check_release_prepare.py`; `scripts/release_prepare.sh --skip-gates` artifact rehearsal evidence. |
 | 27 | The real-world pilot composes current runtime semantics without adapter dependencies or hardware claims. | `app_robot_cell_pilot_runs`; `docs/case-study-robot-cell.md`; `examples/apps/robot_cell_pilot/README.md`. |
+| 28 | Hierarchical subgraph organization expands before validation and cannot hide cycles or metric paths. | `Graph.SubgraphExpandsToNamespacedComponentsEdgesAndPlanHierarchy`; `Graph.SubgraphExpansionDoesNotHideImmediateCycles`; `Graph.SubgraphCompositeLoopOwnsExpandedCycle`; `Runtime.HierarchicalGraphMetricsPreserveExpandedComponentPath`. |
 
 ## Maintenance rule
 

@@ -157,7 +157,7 @@ void add_error(GraphCompileResult& result, std::string error) {
 }
 
 std::string component_id_from_endpoint(const std::string& endpoint) {
-  const auto dot = endpoint.find('.');
+  const auto dot = endpoint.rfind('.');
   if (dot == std::string::npos) {
     return endpoint;
   }
@@ -165,7 +165,7 @@ std::string component_id_from_endpoint(const std::string& endpoint) {
 }
 
 std::string port_name_from_endpoint(const std::string& endpoint) {
-  const auto dot = endpoint.find('.');
+  const auto dot = endpoint.rfind('.');
   if (dot == std::string::npos || dot + 1 >= endpoint.size()) {
     return {};
   }
@@ -1104,13 +1104,41 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     }
   }
 
+  std::set<std::string> composite_loop_ids;
   for (const auto& loop : graph.composite_loops) {
+    composite_loop_ids.insert(loop.id);
     if (!is_allowed_loop_policy_type(loop.loop_policy.type)) {
       add_error(result, "composite_loop " + loop.id + " has unsupported loop_policy.type " + loop.loop_policy.type);
     }
     if (loop.loop_policy.budget_ms < 0 || loop.loop_policy.max_iterations < 0 || loop.loop_policy.max_inflight < 0 ||
         loop.loop_policy.min_interval_ms < 0) {
       add_error(result, "composite_loop " + loop.id + " numeric policy fields must be non-negative");
+    }
+  }
+
+  std::set<std::string> hierarchy_ids;
+  for (const auto& hierarchy : graph.hierarchy) {
+    if (hierarchy.id.empty()) {
+      add_error(result, "subgraph id must not be empty");
+      continue;
+    }
+    if (!hierarchy_ids.insert(hierarchy.id).second) {
+      add_error(result, "duplicate subgraph: " + hierarchy.id);
+    }
+    for (const auto& component : hierarchy.components) {
+      if (component_ids.count(component) == 0u) {
+        add_error(result, "subgraph " + hierarchy.id + " references missing expanded component " + component);
+      }
+    }
+    for (const auto& edge : hierarchy.edges) {
+      if (edge_ids.count(edge) == 0u) {
+        add_error(result, "subgraph " + hierarchy.id + " references missing expanded edge " + edge);
+      }
+    }
+    for (const auto& loop : hierarchy.composite_loops) {
+      if (composite_loop_ids.count(loop) == 0u) {
+        add_error(result, "subgraph " + hierarchy.id + " references missing expanded composite_loop " + loop);
+      }
     }
   }
 
@@ -1207,6 +1235,15 @@ std::string graph_plan_text(const GraphSpec& graph, const GraphCompiledPlan& pla
   out << "components: " << graph.components.size() << "\n";
   out << "edges: " << graph.edges.size() << "\n";
   out << "composite_loops: " << graph.composite_loops.size() << "\n";
+  out << "subgraphs: " << graph.hierarchy.size() << "\n";
+  for (const auto& hierarchy : graph.hierarchy) {
+    out << "- subgraph " << hierarchy.id << " components=" << join_ids(hierarchy.components)
+        << " edges=" << join_ids(hierarchy.edges);
+    if (!hierarchy.composite_loops.empty()) {
+      out << " composite_loops=" << join_ids(hierarchy.composite_loops);
+    }
+    out << "\n";
+  }
   out << "region_order:";
   for (const auto& region : plan.region_order) {
     out << " " << region;
@@ -1233,8 +1270,25 @@ std::string graph_mermaid(const GraphSpec& graph, const GraphCompiledPlan& plan)
   std::ostringstream out;
   out << "flowchart TD\n";
   out << "  %% graph: " << graph.name << "\n";
+  std::set<std::string> hierarchy_components;
+  for (const auto& hierarchy : graph.hierarchy) {
+    out << "  subgraph " << hierarchy.id << "[Subgraph: " << hierarchy.id << "]\n";
+    for (const auto& component_id : hierarchy.components) {
+      const auto component = std::find_if(graph.components.begin(), graph.components.end(),
+                                          [&](const auto& candidate) { return candidate.id == component_id; });
+      if (component != graph.components.end()) {
+        out << "    " << component->id << "[\"" << component->id << "\\n" << component->type << "\"]\n";
+      } else {
+        out << "    " << component_id << "\n";
+      }
+      hierarchy_components.insert(component_id);
+    }
+    out << "  end\n";
+  }
   for (const auto& component : graph.components) {
-    out << "  " << component.id << "[\"" << component.id << "\\n" << component.type << "\"]\n";
+    if (hierarchy_components.count(component.id) == 0u) {
+      out << "  " << component.id << "[\"" << component.id << "\\n" << component.type << "\"]\n";
+    }
   }
   for (const auto& loop : graph.composite_loops) {
     out << "  subgraph " << loop.id << "[CompositeLoop: " << loop.loop_policy.type << "]\n";

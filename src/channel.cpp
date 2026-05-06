@@ -11,7 +11,7 @@ namespace topoexec {
 namespace {
 
 std::string component_id_from_endpoint(const std::string& endpoint) {
-  const auto dot = endpoint.find('.');
+  const auto dot = endpoint.rfind('.');
   if (dot == std::string::npos) {
     return endpoint;
   }
@@ -19,7 +19,7 @@ std::string component_id_from_endpoint(const std::string& endpoint) {
 }
 
 std::string port_name_from_endpoint(const std::string& endpoint) {
-  const auto dot = endpoint.find('.');
+  const auto dot = endpoint.rfind('.');
   if (dot == std::string::npos || dot + 1 >= endpoint.size()) {
     return {};
   }

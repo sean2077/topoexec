@@ -226,6 +226,45 @@ std::vector<std::string> optional_string_vector(const YAML::Node& node, const ch
   return values;
 }
 
+std::string component_id_from_endpoint(const std::string& endpoint) {
+  const auto dot = endpoint.rfind('.');
+  if (dot == std::string::npos) {
+    return endpoint;
+  }
+  return endpoint.substr(0, dot);
+}
+
+std::string prefixed_id(const std::string& namespace_id, const std::string& local_id, const std::string& context) {
+  return checked_identifier(namespace_id + "." + local_id, context);
+}
+
+std::string namespace_endpoint(const std::string& namespace_id, const std::string& endpoint,
+                               const std::string& context) {
+  const auto local_component = component_id_from_endpoint(endpoint);
+  if (local_component.empty()) {
+    throw std::invalid_argument(context + " must name a local component");
+  }
+  const auto prefixed_component = namespace_id + "." + local_component;
+  enforce_identifier_limit(prefixed_component, context + " component", active_limits());
+  if (local_component.size() == endpoint.size()) {
+    return prefixed_component;
+  }
+  return prefixed_component + endpoint.substr(local_component.size());
+}
+
+std::vector<std::string> namespace_component_refs(const std::string& namespace_id,
+                                                  const std::vector<std::string>& local_ids,
+                                                  const std::string& context) {
+  std::vector<std::string> values;
+  values.reserve(local_ids.size());
+  for (const auto& local_id : local_ids) {
+    enforce_identifier_limit(local_id, context, active_limits());
+    values.push_back(namespace_id + "." + local_id);
+    enforce_identifier_limit(values.back(), context, active_limits());
+  }
+  return values;
+}
+
 std::vector<int> optional_int_vector(const YAML::Node& node, const char* key, const std::string& context) {
   const auto child = node[key];
   if (!child || child.IsNull()) {
@@ -369,6 +408,24 @@ BoundaryDescriptor read_boundary_descriptor(const YAML::Node& component_node, co
   return boundary;
 }
 
+ComponentNodeSpec read_component_node(const YAML::Node& component_node, const std::string& component_id,
+                                      const std::string& context) {
+  require_map(component_node, context);
+  ComponentNodeSpec component;
+  component.id = checked_identifier(component_id, context + ".id");
+  reject_unknown_fields(
+      component_node, "components." + component.id,
+      {"id", "type", "event_sources", "trigger_policy", "execution", "depends_on", "boundary", "config"});
+  component.type = require_string(component_node, "type", "components." + component.id);
+  component.event_sources = read_event_sources(component_node, component.id);
+  component.trigger_policy = read_trigger_policy(component_node, component.id);
+  component.execution = read_execution_spec(component_node, component.id);
+  component.depends_on = optional_string_vector(component_node, "depends_on", "components." + component.id);
+  component.boundary = read_boundary_descriptor(component_node, component.id);
+  component.config = read_config(component_node, component.id);
+  return component;
+}
+
 EdgePolicySpec read_edge_policy(const YAML::Node& edge_node, const std::string& edge_id) {
   const auto policy_node = edge_node["policy"];
   if (!policy_node || policy_node.IsNull()) {
@@ -393,6 +450,28 @@ EdgePolicySpec read_edge_policy(const YAML::Node& edge_node, const std::string& 
   policy.owner = optional_string(policy_node, "owner", policy.owner);
   policy.readers = optional_string(policy_node, "readers", policy.readers);
   return policy;
+}
+
+EdgeSpec read_edge_node(const YAML::Node& edge_node, const std::string& edge_id, const std::string& context) {
+  require_map(edge_node, context);
+  EdgeSpec edge;
+  edge.id = checked_identifier(edge_id, context + ".id");
+  reject_unknown_fields(edge_node, "edges." + edge.id, {"id", "from", "to", "kind", "policy"});
+  edge.from = require_string(edge_node, "from", "edges." + edge.id);
+  edge.to = require_string(edge_node, "to", "edges." + edge.id);
+  const auto kind_node = edge_node["kind"];
+  if (kind_node && !kind_node.IsNull()) {
+    edge.has_kind = true;
+    const auto kind = kind_node.as<std::string>();
+    const auto parsed = parse_edge_kind(kind);
+    if (parsed.has_value()) {
+      edge.kind = *parsed;
+    } else {
+      edge.invalid_kind = kind;
+    }
+  }
+  edge.policy = read_edge_policy(edge_node, edge.id);
+  return edge;
 }
 
 LoopPolicySpec read_loop_policy(const YAML::Node& policy_node, const std::string& context) {
@@ -424,10 +503,68 @@ CompositeLoopSpec read_composite_loop(const YAML::Node& loop_node, const std::st
   return loop;
 }
 
+void append_subgraph_expansion(const YAML::Node& subgraph_node, GraphSpec& graph, const std::string& context) {
+  require_map(subgraph_node, context);
+  reject_unknown_fields(subgraph_node, context, {"id", "components", "edges", "composite_loops"});
+
+  GraphHierarchyEntry hierarchy;
+  hierarchy.id = checked_identifier(require_string(subgraph_node, "id", context), context + ".id");
+
+  const auto components_node = require_node(subgraph_node, "components", context);
+  require_sequence(components_node, context + ".components");
+  if (components_node.size() == 0u) {
+    throw std::invalid_argument(context + ".components must contain at least one component");
+  }
+  for (std::size_t index = 0; index < components_node.size(); ++index) {
+    const auto component_node = components_node[index];
+    const auto local_id =
+        checked_identifier(require_string(component_node, "id", context + ".components[" + std::to_string(index) + "]"),
+                           context + ".components[" + std::to_string(index) + "].id");
+    auto component = read_component_node(
+        component_node, prefixed_id(hierarchy.id, local_id, context + ".components[" + std::to_string(index) + "].id"),
+        context + ".components[" + std::to_string(index) + "]");
+    component.depends_on =
+        namespace_component_refs(hierarchy.id, component.depends_on, "components." + component.id + ".depends_on");
+    hierarchy.components.push_back(component.id);
+    graph.components.push_back(std::move(component));
+  }
+
+  const auto edges_node = require_node(subgraph_node, "edges", context);
+  require_sequence(edges_node, context + ".edges");
+  for (std::size_t index = 0; index < edges_node.size(); ++index) {
+    const auto edge_node = edges_node[index];
+    const auto local_id =
+        checked_identifier(require_string(edge_node, "id", context + ".edges[" + std::to_string(index) + "]"),
+                           context + ".edges[" + std::to_string(index) + "].id");
+    auto edge = read_edge_node(
+        edge_node, prefixed_id(hierarchy.id, local_id, context + ".edges[" + std::to_string(index) + "].id"),
+        context + ".edges[" + std::to_string(index) + "]");
+    edge.from = namespace_endpoint(hierarchy.id, edge.from, "edges." + edge.id + ".from");
+    edge.to = namespace_endpoint(hierarchy.id, edge.to, "edges." + edge.id + ".to");
+    hierarchy.edges.push_back(edge.id);
+    graph.edges.push_back(std::move(edge));
+  }
+
+  const auto loops_node = subgraph_node["composite_loops"];
+  if (loops_node && !loops_node.IsNull()) {
+    require_sequence(loops_node, context + ".composite_loops");
+    for (std::size_t index = 0; index < loops_node.size(); ++index) {
+      auto loop = read_composite_loop(loops_node[index], context + ".composite_loops[" + std::to_string(index) + "]");
+      loop.id = prefixed_id(hierarchy.id, loop.id, context + ".composite_loops[" + std::to_string(index) + "].id");
+      loop.components =
+          namespace_component_refs(hierarchy.id, loop.components, "composite_loops." + loop.id + ".components");
+      hierarchy.composite_loops.push_back(loop.id);
+      graph.composite_loops.push_back(std::move(loop));
+    }
+  }
+
+  graph.hierarchy.push_back(std::move(hierarchy));
+}
+
 GraphSpec load_graph_node(const YAML::Node& root) {
   require_map(root, "runtime graph");
   reject_unknown_fields(root, "runtime graph",
-                        {"schema_version", "graph", "components", "lanes", "edges", "composite_loops"});
+                        {"schema_version", "graph", "components", "lanes", "edges", "composite_loops", "subgraphs"});
   GraphSpec graph;
   graph.schema_version = require_node(root, "schema_version", "runtime graph").as<int>();
 
@@ -482,21 +619,11 @@ GraphSpec load_graph_node(const YAML::Node& root) {
   enforce_limit(components_node.size(), active_limits().max_components, "runtime graph.components count");
   for (std::size_t index = 0; index < components_node.size(); ++index) {
     const auto component_node = components_node[index];
-    require_map(component_node, "components[" + std::to_string(index) + "]");
-    ComponentNodeSpec component;
-    component.id = checked_identifier(require_string(component_node, "id", "components[" + std::to_string(index) + "]"),
-                                      "components[" + std::to_string(index) + "].id");
-    reject_unknown_fields(
-        component_node, "components." + component.id,
-        {"id", "type", "event_sources", "trigger_policy", "execution", "depends_on", "boundary", "config"});
-    component.type = require_string(component_node, "type", "components." + component.id);
-    component.event_sources = read_event_sources(component_node, component.id);
-    component.trigger_policy = read_trigger_policy(component_node, component.id);
-    component.execution = read_execution_spec(component_node, component.id);
-    component.depends_on = optional_string_vector(component_node, "depends_on", "components." + component.id);
-    component.boundary = read_boundary_descriptor(component_node, component.id);
-    component.config = read_config(component_node, component.id);
-    graph.components.push_back(std::move(component));
+    const auto component_id =
+        checked_identifier(require_string(component_node, "id", "components[" + std::to_string(index) + "]"),
+                           "components[" + std::to_string(index) + "].id");
+    graph.components.push_back(
+        read_component_node(component_node, component_id, "components[" + std::to_string(index) + "]"));
   }
 
   const auto edges_node = require_node(root, "edges", "runtime graph");
@@ -504,26 +631,9 @@ GraphSpec load_graph_node(const YAML::Node& root) {
   enforce_limit(edges_node.size(), active_limits().max_edges, "runtime graph.edges count");
   for (std::size_t index = 0; index < edges_node.size(); ++index) {
     const auto edge_node = edges_node[index];
-    require_map(edge_node, "edges[" + std::to_string(index) + "]");
-    EdgeSpec edge;
-    edge.id = checked_identifier(require_string(edge_node, "id", "edges[" + std::to_string(index) + "]"),
-                                 "edges[" + std::to_string(index) + "].id");
-    reject_unknown_fields(edge_node, "edges." + edge.id, {"id", "from", "to", "kind", "policy"});
-    edge.from = require_string(edge_node, "from", "edges." + edge.id);
-    edge.to = require_string(edge_node, "to", "edges." + edge.id);
-    const auto kind_node = edge_node["kind"];
-    if (kind_node && !kind_node.IsNull()) {
-      edge.has_kind = true;
-      const auto kind = kind_node.as<std::string>();
-      const auto parsed = parse_edge_kind(kind);
-      if (parsed.has_value()) {
-        edge.kind = *parsed;
-      } else {
-        edge.invalid_kind = kind;
-      }
-    }
-    edge.policy = read_edge_policy(edge_node, edge.id);
-    graph.edges.push_back(std::move(edge));
+    const auto edge_id = checked_identifier(require_string(edge_node, "id", "edges[" + std::to_string(index) + "]"),
+                                            "edges[" + std::to_string(index) + "].id");
+    graph.edges.push_back(read_edge_node(edge_node, edge_id, "edges[" + std::to_string(index) + "]"));
   }
 
   const auto loops_node = root["composite_loops"];
@@ -535,6 +645,27 @@ GraphSpec load_graph_node(const YAML::Node& root) {
           read_composite_loop(loops_node[index], "composite_loops[" + std::to_string(index) + "]"));
     }
   }
+
+  const auto subgraphs_node = root["subgraphs"];
+  if (subgraphs_node && !subgraphs_node.IsNull()) {
+    require_sequence(subgraphs_node, "runtime graph.subgraphs");
+    enforce_limit(subgraphs_node.size(), active_limits().max_components, "runtime graph.subgraphs count");
+    std::set<std::string> subgraph_ids;
+    for (std::size_t index = 0; index < subgraphs_node.size(); ++index) {
+      const auto context = "subgraphs[" + std::to_string(index) + "]";
+      const auto subgraph_id =
+          checked_identifier(require_string(subgraphs_node[index], "id", context), context + ".id");
+      if (!subgraph_ids.insert(subgraph_id).second) {
+        throw std::invalid_argument("duplicate subgraph: " + subgraph_id);
+      }
+      append_subgraph_expansion(subgraphs_node[index], graph, context);
+    }
+  }
+
+  enforce_limit(graph.components.size(), active_limits().max_components, "runtime graph expanded components count");
+  enforce_limit(graph.edges.size(), active_limits().max_edges, "runtime graph expanded edges count");
+  enforce_limit(graph.composite_loops.size(), active_limits().max_composite_loops,
+                "runtime graph expanded composite_loops count");
   return graph;
 }
 
@@ -617,6 +748,19 @@ void enforce_graph_string_limits(const GraphSpec& graph, const GraphInputLimits&
                          limits);
     enforce_string_limit(loop.loop_policy.convergence, "composite_loops." + loop.id + ".loop_policy.convergence",
                          limits);
+  }
+
+  for (const auto& hierarchy : graph.hierarchy) {
+    enforce_identifier_limit(hierarchy.id, "subgraphs." + hierarchy.id + ".id", limits);
+    for (const auto& component : hierarchy.components) {
+      enforce_identifier_limit(component, "subgraphs." + hierarchy.id + ".components", limits);
+    }
+    for (const auto& edge : hierarchy.edges) {
+      enforce_identifier_limit(edge, "subgraphs." + hierarchy.id + ".edges", limits);
+    }
+    for (const auto& loop : hierarchy.composite_loops) {
+      enforce_identifier_limit(loop, "subgraphs." + hierarchy.id + ".composite_loops", limits);
+    }
   }
 }
 
@@ -749,6 +893,14 @@ std::string graph_plan_json(const GraphSpec& graph, const GraphCompiledPlan& pla
                              {"copy_policy", edge.policy.copy_policy},
                              {"readers", edge.policy.readers},
                              {"slow_reader_drop_risk", slow_reader_drop_risk(edge.policy)}});
+  }
+  root["hierarchy"] = nlohmann::json::array();
+  for (const auto& hierarchy : graph.hierarchy) {
+    root["hierarchy"].push_back({{"id", hierarchy.id},
+                                 {"components", hierarchy.components},
+                                 {"edges", hierarchy.edges},
+                                 {"composite_loops", hierarchy.composite_loops},
+                                 {"expansion", "compile_time_namespace"}});
   }
   root["compiled_regions"] = nlohmann::json::array();
   for (const auto& region : plan.regions) {

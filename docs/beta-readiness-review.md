@@ -12,7 +12,7 @@ hardware, package-registry, or 1.0 readiness claim.
 
 | Question | Verdict |
 | --- | --- |
-| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G40, G43-G44, G46-G57, G66-G67, and G69-G70 are complete; remaining G41-G42, G45, G58-G65, and G68 are P2/P3 or community/ecosystem work and must stay explicit if not done before beta. |
+| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G41, G43-G44, G46-G57, G66-G67, and G69-G70 are complete; remaining G42, G45, G58-G65, and G68 are P2/P3 or community/ecosystem work and must stay explicit if not done before beta. |
 | Can TopoExec honestly prepare a core-runtime beta candidate? | Yes, if release notes keep the deferred features and alpha/experimental surfaces explicit and CI/release-prep evidence is attached for the exact candidate commit. |
 | Can TopoExec claim adapter/ecosystem beta readiness? | No. Concrete ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin, external Perfetto, and package-registry surfaces remain deferred or draft-only. |
 | Can TopoExec claim hard real-time or external scheduling guarantees? | No. Fixed-rate/thread-pool behavior is cooperative and observable; OS RT policy, CPU affinity guarantees, independent lane threads, hard preemption, and advanced starvation aging remain future work. |
@@ -48,6 +48,7 @@ adapter or ecosystem beta.
 | Install smoke / package-manager drafts / artifact smoke | `./scripts/goal_check.sh package`, `packaging/vcpkg/*`, `packaging/conan/*`, CPack smoke, and release-prep artifact rehearsal. | Covered; package registries unpublished |
 | Benchmark output stable / no overclaims | `docs/performance-baselines.md`, `benchmarks/*.yaml`, `tests/bench/check_bench_contract.py`, and `./scripts/goal_check.sh bench`. | Covered; thresholds opt-in per machine |
 | Parser limits / no dynamic plugin default | `GraphInputLimits`, defensive-input docs/tests/fuzz smoke, architecture guardrails, and deferred plugin docs. | Covered |
+| Hierarchical graph contract | `docs/hierarchical-graphs.md`, schema-v1 docs, graph/runtime tests, plan JSON hierarchy metadata, and invariant coverage. | Covered as compile-time namespace expansion, not runtime nesting |
 | Goal ledger | `docs/goals/backlog.md`, `docs/goals/status.md`, and this review. | Covered |
 
 ## Required beta-candidate gate
@@ -82,7 +83,6 @@ blocking for a beta tag, record that decision in release notes.
 
 ## Explicitly deferred from beta scope unless completed first
 
-- Hierarchical graph/subgraph runtime contract (G41).
 - Graph templates/reusable pattern system (G42).
 - CompositeLoop solver-style policies beyond current fixed-point/budget behavior (G45).
 - OpenTelemetry and Prometheus exporters (G58/G59).

@@ -208,7 +208,7 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations after the plan2 G35 trigger-v2 preview pass:
+Current branch limitations after the plan2 G41 hierarchy pass:
 
 - `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, cooperative cancellation/timeout-budget observation, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and hard timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
@@ -220,6 +220,10 @@ Current branch limitations after the plan2 G35 trigger-v2 preview pass:
 - `TaskExecutor` remains deterministic by default with cooperative pending-task cancellation and post-return task-budget metrics; `ThreadedTaskExecutor` is now an opt-in bounded preview, not a default scheduler lane.
 - Metrics/trace/diagnostics exist, including metric schema version 1, trace schema version 1, diagnostic schema version 1, invocation correlation/causation metadata, bounded observer-only health events, RuntimeObserver v1, and Adapter SDK v0. Concrete exporter adapters and a richer health-event v2 contract remain future work.
 - Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, deterministic malformed-input fuzz smoke, and an optional `fuzz_graph_inputs` libFuzzer/standalone corpus target. Longer fuzz campaigns and broader target coverage remain future hardening work.
+- Hierarchical `subgraphs[]` are implemented as schema-v1 compile-time
+  namespace expansion into flat components, edges, CompositeLoops, and
+  `GraphHierarchyEntry` plan metadata. They do not add runtime nesting,
+  CompositeComponent execution, dynamic `graph_ref`, or template reuse.
 - Bounded stress smoke now covers generated scheduler/channel graph workloads, `thread_pool` overload, and `ThreadedTaskExecutor` overload. Longer soak runs are opt-in release-candidate evidence, not default slow-path CI or performance claims.
 - Benchmark schema v2 now covers graph hashes, compiler/build/CPU/commit metadata, expanded RuntimeRunner graph cases, and a non-installed task-executor benchmark. Local baseline files and threshold comparisons are opt-in per-machine evidence, not default CI gates or global performance claims.
 - Installed CMake package smoke now covers runtime-only, Adapter SDK, YAML, imported CLI, CPack TGZ, and package-manager draft surfaces. vcpkg/Conan files are still drafts pending external registry/clean-machine validation, and CPack archives are local release-candidate artifacts rather than signed release artifacts.
@@ -228,7 +232,7 @@ Current branch limitations after the plan2 G35 trigger-v2 preview pass:
   beta candidate. It is not an adapter/ecosystem beta, package-registry
   publication, signed-artifact release, or hard real-time scheduling claim.
 - Documentation now has an executable cookbook, architecture diagrams, why-not comparisons, and design principles with recursive docs smoke coverage. The docs still describe adapter/exporter surfaces as deferred unless future goals implement them.
-- Reference apps now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop solver convergence/budget overrun, BufferPool copy/shared/loaned metrics, and the G69 robot-cell pilot that composes multiple lanes, async overload, state/delay feedback, config snapshots, metrics/trace, and invalid-config rejection. They remain dependency-free in-process examples; hierarchical graph preview stays deferred until G41 and no external adapter stack is implemented by G69.
+- Reference apps now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop solver convergence/budget overrun, BufferPool copy/shared/loaned metrics, and the G69 robot-cell pilot that composes multiple lanes, async overload, state/delay feedback, config snapshots, metrics/trace, and invalid-config rejection. They remain dependency-free in-process examples; hierarchy is covered through parser/runtime tests and docs rather than a separate app, and no external adapter stack is implemented by G69/G41.
 - The robot-cell pilot is an embedded case study, not a hardware driver, robot controller, camera integration, ROS graph, exporter integration, or external scheduling guarantee.
 - ThreadSanitizer remains non-blocking.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external Perfetto adapters remain deferred and must not be claimed as implemented; G57 provides only a dependency-free SDK boundary.

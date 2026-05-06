@@ -141,6 +141,13 @@ struct CompositeLoopSpec {
   LoopPolicySpec loop_policy;
 };
 
+struct GraphHierarchyEntry {
+  std::string id;
+  std::vector<std::string> components;
+  std::vector<std::string> edges;
+  std::vector<std::string> composite_loops;
+};
+
 struct ClockPolicySpec {
   std::string runtime_domain{"steady"};
   std::string event_domain{"steady"};
@@ -204,6 +211,7 @@ struct GraphSpec {
   std::vector<ComponentNodeSpec> components;
   std::vector<EdgeSpec> edges;
   std::vector<CompositeLoopSpec> composite_loops;
+  std::vector<GraphHierarchyEntry> hierarchy;
 };
 
 struct GraphValidationResult {

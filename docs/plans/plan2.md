@@ -1004,6 +1004,16 @@ Priority: P2
 - Larger apps can be organized without losing semantic validation.
 - Hierarchy does not hide feedback loops.
 
+Implementation note: G41 chose phase-1 `subgraphs[]` as schema-v1 additive
+compile-time namespace expansion. The loader expands local components, edges,
+`depends_on`, and subgraph-local CompositeLoops into flat ids such as
+`cell.source`, `cell.source_sink`, and `cell.feedback`; endpoint parsing now
+uses the last `.` so namespaced component ids keep normal port validation.
+Validation, plan JSON, Mermaid grouping, runtime metrics, trace, and ticked
+component paths all use the expanded graph. Runtime nesting, CompositeComponent
+execution, dynamic `components[].graph_ref`, and templates remain deferred to
+future schema/API decisions.
+
 ---
 
 ## G42. Graph Templates and Reusable Patterns
@@ -1715,9 +1725,9 @@ Priority: P1/P2
 Completed under `examples/apps/` with dependency-free C++ reference apps for
 low-latency latest/drop, fixed-rate state feedback, request/validator/task
 completion, CompositeLoop convergence/budget overrun, and BufferPool
-copy/shared/loaned metrics. `hierarchical_graph_preview` remains deferred until
-G41 defines the hierarchy/subgraph runtime contract; this goal does not fake a
-hierarchical runtime.
+copy/shared/loaned metrics. G41 later covers hierarchy through parser/runtime
+tests and docs as compile-time namespace expansion rather than a separate
+runtime-nesting reference app.
 
 ### Acceptance
 
@@ -2309,7 +2319,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G41, G42, G45, G58-G65, or G68.
+  and hidden deferral of G42, G45, G58-G65, or G68.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2363,7 +2373,7 @@ Priority: P0 before beta
 
 ## Phase F：扩展架构和生态
 
-28. G41 Hierarchical Graph
+28. G41 Hierarchical Graph（complete）
 29. G42 Graph Templates
 30. G43 Component Lifecycle v2
 31. G44 Config Hot Reload Transaction

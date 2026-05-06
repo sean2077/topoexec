@@ -127,6 +127,7 @@
     }
   ],
   "graph": "feedback_controller",
+  "hierarchy": [],
   "kind": "internal_test",
   "lane_capabilities": [
     {

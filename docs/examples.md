@@ -85,9 +85,9 @@ loaned_address_preserved=true
 pilot_value=explicit_feedback_bounded_observable_cpp
 ```
 
-The planned `hierarchical_graph_preview` reference app is intentionally deferred
-until G41 defines the hierarchy/subgraph contract; this pass does not fake that
-runtime capability.
+Hierarchical graph organization is covered by [Hierarchical graphs](hierarchical-graphs.md)
+and parser/runtime tests. G41 intentionally implements compile-time namespace
+expansion instead of adding a separate runtime-nesting reference app.
 
 ## Real-world pilot: robot cell
 

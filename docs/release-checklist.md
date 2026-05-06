@@ -149,8 +149,8 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - `scripts/release_prepare.sh` can generate local candidate artifacts and
   checksums, but signed release uploads and annotated tag pushes still require a
   human release step.
-- G56 reference apps are dependency-free in-process examples; they do not implement
-  hierarchical graphs or external adapter stacks.
+- G41 hierarchical graphs are compile-time namespace expansion only; they do not
+  implement runtime nesting, `graph_ref` templates, or external adapter stacks.
 - G57 Adapter SDK v0 is a dependency-free boundary only; concrete ROS 2, OTel,
   Prometheus, Python, Perfetto, C API, and plugin adapters remain deferred.
 - G69 robot-cell pilot is a dependency-free in-process case study; it is not a

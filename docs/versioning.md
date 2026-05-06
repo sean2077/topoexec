@@ -29,6 +29,8 @@ Current runtime semantic contract:
 - `schema_version` is a graph input field. It defines the accepted YAML/JSON shape, strict fields, enum values, defaults, and validation envelope.
 - `semantic_contract_version` is runtime/tool metadata. It defines what accepted graphs mean during execution: epoch boundaries, transactions, staged publication, commit visibility, trigger readiness, channel capacity, loop output commit, async deferral, and state/config snapshots.
 - Schema-v1 additive fields are allowed only when the existing runtime meaning stays compatible.
+- `subgraphs[]` is an additive schema-v1 field because it expands to the same
+  flat `GraphSpec` semantics before validation and runtime execution.
 - A semantic change can require a contract-version update even if the schema shape does not change.
 - A schema bump can be required when old graph files would be rejected or would mean something different.
 
@@ -46,6 +48,7 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
 - Runtime metric descriptor names, kinds, units, allowed labels, and `metric_schema_version`.
 - Graph diagnostic descriptor codes, severities, categories, suggested fixes, and `diagnostics_schema_version`.
 - Graph parser limit field names/defaults exposed through `GraphInputLimits` and CLI parser-limit options.
+- Compile-time `subgraphs[]` namespace expansion metadata in `GraphHierarchyEntry`.
 - CompositeLoop ownership requirements and fixed-point runtime metrics.
 - CMake package target names: `topoexec::core`, `topoexec::runtime`, and `topoexec::yaml`.
 - CLI JSON field names documented in [metrics.md](metrics.md), [trace-events.md](trace-events.md), schema tooling docs, and G26 goldens.

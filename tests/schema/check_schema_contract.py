@@ -34,11 +34,17 @@ def main() -> int:
     require(schema["properties"]["components"]["maxItems"] == 4096, "component count limit drifted")
     require(schema["properties"]["edges"]["maxItems"] == 8192, "edge count limit drifted")
     require(schema["properties"]["composite_loops"]["maxItems"] == 1024, "loop count limit drifted")
+    require(schema["properties"]["subgraphs"]["maxItems"] == 4096, "subgraph count limit drifted")
     require(defs["id"]["maxLength"] == 128, "id length limit drifted")
     require(defs["endpoint"]["maxLength"] == 4096, "endpoint string length limit drifted")
     require(defs["string_array"]["items"]["maxLength"] == 4096, "string array limit drifted")
     require(defs["component"]["properties"]["type"]["maxLength"] == 4096,
             "component type string limit drifted")
+    require(defs["subgraph"]["additionalProperties"] is False, "subgraph schema must be strict")
+    require(defs["subgraph"]["required"] == ["id", "components", "edges"],
+            "subgraph required fields drifted")
+    require(defs["subgraph"]["properties"]["components"]["minItems"] == 1,
+            "subgraph components must stay non-empty")
     require(defs["edge"]["properties"]["kind"]["enum"] == ["immediate", "delay", "state", "async"],
             "edge kind enum drifted")
     require("thread_pool" in defs["lane"]["properties"]["type"]["enum"], "thread_pool lane missing")

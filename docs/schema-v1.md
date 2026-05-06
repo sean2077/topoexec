@@ -17,8 +17,10 @@ Required fields:
 Optional fields:
 
 - `composite_loops`
+- `subgraphs`
 
-Allowed root fields are exactly `schema_version`, `graph`, `lanes`, `components`, `edges`, and `composite_loops`.
+Allowed root fields are exactly `schema_version`, `graph`, `lanes`,
+`components`, `edges`, `composite_loops`, and `subgraphs`.
 
 ## graph
 
@@ -77,7 +79,9 @@ Runtime support note: `event_loop` is the deterministic default. `fixed_rate` is
 
 ## components
 
-`components` is a sequence. Each component must have an id, type, event sources, trigger policy, and execution lane.
+`components` is a sequence. Each component must have an id, type, event
+sources, trigger policy, and execution lane. It may be empty when all runtime
+components are supplied through `subgraphs[]` compile-time namespace expansion.
 
 ```yaml
 components:
@@ -184,6 +188,55 @@ validates:
 
 These checks are semantic validation, not JSON Schema validation. Future schema
 v2 work may decide whether typed ports should become YAML fields.
+
+## subgraphs
+
+`subgraphs` is optional. Phase-1 subgraphs are compile-time namespace expansion,
+not nested runtime schedulers.
+
+```yaml
+components: []
+edges: []
+subgraphs:
+  - id: cell
+    components:
+      - id: source
+        type: topoexec.test.Source
+        event_sources: [{type: manual}]
+        trigger_policy: {type: manual}
+        execution: {lane: main}
+      - id: sink
+        type: topoexec.test.Sink
+        event_sources: [{type: message, inputs: [in]}]
+        trigger_policy: {type: any_input, inputs: [in]}
+        execution: {lane: main}
+    edges:
+      - {id: source_sink, kind: immediate, from: source.out, to: sink.in}
+```
+
+Fields:
+
+- `id` required string; must be unique among subgraphs.
+- `components` required non-empty sequence using the same component schema as
+  top-level `components`.
+- `edges` required sequence using the same edge schema as top-level `edges`.
+- `composite_loops` optional sequence using the same CompositeLoop schema as
+  top-level `composite_loops`.
+
+Expansion rules:
+
+- local component id `source` under subgraph `cell` becomes `cell.source`;
+- local edge id `source_sink` becomes `cell.source_sink`;
+- endpoint `source.out` becomes `cell.source.out` by prefixing only the
+  component part;
+- `depends_on` and subgraph-local CompositeLoop component references are
+  prefixed the same way;
+- lanes stay top-level and are referenced by expanded components unchanged.
+
+Validation runs after expansion. Immediate cycles inside or across expanded
+subgraph boundaries are still rejected unless a matching expanded
+`composite_loops[]` entry owns the SCC. Plan JSON includes `hierarchy[]`, and
+Mermaid output groups expanded components under `Subgraph: <id>`.
 
 ## edges
 

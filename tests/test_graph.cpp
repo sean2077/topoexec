@@ -165,7 +165,7 @@ std::filesystem::path write_temp_graph_file(const std::string& name, const std::
 }
 
 std::string component_id_from_endpoint(const std::string& endpoint) {
-  const auto dot = endpoint.find('.');
+  const auto dot = endpoint.rfind('.');
   if (dot == std::string::npos) {
     return endpoint;
   }
@@ -451,6 +451,104 @@ TEST(Graph, LoadsAndValidatesSchemaVersionOne) {
   EXPECT_EQ(result.compiled_plan.region_order.size(), 2u);
   EXPECT_NE(topoexec::graph_plan_json(graph, result.compiled_plan).find("\"schema_version\": 1"), std::string::npos);
   EXPECT_NE(topoexec::graph_mermaid(graph, result.compiled_plan).find("flowchart TD"), std::string::npos);
+}
+
+TEST(Graph, SubgraphExpandsToNamespacedComponentsEdgesAndPlanHierarchy) {
+  const auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: hierarchical_preview, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+subgraphs:
+  - id: cell
+    components:
+      - {id: source, type: topoexec.test.Source, event_sources: [{type: manual}], trigger_policy: {type: manual}, execution: {lane: main}}
+      - {id: sink, type: topoexec.test.Sink, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}, depends_on: [source]}
+    edges:
+      - {id: source_sink, kind: immediate, from: source.out, to: sink.in, policy: {mode: latest, copy_policy: shared_view}}
+)");
+
+  ASSERT_EQ(graph.components.size(), 2u);
+  ASSERT_EQ(graph.edges.size(), 1u);
+  ASSERT_EQ(graph.hierarchy.size(), 1u);
+  EXPECT_EQ(graph.components.front().id, "cell.source");
+  EXPECT_EQ(graph.components.back().id, "cell.sink");
+  EXPECT_EQ(graph.components.back().depends_on, std::vector<std::string>({"cell.source"}));
+  EXPECT_EQ(graph.edges.front().id, "cell.source_sink");
+  EXPECT_EQ(graph.edges.front().from, "cell.source.out");
+  EXPECT_EQ(graph.edges.front().to, "cell.sink.in");
+  EXPECT_EQ(graph.hierarchy.front().components, std::vector<std::string>({"cell.source", "cell.sink"}));
+  EXPECT_EQ(graph.hierarchy.front().edges, std::vector<std::string>({"cell.source_sink"}));
+
+  const auto result = topoexec::validate_graph_structure(graph);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.compiled_plan.region_order, std::vector<std::string>({"cell.source", "cell.sink"}));
+  const auto plan_json = topoexec::graph_plan_json(graph, result.compiled_plan);
+  EXPECT_NE(plan_json.find("\"hierarchy\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"id\": \"cell\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"cell.source\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"expansion\": \"compile_time_namespace\""), std::string::npos);
+  const auto mermaid = topoexec::graph_mermaid(graph, result.compiled_plan);
+  EXPECT_NE(mermaid.find("Subgraph: cell"), std::string::npos);
+  EXPECT_NE(mermaid.find("cell.source"), std::string::npos);
+}
+
+TEST(Graph, SubgraphExpansionDoesNotHideImmediateCycles) {
+  const auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: hierarchical_cycle, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+subgraphs:
+  - id: cell
+    components:
+      - {id: controller, type: topoexec.test.Controller, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+      - {id: estimator, type: topoexec.test.Estimator, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+    edges:
+      - {id: controller_estimator, kind: immediate, from: controller.out, to: estimator.in, policy: {mode: latest, copy_policy: shared_view}}
+      - {id: estimator_controller, kind: immediate, from: estimator.out, to: controller.in, policy: {mode: latest, copy_policy: shared_view}}
+)");
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "immediate cycle detected among components"));
+  EXPECT_TRUE(has_error_containing(result.errors, "cell.controller"));
+  EXPECT_TRUE(has_error_containing(result.errors, "cell.estimator"));
+}
+
+TEST(Graph, SubgraphCompositeLoopOwnsExpandedCycle) {
+  const auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: hierarchical_loop, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+subgraphs:
+  - id: cell
+    components:
+      - {id: controller, type: topoexec.test.Controller, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+      - {id: estimator, type: topoexec.test.Estimator, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+    edges:
+      - {id: controller_estimator, kind: immediate, from: controller.out, to: estimator.in, policy: {mode: latest, copy_policy: shared_view}}
+      - {id: estimator_controller, kind: immediate, from: estimator.out, to: controller.in, policy: {mode: latest, copy_policy: shared_view}}
+    composite_loops:
+      - id: feedback
+        components: [controller, estimator]
+        loop_policy: {type: fixed_point, max_iterations: 3}
+)");
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_EQ(graph.composite_loops.size(), 1u);
+  EXPECT_EQ(graph.composite_loops.front().id, "cell.feedback");
+  EXPECT_EQ(graph.hierarchy.front().composite_loops, std::vector<std::string>({"cell.feedback"}));
+  ASSERT_EQ(result.compiled_plan.regions.size(), 1u);
+  EXPECT_EQ(result.compiled_plan.regions.front().id, "cell.feedback");
+  EXPECT_EQ(result.compiled_plan.regions.front().kind, topoexec::CompiledRegionKind::kCompositeLoop);
 }
 
 TEST(Graph, PayloadTypeMismatchIsRejectedWithDiagnostic) {

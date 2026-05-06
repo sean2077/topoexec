@@ -522,6 +522,39 @@
       },
       "type": "array"
     },
+    "subgraph": {
+      "additionalProperties": false,
+      "properties": {
+        "components": {
+          "items": {
+            "$ref": "#/$defs/component"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "composite_loops": {
+          "items": {
+            "$ref": "#/$defs/composite_loop"
+          },
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/edge"
+          },
+          "type": "array"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "id",
+        "components",
+        "edges"
+      ],
+      "type": "object"
+    },
     "trigger_policy": {
       "additionalProperties": false,
       "properties": {
@@ -613,7 +646,6 @@
         "$ref": "#/$defs/component"
       },
       "maxItems": 4096,
-      "minItems": 1,
       "type": "array"
     },
     "composite_loops": {
@@ -643,6 +675,13 @@
     },
     "schema_version": {
       "const": 1
+    },
+    "subgraphs": {
+      "items": {
+        "$ref": "#/$defs/subgraph"
+      },
+      "maxItems": 4096,
+      "type": "array"
     }
   },
   "required": [

@@ -49,6 +49,8 @@ Validate it with:
   options, optional config, and optional boundary metadata.
 - `edges`: id, `kind`, `from`, `to`, and channel policy.
 - `composite_loops`: optional exact immediate-SCC ownership declarations.
+- `subgraphs`: optional schema-v1 compile-time namespace expansion for grouped
+  components/edges; see [Hierarchical graphs](hierarchical-graphs.md).
 
 See [Schema v1](schema-v1.md) for the strict field contract and
 [Runtime semantics](runtime-semantics.md) for visibility rules.
