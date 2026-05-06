@@ -43,6 +43,7 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
 - Non-recursive `GraphContext::publish()` staging.
 - Component/registry/builder/runtime-runner headers marked `API stability: stable-v0.2`.
 - Runtime result metrics/trace/error field meanings exposed through `RuntimeRunnerResult`.
+- Runtime metric descriptor names, kinds, units, allowed labels, and `metric_schema_version`.
 - CompositeLoop ownership requirements and fixed-point runtime metrics.
 - CMake package target names: `topoexec::core`, `topoexec::runtime`, and `topoexec::yaml`.
 - CLI JSON field names documented in [metrics.md](metrics.md), [trace-events.md](trace-events.md), schema tooling docs, and G26 goldens.

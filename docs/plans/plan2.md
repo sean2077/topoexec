@@ -1250,6 +1250,13 @@ Priority: P1
 - OTel/Prometheus adapters can map metrics safely.
 - Metric names are not changed casually.
 
+Implementation note: G47 adds runtime metric schema version `1` and a
+descriptor registry in `topoexec/runtime/metric_schema.hpp`. Descriptors record
+name, kind, unit, allowed labels, cardinality rule, and stability; exported
+samples can be validated for descriptor coverage and forbidden high-cardinality
+default labels such as correlation ids. CLI metrics JSON now carries
+`metric_schema_version` so future exporters can map the expected contract.
+
 ---
 
 ## G48. Trace v2: Timeline and Causality

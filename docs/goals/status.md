@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, and G40 complete; backlog-order lifecycle/config/observer goals G43, G44, and G46 are also complete.
-The next unfinished P1 goal in backlog order is G47 Metrics v2: Cardinality and Schema Contract. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, and G47 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P1 goal in backlog order is G48 Trace v2: Timeline and Causality. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Active / Recent Goals
 
@@ -37,12 +37,34 @@ The next unfinished P1 goal in backlog order is G47 Metrics v2: Cardinality and 
 | G43 | complete | `include/topoexec/runtime/component.hpp`, `include/topoexec/runtime/runtime_runner.hpp`, `src/component.cpp`, `src/runtime_runner.cpp`, `tests/test_runtime.cpp`, lifecycle/API/metrics/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Components now have experimental reset/pause/resume/snapshot/restore hooks; `RuntimeRunnerOptions` can restore snapshots and reset selected components before scheduler execution and capture snapshots after execution; lifecycle metrics/trace and cleanup-on-reset/restore failure are covered while live pause/resume policy stays deferred. |
 | G44 | complete | `include/topoexec/runtime/component.hpp`, `include/topoexec/runtime/state.hpp`, `src/component.cpp`, `src/event_runtime.cpp`, `src/runtime_runner.cpp`, `src/state.cpp`, `tests/test_state.cpp`, `tests/test_runtime.cpp`, state/lifecycle/runtime/metrics/trace/API/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Component config hot reload now stages versioned transactions, validates all pending configs, applies at epoch boundaries before execution, commits only after all apply hooks succeed, and rolls back/fail-fast with the old committed config active on invalid config or apply failure. |
 | G46 | complete | `include/topoexec/runtime/runtime_runner.hpp`, `src/runtime_runner.cpp`, `tests/test_runtime.cpp`, observer/API/runtime/metrics/adapter/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | `RuntimeRunnerOptions::observers` now delivers best-effort result/metric/trace/health/error records through stable-v0.2 observer/sink callbacks; no-op and bounded in-memory observers are available; observer callback failures and bounded drops are non-fatal and observable. |
+| G47 | complete | `include/topoexec/runtime/metric_schema.hpp`, `src/metric_schema.cpp`, `tools/topoexec/main.cpp`, `tests/test_runtime.cpp`, `tests/golden/metrics_minimal.json`, metrics/API/CLI/versioning/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Runtime metric schema version 1 now records descriptor name/kind/unit/labels/cardinality/stability, validates exported runtime samples, forbids high-cardinality default tags like correlation ids, and exposes the schema version in metrics JSON. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+cmake --build build -j
+# G47 passed: metric schema descriptor code/tests rebuilt successfully
+
+cmake --build build --target topoexec_format_check
+# G47 passed
+
+ctest --test-dir build --output-on-failure -R 'test_runtime|cli_golden_outputs|schema_v1_contract_smoke'
+# G47 passed: descriptor uniqueness, exported metric validation, high-cardinality label rejection, metrics JSON schema-version golden, schema smoke
+
+./scripts/goal_check.sh quick
+# G47 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+./scripts/agent_check.sh
+# G47 passed: 53/53 CTest tests after metric schema/cardinality updates
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G47 passed: 53/53 CTest tests in the ASAN+UBSAN Debug build
+
+git diff --check
+# G47 passed
+
 cmake --build build -j
 # G46 passed: observer API code/tests rebuilt successfully
 

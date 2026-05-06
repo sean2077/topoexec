@@ -21,6 +21,10 @@ without CLI or YAML.
 ./build/topoexec graph bench examples/minimal.yaml --steps 1 --runs 2 --format json
 ```
 
+`graph metrics --format json` includes `metric_schema_version` so scripts and
+future exporter adapters can verify the descriptor/cardinality contract they are
+mapping.
+
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --schema-only --format json -->
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --semantic --format json -->
 <!-- topoexec-doc-test: ${TOPOEXEC} graph render ${SOURCE_DIR}/examples/minimal.yaml --format mermaid -->

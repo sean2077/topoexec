@@ -83,6 +83,9 @@ Observers must be best-effort and bounded. Callback failure is recorded as
 diagnostics, and `runtime.observer.*` metrics; it does not change graph runtime
 semantics.
 
+Metrics exporters should also read `runtime_metric_descriptors()` and verify
+`metric_schema_version` before mapping names, units, and bounded labels.
+
 ### Boundary bridge
 
 Connects app-owned external I/O to boundary components:

@@ -6,7 +6,8 @@ TopoExec runtime metrics are exposed through `RuntimeRunnerResult::runtime_metri
 topoexec graph metrics examples/minimal.yaml --steps 1 --format json
 ```
 
-The JSON output is a `RuntimeRunnerResult` object. Its `metrics` field is an array of metric samples with this shape:
+The JSON output is a `RuntimeRunnerResult` object. It includes
+`metric_schema_version: "1"` and a `metrics` field with samples in this shape:
 
 ```json
 {
@@ -20,6 +21,23 @@ The JSON output is a `RuntimeRunnerResult` object. Its `metrics` field is an arr
 ```
 
 Metric names are part of the public observability contract. Prefer adding new names over changing the meaning of existing names.
+
+## Metric Schema v1
+
+`topoexec/runtime/metric_schema.hpp` exposes the descriptor registry used by
+exporter adapters:
+
+- `kRuntimeMetricSchemaVersion`: currently `"1"`.
+- `runtime_metric_descriptors()`: returns descriptors with `name`, `kind`,
+  `unit`, allowed `labels`, cardinality rule, stability, and description.
+- `validate_runtime_metric_samples(...)`: verifies exported samples against
+  descriptor cardinality rules.
+
+Default runtime metrics may use only bounded labels: `lane`, `component_id`,
+and `channel_id`. Graph-defined component ids, lane ids, channel ids, and
+CompositeLoop ids are allowed. Correlation, causation, transaction, trace, and
+request ids are intentionally not default metric labels; keep them in trace or
+log records to avoid label explosion.
 
 `MetricRegistry::histogram(name)` exports lightweight in-process histogram summaries without external dependencies. Snapshot suffixes are `name.count`, `name.min`, `name.max`, `name.avg`, `name.p50`, `name.p95`, and `name.p99`; percentile values use deterministic linear interpolation over the observed sample set.
 

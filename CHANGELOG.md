@@ -26,6 +26,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added experimental component reset, snapshot, and restore lifecycle hooks with start-epoch runner options, post-run snapshot capture, lifecycle metrics, trace events, and cleanup-on-failure coverage.
 - Added experimental config hot-reload transactions with component validate/apply hooks, epoch-boundary commit, transaction/version metrics, and rollback coverage for invalid or failed applies.
 - Added RuntimeObserver v1 with result/metric/trace/health/error callbacks, runner option registration, no-op and bounded in-memory observers, and non-fatal observer failure/drop metrics.
+- Added runtime metric schema version 1 with descriptor metadata, cardinality validation, forbidden high-cardinality default-label checks, and CLI metrics JSON schema-version output.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
 - Added deterministic benchmark case YAMLs and richer `bench --format json` output with case, params, per-run latency percentiles, throughput, and environment summary.

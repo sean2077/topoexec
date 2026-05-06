@@ -1,4 +1,5 @@
 #include "topoexec/runtime/graph.hpp"
+#include "topoexec/runtime/metric_schema.hpp"
 #include "topoexec/runtime/runtime_runner.hpp"
 
 #include <CLI/CLI.hpp>
@@ -447,6 +448,7 @@ nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
           {"loop_converged_count", result.loop_converged_count},
           {"loop_budget_overrun_count", result.loop_budget_overrun_count},
           {"loop_max_iteration_hit_count", result.loop_max_iteration_hit_count},
+          {"metric_schema_version", std::string(topoexec::kRuntimeMetricSchemaVersion)},
           {"metrics", runtime_metrics_json(result)}};
 }
 

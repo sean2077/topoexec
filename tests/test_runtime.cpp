@@ -1,5 +1,6 @@
 #include "topoexec/runtime/channel.hpp"
 #include "topoexec/runtime/event_runtime.hpp"
+#include "topoexec/runtime/metric_schema.hpp"
 #include "topoexec/runtime/runtime_runner.hpp"
 #include "topoexec/runtime/state.hpp"
 
@@ -1797,6 +1798,53 @@ TEST(Runtime, StaticRegistryValidationAndDryRunPass) {
   ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
   EXPECT_EQ(result.instantiated_components, 3u);
   EXPECT_EQ(result.tick_calls, 6u);
+}
+
+TEST(Metrics, RuntimeMetricDescriptorRegistryIsStableAndUnique) {
+  EXPECT_EQ(std::string(topoexec::kRuntimeMetricSchemaVersion), "1");
+  const auto& descriptors = topoexec::runtime_metric_descriptors();
+  ASSERT_FALSE(descriptors.empty());
+
+  std::set<std::string> names;
+  for (const auto& descriptor : descriptors) {
+    EXPECT_FALSE(descriptor.name.empty());
+    EXPECT_FALSE(descriptor.kind.empty());
+    EXPECT_FALSE(descriptor.unit.empty());
+    EXPECT_TRUE(names.insert(descriptor.name).second) << descriptor.name;
+  }
+
+  const auto* scheduler = topoexec::find_runtime_metric_descriptor("runtime.scheduler.completed_count");
+  ASSERT_NE(scheduler, nullptr);
+  EXPECT_NE(std::find(scheduler->labels.begin(), scheduler->labels.end(), "lane"), scheduler->labels.end());
+  EXPECT_EQ(topoexec::find_runtime_metric_descriptor("runtime.missing"), nullptr);
+}
+
+TEST(Metrics, RuntimeMetricSchemaRejectsHighCardinalityDefaultTags) {
+  topoexec::RuntimeMetricSample sample;
+  sample.name = "runtime.trace.event_count";
+  sample.value = 1.0;
+  sample.tags = {"correlation_id"};
+
+  const auto validation = topoexec::validate_runtime_metric_samples({sample});
+
+  EXPECT_FALSE(validation.ok);
+  ASSERT_FALSE(validation.errors.empty());
+  EXPECT_NE(validation.errors.front().find("forbidden default tag correlation_id"), std::string::npos);
+}
+
+TEST(Metrics, ExportedRuntimeMetricsMatchDescriptorSchema) {
+  const auto reg = registry();
+  const auto spec = graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  const auto result = runner.run(spec, options);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto validation = topoexec::validate_runtime_metric_samples(result.runtime_metrics);
+
+  EXPECT_TRUE(validation.ok) << (validation.errors.empty() ? "" : validation.errors.front());
 }
 
 TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {

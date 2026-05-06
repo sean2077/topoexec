@@ -87,6 +87,7 @@ add_library(topoexec_runtime
   src/event_runtime.cpp
   src/graph.cpp
   src/logging.cpp
+  src/metric_schema.cpp
   src/metrics.cpp
   src/payload.cpp
   src/runtime_runner.cpp
