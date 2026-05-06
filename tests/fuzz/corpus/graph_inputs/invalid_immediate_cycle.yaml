@@ -1,0 +1,9 @@
+schema_version: 1
+graph: {name: invalid_cycle, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components:
+  - {id: a, type: topoexec.test.A, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+  - {id: b, type: topoexec.test.B, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+edges:
+  - {id: ab, kind: immediate, from: a.out, to: b.in, policy: {mode: latest}}
+  - {id: ba, kind: immediate, from: b.out, to: a.in, policy: {mode: latest}}

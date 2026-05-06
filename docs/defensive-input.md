@@ -60,10 +60,12 @@ validation before runtime execution.
 ## Fuzz and malformed input
 
 `fuzz_graph_input_smoke` runs a deterministic corpus of malformed, cyclic,
-partial, nested, invalid-UTF-8, oversized, and mutated YAML inputs. The smoke
-fails on timeouts, crash-like exit codes, or sanitizer/crash markers. It is a
-no-crash gate that can run locally via `./scripts/goal_check.sh fuzz`; it is not
-a replacement for the future coverage-guided fuzzing goal.
+partial, nested, invalid-UTF-8, oversized, and mutated YAML inputs. The optional
+`fuzz_graph_inputs` target can run the checked-in corpus in standalone mode or
+as a libFuzzer target. Both fail on timeouts, crash-like exit codes, or
+sanitizer/crash markers. Run the local gate with `./scripts/goal_check.sh fuzz`;
+see [Coverage-guided fuzzing](fuzzing.md) for libFuzzer and regression-corpus
+commands.
 
 ## Trust boundary
 

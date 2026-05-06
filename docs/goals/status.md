@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, and G50 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P0/P1 goal in backlog order is G51 Coverage-Guided Fuzzing. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, and G51 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P0/P1 goal in backlog order is G52 Stress and Soak Tests. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Active / Recent Goals
 
@@ -41,12 +41,39 @@ The next unfinished P0/P1 goal in backlog order is G51 Coverage-Guided Fuzzing. 
 | G48 | complete | `include/topoexec/runtime/runtime_runner.hpp`, `src/runtime_runner.cpp`, `tools/topoexec/main.cpp`, `tests/test_runtime.cpp`, updated trace/metrics goldens, trace/API/CLI/runtime/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Trace schema version 1 now records ordered timeline events with explicit phase/component/channel/lane/worker/epoch/transaction/correlation/causation fields and Chrome trace phase tracks, while legacy `trace_events` remains a compatibility name list. |
 | G49 | complete | `include/topoexec/runtime/diagnostics.hpp`, `include/topoexec/runtime/graph.hpp`, `src/diagnostics.cpp`, `src/graph.cpp`, `tools/topoexec/main.cpp`, `tests/test_graph.cpp`, `examples/diagnostic_warnings.yaml`, diagnostics/API/CLI/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Diagnostic schema version 1 now exposes stable severity/category/suggested-fix descriptors, warning diagnostics for backpressure/deep queues/large copies/never-ready triggers, grouped explain JSON/text output, and `--strict-diagnostics` warning failure mode. |
 | G50 | complete | `include/topoexec/runtime/graph.hpp`, `src/graph_io.cpp`, `tools/topoexec/main.cpp`, `schema/topoexec.schema.v1.json`, `tests/test_graph.cpp`, `tests/cli/check_parser_limits.py`, `tests/fuzz/fuzz_graph_inputs.py`, updated schema/doctor goldens, defensive-input/API/CLI/schema/testing/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Graph input loading now exposes `GraphInputLimits`, reads files incrementally under byte caps, rejects invalid UTF-8 and overlong strings/counts/configs before runtime execution, reports parser-limit CLI failures as validation JSON, and expands deterministic fuzz smoke coverage while keeping coverage-guided fuzzing in G51. |
+| G51 | complete | `CMakeLists.txt`, `tests/fuzz/fuzz_graph_inputs.cpp`, `tests/fuzz/corpus/graph_inputs/*`, `scripts/fuzz_smoke.sh`, `scripts/goal_check.sh`, `.github/workflows/ci.yml`, fuzzing/build/testing/defensive-input docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Coverage-guided graph input fuzzing is now optional through `TOPOEXEC_BUILD_FUZZERS` with libFuzzer on Clang and standalone corpus replay elsewhere; minimized crash regressions can be committed as corpus seeds without changing the default agent gate. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+cmake --build build -j
+# G51 passed: optional fuzzer build wiring left default build unaffected
+
+TOPOEXEC_FUZZER_ENGINE=STANDALONE ./scripts/fuzz_smoke.sh
+# G51 passed: fuzz_graph_inputs standalone target built and replayed checked-in corpus through CTest
+
+./scripts/goal_check.sh fuzz
+# G51 passed: deterministic fuzz smoke plus standalone fuzzer corpus replay
+
+cmake --build build --target topoexec_format_check
+# G51 passed
+
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build -j
+ctest --test-dir build --output-on-failure -R 'fuzz_graph_input_smoke|schema_v1_contract_smoke|docs_command_smoke'
+# G51 passed: default build/schema/docs/fuzz smokes remained green
+
+./scripts/agent_check.sh
+# G51 passed: 56/56 CTest tests with fuzzers off by default
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G51 passed: 56/56 CTest tests in the ASAN+UBSAN Debug build
+
+git diff --check
+# G51 passed
+
 cmake --build build -j
 # G50 passed: defensive parser-limit code/tests rebuilt successfully
 

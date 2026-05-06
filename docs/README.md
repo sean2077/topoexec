@@ -28,6 +28,7 @@ inspect a YAML graph in less than 30 minutes by following these pages in order.
 - [Trace events](trace-events.md)
 - [Diagnostics](diagnostics.md)
 - [Defensive input handling](defensive-input.md)
+- [Coverage-guided fuzzing](fuzzing.md)
 - [Versioning](versioning.md)
 
 ## Design path
@@ -49,6 +50,7 @@ inspect a YAML graph in less than 30 minutes by following these pages in order.
 - [ROS 2 adapter plan](adapters/ros2.md)
 - [Performance baselines](performance-baselines.md)
 - [Testing strategy](testing-strategy.md)
+- [Coverage-guided fuzzing](fuzzing.md)
 - [Build and package](build-and-package.md)
 - [Release checklist](release-checklist.md)
 - [Release progression](release-progression.md)

@@ -7,6 +7,9 @@ option(TOPOEXEC_BUILD_TESTING "Build TopoExec tests" ON)
 option(TOPOEXEC_BUILD_YAML "Build YAML graph loading target" ON)
 option(TOPOEXEC_BUILD_CLI "Build topoexec CLI" ON)
 option(TOPOEXEC_BUILD_EXAMPLES "Build runnable example applications" ON)
+option(TOPOEXEC_BUILD_FUZZERS "Build optional graph input fuzz targets" OFF)
+set(TOPOEXEC_FUZZER_ENGINE "AUTO" CACHE STRING "Fuzzer engine: AUTO, LIBFUZZER, or STANDALONE")
+set_property(CACHE TOPOEXEC_FUZZER_ENGINE PROPERTY STRINGS AUTO LIBFUZZER STANDALONE)
 option(TOPOEXEC_ENABLE_ASAN "Build TopoExec with AddressSanitizer instrumentation" OFF)
 option(TOPOEXEC_ENABLE_UBSAN "Build TopoExec with UndefinedBehaviorSanitizer instrumentation" OFF)
 option(TOPOEXEC_ENABLE_TSAN "Build TopoExec with ThreadSanitizer instrumentation" OFF)
@@ -65,6 +68,9 @@ if(TOPOEXEC_BUILD_CLI)
 endif()
 if(TOPOEXEC_BUILD_EXAMPLES AND NOT TOPOEXEC_BUILD_YAML)
   message(FATAL_ERROR "TOPOEXEC_BUILD_EXAMPLES=ON requires TOPOEXEC_BUILD_YAML=ON")
+endif()
+if(TOPOEXEC_BUILD_FUZZERS AND NOT TOPOEXEC_BUILD_YAML)
+  message(FATAL_ERROR "TOPOEXEC_BUILD_FUZZERS=ON requires TOPOEXEC_BUILD_YAML=ON")
 endif()
 include(CMakePackageConfigHelpers)
 
@@ -150,6 +156,35 @@ if(TOPOEXEC_BUILD_EXAMPLES)
 
   add_executable(topoexec_app_cpp_builder_minimal examples/apps/cpp_builder_minimal/main.cpp)
   target_link_libraries(topoexec_app_cpp_builder_minimal PRIVATE topoexec_runtime)
+endif()
+
+if(TOPOEXEC_BUILD_FUZZERS)
+  string(TOUPPER "${TOPOEXEC_FUZZER_ENGINE}" TOPOEXEC_FUZZER_ENGINE_NORMALIZED)
+  set(TOPOEXEC_FUZZER_ENGINES AUTO LIBFUZZER STANDALONE)
+  if(NOT TOPOEXEC_FUZZER_ENGINE_NORMALIZED IN_LIST TOPOEXEC_FUZZER_ENGINES)
+    message(FATAL_ERROR "TOPOEXEC_FUZZER_ENGINE must be AUTO, LIBFUZZER, or STANDALONE")
+  endif()
+  if(TOPOEXEC_FUZZER_ENGINE_NORMALIZED STREQUAL "AUTO")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      set(TOPOEXEC_FUZZER_ENGINE_EFFECTIVE LIBFUZZER)
+    else()
+      set(TOPOEXEC_FUZZER_ENGINE_EFFECTIVE STANDALONE)
+    endif()
+  else()
+    set(TOPOEXEC_FUZZER_ENGINE_EFFECTIVE "${TOPOEXEC_FUZZER_ENGINE_NORMALIZED}")
+  endif()
+  if(TOPOEXEC_FUZZER_ENGINE_EFFECTIVE STREQUAL "LIBFUZZER" AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(FATAL_ERROR "TOPOEXEC_FUZZER_ENGINE=LIBFUZZER requires Clang")
+  endif()
+
+  add_executable(fuzz_graph_inputs tests/fuzz/fuzz_graph_inputs.cpp)
+  target_link_libraries(fuzz_graph_inputs PRIVATE topoexec_yaml)
+  if(TOPOEXEC_FUZZER_ENGINE_EFFECTIVE STREQUAL "LIBFUZZER")
+    target_compile_options(fuzz_graph_inputs PRIVATE -fsanitize=fuzzer-no-link,address,undefined)
+    target_link_options(fuzz_graph_inputs PRIVATE -fsanitize=fuzzer,address,undefined)
+  else()
+    target_compile_definitions(fuzz_graph_inputs PRIVATE TOPOEXEC_STANDALONE_FUZZER=1)
+  endif()
 endif()
 
 install(TARGETS ${TOPOEXEC_INSTALL_TARGETS}
@@ -362,6 +397,18 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/fuzz_graph_inputs.py
       --topoexec $<TARGET_FILE:topoexec_cli>
   )
+  if(TARGET fuzz_graph_inputs)
+    if(TOPOEXEC_FUZZER_ENGINE_EFFECTIVE STREQUAL "LIBFUZZER")
+      add_test(NAME fuzz_graph_input_target_smoke
+        COMMAND fuzz_graph_inputs -runs=64 -max_len=1048576
+          ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/corpus/graph_inputs
+      )
+    else()
+      add_test(NAME fuzz_graph_input_target_smoke
+        COMMAND fuzz_graph_inputs ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/corpus/graph_inputs
+      )
+    endif()
+  endif()
   add_test(NAME policy_no_core_adapter_deps
     COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/policy/check_no_adapter_deps.py

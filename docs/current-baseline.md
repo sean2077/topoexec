@@ -72,14 +72,14 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations after the plan2 G50 defensive-input pass:
+Current branch limitations after the plan2 G51 coverage-guided fuzzing pass:
 
 - `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, cooperative cancellation/timeout-budget observation, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and hard timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
 - Async `policy.max_inflight` controls async edge admission; it is separate from optional task executors.
 - `TaskExecutor` remains deterministic by default with cooperative pending-task cancellation and post-return task-budget metrics; `ThreadedTaskExecutor` is now an opt-in bounded preview, not a default scheduler lane.
 - Metrics/trace/diagnostics exist, including metric schema version 1, trace schema version 1, diagnostic schema version 1, invocation correlation/causation metadata, bounded observer-only health events, and RuntimeObserver v1; exporter adapters and a richer health-event v2 contract remain future work.
-- Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, and deterministic malformed-input fuzz smoke; coverage-guided fuzzing remains future work.
+- Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, deterministic malformed-input fuzz smoke, and an optional `fuzz_graph_inputs` libFuzzer/standalone corpus target. Longer fuzz campaigns and broader target coverage remain future hardening work.
 - ThreadSanitizer remains non-blocking.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external Perfetto adapters remain deferred and must not be claimed as implemented.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

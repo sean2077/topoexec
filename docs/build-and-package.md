@@ -45,6 +45,8 @@ The CLI executable is installed as `bin/topoexec` when `TOPOEXEC_BUILD_CLI=ON`.
 | `TOPOEXEC_BUILD_CLI` | `ON` | Build the CLI; requires YAML and `CLI11`. |
 | `TOPOEXEC_BUILD_EXAMPLES` | `ON` | Build runnable example applications; requires YAML for YAML-backed apps. |
 | `TOPOEXEC_BUILD_TESTING` | `ON` | Build CTest suite; currently requires YAML, CLI, and examples. |
+| `TOPOEXEC_BUILD_FUZZERS` | `OFF` | Build optional graph-input fuzz targets; requires YAML. |
+| `TOPOEXEC_FUZZER_ENGINE` | `AUTO` | Fuzzer engine when fuzzers are enabled: `AUTO`, `LIBFUZZER`, or `STANDALONE`. |
 | `TOPOEXEC_ENABLE_ASAN` | `OFF` | Add AddressSanitizer instrumentation for GCC/Clang builds. |
 | `TOPOEXEC_ENABLE_UBSAN` | `OFF` | Add UndefinedBehaviorSanitizer instrumentation for GCC/Clang builds. |
 | `TOPOEXEC_ENABLE_TSAN` | `OFF` | Add ThreadSanitizer instrumentation; cannot be combined with ASAN/UBSAN. |
@@ -63,12 +65,23 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 
 This path is covered by `cmake_runtime_only_options_smoke`.
 
+Optional fuzzer smoke:
+
+```bash
+TOPOEXEC_FUZZER_ENGINE=STANDALONE ./scripts/fuzz_smoke.sh
+```
+
+Use `TOPOEXEC_FUZZER_ENGINE=LIBFUZZER` with `CXX=clang++` for the libFuzzer
+instrumented target.
+
 ## Dependency policy
 
 - Runtime code does not depend on YAML, CLI11, ROS, Python, OpenTelemetry, or
   Prometheus.
 - YAML loading requires `yaml-cpp` and `nlohmann_json`.
 - CLI builds require `CLI11` and `nlohmann_json`.
+- Fuzzer targets are off by default and require no runtime dependency; libFuzzer
+  instrumentation requires Clang.
 - Tests require GTest; if unavailable, the test build fetches it through CMake
   `FetchContent`.
 

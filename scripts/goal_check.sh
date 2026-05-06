@@ -12,7 +12,7 @@ Goal-specific validation dispatcher for TopoExec agents.
 - schema: schema v1 contract smoke
 - package: install/export downstream smoke plus runtime-only option smoke
 - docs:   executable docs command smoke
-- fuzz:   deterministic parser/compiler fuzz smoke
+- fuzz:   deterministic parser/compiler fuzz smoke plus optional fuzzer target corpus replay
 - policy: architecture/dependency policy smokes
 - sanitizer: ASAN+UBSAN Debug build and full CTest
 - format: clang-format check target
@@ -57,6 +57,7 @@ case "$MODE" in
   fuzz)
     configure_build
     ctest --test-dir "$BUILD_DIR" --output-on-failure -R fuzz_graph_input_smoke
+    TOPOEXEC_FUZZER_ENGINE="${TOPOEXEC_FUZZER_ENGINE:-STANDALONE}" ./scripts/fuzz_smoke.sh
     ;;
   policy)
     configure_build

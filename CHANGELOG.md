@@ -30,6 +30,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added runtime trace schema version 1 with ordered timeline fields, explicit phase/component/channel/lane/worker/epoch/transaction/correlation/causation identifiers, and Chrome trace phase tracks.
 - Added graph diagnostic schema version 1 with stable severity/category fields, warning diagnostics for backpressure/deep queues/large copies/never-ready triggers, grouped explain output, and CLI strict-diagnostics failure mode.
 - Added `GraphInputLimits`, bounded incremental graph file reads, UTF-8 input validation, non-config string limits, CLI parser-limit overrides, schema string-limit checks, and stronger deterministic malformed-input fuzz coverage.
+- Added optional `TOPOEXEC_BUILD_FUZZERS` support with libFuzzer/standalone `fuzz_graph_inputs`, checked-in seed corpus, local fuzz smoke script, and optional Clang CI fuzz smoke.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
 - Added deterministic benchmark case YAMLs and richer `bench --format json` output with case, params, per-run latency percentiles, throughput, and environment summary.

@@ -103,3 +103,30 @@ jobs:
           TOPOEXEC_BUILD_TYPE: Debug
           TOPOEXEC_SANITIZER_MODE: address-undefined
         run: ./scripts/sanitizer_check.sh
+
+  fuzz-smoke:
+    name: clang / libFuzzer smoke
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            libcli11-dev \
+            libyaml-cpp-dev \
+            ninja-build \
+            nlohmann-json3-dev \
+            pkg-config
+
+      - name: Build and run short libFuzzer corpus smoke
+        env:
+          CXX: clang++
+          TOPOEXEC_FUZZER_ENGINE: LIBFUZZER
+          TOPOEXEC_FUZZ_BUILD_DIR: build-clang-fuzz
+        run: ./scripts/fuzz_smoke.sh

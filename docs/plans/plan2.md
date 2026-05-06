@@ -1438,6 +1438,14 @@ Priority: P1/P2
 - Parser/compiler fuzzing is no longer only random deterministic smoke.
 - Crashes can be captured as corpus regressions.
 
+Implementation note: the G51 pass adds optional `TOPOEXEC_BUILD_FUZZERS` support
+with `TOPOEXEC_FUZZER_ENGINE=AUTO|LIBFUZZER|STANDALONE`, a `fuzz_graph_inputs`
+target covering YAML loading, defensive parser limits, graph validation/compile,
+plan rendering, and endpoint/trigger parsing through validation, a checked-in
+seed corpus, local `scripts/fuzz_smoke.sh`, and an optional Clang/libFuzzer CI
+smoke. Broader multi-target fuzzing can add targets without changing the default
+test gate.
+
 ---
 
 ## G52. Stress and Soak Tests
