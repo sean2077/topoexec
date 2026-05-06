@@ -34,7 +34,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added bounded stress and soak testing with `test_stress`, generated scheduler/channel graph workloads, `scripts/stress_smoke.sh`, release-candidate stress documentation, and queue-depth/drop/reject assertions for scheduler, channel, thread-pool, and task-executor surfaces.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
-- Added deterministic benchmark case YAMLs and richer `bench --format json` output with case, params, per-run latency percentiles, throughput, and environment summary.
+- Added benchmark schema v2 with expanded graph cases, graph hashes, compiler/build/CPU/commit metadata, a non-installed task-executor benchmark, output-contract CTest coverage, and optional local baseline generation without global timing thresholds.
 - Added `topoexec schema dump`, `topoexec schema check`, and `topoexec doctor` JSON/text tooling.
 - Added state/config, batch/time-sync, service-style async, and boundary-adapter-pattern YAML examples plus an examples catalog with CLI smokes.
 - Added a documentation index, tutorial/reference pages, and doc-command smoke coverage for the getting-started and CLI paths.

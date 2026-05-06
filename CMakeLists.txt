@@ -14,6 +14,22 @@ option(TOPOEXEC_ENABLE_ASAN "Build TopoExec with AddressSanitizer instrumentatio
 option(TOPOEXEC_ENABLE_UBSAN "Build TopoExec with UndefinedBehaviorSanitizer instrumentation" OFF)
 option(TOPOEXEC_ENABLE_TSAN "Build TopoExec with ThreadSanitizer instrumentation" OFF)
 
+set(TOPOEXEC_GIT_COMMIT_VALUE "unknown")
+find_package(Git QUIET)
+if(Git_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --short=12 HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    RESULT_VARIABLE TOPOEXEC_GIT_COMMIT_RESULT
+    OUTPUT_VARIABLE TOPOEXEC_GIT_COMMIT_OUTPUT
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  if(TOPOEXEC_GIT_COMMIT_RESULT EQUAL 0 AND NOT TOPOEXEC_GIT_COMMIT_OUTPUT STREQUAL "")
+    set(TOPOEXEC_GIT_COMMIT_VALUE "${TOPOEXEC_GIT_COMMIT_OUTPUT}")
+  endif()
+endif()
+
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 if(CLANG_FORMAT_EXE)
   add_custom_target(topoexec_format_check
@@ -134,6 +150,12 @@ endif()
 if(TOPOEXEC_BUILD_CLI)
   add_executable(topoexec_cli tools/topoexec/main.cpp)
   target_link_libraries(topoexec_cli PRIVATE topoexec_yaml CLI11::CLI11 nlohmann_json::nlohmann_json)
+  if(CMAKE_BUILD_TYPE)
+    target_compile_definitions(topoexec_cli PRIVATE TOPOEXEC_CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+  else()
+    target_compile_definitions(topoexec_cli PRIVATE TOPOEXEC_CMAKE_BUILD_TYPE="unknown")
+  endif()
+  target_compile_definitions(topoexec_cli PRIVATE TOPOEXEC_GIT_COMMIT_DEFAULT="${TOPOEXEC_GIT_COMMIT_VALUE}")
   set_target_properties(topoexec_cli PROPERTIES OUTPUT_NAME topoexec)
   list(APPEND TOPOEXEC_INSTALL_TARGETS topoexec_cli)
 endif()
@@ -248,6 +270,9 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   topoexec_add_test(test_state tests/test_state.cpp)
   topoexec_add_test(test_runtime tests/test_runtime.cpp)
   topoexec_add_test(test_stress tests/test_stress.cpp)
+
+  add_executable(topoexec_bench_task_executor benchmarks/task_executor.cpp)
+  target_link_libraries(topoexec_bench_task_executor PRIVATE topoexec_runtime)
 
   add_test(NAME cli_validate_minimal
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml
@@ -372,6 +397,17 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph bench ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/immediate_chain.yaml --steps 2 --runs 2 --format json
   )
   set_tests_properties(cli_bench_json_immediate_chain PROPERTIES PASS_REGULAR_EXPRESSION "\"throughput_tick_calls_per_sec\"")
+  add_test(NAME bench_task_executor_smoke
+    COMMAND topoexec_bench_task_executor --tasks 16 --runs 2 --format json
+  )
+  set_tests_properties(bench_task_executor_smoke PROPERTIES PASS_REGULAR_EXPRESSION "\"case\": \"task_executor\"")
+  add_test(NAME bench_contract_smoke
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/bench/check_bench_contract.py
+      --topoexec $<TARGET_FILE:topoexec_cli>
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+      --task-executor-bench $<TARGET_FILE:topoexec_bench_task_executor>
+  )
   add_test(NAME cli_golden_outputs
     COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/check_cli_golden.py

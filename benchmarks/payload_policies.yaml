@@ -1,0 +1,56 @@
+schema_version: 1
+graph: {name: bench_payload_policies, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: copy_source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: shared_source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: loaned_source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: copy_identity
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: shared_identity
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: loaned_identity
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: copy_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: shared_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: loaned_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: source_copy, kind: immediate, from: copy_source.out, to: copy_identity.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: copy}}
+  - {id: source_shared, kind: immediate, from: shared_source.out, to: shared_identity.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: source_loaned, kind: immediate, from: loaned_source.out, to: loaned_identity.in, policy: {mode: latest, copy_policy: loaned_view, owner: producer}}
+  - {id: copy_sink_edge, kind: immediate, from: copy_identity.out, to: copy_sink.in, policy: {mode: latest, copy_policy: copy}}
+  - {id: shared_sink_edge, kind: immediate, from: shared_identity.out, to: shared_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: loaned_sink_edge, kind: immediate, from: loaned_identity.out, to: loaned_sink.in, policy: {mode: latest, copy_policy: loaned_view, owner: producer}}

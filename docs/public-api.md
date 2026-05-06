@@ -119,7 +119,7 @@ CLI JSON fields are part of the user-facing tooling contract even though the CLI
 - `bench` JSON is machine-readable but still experimental; add fields instead of changing existing field meanings where practical.
 - New fields are allowed. Removing or renaming fields requires a changelog note and, when schema-related, a versioning note.
 - Human-readable text output is allowed to evolve more freely than JSON.
-- Golden drift coverage lives in `tests/golden/` for plan, metrics, trace, Chrome trace, render, schema dump, and doctor JSON.
+- Golden drift coverage lives in `tests/golden/` for plan, metrics, trace, Chrome trace, render, schema dump, and doctor JSON. Benchmark JSON has separate output-contract coverage in `tests/bench/check_bench_contract.py` because timings are intentionally volatile.
 
 ## Adapter-preview stability
 

@@ -84,6 +84,18 @@ TOPOEXEC_STRESS_PROFILE=soak TOPOEXEC_STRESS_DURATION_SECONDS=60 ./scripts/stres
 The first command is a bounded smoke. The soak profile repeats bounded-step
 stress graph suites only for the caller-selected duration/iteration limits.
 
+Optional benchmark baseline:
+
+```bash
+./scripts/goal_check.sh bench
+./scripts/bench_baseline.sh
+```
+
+The focused goal check validates benchmark output contracts and writes a short
+temporary baseline without thresholds. The baseline script can generate a local
+ignored baseline file and optionally compare against a user-selected per-machine
+threshold.
+
 ## Dependency policy
 
 - Runtime code does not depend on YAML, CLI11, ROS, Python, OpenTelemetry, or
@@ -94,6 +106,8 @@ stress graph suites only for the caller-selected duration/iteration limits.
   instrumentation requires Clang.
 - Stress and soak scripts use the built CLI plus CTest/Python only; they add no
   runtime dependency.
+- Benchmark scripts use the built CLI, a non-installed test benchmark binary,
+  and Python only; timing thresholds are never mandatory in CI.
 - Tests require GTest; if unavailable, the test build fetches it through CMake
   `FetchContent`.
 

@@ -18,6 +18,9 @@ the repository has:
 - Defensive parser limits plus deterministic fuzz smoke.
 - Bounded stress smoke for generated scheduler/channel workloads, thread-pool
   overload, and task-executor overload.
+- Benchmark schema v2 output-contract coverage with expanded graph cases,
+  task-executor benchmark smoke, and local baseline generation without mandatory
+  timing thresholds.
 - G26 adds golden coverage for Chrome trace shape, schema dump JSON, and doctor
   JSON in addition to plan/metrics/trace/render outputs.
 
@@ -67,8 +70,9 @@ Deferred capabilities remain documented as limitations rather than hidden TODOs:
 - ROS 2, OpenTelemetry, Prometheus, Python, Perfetto, C API, dynamic plugin
   loaders, and package-manager publication are preview/deferred surfaces.
 - TSAN remains non-blocking until concurrency signal is stable.
-- Coverage-guided fuzzing and bounded stress smoke exist; longer fuzz campaigns
-  and soak runs remain non-blocking beta hardening evidence.
+- Coverage-guided fuzzing, bounded stress smoke, and benchmark schema v2 baseline
+  tooling exist; longer fuzz campaigns, soak runs, and opt-in per-machine
+  benchmark comparisons remain non-blocking beta hardening evidence.
 - Scheduler runtime priority/admission ordering exists for component invocations, while affinity/RT policy, independent
   fixed-rate lane threads, OS jitter control, advanced starvation aging, and hard timeout preemption remain
   future work.
@@ -85,6 +89,7 @@ cmake --build build --target topoexec_format_check
 ./scripts/goal_check.sh package
 ./scripts/goal_check.sh golden
 ./scripts/goal_check.sh stress
+./scripts/goal_check.sh bench
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
 ```
 
@@ -107,4 +112,5 @@ A release artifact rehearsal should produce:
 6. ASAN+UBSAN summary;
 7. golden output summary for plan, metrics, trace, Chrome trace, render, schema dump, and doctor JSON;
 8. stress smoke summary, plus optional soak summary when run;
-9. known limitations copied into release notes.
+9. benchmark output-contract summary and any optional local baseline comparison;
+10. known limitations copied into release notes.

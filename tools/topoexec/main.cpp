@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -17,6 +18,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -377,6 +380,15 @@ std::string benchmark_case_name(const std::string& path) {
   return path.substr(begin, end - begin);
 }
 
+std::string trim(std::string value) {
+  const auto begin = value.find_first_not_of(" \t\r\n");
+  if (begin == std::string::npos) {
+    return {};
+  }
+  const auto end = value.find_last_not_of(" \t\r\n");
+  return value.substr(begin, end - begin + 1u);
+}
+
 std::string read_text_file(const std::string& path) {
   std::ifstream input(path);
   if (!input) {
@@ -385,6 +397,117 @@ std::string read_text_file(const std::string& path) {
   std::ostringstream text;
   text << input.rdbuf();
   return text.str();
+}
+
+std::string fnv1a64_hex(const std::string& text) {
+  std::uint64_t hash = 14695981039346656037ull;
+  for (const auto byte : text) {
+    hash ^= static_cast<unsigned char>(byte);
+    hash *= 1099511628211ull;
+  }
+  std::ostringstream output;
+  output << std::hex << std::setw(16) << std::setfill('0') << hash;
+  return output.str();
+}
+
+std::string graph_hash(const std::string& path) {
+  return "fnv1a64:" + fnv1a64_hex(read_text_file(path));
+}
+
+std::string compiler_name() {
+#if defined(__clang__)
+  return "clang";
+#elif defined(__GNUC__)
+  return "gcc";
+#elif defined(_MSC_VER)
+  return "msvc";
+#else
+  return "unknown";
+#endif
+}
+
+std::string compiler_version() {
+#if defined(__clang__)
+  return std::to_string(__clang_major__) + "." + std::to_string(__clang_minor__) + "." +
+         std::to_string(__clang_patchlevel__);
+#elif defined(__GNUC__)
+  return std::to_string(__GNUC__) + "." + std::to_string(__GNUC_MINOR__) + "." + std::to_string(__GNUC_PATCHLEVEL__);
+#elif defined(_MSC_VER)
+  return std::to_string(_MSC_VER);
+#else
+  return "unknown";
+#endif
+}
+
+std::string build_type() {
+#ifdef TOPOEXEC_CMAKE_BUILD_TYPE
+  const std::string configured = TOPOEXEC_CMAKE_BUILD_TYPE;
+  if (!configured.empty()) {
+    return configured;
+  }
+#endif
+#ifdef NDEBUG
+  return "Release";
+#else
+  return "Debug";
+#endif
+}
+
+std::string cpu_model() {
+  std::ifstream input("/proc/cpuinfo");
+  std::string line;
+  while (std::getline(input, line)) {
+    const auto colon = line.find(':');
+    if (colon == std::string::npos) {
+      continue;
+    }
+    if (trim(line.substr(0, colon)) == "model name") {
+      return trim(line.substr(colon + 1u));
+    }
+  }
+  return "unknown";
+}
+
+std::string read_git_head_commit(const std::string& git_dir) {
+  std::ifstream head(git_dir + "/HEAD");
+  std::string value;
+  if (!std::getline(head, value)) {
+    return "unknown";
+  }
+  constexpr std::string_view ref_prefix{"ref: "};
+  if (value.rfind(ref_prefix, 0u) == 0u) {
+    std::ifstream ref(git_dir + "/" + value.substr(ref_prefix.size()));
+    if (std::getline(ref, value)) {
+      return value.size() > 12u ? value.substr(0, 12u) : value;
+    }
+    return "unknown";
+  }
+  return value.size() > 12u ? value.substr(0, 12u) : value;
+}
+
+std::string git_commit() {
+  if (const auto* env = std::getenv("TOPOEXEC_GIT_COMMIT"); env != nullptr && std::string(env).size() > 0u) {
+    return env;
+  }
+#ifdef TOPOEXEC_GIT_COMMIT_DEFAULT
+  const std::string configured = TOPOEXEC_GIT_COMMIT_DEFAULT;
+  if (!configured.empty() && configured != "unknown") {
+    return configured;
+  }
+#endif
+  return read_git_head_commit(".git");
+}
+
+std::uint64_t hardware_threads() {
+  return static_cast<std::uint64_t>(std::thread::hardware_concurrency());
+}
+
+std::string cpp_standard() {
+  return std::to_string(__cplusplus);
+}
+
+std::string benchmark_schema_version() {
+  return "2";
 }
 
 std::string find_schema_path() {
@@ -415,9 +538,13 @@ std::vector<std::string> existing_yaml_files(const std::string& directory) {
       directory + "/diagnostic_warnings.yaml",
       directory + "/single_component.yaml",
       directory + "/immediate_chain.yaml",
+      directory + "/fan_out.yaml",
+      directory + "/fan_in.yaml",
       directory + "/latest_vs_queue.yaml",
       directory + "/deferred_edges.yaml",
       directory + "/thread_pool.yaml",
+      directory + "/composite_loop_iterations.yaml",
+      directory + "/payload_policies.yaml",
   };
   for (const auto& name : names) {
     std::ifstream input(name);
@@ -902,14 +1029,27 @@ int print_bench_result(const std::string& path, std::size_t steps, std::size_t r
   const auto elapsed_seconds = std::chrono::duration<double>(elapsed).count();
   const auto throughput_tick_calls = elapsed_seconds > 0.0 ? static_cast<double>(tick_calls) / elapsed_seconds : 0.0;
   const auto throughput_runs = elapsed_seconds > 0.0 ? static_cast<double>(ok_runs) / elapsed_seconds : 0.0;
+  const auto case_name = benchmark_case_name(path);
+  const auto hash = graph_hash(path);
+  const nlohmann::json environment = {{"benchmark_schema", 2},
+                                      {"clock", "steady_clock"},
+                                      {"runtime", "RuntimeRunner"},
+                                      {"compiler", compiler_name()},
+                                      {"compiler_version", compiler_version()},
+                                      {"cpp_standard", cpp_standard()},
+                                      {"build_type", build_type()},
+                                      {"cpu_model", cpu_model()},
+                                      {"cpu_threads", hardware_threads()},
+                                      {"commit", git_commit()}};
   if (format == "json") {
     nlohmann::json value;
     value["ok"] = errors.empty();
-    value["case"] = benchmark_case_name(path);
+    value["case"] = case_name;
     value["runs"] = runs;
     value["ok_runs"] = ok_runs;
     value["steps"] = steps;
     value["params"] = {{"file", path}, {"steps", steps}, {"runs", runs}};
+    value["graph_hash"] = hash;
     value["tick_calls"] = tick_calls;
     value["elapsed_ms"] = elapsed_ms;
     value["run_elapsed_ms"] = run_elapsed_ms;
@@ -918,12 +1058,14 @@ int print_bench_result(const std::string& path, std::size_t steps, std::size_t r
     value["p99_run_elapsed_ms"] = percentile(run_elapsed_ms, 0.99);
     value["throughput_tick_calls_per_sec"] = throughput_tick_calls;
     value["throughput_runs_per_sec"] = throughput_runs;
-    value["environment"] = {{"benchmark_schema", 1}, {"clock", "steady_clock"}, {"runtime", "RuntimeRunner"}};
+    value["environment"] = environment;
     value["errors"] = errors;
     std::cout << value.dump(2) << "\n";
   } else {
     std::cout << (errors.empty() ? "ok" : "error") << "\n";
-    std::cout << "case: " << benchmark_case_name(path) << "\n";
+    std::cout << "case: " << case_name << "\n";
+    std::cout << "benchmark_schema: " << benchmark_schema_version() << "\n";
+    std::cout << "graph_hash: " << hash << "\n";
     std::cout << "runs: " << runs << "\n";
     std::cout << "ok_runs: " << ok_runs << "\n";
     std::cout << "steps: " << steps << "\n";
@@ -933,6 +1075,10 @@ int print_bench_result(const std::string& path, std::size_t steps, std::size_t r
     std::cout << "p50_run_elapsed_ms: " << percentile(run_elapsed_ms, 0.50) << "\n";
     std::cout << "p95_run_elapsed_ms: " << percentile(run_elapsed_ms, 0.95) << "\n";
     std::cout << "p99_run_elapsed_ms: " << percentile(run_elapsed_ms, 0.99) << "\n";
+    std::cout << "compiler: " << environment["compiler"].get<std::string>() << " "
+              << environment["compiler_version"].get<std::string>() << "\n";
+    std::cout << "build_type: " << environment["build_type"].get<std::string>() << "\n";
+    std::cout << "commit: " << environment["commit"].get<std::string>() << "\n";
     for (const auto& error : errors) {
       std::cout << "- " << error << "\n";
     }

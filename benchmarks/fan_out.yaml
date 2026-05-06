@@ -1,0 +1,46 @@
+schema_version: 1
+graph: {name: bench_fan_out, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: branch_a
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: branch_b
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: branch_c
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: sink_a
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: sink_b
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: sink_c
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: source_branch_a, kind: immediate, from: source.out, to: branch_a.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view, readers: multiple}}
+  - {id: source_branch_b, kind: immediate, from: source.out, to: branch_b.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view, readers: multiple}}
+  - {id: source_branch_c, kind: immediate, from: source.out, to: branch_c.in, policy: {mode: latest, copy_policy: shared_view, readers: multiple}}
+  - {id: branch_a_sink, kind: immediate, from: branch_a.out, to: sink_a.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: branch_b_sink, kind: immediate, from: branch_b.out, to: sink_b.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: branch_c_sink, kind: immediate, from: branch_c.out, to: sink_c.in, policy: {mode: latest, copy_policy: shared_view}}

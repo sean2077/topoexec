@@ -30,6 +30,9 @@ mapping. `graph trace --format json` and `graph trace --format chrome` include
 contract before mapping spans or tracks. `graph validate --format json` includes
 `diagnostics_schema_version`, diagnostic `category`, and `suggested_fix`;
 `--strict-diagnostics` fails warning diagnostics for stricter CI/editor workflows.
+`graph bench --format json` includes benchmark schema v2 metadata such as
+`graph_hash`, compiler, build type, CPU info, and commit for local baseline
+tracking without global timing thresholds.
 Graph-reading commands also accept per-invocation defensive parser overrides:
 `--max-graph-input-bytes`, `--max-lanes`, `--max-components`, `--max-edges`,
 `--max-composite-loops`, `--max-identifier-bytes`, `--max-config-depth`,
@@ -68,7 +71,8 @@ runtime contract as `semantic_contract_version` alongside the graph
   `trace_schema_version`, and groups events by stable phase/lane/component/channel
   tracks without requiring an external Perfetto adapter.
 - Bench output is for local regression comparison only; do not compare absolute
-  performance across machines without a controlled benchmark setup.
+  performance across machines or enable thresholds outside a controlled
+  per-machine baseline setup.
 
 ## Debugging sequence
 

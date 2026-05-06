@@ -20,6 +20,7 @@ This configures, builds, and runs all default CTest tests.
 | Docs | executable `topoexec-doc-test` tutorial/CLI markers | `./scripts/goal_check.sh docs` |
 | Fuzz smoke | deterministic malformed, invalid-UTF-8, oversized, parser-limit corpus plus optional fuzzer target corpus replay | `./scripts/goal_check.sh fuzz` |
 | Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
+| Benchmark smoke | RuntimeRunner benchmark cases, task-executor benchmark output, schema v2 metadata, and optional local baseline generation | `./scripts/goal_check.sh bench` |
 | Package | install/export/downstream `find_package(topoexec)` runtime-only smoke | `./scripts/goal_check.sh package` |
 | Sanitizers | ASAN+UBSAN full CTest; TSAN non-blocking CI | `./scripts/goal_check.sh sanitizer` |
 
@@ -67,6 +68,27 @@ TOPOEXEC_STRESS_PROFILE=soak TOPOEXEC_STRESS_DURATION_SECONDS=60 ./scripts/stres
 See [Stress and soak testing](stress-testing.md) for workload details and
 configuration. Stress success is confidence evidence, not a performance or
 real-time guarantee.
+
+## Benchmark smoke
+
+`bench_contract_smoke` runs all checked-in benchmark YAML cases through
+`topoexec graph bench --format json` and asserts schema v2 metadata, graph hash,
+per-run samples, p50/p95/p99 summaries, throughput fields, and empty errors.
+`bench_task_executor_smoke` covers the non-installed task-executor benchmark
+binary. `./scripts/goal_check.sh bench` also writes a short local baseline to
+`/tmp/topoexec-bench-baseline.json` without applying a timing threshold.
+
+Longer comparisons are opt-in and per-machine:
+
+```bash
+TOPOEXEC_BENCH_BASELINE_IN=benchmarks/local-baseline.json \
+TOPOEXEC_BENCH_THRESHOLD_PERCENT=15 \
+./scripts/bench_baseline.sh
+```
+
+See [Performance baselines](performance-baselines.md) for interpretation and
+policy. Benchmark success proves output-contract and workload health, not a
+portable performance guarantee.
 
 ## Sanitizer gates
 

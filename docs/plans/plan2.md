@@ -1533,6 +1533,13 @@ Priority: P1/P2
 - Benchmark suite supports real engineering decisions.
 - CI checks correctness of bench outputs, not unstable timing thresholds.
 
+Implementation note: the G53 pass promotes graph benchmarks to schema v2 with
+graph hashes, compiler/build/CPU/commit metadata, expanded deterministic cases
+for fan-out/fan-in, CompositeLoop iteration, and payload policy paths, plus a
+non-installed task-executor benchmark. `bench_contract_smoke` and
+`./scripts/goal_check.sh bench` validate output contracts and local baseline
+generation only; timing regression thresholds remain opt-in and per-machine.
+
 ---
 
 ## G54. Packaging v2

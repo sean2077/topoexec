@@ -1,0 +1,28 @@
+schema_version: 1
+graph: {name: bench_fan_in, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: left_source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: right_source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: join
+    type: topoexec.transforms.Join
+    event_sources: [{type: message, inputs: [left, right]}]
+    trigger_policy: {type: all_inputs, inputs: [left, right]}
+    execution: {lane: main}
+  - id: sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: left_join, kind: immediate, from: left_source.out, to: join.left, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: right_join, kind: immediate, from: right_source.out, to: join.right, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: join_sink, kind: immediate, from: join.out, to: sink.in, policy: {mode: latest, copy_policy: shared_view}}

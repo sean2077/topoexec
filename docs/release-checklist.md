@@ -21,6 +21,7 @@ v0.2.0-alpha.0
 - [ ] `./scripts/goal_check.sh package` passes.
 - [ ] `./scripts/goal_check.sh golden` passes.
 - [ ] `./scripts/goal_check.sh stress` passes.
+- [ ] `./scripts/goal_check.sh bench` passes.
 - [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer` passes.
 - [ ] `cmake_runtime_only_options_smoke` passes as part of CTest/package smoke.
 - [ ] `cmake_package_runtime_smoke` passes as part of CTest/package smoke.
@@ -103,6 +104,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - ThreadSanitizer is non-blocking.
 - Coverage-guided fuzzing and stress smoke exist, but long fuzz campaigns and
   longer soak runs remain non-blocking release-candidate evidence.
+- Benchmark schema v2 and local baseline generation exist, but global timing
+  thresholds remain intentionally absent; use only opt-in per-machine
+  comparisons.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and
   external Perfetto adapters remain deferred.
 - Package-manager recipes under `packaging/` are drafts, not published ports.

@@ -2,9 +2,13 @@
   "benchmarks": [
     "benchmarks/single_component.yaml",
     "benchmarks/immediate_chain.yaml",
+    "benchmarks/fan_out.yaml",
+    "benchmarks/fan_in.yaml",
     "benchmarks/latest_vs_queue.yaml",
     "benchmarks/deferred_edges.yaml",
-    "benchmarks/thread_pool.yaml"
+    "benchmarks/thread_pool.yaml",
+    "benchmarks/composite_loop_iterations.yaml",
+    "benchmarks/payload_policies.yaml"
   ],
   "cxx_standard": 202002,
   "examples": [
