@@ -96,6 +96,62 @@ RuntimeError make_runtime_error(std::string phase, std::string component_id, std
   return error;
 }
 
+void notify_runtime_observers(const RuntimeRunnerOptions& options, RuntimeRunnerResult& result) {
+  if (options.observers.empty()) {
+    return;
+  }
+  std::size_t callback_failure_count = 0;
+  std::string first_failure;
+  auto record_delivery = [&](const Status& status, const std::string& callback) {
+    if (status.ok()) {
+      return;
+    }
+    ++callback_failure_count;
+    if (first_failure.empty()) {
+      first_failure = callback + ": " + status.message();
+    }
+  };
+
+  for (auto* observer : options.observers) {
+    if (observer == nullptr) {
+      continue;
+    }
+    for (const auto& metric : result.runtime_metrics) {
+      record_delivery(observer->on_metric(metric), "on_metric");
+    }
+    for (const auto& event : result.trace) {
+      record_delivery(observer->on_trace_event(event), "on_trace_event");
+    }
+    for (const auto& event : result.health_events) {
+      record_delivery(observer->on_health_event(event), "on_health_event");
+    }
+    for (const auto& error : result.runtime_errors) {
+      record_delivery(observer->on_runtime_error(error), "on_runtime_error");
+    }
+    record_delivery(observer->on_result(result), "on_result");
+    const auto observer_status = observer->status();
+    result.observer_dropped_event_count += observer_status.dropped_event_count;
+    result.observer_failure_count += observer_status.failure_count;
+  }
+
+  result.observer_failure_count += callback_failure_count;
+  if (callback_failure_count != 0u) {
+    result.runtime_errors.push_back(
+        make_runtime_error("observer", {}, {},
+                           "observer callback failure count: " + std::to_string(callback_failure_count) +
+                               (first_failure.empty() ? std::string{} : " (" + first_failure + ")"),
+                           "observer_failure", false));
+  }
+  if (result.observer_failure_count != 0u) {
+    append_runtime_metric(result, "runtime.observer.failure_count", static_cast<double>(result.observer_failure_count));
+  }
+  if (result.observer_dropped_event_count != 0u) {
+    append_runtime_metric(result, "runtime.observer.dropped_event_count",
+                          static_cast<double>(result.observer_dropped_event_count));
+  }
+  result.metric_samples = result.runtime_metrics.size();
+}
+
 std::string component_id_from_legacy_error(const std::string& message) {
   constexpr auto prefix = std::string_view{"component "};
   constexpr auto failed = std::string_view{" failed:"};
@@ -235,6 +291,109 @@ void copy_trace_to_result(const TraceCollector& trace, const std::vector<HealthE
 
 } // namespace
 
+Status ResultSink::on_result(const RuntimeRunnerResult&) {
+  return Status::success();
+}
+
+Status MetricSink::on_metric(const RuntimeMetricSample&) {
+  return Status::success();
+}
+
+Status TraceSink::on_trace_event(const RuntimeTraceEvent&) {
+  return Status::success();
+}
+
+Status RuntimeObserver::on_health_event(const HealthEvent&) {
+  return Status::success();
+}
+
+Status RuntimeObserver::on_runtime_error(const RuntimeError&) {
+  return Status::success();
+}
+
+RuntimeObserverStatus RuntimeObserver::status() const {
+  return {};
+}
+
+InMemoryRuntimeObserver::InMemoryRuntimeObserver(std::size_t capacity) : capacity_(capacity) {}
+
+template <typename T> Status InMemoryRuntimeObserver::push_bounded(std::vector<T>& records, T value) {
+  if (capacity_ == 0u) {
+    dropped_event_count_.fetch_add(1u, std::memory_order_relaxed);
+    return Status::success();
+  }
+  std::unique_lock lock(mutex_, std::try_to_lock);
+  if (!lock.owns_lock()) {
+    dropped_event_count_.fetch_add(1u, std::memory_order_relaxed);
+    return Status::success();
+  }
+  if (records.size() >= capacity_) {
+    records.erase(records.begin());
+    dropped_event_count_.fetch_add(1u, std::memory_order_relaxed);
+  }
+  records.push_back(std::move(value));
+  return Status::success();
+}
+
+Status InMemoryRuntimeObserver::on_result(const RuntimeRunnerResult& result) {
+  return push_bounded(results_, result);
+}
+
+Status InMemoryRuntimeObserver::on_metric(const RuntimeMetricSample& metric) {
+  return push_bounded(metrics_, metric);
+}
+
+Status InMemoryRuntimeObserver::on_trace_event(const RuntimeTraceEvent& event) {
+  return push_bounded(trace_events_, event);
+}
+
+Status InMemoryRuntimeObserver::on_health_event(const HealthEvent& event) {
+  return push_bounded(health_events_, event);
+}
+
+Status InMemoryRuntimeObserver::on_runtime_error(const RuntimeError& error) {
+  return push_bounded(runtime_errors_, error);
+}
+
+RuntimeObserverStatus InMemoryRuntimeObserver::status() const {
+  return RuntimeObserverStatus{dropped_event_count_.load(std::memory_order_relaxed), 0u};
+}
+
+std::vector<RuntimeRunnerResult> InMemoryRuntimeObserver::results() const {
+  std::lock_guard lock(mutex_);
+  return results_;
+}
+
+std::vector<RuntimeMetricSample> InMemoryRuntimeObserver::metrics() const {
+  std::lock_guard lock(mutex_);
+  return metrics_;
+}
+
+std::vector<RuntimeTraceEvent> InMemoryRuntimeObserver::trace_events() const {
+  std::lock_guard lock(mutex_);
+  return trace_events_;
+}
+
+std::vector<HealthEvent> InMemoryRuntimeObserver::health_events() const {
+  std::lock_guard lock(mutex_);
+  return health_events_;
+}
+
+std::vector<RuntimeError> InMemoryRuntimeObserver::runtime_errors() const {
+  std::lock_guard lock(mutex_);
+  return runtime_errors_;
+}
+
+void InMemoryRuntimeObserver::clear() {
+  std::lock_guard lock(mutex_);
+  results_.clear();
+  metrics_.clear();
+  trace_events_.clear();
+  health_events_.clear();
+  runtime_errors_.clear();
+  dropped_event_count_.store(0u, std::memory_order_relaxed);
+}
+
 std::string to_string(RuntimeRunMode mode) {
   switch (mode) {
   case RuntimeRunMode::kValidate:
@@ -254,17 +413,21 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   result.graph_name = graph.name;
   result.component_count = graph.components.size();
   result.channel_count = graph.edges.size();
+  auto finish_result = [&]() {
+    notify_runtime_observers(options, result);
+    return result;
+  };
   result.validation = validate_graph(graph, registry_);
   if (!result.validation.ok) {
     result.ok = false;
     for (const auto& error : result.validation.errors) {
       append_runtime_error(result, make_runtime_error("validate", {}, {}, error, "validation"));
     }
-    return result;
+    return finish_result();
   }
   if (options.mode == RuntimeRunMode::kValidate) {
     result.ok = true;
-    return result;
+    return finish_result();
   }
   if (options.mode == RuntimeRunMode::kDryRun) {
     auto dry_run = dry_run_graph(graph, registry_, options.tick_iterations);
@@ -274,7 +437,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     }
     copy_dry_run_to_runner(dry_run, result);
     result.scheduler_stop_reason = SchedulerStopReason::kTickBound;
-    return result;
+    return finish_result();
   }
 
   const auto emit_health_events = resolved_health_event_enabled(graph, options);
@@ -392,7 +555,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
         std::count_if(instances.begin(), instances.end(), [](const auto& instance) { return instance.started; }));
     if (!result.errors.empty()) {
       deactivate_started_components();
-      return result;
+      return finish_result();
     }
 
     for (const auto& [component_id, snapshot] : options.restore_component_states) {
@@ -466,7 +629,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
 
     if (!result.errors.empty()) {
       finish_early_after_lifecycle_error();
-      return result;
+      return finish_result();
     }
 
     EventRuntime runtime(&channels, result.validation.compiled_plan, &publications);
@@ -771,7 +934,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       }
     }
   }
-  return result;
+  return finish_result();
 }
 
 } // namespace topoexec

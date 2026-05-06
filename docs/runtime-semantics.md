@@ -90,3 +90,18 @@ Runtime execution reports failures in two compatible forms:
 - `RuntimeRunnerResult::runtime_errors` records structured `RuntimeError` entries with `phase`, `component_id`, `lane`, `message`, `code`, `trace_id`, and `fatal`.
 
 Lifecycle phases use `configure`, `activate`, optional start-epoch `restore`/`reset`, optional post-run `snapshot`, and `deactivate`. Component invocation failures use `execute`; runtime/compiler failures use `validate`, `dry_run`, or `runtime`. Restore/reset happen after activation and before the scheduler starts, so they never interleave with component execution. Snapshot capture happens after the scheduler run and before deactivation. Deactivate errors are recorded with `fatal: false` when they are cleanup follow-ons so they do not hide the original fatal error. The default runtime policy remains fail-fast; non-fail-fast policies are still future work and must not be silently emulated.
+
+## Runtime Observers
+
+`RuntimeRunnerOptions::observers` registers optional `RuntimeObserver` instances
+for best-effort delivery of result, metric, trace, health-event, and structured
+runtime-error records after a run result is assembled. Observer callbacks return
+`Status`; failures increment `RuntimeRunnerResult::observer_failure_count`, add a
+non-fatal `observer_failure` runtime error, and emit `runtime.observer.*`
+metrics without changing graph scheduling, triggers, publication, or `ok`.
+
+The default path has no observer. `NoopRuntimeObserver` is the explicit no-op
+implementation, and `InMemoryRuntimeObserver` is a bounded, try-locking recorder
+for tests and embedders. Custom observers should be non-blocking and bounded;
+adapters should export from this surface instead of changing core runtime
+semantics or adding OpenTelemetry/Prometheus/Perfetto dependencies to core.

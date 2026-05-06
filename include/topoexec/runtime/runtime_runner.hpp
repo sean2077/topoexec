@@ -6,15 +6,20 @@
 #include "topoexec/runtime/graph.hpp"
 #include "topoexec/runtime/health.hpp"
 #include "topoexec/runtime/scheduler.hpp"
+#include "topoexec/runtime/status.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
 namespace topoexec {
+
+class RuntimeObserver;
 
 enum class RuntimeRunMode {
   kValidate,
@@ -34,6 +39,7 @@ struct RuntimeRunnerOptions {
   std::vector<std::string> reset_component_ids;
   std::map<std::string, ComponentStateSnapshot> restore_component_states;
   bool capture_component_state_snapshots{false};
+  std::vector<RuntimeObserver*> observers;
 };
 
 struct RuntimeTraceEvent {
@@ -97,6 +103,8 @@ struct RuntimeRunnerResult {
   std::size_t lifecycle_snapshot_count{0};
   std::size_t lifecycle_snapshot_failure_count{0};
   std::size_t lifecycle_snapshot_bytes{0};
+  std::size_t observer_failure_count{0};
+  std::size_t observer_dropped_event_count{0};
   SchedulerStopReason scheduler_stop_reason{SchedulerStopReason::kNotStarted};
   std::vector<std::string> ticked_components;
   std::vector<std::string> trace_events;
@@ -106,6 +114,70 @@ struct RuntimeRunnerResult {
   std::vector<RuntimeError> runtime_errors;
   std::vector<std::string> errors;
   std::map<std::string, ComponentStateSnapshot> component_state_snapshots;
+};
+
+struct RuntimeObserverStatus {
+  std::size_t dropped_event_count{0};
+  std::size_t failure_count{0};
+};
+
+class ResultSink {
+public:
+  virtual ~ResultSink() = default;
+  virtual Status on_result(const RuntimeRunnerResult& result);
+};
+
+class MetricSink {
+public:
+  virtual ~MetricSink() = default;
+  virtual Status on_metric(const RuntimeMetricSample& metric);
+};
+
+class TraceSink {
+public:
+  virtual ~TraceSink() = default;
+  virtual Status on_trace_event(const RuntimeTraceEvent& event);
+};
+
+class RuntimeObserver : public ResultSink, public MetricSink, public TraceSink {
+public:
+  ~RuntimeObserver() override = default;
+  virtual Status on_health_event(const HealthEvent& event);
+  virtual Status on_runtime_error(const RuntimeError& error);
+  virtual RuntimeObserverStatus status() const;
+};
+
+class NoopRuntimeObserver final : public RuntimeObserver {};
+
+class InMemoryRuntimeObserver final : public RuntimeObserver {
+public:
+  explicit InMemoryRuntimeObserver(std::size_t capacity = 256);
+
+  Status on_result(const RuntimeRunnerResult& result) override;
+  Status on_metric(const RuntimeMetricSample& metric) override;
+  Status on_trace_event(const RuntimeTraceEvent& event) override;
+  Status on_health_event(const HealthEvent& event) override;
+  Status on_runtime_error(const RuntimeError& error) override;
+  RuntimeObserverStatus status() const override;
+
+  std::vector<RuntimeRunnerResult> results() const;
+  std::vector<RuntimeMetricSample> metrics() const;
+  std::vector<RuntimeTraceEvent> trace_events() const;
+  std::vector<HealthEvent> health_events() const;
+  std::vector<RuntimeError> runtime_errors() const;
+  void clear();
+
+private:
+  template <typename T> Status push_bounded(std::vector<T>& records, T value);
+
+  std::size_t capacity_{256};
+  mutable std::mutex mutex_;
+  std::vector<RuntimeRunnerResult> results_;
+  std::vector<RuntimeMetricSample> metrics_;
+  std::vector<RuntimeTraceEvent> trace_events_;
+  std::vector<HealthEvent> health_events_;
+  std::vector<RuntimeError> runtime_errors_;
+  std::atomic_size_t dropped_event_count_{0};
 };
 
 std::string to_string(RuntimeRunMode mode);

@@ -151,6 +151,11 @@ Trace:
 
 - `runtime.trace.event_count`: structured trace events emitted during the run.
 
+Runtime observer:
+
+- `runtime.observer.failure_count`: best-effort observer callback/status failures recorded without changing runtime `ok`.
+- `runtime.observer.dropped_event_count`: events dropped by bounded observers such as `InMemoryRuntimeObserver`.
+
 Custom histograms:
 
 - `<name>.count`, `<name>.min`, `<name>.max`, `<name>.avg`, `<name>.p50`, `<name>.p95`, `<name>.p99`: summaries emitted by `MetricRegistry::histogram(name)`.

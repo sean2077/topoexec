@@ -289,6 +289,22 @@ bool has_trace_event_attribute_key(const topoexec::RuntimeRunnerResult& result, 
   });
 }
 
+class FailingRuntimeObserver : public topoexec::RuntimeObserver {
+public:
+  topoexec::Status on_metric(const topoexec::RuntimeMetricSample&) override {
+    ++metric_calls;
+    return topoexec::Status::error("metric observer failed");
+  }
+
+  topoexec::Status on_result(const topoexec::RuntimeRunnerResult&) override {
+    ++result_calls;
+    return topoexec::Status::error("result observer failed");
+  }
+
+  std::size_t metric_calls{0};
+  std::size_t result_calls{0};
+};
+
 bool has_health_event(const topoexec::RuntimeRunnerResult& result, topoexec::HealthEventKind kind,
                       const std::string& channel_id = {}) {
   return std::any_of(result.health_events.begin(), result.health_events.end(), [&](const auto& event) {
@@ -1816,6 +1832,90 @@ TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {
   EXPECT_TRUE(has_metric(result, "runtime.trace.event_count"));
   EXPECT_NE(std::find(result.ticked_components.begin(), result.ticked_components.end(), "sink"),
             result.ticked_components.end());
+}
+
+TEST(Runtime, InMemoryObserverReceivesResultMetricTraceAndError) {
+  const auto reg = delay_registry();
+  const auto spec = throwing_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::InMemoryRuntimeObserver observer(128);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  options.observers.push_back(&observer);
+
+  reset_throwing_component_state();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_FALSE(result.ok);
+  EXPECT_EQ(observer.results().size(), 1u);
+  EXPECT_FALSE(observer.metrics().empty());
+  EXPECT_FALSE(observer.trace_events().empty());
+  ASSERT_FALSE(observer.runtime_errors().empty());
+  EXPECT_EQ(observer.runtime_errors().front().component_id, "throwing");
+  EXPECT_EQ(result.observer_failure_count, 0u);
+  EXPECT_EQ(result.observer_dropped_event_count, 0u);
+}
+
+TEST(Runtime, InMemoryObserverReceivesHealthEvents) {
+  const auto reg = delay_registry();
+  const auto spec = health_event_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::InMemoryRuntimeObserver observer(128);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+  options.observers.push_back(&observer);
+
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_FALSE(observer.health_events().empty());
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.health.event_count", 1.0));
+}
+
+TEST(Runtime, ObserverFailureIsRecordedButDoesNotChangeRuntimeSemantics) {
+  const auto reg = registry();
+  const auto spec = graph();
+  topoexec::RuntimeRunner runner(reg);
+  FailingRuntimeObserver observer;
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  options.observers.push_back(&observer);
+
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_GT(observer.metric_calls, 0u);
+  EXPECT_EQ(observer.result_calls, 1u);
+  EXPECT_GT(result.observer_failure_count, 0u);
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.observer.failure_count", 1.0));
+  EXPECT_TRUE(std::any_of(result.runtime_errors.begin(), result.runtime_errors.end(), [](const auto& error) {
+    return error.phase == "observer" && error.code == "observer_failure" && !error.fatal;
+  }));
+}
+
+TEST(Runtime, InMemoryObserverDropsBoundedRecordsAndReportsDrops) {
+  const auto reg = registry();
+  const auto spec = graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::InMemoryRuntimeObserver observer(1);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+  options.observers.push_back(&observer);
+
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto observer_status = observer.status();
+  EXPECT_GT(observer_status.dropped_event_count, 0u);
+  EXPECT_EQ(result.observer_dropped_event_count, observer_status.dropped_event_count);
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.observer.dropped_event_count", 1.0));
+  EXPECT_LE(observer.metrics().size(), 1u);
+  EXPECT_LE(observer.trace_events().size(), 1u);
+  EXPECT_LE(observer.results().size(), 1u);
 }
 
 TEST(Runtime, CorrelationMetadataStaysStableThroughImmediateChain) {

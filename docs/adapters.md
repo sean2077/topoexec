@@ -48,14 +48,16 @@ No `topoexec_adapters::*` target should be a transitive dependency of
 
 ## Adapter interface concepts
 
-These are interface concepts, not committed C++ APIs yet.
+G46 establishes the first committed in-process observer API. Concrete adapter
+targets remain deferred, but future exporters should consume these runtime
+surfaces rather than adding SDK dependencies to core.
 
 ### Result sink
 
 Consumes one completed `RuntimeRunnerResult` after a run/tick/batch:
 
-```text
-on_result(const RuntimeRunnerResult& result)
+```cpp
+topoexec::Status on_result(const topoexec::RuntimeRunnerResult& result)
 ```
 
 Use for metrics exporters, trace exporters, local JSON snapshots, release smoke
@@ -66,14 +68,20 @@ reporting, or test harnesses.
 Observes append-only runtime events without influencing scheduling or trigger
 readiness:
 
-```text
-on_metric_sample(name, labels, value)
-on_trace_event(const TraceEvent& event)
-on_runtime_error(const RuntimeError& error)
+```cpp
+topoexec::Status on_metric(const topoexec::RuntimeMetricSample& metric)
+topoexec::Status on_trace_event(const topoexec::RuntimeTraceEvent& event)
+topoexec::Status on_health_event(const topoexec::HealthEvent& event)
+topoexec::Status on_runtime_error(const topoexec::RuntimeError& error)
 ```
 
-Observers must be best-effort and bounded. Export failure should be reported as
-adapter health, not as a hidden runtime semantic change.
+Register observers with `RuntimeRunnerOptions::observers`. The default is no
+observer; `NoopRuntimeObserver` is explicit no-op behavior, and
+`InMemoryRuntimeObserver` is a bounded recorder for tests and embedders.
+Observers must be best-effort and bounded. Callback failure is recorded as
+`RuntimeRunnerResult::observer_failure_count`, non-fatal `observer_failure`
+diagnostics, and `runtime.observer.*` metrics; it does not change graph runtime
+semantics.
 
 ### Boundary bridge
 

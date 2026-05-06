@@ -51,7 +51,7 @@ These headers are safe for ordinary runtime users to include directly.
 | --- | --- |
 | `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, channel read APIs, and channel metrics. Prefer `RuntimeRunner`/`GraphContext` for ordinary embedding. |
 | `topoexec/runtime/event_runtime.hpp` | Lower-level event runtime surface used by tests and advanced embedders. |
-| `topoexec/runtime/health.hpp` | `HealthEvent` and bounded `HealthEventSink` observer helpers; event shape may evolve with the future observer API. |
+| `topoexec/runtime/health.hpp` | `HealthEvent` and bounded `HealthEventSink` helpers used by the runtime observer surface. |
 | `topoexec/runtime/state.hpp` | Namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits and experimental config transaction metadata. |
 | `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
@@ -72,7 +72,8 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `ComponentRegistry::register_component/create/metadata/types` | stable-v0.2 | Registration metadata can gain additive fields. |
 | `GraphSpec`, `LaneSpec`, `EdgeSpec`, `TriggerPolicySpec`, `CompositeLoopSpec` | stable-v0.2 for current fields | Additive fields are allowed only when schema/runtime meaning stays compatible. |
 | `validate_graph`, `compile_graph`, `GraphDiagnostic` | stable-v0.2 | New diagnostics may be added; existing codes should keep meanings. |
-| `RuntimeRunner::run()` and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, trace vectors, metric vectors, health event vectors, and error fields should keep meanings. |
+| `RuntimeRunner::run()`, `RuntimeRunnerOptions`, and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, observer registration, trace vectors, metric vectors, health event vectors, and error fields should keep meanings. |
+| `RuntimeObserver`, `ResultSink`, `MetricSink`, `TraceSink`, `NoopRuntimeObserver`, `InMemoryRuntimeObserver` | stable-v0.2 | Observer callbacks are best-effort result/metric/trace/health/error delivery for adapters. Callback failures are reported as observer diagnostics, not runtime semantic failures. |
 | `SchedulerStopSource`/`SchedulerStopToken` | stable-v0.2 through runner options | Direct scheduler registry/metrics internals remain experimental. |
 | `ComponentStateSnapshot`, reset/snapshot/restore runner options/results | experimental | Stateful lifecycle support is start/end-boundary only; pause/resume policy and hot live control may change before beta. |
 | `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | State snapshots and config transactions are epoch-boundary, observable APIs; transaction metadata and immediate-update escape hatches may be reshaped before beta. |
@@ -118,10 +119,11 @@ CLI JSON fields are part of the user-facing tooling contract even though the CLI
 
 ## Adapter-preview stability
 
-Adapter work remains preview/deferred until the observer/API boundary is stable:
+Adapter work remains preview/deferred until the observer/API and adapter SDK boundaries are stable:
 
 - Core/runtime headers must not include ROS 2, OpenTelemetry, Prometheus, Python, Perfetto, or dynamic plugin SDK headers.
-- Adapter-preview docs may describe `ResultSink`, `RuntimeObserver`, `BoundaryBridge`, and `ComponentFactoryProvider`, but those names are not stable implementation APIs until G46/G57 lands.
+- `ResultSink`, `RuntimeObserver`, `MetricSink`, `TraceSink`, and `InMemoryRuntimeObserver` are the stable-v0.2 in-process observer surface after G46.
+- `BoundaryBridge`, `ComponentFactoryProvider`, concrete exporters, and adapter SDK headers remain preview concepts until G57 or later work lands.
 - Future adapter SDK headers must either be optional targets or explicitly documented as part of `topoexec::runtime`; they must not silently become transitive dependencies of runtime-only embedders.
 - Adapter failures must not affect runtime scheduling semantics unless represented as ordinary graph input/output in a future, explicitly designed boundary.
 

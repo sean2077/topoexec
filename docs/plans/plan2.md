@@ -1200,6 +1200,16 @@ Priority: P0/P1
 - Adapter work can begin without modifying runtime internals.
 - Observer is stable enough for exporter preview.
 
+Implementation note: G46 establishes the first stable-v0.2 in-process observer
+surface without adding exporter dependencies. `RuntimeRunnerOptions::observers`
+registers best-effort `RuntimeObserver` callbacks for result, metric, trace,
+health-event, and structured-error records after run assembly. Callback
+failures are recorded as non-fatal observer diagnostics and
+`runtime.observer.*` metrics; `NoopRuntimeObserver` and bounded
+`InMemoryRuntimeObserver` provide the default/no-op and test/embedder paths.
+Concrete OpenTelemetry/Prometheus/Perfetto adapters remain future optional
+targets.
+
 ---
 
 ## G47. Metrics v2: Cardinality and Schema Contract

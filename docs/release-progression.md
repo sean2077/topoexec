@@ -36,8 +36,9 @@ Rationale:
   scheduler, async admission, channel/backpressure, trigger, payload, loop,
   state/config, observability, benchmark, packaging, and defensive-input work.
 - The new G26 baseline protects that state before deeper plan2 runtime/API work.
-- The tag must still be an alpha because observer/exporter APIs,
-  coverage-guided fuzzing, and beta readiness remain incomplete. Persistent
+- The tag must still be an alpha because exporter adapters, coverage-guided
+  fuzzing, and beta readiness remain incomplete. RuntimeObserver v1 is now
+  available for in-process adapters. Persistent
   worker-pool v1 and fixed-rate wall-clock cadence v1 are implemented in the
   plan2 line but are still experimental alpha scheduler surfaces.
 
@@ -47,7 +48,7 @@ Rationale:
 | --- | --- | --- | --- |
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
 | `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs. | Verify CI on exact tag commit; run local release checklist; prepare notes/checksums. |
-| `v0.3.0-alpha` | Preview-doc ready, implementation deferred | Adapter contracts, stub layout, and ROS 2 design are complete without core dependency pollution. | Add stable observer/exporter API and optional adapter targets before claiming adapter implementation readiness. |
+| `v0.3.0-alpha` | Preview-doc ready, partial observer API implemented | RuntimeObserver v1, adapter contracts, stub layout, and ROS 2 design are complete without core dependency pollution. | Add concrete exporter/adapter targets before claiming adapter implementation readiness. |
 | `v0.5.0-beta` | Not ready | ASAN+UBSAN and fuzz smoke exist; docs/examples are mature. | Blocking TSAN decision, coverage-guided fuzz/property tests, API/deprecation hardening, and external release artifact rehearsals. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
 

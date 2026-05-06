@@ -26,7 +26,7 @@ Release decision note:
 
 ```text
 Recommended next prerelease: v0.2.0-alpha.0.
-Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while observer/exporter APIs, coverage-guided fuzzing, and beta readiness remain explicit future work. Persistent worker-pool v1 and fixed-rate wall-clock cadence v1 are now part of the plan2 architecture-stabilization line and remain experimental.
+Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while exporter adapters, coverage-guided fuzzing, and beta readiness remain explicit future work. RuntimeObserver v1, persistent worker-pool v1, and fixed-rate wall-clock cadence v1 are now part of the plan2 architecture-stabilization line.
 Human release approval should still verify CI on the exact tag commit before creating the annotated tag.
 ```
 
@@ -78,7 +78,7 @@ Current branch limitations after the plan2 G37 health-event pass:
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
 - Async `policy.max_inflight` controls async edge admission; it is separate from optional task executors.
 - `TaskExecutor` remains deterministic by default with cooperative pending-task cancellation and post-return task-budget metrics; `ThreadedTaskExecutor` is now an opt-in bounded preview, not a default scheduler lane.
-- Metrics/trace/diagnostics exist, including invocation correlation/causation metadata and bounded observer-only health events, but stable observer/exporter APIs and metric/trace/health-event v2 contracts are not frozen yet.
+- Metrics/trace/diagnostics exist, including invocation correlation/causation metadata, bounded observer-only health events, and RuntimeObserver v1; exporter adapters and metric/trace/health-event v2 contracts are not frozen yet.
 - Deterministic fuzz smoke exists; coverage-guided fuzzing remains future work.
 - ThreadSanitizer remains non-blocking.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external Perfetto adapters remain deferred and must not be claimed as implemented.
