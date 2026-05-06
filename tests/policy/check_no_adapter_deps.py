@@ -202,6 +202,19 @@ def audit_cmake(root: Path) -> list[str]:
         if "find_package(prometheus" in cmake.lower() or "prometheus-cpp" in cmake.lower():
             violations.append("topoexec_adapters_prometheus preview must not find/link an external Prometheus SDK")
 
+    if "TOPOEXEC_BUILD_ROS2_ADAPTER" in cmake:
+        ros2_links = cmake_call_body(cmake, "target_link_libraries(topoexec_adapters_ros2")
+        if "topoexec_adapter_sdk" not in ros2_links:
+            violations.append("topoexec_adapters_ros2 must consume topoexec_adapter_sdk")
+        for token in ("topoexec_runtime", "topoexec_yaml", "CLI11", "YAML_CPP", "nlohmann_json"):
+            if token in ros2_links:
+                violations.append(f"topoexec_adapters_ros2 must not directly link {token}")
+        if "install(EXPORT topoexecAdapterTargets" not in cmake:
+            violations.append("topoexec_adapters_ros2 must export through topoexecAdapterTargets when enabled")
+        lowered_cmake = cmake.lower()
+        if "find_package(rclcpp" in lowered_cmake or "ament_" in lowered_cmake or "rosidl" in lowered_cmake:
+            violations.append("topoexec_adapters_ros2 preview must not find/link ROS 2 packages")
+
     yaml_links = cmake_call_body(cmake, "target_link_libraries(topoexec_yaml")
     if "topoexec_runtime" not in yaml_links:
         violations.append("topoexec_yaml must link topoexec_runtime")

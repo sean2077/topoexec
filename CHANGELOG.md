@@ -66,6 +66,11 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
   summaries, installed package metadata, downstream CMake smoke coverage, and
   policy checks proving runtime has no HTTP server or Prometheus library
   dependency.
+- Added the default-off `topoexec_adapters::ros2` adapter preview with
+  `TOPOEXEC_BUILD_ROS2_ADAPTER`, dependency-free topic/service/action endpoint
+  descriptors, adapter-side QoS mapping, fake boundary bridge tests, installed
+  package metadata, downstream CMake smoke coverage, and policy checks proving
+  runtime has no ROS package dependency.
 - Added release automation with `scripts/release_prepare.sh`, `./scripts/goal_check.sh release`, manual CI dry-run artifact upload, release notes draft generation, annotated-tag/no-retag guardrails, source/CPack/schema artifacts, and checksum output without publishing or tagging automatically.
 - Added the G69 robot-cell pilot app and case study, composing multiple lanes, async overload drops, state/delay feedback, BufferPool frames, config transactions/snapshots, metrics/trace evidence, and invalid-config rejection without adapter dependencies.
 - Added the G70 beta readiness review, beta-candidate gate checklist, explicit
@@ -77,7 +82,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added deterministic graph-input fuzz smoke coverage plus explicit ASAN/UBSAN/TSAN sanitizer build gates.
 - Added optional YAML/CLI/example CMake build switches, runtime-only option smoke coverage, and package-manager draft notes.
 - Added adapter-boundary preview contracts, dependency-free adapter stub notes, and a policy smoke for accidental core adapter SDK dependencies.
-- Added a deferred ROS 2 adapter design covering boundary mapping, QoS separation, executor interaction, lifecycle, diagnostics, and fake-boundary-first tests.
+- Added a ROS 2 adapter preview design covering boundary mapping, QoS separation, executor interaction, lifecycle, diagnostics, and fake-boundary-first tests.
 - Added release progression docs that map completed goals to prerelease stages and refresh the release checklist evidence.
 - Added optional deterministic `TaskExecutor`, `GraphContext::submit_task`, bounded task admission metrics, cancellation, and failure completions.
 - Added CompositeLoop internal failure accounting, `runtime.loop.error`, `loop_error` trace events, and docs for external-output commit isolation.
@@ -143,5 +148,5 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 - Threaded worker-pool scheduling is not implemented; use `event_loop` for runnable alpha graphs.
 - Async max-inflight policy is represented by bounded async channel capacity and overflow policy, not a dedicated worker-pool admission controller.
-- OpenTelemetry, Prometheus, ROS 2, Python, and Perfetto adapters are deferred until after beta core stabilization.
+- Production OpenTelemetry, Prometheus, ROS 2, Python, and Perfetto adapters are deferred until after beta core stabilization; current adapter targets are dependency-free previews only.
 - Sanitizer CI is planned but not yet wired.

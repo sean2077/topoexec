@@ -26,6 +26,10 @@ This document turns the plan's module-boundary rules into reviewable and testabl
   build with `TOPOEXEC_BUILD_PROMETHEUS_ADAPTER=ON`, installs it, and proves
   downstream `topoexec_adapters::prometheus` consumption without the CLI or an
   HTTP server.
+- `tests/cmake/ros2_adapter_options_smoke.cmake` configures a runtime-only
+  build with `TOPOEXEC_BUILD_ROS2_ADAPTER=ON`, installs it, and proves
+  downstream `topoexec_adapters::ros2` consumption without the CLI or ROS
+  packages.
 - `tests/policy/check_no_adapter_deps.py` audits installed headers, runtime source files, CLI includes, adapter tokens, private include paths, and CMake target links.
 - `policy_no_core_adapter_deps` verifies the current tree.
 - `policy_architecture_self_test` plants fake dependency violations and proves the policy checker catches them.
@@ -41,6 +45,7 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 | `topoexec_adapter_sdk` | `topoexec_runtime` | `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, concrete adapter SDKs |
 | `topoexec_adapters_otel` | `topoexec_adapter_sdk` | direct `topoexec_runtime`, `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, external telemetry SDKs |
 | `topoexec_adapters_prometheus` | `topoexec_adapter_sdk` | direct `topoexec_runtime`, `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, HTTP server libraries, external Prometheus SDKs |
+| `topoexec_adapters_ros2` | `topoexec_adapter_sdk` | direct `topoexec_runtime`, `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, ROS package discovery, ROS client libraries |
 | `topoexec_yaml` | `topoexec_runtime`, YAML parser privately, JSON privately | CLI target or adapter SDKs |
 | `topoexec_cli` | `topoexec_yaml`, CLI11/JSON privately | direct low-level runtime internals that duplicate compiler/runtime semantics |
 
@@ -60,7 +65,7 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 - Channel owns capacity, overflow, and backpressure accounting.
 - Metrics and trace are observation surfaces, not control flow.
 - Concrete adapter-specific dependencies must remain in docs or optional adapter
-  targets. The G58 OTel and G59 Prometheus previews remain dependency-free;
-  production telemetry SDKs/servers still require an explicit dependency
-  decision and focused boundary tests.
+  targets. The G58 OTel, G59 Prometheus, and G60 ROS 2 previews remain
+  dependency-free; production telemetry SDKs/servers or real ROS packages still
+  require an explicit dependency decision and focused boundary tests.
 - Any future policy exception must be documented here, justified in `CHANGELOG.md`, and protected by a focused test.

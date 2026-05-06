@@ -1936,6 +1936,17 @@ Priority: P2/P3
 - TopoExec remains useful outside ROS.
 - ROS adapter demonstrates boundary mapping without corrupting core semantics.
 
+### Implementation note (2026-05-06)
+
+G60 landed as a dependency-free fake-boundary preview, not a real ROS package.
+`topoexec_adapters::ros2` and `topoexec/adapters/ros2.hpp` provide adapter-side
+endpoint descriptors for topics, services, and actions, bounded fake boundary
+injection/publication, QoS preview config outside `BoundaryMessage` and schema
+v1, installed package metadata, downstream CMake smoke, and policy checks that
+reject ROS package discovery. Real client-library packages, `colcon` builds,
+message bindings, nodes, executors, and minimal topic examples remain future
+optional integration scope.
+
 ---
 
 ## G61. C API / FFI Design
@@ -2360,7 +2371,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G42, G60-G65, or G68.
+  and hidden deferral of G42, G61-G65, or G68.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2427,7 +2438,7 @@ Priority: P0 before beta
 35. G57 Adapter SDK v0
 36. G58 OpenTelemetry Exporter Preview（complete）
 37. G59 Prometheus Exporter Preview（complete）
-38. G60 ROS 2 Adapter Preview
+38. G60 ROS 2 Adapter Preview（complete）
 39. G61 C API / FFI Design
 40. G62 Python Binding Preview
 41. G63 Dynamic Plugin Loading Preview

@@ -57,6 +57,8 @@ The installed package exports:
   target when `TOPOEXEC_BUILD_OTEL_ADAPTER=ON`.
 - `topoexec_adapters::prometheus`: optional dependency-free Prometheus text
   exporter preview target when `TOPOEXEC_BUILD_PROMETHEUS_ADAPTER=ON`.
+- `topoexec_adapters::ros2`: optional dependency-free ROS 2 fake-boundary
+  preview target when `TOPOEXEC_BUILD_ROS2_ADAPTER=ON`.
 
 The CLI executable is installed as `bin/topoexec` when `TOPOEXEC_BUILD_CLI=ON`.
 The installed config also exposes package metadata variables:
@@ -68,6 +70,7 @@ The installed config also exposes package metadata variables:
 - `TOPOEXEC_HAS_ADAPTER_SDK`
 - `TOPOEXEC_HAS_OTEL_ADAPTER`
 - `TOPOEXEC_HAS_PROMETHEUS_ADAPTER`
+- `TOPOEXEC_HAS_ROS2_ADAPTER`
 - `TOPOEXEC_HAS_YAML`
 - `TOPOEXEC_HAS_CLI`
 - `TOPOEXEC_HAS_EXAMPLES`
@@ -83,6 +86,7 @@ The installed config also exposes package metadata variables:
 | `TOPOEXEC_BUILD_FUZZERS` | `OFF` | Build optional graph-input fuzz targets; requires YAML. |
 | `TOPOEXEC_BUILD_OTEL_ADAPTER` | `OFF` | Build and export the optional dependency-free OTel exporter preview target. |
 | `TOPOEXEC_BUILD_PROMETHEUS_ADAPTER` | `OFF` | Build and export the optional dependency-free Prometheus text exporter preview target. |
+| `TOPOEXEC_BUILD_ROS2_ADAPTER` | `OFF` | Build and export the optional dependency-free ROS 2 fake-boundary preview target. |
 | `TOPOEXEC_FUZZER_ENGINE` | `AUTO` | Fuzzer engine when fuzzers are enabled: `AUTO`, `LIBFUZZER`, or `STANDALONE`. |
 | `TOPOEXEC_ENABLE_ASAN` | `OFF` | Add AddressSanitizer instrumentation for GCC/Clang builds. |
 | `TOPOEXEC_ENABLE_UBSAN` | `OFF` | Add UndefinedBehaviorSanitizer instrumentation for GCC/Clang builds. |
@@ -143,6 +147,28 @@ target_link_libraries(my_exporter PRIVATE topoexec_adapters::prometheus)
 This preview target renders runtime metric descriptors and custom histogram
 summaries as text exposition. It does not start an HTTP server or link a
 Prometheus library and is covered by `cmake_prometheus_adapter_options_smoke`.
+
+Optional ROS 2 preview target:
+
+```bash
+cmake -S . -B build-ros2 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DTOPOEXEC_BUILD_ROS2_ADAPTER=ON
+cmake --build build-ros2 -j
+ctest --test-dir build-ros2 --output-on-failure -R test_ros2_adapter
+```
+
+Installed consumers request the optional package component and link the adapter
+namespace target:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED COMPONENTS ros2)
+target_link_libraries(my_ros_adapter PRIVATE topoexec_adapters::ros2)
+```
+
+This preview target maps topics, services, actions, and QoS into adapter-owned
+endpoint descriptors and fake boundary bridges. It does not link ROS packages,
+create nodes/executors, or add schema fields, and is covered by
+`cmake_ros2_adapter_options_smoke`.
 
 Optional fuzzer smoke:
 

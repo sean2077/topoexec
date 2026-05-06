@@ -6,9 +6,9 @@ This file is the human-readable entry point for continuing `docs/plans/plan2.md`
 
 Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/status.md` as the current ledger.
 
-Current safe order after the completed P0/P1 queue plus G35/G41/G42/G45/G58/G59:
+Current safe order after the completed P0/P1 queue plus G35/G41/G42/G45/G58/G59/G60:
 
-1. G60-G65 adapter/interface/ecosystem preview goals only after the core/API
+1. G61-G65 adapter/interface/ecosystem preview goals only after the core/API
    boundary remains clean for the chosen slice.
 2. G68 Community and Contribution Readiness.
 

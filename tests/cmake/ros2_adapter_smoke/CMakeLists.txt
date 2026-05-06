@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.20)
+project(topoexec_ros2_adapter_smoke LANGUAGES CXX)
+
+find_package(topoexec CONFIG REQUIRED COMPONENTS ros2)
+
+if(NOT TOPOEXEC_HAS_RUNTIME)
+  message(FATAL_ERROR "Installed package did not report TOPOEXEC_HAS_RUNTIME")
+endif()
+if(NOT TOPOEXEC_HAS_ADAPTER_SDK)
+  message(FATAL_ERROR "Installed package did not report TOPOEXEC_HAS_ADAPTER_SDK")
+endif()
+if(NOT TOPOEXEC_HAS_ROS2_ADAPTER)
+  message(FATAL_ERROR "Installed package did not report TOPOEXEC_HAS_ROS2_ADAPTER")
+endif()
+if(NOT TARGET topoexec_adapters::ros2)
+  message(FATAL_ERROR "Installed package did not export topoexec_adapters::ros2")
+endif()
+
+add_executable(topoexec_ros2_adapter_smoke main.cpp)
+target_link_libraries(topoexec_ros2_adapter_smoke PRIVATE topoexec_adapters::ros2)

@@ -144,7 +144,7 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - Benchmark schema v2 and local baseline generation exist, but global timing
   thresholds remain intentionally absent; use only opt-in per-machine
   comparisons.
-- ROS 2, production OpenTelemetry/Prometheus, Python, C API, dynamic plugin
+- Production ROS 2 packages, production OpenTelemetry/Prometheus, Python, C API, dynamic plugin
   loading, and external Perfetto adapters remain deferred.
 - Package-manager recipes under `packaging/` are drafts, not published ports.
 - `scripts/release_prepare.sh` can generate local candidate artifacts and
@@ -156,7 +156,7 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
   not implement arbitrary expressions, includes, conditionals, loops, or runtime
   template interpretation.
 - G57 Adapter SDK v0 is a dependency-free boundary and G58/G59 telemetry targets
-  are only mapping/text previews; concrete ROS 2, production OTel/Prometheus,
+  are only mapping/text previews, and G60 is only a fake-boundary preview; concrete ROS 2 client-library packages, production OTel/Prometheus,
   Python, Perfetto, C API, and plugin adapters remain deferred.
 - G69 robot-cell pilot is a dependency-free in-process case study; it is not a
   hardware driver, ROS graph, camera SDK integration, exporter integration, or

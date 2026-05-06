@@ -2,8 +2,9 @@
 
 TopoExec examples are intentionally small and dependency-free. They teach the
 core runtime contracts without implying that adapter packages, dynamic plugin
-loaders, ROS 2, production OpenTelemetry/Prometheus, or Python bindings are
-implemented. The G58/G59 telemetry targets are dependency-free mapping previews,
+loaders, production ROS 2 packages, production OpenTelemetry/Prometheus, or
+Python bindings are implemented. The G58/G59 telemetry targets and G60 ROS 2
+target are dependency-free previews,
 not example app dependencies.
 
 Use this page as the learning path after the README quickstart.
@@ -58,8 +59,8 @@ component factories through `topoexec::ComponentRegistry`.
 ## Reference applications v2
 
 G56 adds closer-to-real application slices while preserving the project boundary:
-all apps are dependency-free C++20 examples and no ROS 2, OpenTelemetry,
-Prometheus, Python, external Perfetto, or shared-memory middleware adapter is
+all apps are dependency-free C++20 examples and no production ROS 2,
+OpenTelemetry, Prometheus, Python, external Perfetto, or shared-memory middleware adapter is
 implemented.
 
 Run the focused smoke set:

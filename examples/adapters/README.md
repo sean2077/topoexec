@@ -1,10 +1,11 @@
 # Adapter Stub Examples
 
 This directory is a preview layout only. Files here are not built, do not include
-external SDK headers, and do not implement ROS, production OpenTelemetry,
-Prometheus, Perfetto, Python, C API, or dynamic plugin loading. The built G58
-OTel and G59 Prometheus previews live under `include/topoexec/adapters/` and
-remain dependency-free mapping targets, not network exporters or scrape servers.
+external SDK headers, and do not implement production ROS, production
+OpenTelemetry, Prometheus, Perfetto, Python, C API, or dynamic plugin loading.
+The built G58 OTel, G59 Prometheus, and G60 ROS 2 previews live under
+`include/topoexec/adapters/` and remain dependency-free mapping/fake-boundary
+targets, not network exporters, scrape servers, or ROS client-library packages.
 
 Use these notes to keep future adapter work outside `topoexec::runtime`.
 
@@ -34,7 +35,8 @@ The exporter reads metrics/trace/errors from `RuntimeRunnerResult`. Export
 failure should be adapter health, not a runtime scheduling decision.
 For a compileable dependency-free version of this pattern, see
 `topoexec::adapters::otel::ExporterPreview` and
-`topoexec::adapters::prometheus::TextExporterPreview`.
+`topoexec::adapters::prometheus::TextExporterPreview`, and
+`topoexec::adapters::ros2::FakeRos2BoundaryBridge`.
 
 ## Plugin registry sketch
 

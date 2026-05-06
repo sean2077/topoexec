@@ -12,6 +12,7 @@ option(TOPOEXEC_BUILD_EXAMPLES "Build runnable example applications" ON)
 option(TOPOEXEC_BUILD_FUZZERS "Build optional graph input fuzz targets" OFF)
 option(TOPOEXEC_BUILD_OTEL_ADAPTER "Build optional OTel exporter preview target" OFF)
 option(TOPOEXEC_BUILD_PROMETHEUS_ADAPTER "Build optional Prometheus text exporter preview target" OFF)
+option(TOPOEXEC_BUILD_ROS2_ADAPTER "Build optional dependency-free ROS 2 adapter preview target" OFF)
 set(TOPOEXEC_FUZZER_ENGINE "AUTO" CACHE STRING "Fuzzer engine: AUTO, LIBFUZZER, or STANDALONE")
 set_property(CACHE TOPOEXEC_FUZZER_ENGINE PROPERTY STRINGS AUTO LIBFUZZER STANDALONE)
 option(TOPOEXEC_ENABLE_ASAN "Build TopoExec with AddressSanitizer instrumentation" OFF)
@@ -155,6 +156,15 @@ if(TOPOEXEC_BUILD_PROMETHEUS_ADAPTER)
   add_library(topoexec_adapters::prometheus ALIAS topoexec_adapters_prometheus)
 endif()
 
+if(TOPOEXEC_BUILD_ROS2_ADAPTER)
+  add_library(topoexec_adapters_ros2 INTERFACE)
+  set_target_properties(topoexec_adapters_ros2 PROPERTIES
+    EXPORT_NAME ros2
+  )
+  target_link_libraries(topoexec_adapters_ros2 INTERFACE topoexec_adapter_sdk)
+  add_library(topoexec_adapters::ros2 ALIAS topoexec_adapters_ros2)
+endif()
+
 set(TOPOEXEC_INSTALL_TARGETS topoexec_core topoexec_runtime topoexec_adapter_sdk)
 set(TOPOEXEC_ADAPTER_INSTALL_TARGETS)
 if(TOPOEXEC_BUILD_OTEL_ADAPTER)
@@ -162,6 +172,9 @@ if(TOPOEXEC_BUILD_OTEL_ADAPTER)
 endif()
 if(TOPOEXEC_BUILD_PROMETHEUS_ADAPTER)
   list(APPEND TOPOEXEC_ADAPTER_INSTALL_TARGETS topoexec_adapters_prometheus)
+endif()
+if(TOPOEXEC_BUILD_ROS2_ADAPTER)
+  list(APPEND TOPOEXEC_ADAPTER_INSTALL_TARGETS topoexec_adapters_ros2)
 endif()
 
 if(TOPOEXEC_BUILD_YAML)
@@ -367,6 +380,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     add_executable(test_prometheus_adapter tests/test_prometheus_adapter.cpp)
     target_link_libraries(test_prometheus_adapter PRIVATE topoexec_adapters_prometheus GTest::gtest_main)
     add_test(NAME test_prometheus_adapter COMMAND test_prometheus_adapter)
+  endif()
+
+  if(TOPOEXEC_BUILD_ROS2_ADAPTER)
+    add_executable(test_ros2_adapter tests/test_ros2_adapter.cpp)
+    target_link_libraries(test_ros2_adapter PRIVATE topoexec_adapters_ros2 GTest::gtest_main)
+    add_test(NAME test_ros2_adapter COMMAND test_ros2_adapter)
   endif()
 
   add_executable(topoexec_bench_task_executor benchmarks/task_executor.cpp)
@@ -626,6 +645,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
       -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/prometheus_adapter_options_smoke.cmake
+  )
+  add_test(NAME cmake_ros2_adapter_options_smoke
+    COMMAND ${CMAKE_COMMAND}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/ros2_adapter_options_smoke.cmake
   )
   add_test(NAME cmake_cpack_smoke
     COMMAND ${CMAKE_COMMAND}

@@ -1,12 +1,25 @@
-# ROS 2 Adapter Plan
+# ROS 2 Adapter Preview
 
-This is a deferred design for a future optional ROS 2 adapter. It is not an
-implementation plan for the core runtime, and it must not introduce ROS symbols
-or dependencies into `topoexec::runtime`.
+G60 adds a dependency-free ROS 2 boundary-mapping preview. It proves that a
+future ROS package can embed TopoExec as an in-process semantic runtime while the
+core remains a normal C++ package with no ROS client-library dependency.
+
+## Status
+
+- Target: `topoexec_adapters::ros2`
+- Header: `topoexec/adapters/ros2.hpp`
+- Build option: `TOPOEXEC_BUILD_ROS2_ADAPTER=ON`
+- Package metadata: `TOPOEXEC_HAS_ROS2_ADAPTER`
+- Contract version: `topoexec::adapters::ros2::kRos2AdapterPreviewContractVersion`
+- Default build: off
+
+This is a fake-boundary preview, not a real ROS package. It does not create
+nodes, executors, publishers, subscriptions, messages, actions, or services. It
+does not call `colcon`, generate message bindings, or link any ROS libraries.
 
 ## Target model
 
-A future adapter package can run one TopoExec graph inside one ROS 2 process or
+A future adapter package can run one TopoExec graph inside one ROS process or
 node-like adapter host:
 
 ```text
@@ -22,32 +35,56 @@ TopoExec boundary component -- internal TopoExec graph -- boundary component
 adapter-owned publisher/service/action response bridge
 ```
 
-Internal components should not need an `rclcpp::Node`. Components receive
+Internal components should not need a ROS node handle. Components receive
 TopoExec payloads and config snapshots through normal runtime APIs.
+
+## Preview API
+
+The preview exposes adapter-side endpoint descriptors and a fake bridge:
+
+```cpp
+#include "topoexec/adapters/ros2.hpp"
+
+topoexec::adapters::ros2::BoundaryEndpoint endpoint;
+endpoint.kind = topoexec::adapters::ros2::EndpointKind::kSubscription;
+endpoint.external_name = "/camera";
+endpoint.boundary_id = "camera_in";
+endpoint.port = "out";
+endpoint.qos.depth = 2; // adapter config, not core schema
+
+topoexec::adapters::ros2::FakeRos2BoundaryBridge bridge({endpoint}, 8);
+bridge.receive(endpoint, topoexec::make_shared_payload(topoexec::make_text_payload("frame")));
+```
+
+The fake bridge implements `topoexec::adapters::BoundaryBridge` so tests can
+exercise boundary injection and output publication without ROS runtime state.
+`validate_boundary_mapping(...)` checks that inbound endpoints map to input
+boundary components and outbound endpoints map to output boundary components.
 
 ## Boundary mapping
 
-| ROS concept | Adapter responsibility | TopoExec core responsibility |
-| --- | --- | --- |
-| Subscription | Deserialize message, create payload, publish to input boundary. | Route payload through declared edge/trigger policy. |
-| Publisher | Consume boundary output payload and serialize message. | Produce output at the declared boundary component. |
-| Service request | Assign adapter correlation id, publish request payload. | Use request/task-ready/async semantics internally. |
-| Service response | Match correlation id and publish response through adapter. | Expose boundary output payload and runtime trace/metrics. |
-| Action | Split goal, feedback, result, and cancel into adapter-owned boundary flows. | Keep internal graph semantics independent of ROS action state machine. |
-| Parameters | Translate selected ROS parameters into graph config update events. | Apply config snapshots at epoch boundaries. |
+| ROS concept | Preview endpoint kind | Adapter responsibility | TopoExec core responsibility |
+| --- | --- | --- | --- |
+| Subscription | `kSubscription` | Deserialize message, create payload, enqueue boundary input. | Route payload through declared edge/trigger policy. |
+| Publisher | `kPublisher` | Consume boundary output payload and serialize message. | Produce output at the declared boundary component. |
+| Service request | `kServiceRequest` | Assign adapter correlation id and enqueue request payload. | Use request/task-ready/async semantics internally. |
+| Service response | `kServiceResponse` | Match correlation id and send response through adapter. | Expose boundary output payload and runtime trace/metrics. |
+| Action goal/cancel | `kActionGoal`, `kActionCancel` | Split action state into adapter-owned boundary flows. | Keep graph semantics independent of ROS action state machines. |
+| Action feedback/result | `kActionFeedback`, `kActionResult` | Publish feedback/result from boundary outputs. | Produce payloads and correlation metadata through normal runtime APIs. |
+| Parameters | Future adapter policy | Translate selected parameters into graph config update events. | Apply config snapshots at epoch boundaries. |
 
 Use `ComponentNodeSpec.boundary` descriptors to identify graph boundary nodes.
 Do not add ROS topic names or QoS fields to schema v1.
 
 ## QoS mapping
 
-ROS QoS belongs at the ROS boundary only. Internal TopoExec channel policy stays
-TopoExec-owned:
+ROS QoS belongs at the adapter boundary only. Internal TopoExec channel policy
+stays TopoExec-owned:
 
 - ROS reliability/durability/deadline/lifespan configure the adapter transport.
 - TopoExec `EdgePolicy` capacity/overflow/lifespan/deadline configure internal
   graph behavior.
-- Mapping can be documented per boundary descriptor, but it must not silently
+- Mapping can be documented per `BoundaryEndpoint`, but it must not silently
   rewrite internal `EdgePolicy`.
 
 If a ROS deadline miss occurs before payload injection, report adapter health and
@@ -58,7 +95,8 @@ internal payload, report runtime channel metrics. Do not merge the two concepts.
 
 Initial design should avoid depending on a particular ROS executor strategy:
 
-1. Adapter callbacks enqueue boundary input events into an adapter-owned buffer.
+1. Adapter callbacks enqueue boundary input events into an adapter-owned bounded
+   queue.
 2. A TopoExec runtime tick drains bounded inputs according to graph policy.
 3. Boundary output events are handed back to adapter-owned publishers/responders.
 4. Shutdown coordinates adapter callback stop, runtime stop, and reverse
@@ -133,23 +171,27 @@ A ROS 2 adapter can consume existing surfaces:
 ROS diagnostics should reference TopoExec component/edge ids so users can map
 issues back to graph definitions.
 
-## Fake-boundary-first tests
+## Validation
 
-Before any ROS dependency is introduced, design tests with fake boundary bridges:
+G60 coverage:
 
-1. Fake subscription injects payloads into a boundary descriptor.
-2. Runtime graph processes the payload through normal edge/trigger semantics.
-3. Fake publisher records boundary output payloads.
-4. QoS-like adapter drops are simulated outside the graph and reported as adapter
-   health.
-5. Internal TopoExec deadline/overflow drops are reported through runtime metrics.
+- `test_ros2_adapter` validates topic/service/action endpoint mapping, inbound
+  and outbound boundary-role checks, fake subscription injection, fake publisher
+  output capture, adapter-side correlation metadata, and QoS remaining outside
+  `BoundaryMessage`/core schema fields.
+- `cmake_ros2_adapter_options_smoke` configures a runtime-only build with
+  `TOPOEXEC_BUILD_ROS2_ADAPTER=ON`, installs it, and verifies a downstream
+  `find_package(topoexec COMPONENTS ros2)` consumer links
+  `topoexec_adapters::ros2`.
+- `policy_no_core_adapter_deps` keeps runtime/core free of adapter dependencies
+  and rejects accidental ROS package discovery in the preview target.
 
 Only after fake-boundary tests pass should a separate ROS package prototype one
 input topic and one output topic. Actions/services should remain later work.
 
 ## Non-goals for core
 
-- No `rclcpp` include or link dependency in core targets.
+- No ROS client-library include or link dependency in core targets.
 - No ROS executor assumptions in scheduler lanes.
 - No ROS QoS fields in schema v1.
 - No component requirement to own or receive a ROS node handle.

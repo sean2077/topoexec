@@ -128,7 +128,7 @@ evidence and must keep deferred adapter/ecosystem surfaces explicit.
 Use [release-progression.md](release-progression.md) to decide whether the next
 tag is a `v0.1.x` stabilization alpha, `v0.2.0-alpha` runtime-completeness alpha,
 or a later preview. Release stage names must reflect implemented behavior, not
-only design docs. Adapter implementation tags should not be claimed while ROS 2,
-production OpenTelemetry/Prometheus, Python, C API, dynamic plugin loading, and
-external Perfetto integrations remain docs-only/deferred. G58/G59 telemetry
-targets are only dependency-free mapping/text previews.
+only design docs. Adapter implementation tags should not be claimed while real ROS 2
+client-library packages, production OpenTelemetry/Prometheus, Python, C API,
+dynamic plugin loading, and external Perfetto integrations remain docs-only/deferred. G58/G59 telemetry
+targets and the G60 ROS 2 target are only dependency-free previews.
