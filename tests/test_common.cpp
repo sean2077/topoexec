@@ -33,9 +33,8 @@ TEST(Common, StructuredLoggerStoresJsonSerializableRecords) {
 
   EXPECT_TRUE(logger.log_once(topoexec::LogLevel::kInfo, "boot", "started", "runtime"));
   EXPECT_FALSE(logger.log_once(topoexec::LogLevel::kInfo, "boot", "started", "runtime"));
-  {
-    topoexec::ScopeTimer timer(logger, "scope");
-  }
+  auto record_scope = [&logger]() { topoexec::ScopeTimer timer(logger, "scope"); };
+  record_scope();
 
   const auto records = sink.records();
   ASSERT_GE(records.size(), 2u);
