@@ -1061,6 +1061,13 @@ Priority: P1/P2
 - Components can be long-lived stateful modules with controlled reset.
 - Snapshot/restore does not violate transaction semantics.
 
+Implementation note: G43 keeps the first lifecycle-v2 runtime integration
+boundary-driven rather than live-control driven. `Component` now exposes
+experimental reset, pause/resume, snapshot, and restore hooks; `RuntimeRunner`
+can restore snapshots and reset selected components after activation and before
+the scheduler starts, then optionally capture snapshots after execution and
+before deactivation. Pause/resume scheduling policy remains deferred.
+
 ---
 
 ## G44. Config Hot Reload Transaction

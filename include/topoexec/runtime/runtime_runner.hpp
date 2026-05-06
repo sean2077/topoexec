@@ -31,6 +31,9 @@ struct RuntimeRunnerOptions {
   std::chrono::milliseconds pending_task_cleanup_timeout{1000};
   bool emit_health_events{true};
   std::size_t health_event_capacity{kDefaultHealthEventCapacity};
+  std::vector<std::string> reset_component_ids;
+  std::map<std::string, ComponentStateSnapshot> restore_component_states;
+  bool capture_component_state_snapshots{false};
 };
 
 struct RuntimeTraceEvent {
@@ -87,6 +90,13 @@ struct RuntimeRunnerResult {
   std::size_t loop_error_count{0};
   std::size_t loop_cancellation_requested_count{0};
   std::size_t loop_cancellation_observed_count{0};
+  std::size_t lifecycle_reset_count{0};
+  std::size_t lifecycle_reset_failure_count{0};
+  std::size_t lifecycle_restore_count{0};
+  std::size_t lifecycle_restore_failure_count{0};
+  std::size_t lifecycle_snapshot_count{0};
+  std::size_t lifecycle_snapshot_failure_count{0};
+  std::size_t lifecycle_snapshot_bytes{0};
   SchedulerStopReason scheduler_stop_reason{SchedulerStopReason::kNotStarted};
   std::vector<std::string> ticked_components;
   std::vector<std::string> trace_events;
@@ -95,6 +105,7 @@ struct RuntimeRunnerResult {
   std::vector<RuntimeMetricSample> runtime_metrics;
   std::vector<RuntimeError> runtime_errors;
   std::vector<std::string> errors;
+  std::map<std::string, ComponentStateSnapshot> component_state_snapshots;
 };
 
 std::string to_string(RuntimeRunMode mode);

@@ -134,6 +134,16 @@ State/config snapshots:
 - `runtime.config.rejected_update_count`: rejected config updates.
 - `runtime.config.snapshot_read_count`: graph/component config snapshot reads.
 
+Component lifecycle:
+
+- `runtime.lifecycle.reset_count`: component reset hooks completed at the start epoch boundary.
+- `runtime.lifecycle.reset_failure_count`: reset hooks rejected or threw before scheduler execution.
+- `runtime.lifecycle.restore_count`: component state snapshots restored before execution.
+- `runtime.lifecycle.restore_failure_count`: restore requests rejected by component id, type, version, or payload validation.
+- `runtime.lifecycle.snapshot_count`: component state snapshots captured after scheduler execution.
+- `runtime.lifecycle.snapshot_failure_count`: snapshot capture failures reported after execution.
+- `runtime.lifecycle.snapshot_size_bytes`: total byte size reported or estimated for captured component snapshots.
+
 Trace:
 
 - `runtime.trace.event_count`: structured trace events emitted during the run.

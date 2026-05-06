@@ -35,7 +35,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G40 | P1 | complete | Graph Compiler v2: Typed Ports and Constraints | Descriptor-backed typed ports now validate schema/payload-type compatibility, required/optional inputs, input multiplicity, boundary role compatibility, and state-edge target type compatibility without adding schema v1 YAML port fields. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_graph|test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G41 | P2 | pending | Hierarchical Graph / Subgraph Design | 支持复杂应用的层次化组织，但不要过早引入复杂 runtime nesting。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G42 | P2/P3 | pending | Graph Templates and Reusable Patterns | 为常见 patterns 提供可复用 graph snippets，而不是复制 YAML。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
-| G43 | P1/P2 | pending | Component Lifecycle v2: Reset, Snapshot, Restore | 支持真实应用中组件重置、状态快照和恢复，不只是 configure/activate/deactivate。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G43 | P1/P2 | complete | Component Lifecycle v2: Reset, Snapshot, Restore | Experimental component reset/snapshot/restore hooks, start-epoch restore/reset runner options, post-run snapshot capture, lifecycle metrics/trace, version validation, and cleanup-on-failure tests are complete while pause/resume runtime policy remains deferred. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G44 | P1/P2 | pending | Config Hot Reload Transaction | 让 graph-level config 和 component config 支持安全热更新。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G45 | P2 | pending | CompositeLoop v2: Solver-Style Policies | 将 CompositeLoop 从 fixed-point MVP 推进为可用于优化/迭代算法的 region runtime。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G46 | P0/P1 | pending | Runtime Observer API v1 | 在不引入 OTel/Prometheus/Perfetto 依赖的情况下，建立稳定 observer contract。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G43 Component Lifecycle v2: Reset, Snapshot, Restore is the next unfinished mixed P1/P2 goal in backlog order after G40; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
+G44 Config Hot Reload Transaction is the next unfinished mixed P1/P2 goal after G43; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Blockers
 

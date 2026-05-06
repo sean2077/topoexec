@@ -11,6 +11,7 @@
 #include "topoexec/runtime/task_executor.hpp"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -41,6 +42,13 @@ struct InvocationMetadata {
   std::string source_component;
   std::string source_port;
   std::string trigger_kind;
+};
+
+struct ComponentStateSnapshot {
+  std::string component_type;
+  std::string version;
+  RuntimePayloadPtr payload;
+  std::size_t size_bytes{0};
 };
 
 class GraphOutputPublisher {
@@ -277,6 +285,14 @@ public:
   virtual Status activate_status();
   virtual Status deactivate_status();
   virtual Status execute_status(const Invocation& invocation, GraphContext& ctx);
+  virtual void reset(GraphContext& ctx);
+  virtual void pause();
+  virtual void resume();
+  virtual Status reset_status(GraphContext& ctx);
+  virtual Status pause_status();
+  virtual Status resume_status();
+  virtual Result<ComponentStateSnapshot> snapshot_state() const;
+  virtual Status restore_state(const ComponentStateSnapshot& snapshot);
 };
 
 struct TickContext {

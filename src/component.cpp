@@ -145,6 +145,12 @@ void Component::execute(const Invocation&, GraphContext&) {
   throw std::logic_error("component does not implement execute");
 }
 
+void Component::reset(GraphContext&) {}
+
+void Component::pause() {}
+
+void Component::resume() {}
+
 Status Component::configure_status(GraphContext& ctx, const ConfigView& config) {
   try {
     configure(ctx, config);
@@ -172,6 +178,33 @@ Status Component::deactivate_status() {
   }
 }
 
+Status Component::reset_status(GraphContext& ctx) {
+  try {
+    reset(ctx);
+    return Status::success();
+  } catch (const std::exception& error) {
+    return Status::error(error.what());
+  }
+}
+
+Status Component::pause_status() {
+  try {
+    pause();
+    return Status::success();
+  } catch (const std::exception& error) {
+    return Status::error(error.what());
+  }
+}
+
+Status Component::resume_status() {
+  try {
+    resume();
+    return Status::success();
+  } catch (const std::exception& error) {
+    return Status::error(error.what());
+  }
+}
+
 Status Component::execute_status(const Invocation& invocation, GraphContext& ctx) {
   try {
     execute(invocation, ctx);
@@ -179,6 +212,17 @@ Status Component::execute_status(const Invocation& invocation, GraphContext& ctx
   } catch (const std::exception& error) {
     return Status::error(error.what());
   }
+}
+
+Result<ComponentStateSnapshot> Component::snapshot_state() const {
+  return ComponentStateSnapshot{};
+}
+
+Status Component::restore_state(const ComponentStateSnapshot& snapshot) {
+  if (snapshot.payload == nullptr && snapshot.version.empty()) {
+    return Status::success();
+  }
+  return Status::error("component does not implement restore_state");
 }
 
 } // namespace topoexec

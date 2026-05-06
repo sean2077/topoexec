@@ -48,7 +48,9 @@ topoexec::Status execute_status(const topoexec::Invocation& invocation,
 }
 ```
 
-`RuntimeRunnerResult::errors` records configure, activate, execute, and deactivate failures with component ids. Started components are deactivated on stop and component error paths.
+`RuntimeRunnerResult::errors` records configure, activate, restore, reset,
+execute, snapshot, and deactivate failures with component ids. Started
+components are deactivated on stop and component error paths.
 
 ## Payload Access
 

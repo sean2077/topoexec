@@ -65,7 +65,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 
 | Surface | Stability | Compatibility expectation |
 | --- | --- | --- |
-| `Component::configure/activate/execute/deactivate` plus status variants | stable-v0.2 | New hooks may be added, but existing hook meanings should not silently change. |
+| `Component::configure/activate/execute/deactivate` plus status variants | stable-v0.2 | Existing hook meanings should not silently change. G43 reset/pause/resume/snapshot/restore hooks are additive and experimental until lifecycle policy is stable. |
 | `GraphContext::publish()` and `publish_shared()` | stable-v0.2 | Publication remains staged/routed by runtime; no direct downstream calls. |
 | `Invocation`, `InvocationMetadata`, `InputView`, typed payload helpers | stable-v0.2 | Existing payload lookup and typed access behavior should remain source-compatible; metadata fields are additive trace/debug context and `Invocation::cancel_requested()` is cooperative. |
 | `CancellationToken` / `CancellationSource` | stable-v0.2 | Cancellation requests are observable by components, tasks, and loops; observation is metric/trace evidence, not forced termination. |
@@ -74,7 +74,8 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `validate_graph`, `compile_graph`, `GraphDiagnostic` | stable-v0.2 | New diagnostics may be added; existing codes should keep meanings. |
 | `RuntimeRunner::run()` and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, trace vectors, metric vectors, health event vectors, and error fields should keep meanings. |
 | `SchedulerStopSource`/`SchedulerStopToken` | stable-v0.2 through runner options | Direct scheduler registry/metrics internals remain experimental. |
-| `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | Snapshot/config transaction APIs may be reshaped by G43/G44. |
+| `ComponentStateSnapshot`, reset/snapshot/restore runner options/results | experimental | Stateful lifecycle support is start/end-boundary only; pause/resume policy and hot live control may change before beta. |
+| `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | Snapshot/config transaction APIs may be reshaped by G44. |
 | `ITaskExecutor`, `DeterministicTaskExecutor`, `TaskExecutor`, `ThreadedTaskExecutor` | experimental | The deterministic compatibility name remains available; threaded executor preview shutdown/admission details may change before beta. |
 | `RuntimeChannelBus`, `RuntimePublicationRouter`, `TriggerPolicyEngine`, `EventRuntime` | experimental | Advanced runtime internals may change as scheduler/channel/trigger v2 goals land. |
 

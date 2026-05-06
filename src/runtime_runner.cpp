@@ -11,6 +11,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <string_view>
 #include <utility>
@@ -113,6 +114,52 @@ std::uint64_t non_negative_duration_ns(std::chrono::steady_clock::duration durat
   return count < 0 ? 0u : static_cast<std::uint64_t>(count);
 }
 
+std::size_t snapshot_size_bytes(const ComponentStateSnapshot& snapshot) {
+  if (snapshot.size_bytes != 0u) {
+    return snapshot.size_bytes;
+  }
+  if (snapshot.payload == nullptr) {
+    return 0u;
+  }
+  return describe_payload_schema(*snapshot.payload).size_estimate;
+}
+
+void record_runner_trace_event(TraceCollector& trace, const std::string& name,
+                               std::map<std::string, std::string> attributes) {
+  const auto now = std::chrono::steady_clock::now();
+  trace.add(SpanRecord{TraceId::generate(), name, now, now, std::move(attributes)});
+}
+
+void append_lifecycle_metrics(RuntimeRunnerResult& result) {
+  if (result.lifecycle_reset_count != 0u) {
+    append_runtime_metric(result, "runtime.lifecycle.reset_count", static_cast<double>(result.lifecycle_reset_count));
+  }
+  if (result.lifecycle_reset_failure_count != 0u) {
+    append_runtime_metric(result, "runtime.lifecycle.reset_failure_count",
+                          static_cast<double>(result.lifecycle_reset_failure_count));
+  }
+  if (result.lifecycle_restore_count != 0u) {
+    append_runtime_metric(result, "runtime.lifecycle.restore_count",
+                          static_cast<double>(result.lifecycle_restore_count));
+  }
+  if (result.lifecycle_restore_failure_count != 0u) {
+    append_runtime_metric(result, "runtime.lifecycle.restore_failure_count",
+                          static_cast<double>(result.lifecycle_restore_failure_count));
+  }
+  if (result.lifecycle_snapshot_count != 0u) {
+    append_runtime_metric(result, "runtime.lifecycle.snapshot_count",
+                          static_cast<double>(result.lifecycle_snapshot_count));
+  }
+  if (result.lifecycle_snapshot_failure_count != 0u) {
+    append_runtime_metric(result, "runtime.lifecycle.snapshot_failure_count",
+                          static_cast<double>(result.lifecycle_snapshot_failure_count));
+  }
+  if (result.lifecycle_snapshot_bytes != 0u) {
+    append_runtime_metric(result, "runtime.lifecycle.snapshot_size_bytes",
+                          static_cast<double>(result.lifecycle_snapshot_bytes));
+  }
+}
+
 std::optional<bool> parse_config_bool(const ConfigView& config, const std::string& key) {
   const auto found = config.values.find(key);
   if (found == config.values.end()) {
@@ -165,6 +212,25 @@ std::chrono::steady_clock::time_point earliest_trace_epoch(const std::vector<Spa
     }
   }
   return epoch;
+}
+
+void copy_trace_to_result(const TraceCollector& trace, const std::vector<HealthEvent>& health_events,
+                          RuntimeRunnerResult& result) {
+  const auto spans = trace.spans();
+  const auto trace_epoch = earliest_trace_epoch(spans, health_events);
+  for (const auto& span : spans) {
+    result.trace_events.push_back(span.name);
+    result.trace.push_back(
+        RuntimeTraceEvent{span.name, span.trace_id.value(), non_negative_duration_ns(span.started_at - trace_epoch),
+                          non_negative_duration_ns(span.finished_at - span.started_at), span.attributes});
+  }
+  for (const auto& event : health_events) {
+    result.trace_events.push_back("health_event");
+    result.trace.push_back(RuntimeTraceEvent{"health_event", TraceId::generate().value(),
+                                             non_negative_duration_ns(event.observed_at - trace_epoch), 0u,
+                                             health_event_attributes(event)});
+  }
+  result.trace_event_count = result.trace_events.size();
 }
 
 } // namespace
@@ -242,6 +308,48 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   std::vector<Instance> instances;
   instances.reserve(graph.components.size());
   try {
+    auto deactivate_started_components = [&]() {
+      for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
+        if (!it->started) {
+          continue;
+        }
+        const auto deactivate = it->component->deactivate_status();
+        ++result.stopped_components;
+        if (!deactivate.ok()) {
+          append_runtime_error(result, make_runtime_error("deactivate", it->id, {}, deactivate.message(),
+                                                          "component_deactivate", false));
+        }
+      }
+    };
+    auto instance_for_id = [&](const std::string& component_id) -> Instance* {
+      auto found =
+          std::find_if(instances.begin(), instances.end(), [&](const auto& item) { return item.id == component_id; });
+      if (found == instances.end()) {
+        return nullptr;
+      }
+      return &*found;
+    };
+    auto spec_for_id = [&](const std::string& component_id) -> const ComponentNodeSpec* {
+      const auto found = std::find_if(graph.components.begin(), graph.components.end(),
+                                      [&](const auto& item) { return item.id == component_id; });
+      if (found == graph.components.end()) {
+        return nullptr;
+      }
+      return &*found;
+    };
+    auto finish_early_after_lifecycle_error = [&]() {
+      deactivate_started_components();
+      append_lifecycle_metrics(result);
+      result.health_events = health_events.snapshot();
+      result.health_event_count = result.health_events.size();
+      result.health_event_dropped_count = health_events.dropped_count();
+      result.health_event_coalesced_count = health_events.coalesced_count();
+      copy_trace_to_result(trace, result.health_events, result);
+      if (result.trace_event_count != 0u) {
+        append_runtime_metric(result, "runtime.trace.event_count", static_cast<double>(result.trace_event_count));
+      }
+      result.metric_samples = result.runtime_metrics.size();
+    };
     for (const auto& spec : graph.components) {
       Instance instance;
       instance.id = spec.id;
@@ -283,17 +391,81 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     result.started_components = static_cast<std::size_t>(
         std::count_if(instances.begin(), instances.end(), [](const auto& instance) { return instance.started; }));
     if (!result.errors.empty()) {
-      for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
-        if (!it->started) {
-          continue;
-        }
-        const auto deactivate = it->component->deactivate_status();
-        ++result.stopped_components;
-        if (!deactivate.ok()) {
-          append_runtime_error(result, make_runtime_error("deactivate", it->id, {}, deactivate.message(),
-                                                          "component_deactivate", false));
-        }
+      deactivate_started_components();
+      return result;
+    }
+
+    for (const auto& [component_id, snapshot] : options.restore_component_states) {
+      auto* instance = instance_for_id(component_id);
+      const auto* spec = spec_for_id(component_id);
+      if (instance == nullptr || spec == nullptr || !instance->started) {
+        result.ok = false;
+        result.scheduler_stop_reason = SchedulerStopReason::kError;
+        ++result.lifecycle_restore_failure_count;
+        append_runtime_error(result,
+                             make_runtime_error("restore", component_id, {},
+                                                "component state restore target is not started", "component_restore"));
+        continue;
       }
+      if (!snapshot.component_type.empty() && snapshot.component_type != spec->type) {
+        result.ok = false;
+        result.scheduler_stop_reason = SchedulerStopReason::kError;
+        ++result.lifecycle_restore_failure_count;
+        append_runtime_error(result, make_runtime_error("restore", component_id, spec->execution.lane,
+                                                        "component state type " + snapshot.component_type +
+                                                            " does not match graph type " + spec->type,
+                                                        "component_restore"));
+        record_runner_trace_event(trace, "component_restore",
+                                  {{"component_id", component_id}, {"status", "type_mismatch"}});
+        continue;
+      }
+      record_runner_trace_event(trace, "component_restore", {{"component_id", component_id}, {"status", "begin"}});
+      const auto restore = instance->component->restore_state(snapshot);
+      if (!restore.ok()) {
+        result.ok = false;
+        result.scheduler_stop_reason = SchedulerStopReason::kError;
+        ++result.lifecycle_restore_failure_count;
+        append_runtime_error(result, make_runtime_error("restore", component_id, spec->execution.lane,
+                                                        restore.message(), "component_restore"));
+        record_runner_trace_event(trace, "component_restore", {{"component_id", component_id}, {"status", "error"}});
+        continue;
+      }
+      ++result.lifecycle_restore_count;
+      record_runner_trace_event(trace, "component_restore", {{"component_id", component_id}, {"status", "ok"}});
+    }
+
+    std::set<std::string> reset_seen;
+    for (const auto& component_id : options.reset_component_ids) {
+      if (!reset_seen.insert(component_id).second) {
+        continue;
+      }
+      auto* instance = instance_for_id(component_id);
+      const auto* spec = spec_for_id(component_id);
+      if (instance == nullptr || spec == nullptr || !instance->started) {
+        result.ok = false;
+        result.scheduler_stop_reason = SchedulerStopReason::kError;
+        ++result.lifecycle_reset_failure_count;
+        append_runtime_error(result, make_runtime_error("reset", component_id, {},
+                                                        "component reset target is not started", "component_reset"));
+        continue;
+      }
+      record_runner_trace_event(trace, "component_reset", {{"component_id", component_id}, {"status", "begin"}});
+      const auto reset = instance->component->reset_status(instance->context);
+      if (!reset.ok()) {
+        result.ok = false;
+        result.scheduler_stop_reason = SchedulerStopReason::kError;
+        ++result.lifecycle_reset_failure_count;
+        append_runtime_error(result, make_runtime_error("reset", component_id, spec->execution.lane, reset.message(),
+                                                        "component_reset"));
+        record_runner_trace_event(trace, "component_reset", {{"component_id", component_id}, {"status", "error"}});
+        continue;
+      }
+      ++result.lifecycle_reset_count;
+      record_runner_trace_event(trace, "component_reset", {{"component_id", component_id}, {"status", "ok"}});
+    }
+
+    if (!result.errors.empty()) {
+      finish_early_after_lifecycle_error();
       return result;
     }
 
@@ -430,6 +602,34 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       result.loop_cancellation_observed_count += count;
       append_runtime_metric(result, "runtime.loop.cancellation_observed", static_cast<double>(count), loop_id);
     }
+    if (options.capture_component_state_snapshots) {
+      for (const auto& instance : instances) {
+        if (!instance.started) {
+          continue;
+        }
+        const auto* spec = spec_for_id(instance.id);
+        record_runner_trace_event(trace, "component_snapshot", {{"component_id", instance.id}, {"status", "begin"}});
+        const auto snapshot = instance.component->snapshot_state();
+        if (!snapshot.ok()) {
+          result.ok = false;
+          ++result.lifecycle_snapshot_failure_count;
+          append_runtime_error(result,
+                               make_runtime_error("snapshot", instance.id, spec == nullptr ? "" : spec->execution.lane,
+                                                  snapshot.status().message(), "component_snapshot", false));
+          record_runner_trace_event(trace, "component_snapshot", {{"component_id", instance.id}, {"status", "error"}});
+          continue;
+        }
+        auto value = snapshot.value();
+        if (value.component_type.empty() && spec != nullptr) {
+          value.component_type = spec->type;
+        }
+        value.size_bytes = snapshot_size_bytes(value);
+        result.lifecycle_snapshot_bytes += value.size_bytes;
+        result.component_state_snapshots[instance.id] = std::move(value);
+        ++result.lifecycle_snapshot_count;
+        record_runner_trace_event(trace, "component_snapshot", {{"component_id", instance.id}, {"status", "ok"}});
+      }
+    }
     for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
       if (!it->started) {
         continue;
@@ -543,24 +743,11 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       append_runtime_metric(result, "runtime.config.snapshot_read_count",
                             static_cast<double>(config_metrics.snapshot_read_count));
     }
+    append_lifecycle_metrics(result);
     for (const auto& sample : metrics.snapshot()) {
       result.runtime_metrics.push_back(RuntimeMetricSample{sample.name, sample.value, {}, {}, {}, {}});
     }
-    const auto spans = trace.spans();
-    const auto trace_epoch = earliest_trace_epoch(spans, result.health_events);
-    for (const auto& span : spans) {
-      result.trace_events.push_back(span.name);
-      result.trace.push_back(
-          RuntimeTraceEvent{span.name, span.trace_id.value(), non_negative_duration_ns(span.started_at - trace_epoch),
-                            non_negative_duration_ns(span.finished_at - span.started_at), span.attributes});
-    }
-    for (const auto& event : result.health_events) {
-      result.trace_events.push_back("health_event");
-      result.trace.push_back(RuntimeTraceEvent{"health_event", TraceId::generate().value(),
-                                               non_negative_duration_ns(event.observed_at - trace_epoch), 0u,
-                                               health_event_attributes(event)});
-    }
-    result.trace_event_count = result.trace_events.size();
+    copy_trace_to_result(trace, result.health_events, result);
     append_runtime_metric(result, "runtime.trace.event_count", static_cast<double>(result.trace_event_count));
     result.metric_samples = result.runtime_metrics.size();
   } catch (const std::exception& error) {

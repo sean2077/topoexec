@@ -13,6 +13,7 @@
 #include <mutex>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <thread>
 #include <utility>
 
@@ -960,6 +961,87 @@ protected:
   }
 };
 
+class StatefulLifecycleComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = type_name();
+    descriptor.name = "stateful_lifecycle";
+    descriptor.role = topoexec::ComponentRole::kInputOutputBoundary;
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext& context, const topoexec::ConfigView&) override {
+    id_ = context.component_id;
+    count_ = 5;
+    lifecycle_events().push_back(id_ + ".configure");
+  }
+
+  topoexec::Status activate_status() override {
+    lifecycle_events().push_back(id_ + ".activate");
+    return topoexec::Status::success();
+  }
+
+  topoexec::Status deactivate_status() override {
+    lifecycle_events().push_back(id_ + ".deactivate");
+    return topoexec::Status::success();
+  }
+
+  void reset(topoexec::GraphContext&) override {
+    lifecycle_events().push_back(id_ + ".reset");
+    count_ = 0;
+  }
+
+  void execute(const topoexec::Invocation&, topoexec::GraphContext&) override {
+    ++count_;
+    lifecycle_events().push_back(id_ + ".execute." + std::to_string(count_));
+  }
+
+  topoexec::Result<topoexec::ComponentStateSnapshot> snapshot_state() const override {
+    lifecycle_events().push_back(id_ + ".snapshot." + std::to_string(count_));
+    topoexec::ComponentStateSnapshot snapshot;
+    snapshot.component_type = type_name();
+    snapshot.version = "counter.v1";
+    snapshot.payload = topoexec::make_shared_payload(
+        topoexec::make_text_payload(std::to_string(count_), "topoexec.test.CounterState"));
+    snapshot.size_bytes = std::to_string(count_).size();
+    return snapshot;
+  }
+
+  topoexec::Status restore_state(const topoexec::ComponentStateSnapshot& snapshot) override {
+    lifecycle_events().push_back(id_ + ".restore." + snapshot.version);
+    if (snapshot.version != "counter.v1") {
+      return topoexec::Status::error("unsupported snapshot version " + snapshot.version);
+    }
+    if (snapshot.payload == nullptr) {
+      return topoexec::Status::error("snapshot payload must not be null");
+    }
+    count_ = std::stoi(topoexec::require_text_payload(*snapshot.payload, "counter snapshot"));
+    return topoexec::Status::success();
+  }
+
+protected:
+  virtual std::string type_name() const {
+    return "topoexec.test.StatefulLifecycle";
+  }
+
+  std::string id_;
+  int count_{0};
+};
+
+class ResetFailureComponent : public StatefulLifecycleComponent {
+public:
+  void reset(topoexec::GraphContext&) override {
+    lifecycle_events().push_back(id_ + ".reset");
+    throw std::runtime_error("reset failed");
+  }
+
+protected:
+  std::string type_name() const override {
+    return "topoexec.test.ResetFailure";
+  }
+};
+
 topoexec::ComponentRegistry registry() {
   topoexec::ComponentRegistry registry;
   registry.register_component({"topoexec.test.Source"}, []() { return std::make_unique<SourceComponent>(); });
@@ -1006,6 +1088,10 @@ topoexec::ComponentRegistry delay_registry() {
                               []() { return std::make_unique<ActivateStatusFailureComponent>(); });
   registry.register_component({"topoexec.test.DeactivateStatusFailure"},
                               []() { return std::make_unique<DeactivateStatusFailureComponent>(); });
+  registry.register_component({"topoexec.test.StatefulLifecycle"},
+                              []() { return std::make_unique<StatefulLifecycleComponent>(); });
+  registry.register_component({"topoexec.test.ResetFailure"},
+                              []() { return std::make_unique<ResetFailureComponent>(); });
   registry.register_component({"topoexec.test.ConfigUpdater"},
                               []() { return std::make_unique<ConfigUpdaterComponent>(); });
   registry.register_component({"topoexec.test.ConfigObserver"},
@@ -2975,6 +3061,128 @@ TEST(Runtime, DeactivateStatusFailureIsReportedWithComponentAndPhase) {
   EXPECT_EQ(result.stopped_components, 1u);
   EXPECT_EQ(lifecycle_events(), std::vector<std::string>({"failing.configure", "failing.activate", "failing.execute",
                                                           "failing.deactivate"}));
+}
+
+TEST(Runtime, ResetAtEpochStartClearsStateBeforeExecution) {
+  const auto reg = delay_registry();
+  const auto spec = lifecycle_graph({{"counter", "topoexec.test.StatefulLifecycle"}});
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  options.reset_component_ids = {"counter"};
+  options.capture_component_state_snapshots = true;
+
+  reset_lifecycle_events();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_EQ(result.component_state_snapshots.size(), 1u);
+  const auto& snapshot = result.component_state_snapshots.at("counter");
+  ASSERT_NE(snapshot.payload, nullptr);
+  EXPECT_EQ(topoexec::require_text_payload(*snapshot.payload), "1");
+  EXPECT_EQ(snapshot.version, "counter.v1");
+  EXPECT_EQ(result.lifecycle_reset_count, 1u);
+  EXPECT_EQ(result.lifecycle_snapshot_count, 1u);
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.lifecycle.reset_count", 1.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.lifecycle.snapshot_size_bytes", 1.0));
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_reset", "component_id", "counter"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_snapshot", "component_id", "counter"));
+  EXPECT_EQ(lifecycle_events(),
+            std::vector<std::string>({"counter.configure", "counter.activate", "counter.reset", "counter.execute.1",
+                                      "counter.snapshot.1", "counter.deactivate"}));
+}
+
+TEST(Runtime, SnapshotRestoreAppliesBeforeNextExecution) {
+  const auto reg = delay_registry();
+  const auto spec = lifecycle_graph({{"counter", "topoexec.test.StatefulLifecycle"}});
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions first_options;
+  first_options.mode = topoexec::RuntimeRunMode::kRun;
+  first_options.tick_iterations = 2;
+  first_options.capture_component_state_snapshots = true;
+
+  reset_lifecycle_events();
+  const auto first = runner.run(spec, first_options);
+
+  ASSERT_TRUE(first.ok) << (first.errors.empty() ? "" : first.errors.front());
+  ASSERT_EQ(first.component_state_snapshots.size(), 1u);
+  EXPECT_EQ(topoexec::require_text_payload(*first.component_state_snapshots.at("counter").payload), "7");
+
+  topoexec::RuntimeRunnerOptions second_options;
+  second_options.mode = topoexec::RuntimeRunMode::kRun;
+  second_options.tick_iterations = 1;
+  second_options.restore_component_states = first.component_state_snapshots;
+  second_options.capture_component_state_snapshots = true;
+
+  reset_lifecycle_events();
+  const auto second = runner.run(spec, second_options);
+
+  ASSERT_TRUE(second.ok) << (second.errors.empty() ? "" : second.errors.front());
+  ASSERT_EQ(second.component_state_snapshots.size(), 1u);
+  EXPECT_EQ(topoexec::require_text_payload(*second.component_state_snapshots.at("counter").payload), "8");
+  EXPECT_EQ(second.lifecycle_restore_count, 1u);
+  EXPECT_TRUE(has_metric_at_least(second, "runtime.lifecycle.restore_count", 1.0));
+  EXPECT_TRUE(has_trace_event_attribute(second, "component_restore", "component_id", "counter"));
+  EXPECT_EQ(lifecycle_events(),
+            std::vector<std::string>({"counter.configure", "counter.activate", "counter.restore.counter.v1",
+                                      "counter.execute.8", "counter.snapshot.8", "counter.deactivate"}));
+}
+
+TEST(Runtime, RestoreIncompatibleVersionRejectsAndCleansUp) {
+  const auto reg = delay_registry();
+  const auto spec = lifecycle_graph({{"counter", "topoexec.test.StatefulLifecycle"}});
+  topoexec::ComponentStateSnapshot snapshot;
+  snapshot.component_type = "topoexec.test.StatefulLifecycle";
+  snapshot.version = "counter.v2";
+  snapshot.payload = topoexec::make_shared_payload(topoexec::make_text_payload("42", "topoexec.test.CounterState"));
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  options.restore_component_states = {{"counter", snapshot}};
+
+  reset_lifecycle_events();
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.runtime_errors.empty());
+  EXPECT_EQ(result.runtime_errors.front().phase, "restore");
+  EXPECT_EQ(result.runtime_errors.front().component_id, "counter");
+  EXPECT_EQ(result.runtime_errors.front().code, "component_restore");
+  EXPECT_EQ(result.lifecycle_restore_failure_count, 1u);
+  EXPECT_EQ(result.started_components, 1u);
+  EXPECT_EQ(result.stopped_components, 1u);
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.lifecycle.restore_failure_count", 1.0));
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_restore", "status", "error"));
+  EXPECT_EQ(lifecycle_events(), std::vector<std::string>({"counter.configure", "counter.activate",
+                                                          "counter.restore.counter.v2", "counter.deactivate"}));
+}
+
+TEST(Runtime, ResetFailureRejectsAndCleansUpStartedComponent) {
+  const auto reg = delay_registry();
+  const auto spec = lifecycle_graph({{"failing", "topoexec.test.ResetFailure"}});
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  options.reset_component_ids = {"failing"};
+
+  reset_lifecycle_events();
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.runtime_errors.empty());
+  EXPECT_EQ(result.runtime_errors.front().phase, "reset");
+  EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
+  EXPECT_EQ(result.runtime_errors.front().code, "component_reset");
+  EXPECT_EQ(result.lifecycle_reset_failure_count, 1u);
+  EXPECT_EQ(result.started_components, 1u);
+  EXPECT_EQ(result.stopped_components, 1u);
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.lifecycle.reset_failure_count", 1.0));
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_reset", "status", "error"));
+  EXPECT_EQ(lifecycle_events(),
+            std::vector<std::string>({"failing.configure", "failing.activate", "failing.reset", "failing.deactivate"}));
 }
 
 TEST(Runtime, ThreadPoolLaneExecutesReentrantInvocationsConcurrently) {

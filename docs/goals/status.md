@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, and G40 complete.
-The next unfinished mixed P1/P2 goal in backlog order is G43 Component Lifecycle v2: Reset, Snapshot, Restore. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, and G40 complete; backlog-order lifecycle G43 is also complete.
+The next unfinished mixed P1/P2 goal in backlog order is G44 Config Hot Reload Transaction. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Active / Recent Goals
 
@@ -34,12 +34,31 @@ The next unfinished mixed P1/P2 goal in backlog order is G43 Component Lifecycle
 | G38 | complete | `tests/test_channel.cpp`, `tests/test_graph.cpp`, `src/graph.cpp`, `src/graph_io.cpp`, `tools/topoexec/main.cpp`, `CMakeLists.txt`, `examples/invalid_move_only_multireader.yaml`, updated plan golden, channel/payload/CLI/diagnostics docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Multi-reader queues now have focused slow-reader/drop and overflow-cursor coverage; `move_only` multi-reader misuse is visible through validation diagnostics and lint; plan/explain output exposes `readers`, `copy_policy`, and `slow_reader_drop_risk`; shared/loaned/move paths have no-copy/lifetime evidence while deeper loan-return callbacks and zero-copy pools remain G39 scope. |
 | G39 | complete | `include/topoexec/runtime/buffer.hpp`, `src/buffer.cpp`, `include/topoexec/runtime/payload.hpp`, `src/payload.cpp`, `tools/topoexec/main.cpp`, `tests/test_channel.cpp`, `tests/test_runtime.cpp`, `CMakeLists.txt`, `examples/loaned_view_without_pool_owner.yaml`, memory/payload/API/CLI/example docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | `BufferPoolConfig` now supports fixed block sizing, bucket sizing, allocation-size alignment, max-byte exhaustion, active/owned/detached/exhausted/high-watermark stats, and outstanding-loan detection; payload schema summaries expose type/schema/summary/size; lint flags loaned views without producer ownership; no external SHM zero-copy is claimed. |
 | G40 | complete | `include/topoexec/runtime/component.hpp`, `src/graph.cpp`, `src/diagnostics.cpp`, `tests/test_graph.cpp`, component/schema/diagnostics/public API docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Descriptor-backed typed port validation now checks endpoint existence, schema/payload-type compatibility, required vs optional input wiring, single-input fan-in, state-edge target type compatibility through the same edge contract, and boundary role compatibility while keeping schema v1 YAML unchanged. |
+| G43 | complete | `include/topoexec/runtime/component.hpp`, `include/topoexec/runtime/runtime_runner.hpp`, `src/component.cpp`, `src/runtime_runner.cpp`, `tests/test_runtime.cpp`, lifecycle/API/metrics/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Components now have experimental reset/pause/resume/snapshot/restore hooks; `RuntimeRunnerOptions` can restore snapshots and reset selected components before scheduler execution and capture snapshots after execution; lifecycle metrics/trace and cleanup-on-reset/restore failure are covered while live pause/resume policy stays deferred. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+ctest --test-dir build --output-on-failure -R 'test_runtime|cli_golden_outputs|schema_v1_contract_smoke'
+# G43 passed: reset before execution, snapshot/restore handoff, incompatible restore rejection, reset-failure cleanup, golden/schema drift checks
+
+cmake --build build --target topoexec_format_check
+# G43 passed
+
+./scripts/goal_check.sh quick
+# G43 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+./scripts/agent_check.sh
+# G43 passed: 53/53 CTest tests after lifecycle reset/snapshot/restore updates
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G43 passed: 53/53 CTest tests in the ASAN+UBSAN Debug build
+
+git diff --check
+# G43 passed
+
 ctest --test-dir build --output-on-failure -R 'test_graph|test_runtime|cli_golden_outputs|schema_v1_contract_smoke'
 # G40 passed: typed port mismatch, required/optional input, multiplicity, boundary role, runtime compatibility, golden/schema drift checks
 
