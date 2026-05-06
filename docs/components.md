@@ -92,5 +92,7 @@ registry.register_component({"my.Source"}, [] {
 });
 ```
 
-App-defined factory registration is the current plugin-like extension point.
-Dynamic plugin loading and package discovery are future adapter/plugin work.
+App-defined factory registration is the stable primary extension point. The G63
+`topoexec::plugin_loader` target can load trusted native plugins by explicit path
+when enabled, but package discovery, sandboxing, graph-driven loading, and stable
+plugin ABI guarantees remain future adapter/plugin work.

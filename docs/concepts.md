@@ -1,11 +1,13 @@
 # Concepts
 
 TopoExec is a C++20 in-process semantic execution graph runtime. It is not a
-distributed scheduler, production ROS 2 adapter, Python runtime, GUI editor, or production
-metrics exporter. Adapter packages are deferred until the core runtime API is
-stable; G58/G59 only add dependency-free telemetry preview mappings, G60
-adds a dependency-free ROS 2 fake-boundary preview, G61 adds only an unstable
-C API/FFI preview, and G62 adds only a CLI-backed Python automation preview.
+distributed scheduler, production ROS 2 adapter, Python runtime, GUI editor,
+production metrics exporter, or sandboxed plugin system. Adapter/ecosystem
+packages are deferred until the core runtime API is stable; G58/G59 only add
+dependency-free telemetry preview mappings, G60 adds a dependency-free ROS 2
+fake-boundary preview, G61 adds only an unstable C API/FFI preview, G62 adds
+only a CLI-backed Python automation preview, and G63 adds only a default-off
+trusted-native plugin loader preview.
 
 ## Runtime objects
 

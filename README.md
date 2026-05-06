@@ -2,7 +2,7 @@
 
 TopoExec is a compact C++20 runtime for stateful in-process execution graphs. It gives applications explicit semantics for edge visibility, feedback loops, bounded channels, trigger readiness, payload ownership, metrics, and trace events without requiring a service framework.
 
-TopoExec is not a distributed runtime, ROS adapter, Python framework, GUI editor, or OpenTelemetry/Prometheus exporter. Those adapter surfaces are deferred until the core runtime API is stable.
+TopoExec is not a distributed runtime, ROS adapter, Python framework, GUI editor, OpenTelemetry/Prometheus exporter, or sandboxed plugin system. Those production adapter/ecosystem surfaces are deferred until the core runtime API is stable.
 
 ## Quickstart
 
@@ -49,7 +49,7 @@ find_package(topoexec CONFIG REQUIRED)
 target_link_libraries(my_app PRIVATE topoexec::runtime)
 ```
 
-Build graphs directly in C++ with `GraphSpec` or `topoexec/runtime/graph_builder.hpp`. `examples/apps/cpp_builder_minimal` is the minimal embeddable example. YAML loading and CLI tooling are optional through `topoexec::yaml`; adapter packages use the dependency-free `topoexec::adapter_sdk` boundary, and the default-off `topoexec_adapters::otel` target previews telemetry mapping without adding concrete adapter dependencies to runtime.
+Build graphs directly in C++ with `GraphSpec` or `topoexec/runtime/graph_builder.hpp`. `examples/apps/cpp_builder_minimal` is the minimal embeddable example. YAML loading and CLI tooling are optional through `topoexec::yaml`; adapter packages use the dependency-free `topoexec::adapter_sdk` boundary; default-off preview targets cover telemetry/ROS mappings, C API/FFI, CLI-backed Python automation, and trusted-native plugin loading without adding those dependencies to runtime.
 
 ## CLI Tools
 
@@ -108,6 +108,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [API overview](docs/api-overview.md)
 - [Public API stability](docs/public-api.md)
 - [Python automation preview](docs/python-preview.md)
+- [Dynamic plugin loader preview](docs/plugin-loader.md)
 - [Payloads and ownership](docs/payloads.md)
 - [Scheduler semantics](docs/scheduler.md)
 - [Concurrency](docs/concurrency.md)
@@ -139,8 +140,10 @@ Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and 
   are not implemented.
 - Non-blocking ThreadSanitizer CI is wired for GitHub Actions and passed on current `main`; local `scripts/agent_check.sh` remains the required agent gate.
 - Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python
-  bindings, and external Perfetto adapters are deferred; the default-off OTel,
-  Prometheus, ROS 2, C API, and Python preview targets are only dependency-free/unstable previews.
+  bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems, and
+  external Perfetto adapters are deferred; the default-off OTel, Prometheus,
+  ROS 2, C API, Python, and plugin-loader preview targets are only
+  dependency-free/unstable/trusted-native previews.
 - The beta readiness review covers only a possible core-runtime beta candidate;
   adapter/ecosystem beta readiness, hard real-time scheduling, signed release
   uploads, and package-registry publication remain deferred.

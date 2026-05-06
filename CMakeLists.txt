@@ -12,6 +12,7 @@ option(TOPOEXEC_BUILD_EXAMPLES "Build runnable example applications" ON)
 option(TOPOEXEC_BUILD_FUZZERS "Build optional graph input fuzz targets" OFF)
 option(TOPOEXEC_BUILD_C_API "Build optional unstable C API preview target" OFF)
 option(TOPOEXEC_BUILD_PYTHON_PREVIEW "Enable optional unstable CLI-backed Python automation preview" OFF)
+option(TOPOEXEC_BUILD_PLUGIN_LOADER "Build optional trusted-native dynamic plugin loader preview target" OFF)
 option(TOPOEXEC_BUILD_OTEL_ADAPTER "Build optional OTel exporter preview target" OFF)
 option(TOPOEXEC_BUILD_PROMETHEUS_ADAPTER "Build optional Prometheus text exporter preview target" OFF)
 option(TOPOEXEC_BUILD_ROS2_ADAPTER "Build optional dependency-free ROS 2 adapter preview target" OFF)
@@ -136,6 +137,10 @@ target_link_libraries(topoexec_runtime PUBLIC topoexec_core)
 
 add_library(topoexec::runtime ALIAS topoexec_runtime)
 
+if(TOPOEXEC_BUILD_PLUGIN_LOADER)
+  set_property(TARGET topoexec_runtime PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
+
 add_library(topoexec_adapter_sdk INTERFACE)
 set_target_properties(topoexec_adapter_sdk PROPERTIES
   EXPORT_NAME adapter_sdk
@@ -179,9 +184,24 @@ if(TOPOEXEC_BUILD_C_API)
   add_library(topoexec::c_api ALIAS topoexec_c_api)
 endif()
 
+if(TOPOEXEC_BUILD_PLUGIN_LOADER)
+  add_library(topoexec_plugin_loader src/plugin_loader.cpp)
+  set_target_properties(topoexec_plugin_loader PROPERTIES
+    EXPORT_NAME plugin_loader
+  )
+  target_link_libraries(topoexec_plugin_loader
+    PUBLIC topoexec_runtime
+    PRIVATE ${CMAKE_DL_LIBS}
+  )
+  add_library(topoexec::plugin_loader ALIAS topoexec_plugin_loader)
+endif()
+
 set(TOPOEXEC_INSTALL_TARGETS topoexec_core topoexec_runtime topoexec_adapter_sdk)
 if(TOPOEXEC_BUILD_C_API)
   list(APPEND TOPOEXEC_INSTALL_TARGETS topoexec_c_api)
+endif()
+if(TOPOEXEC_BUILD_PLUGIN_LOADER)
+  list(APPEND TOPOEXEC_INSTALL_TARGETS topoexec_plugin_loader)
 endif()
 set(TOPOEXEC_ADAPTER_INSTALL_TARGETS)
 if(TOPOEXEC_BUILD_OTEL_ADAPTER)
@@ -423,6 +443,30 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     )
     set_tests_properties(python_preview_smoke PROPERTIES
       ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/python;TOPOEXEC_PYTHON_PREVIEW_EXE=$<TARGET_FILE:topoexec_cli>;TOPOEXEC_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+  endif()
+
+  if(TOPOEXEC_BUILD_PLUGIN_LOADER)
+    add_executable(test_plugin_loader tests/test_plugin_loader.cpp)
+    target_link_libraries(test_plugin_loader PRIVATE topoexec_plugin_loader GTest::gtest_main)
+    add_library(topoexec_sample_plugin MODULE tests/plugins/sample_plugin.cpp)
+    add_library(topoexec_version_mismatch_plugin MODULE tests/plugins/version_mismatch_plugin.cpp)
+    add_library(topoexec_descriptor_mismatch_plugin MODULE tests/plugins/descriptor_mismatch_plugin.cpp)
+    foreach(plugin_target IN ITEMS
+        topoexec_sample_plugin
+        topoexec_version_mismatch_plugin
+        topoexec_descriptor_mismatch_plugin)
+      target_link_libraries(${plugin_target} PRIVATE topoexec_runtime)
+      set_target_properties(${plugin_target} PROPERTIES PREFIX "")
+    endforeach()
+    add_dependencies(test_plugin_loader
+      topoexec_sample_plugin
+      topoexec_version_mismatch_plugin
+      topoexec_descriptor_mismatch_plugin
+    )
+    add_test(NAME test_plugin_loader COMMAND test_plugin_loader)
+    set_tests_properties(test_plugin_loader PROPERTIES
+      ENVIRONMENT "TOPOEXEC_SAMPLE_PLUGIN=$<TARGET_FILE:topoexec_sample_plugin>;TOPOEXEC_VERSION_MISMATCH_PLUGIN=$<TARGET_FILE:topoexec_version_mismatch_plugin>;TOPOEXEC_DESCRIPTOR_MISMATCH_PLUGIN=$<TARGET_FILE:topoexec_descriptor_mismatch_plugin>"
     )
   endif()
 
@@ -701,6 +745,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
       -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/python_preview_options_smoke.cmake
+  )
+  add_test(NAME cmake_plugin_loader_options_smoke
+    COMMAND ${CMAKE_COMMAND}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/plugin_loader_options_smoke.cmake
   )
   add_test(NAME cmake_cpack_smoke
     COMMAND ${CMAKE_COMMAND}

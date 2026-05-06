@@ -11,6 +11,7 @@ TopoExec is pre-1.0, but embedders should still know which headers are intended 
 | `topoexec::yaml` | YAML `schema_version: 1` loading and optional JSON/Mermaid plan helpers. | Depends on `topoexec::runtime` and parser/JSON libraries. |
 | `topoexec::adapter_sdk` | Header-only adapter SDK v0 boundary for future adapter packages. | Depends on `topoexec::runtime`; no YAML, CLI, ROS, OpenTelemetry, Prometheus, Python, Perfetto, or plugin-loader dependency. |
 | `topoexec::c_api` | Optional unstable C API/FFI preview target. | Depends on `topoexec::runtime`; no YAML, CLI, adapters, Python, dynamic plugin, or ABI-stability promise. Default OFF. |
+| `topoexec::plugin_loader` | Optional trusted-native dynamic component loader preview target. | Depends on `topoexec::runtime`; no YAML, CLI, adapters, Python, sandbox, graph discovery, or stable ABI promise. Default OFF. |
 | `topoexec_adapters::otel` | Optional OTel exporter preview target. | Depends on `topoexec::adapter_sdk`; no core/runtime reverse dependency and no external telemetry SDK. Default OFF. |
 | `topoexec_adapters::prometheus` | Optional Prometheus text exporter preview target. | Depends on `topoexec::adapter_sdk`; no core/runtime reverse dependency, no HTTP server, and no external Prometheus library. Default OFF. |
 | `topoexec_adapters::ros2` | Optional ROS 2 fake-boundary preview target. | Depends on `topoexec::adapter_sdk`; no core/runtime reverse dependency, no ROS client library, no executor, and no schema fields. Default OFF. |
@@ -18,13 +19,14 @@ TopoExec is pre-1.0, but embedders should still know which headers are intended 
 Installed package config metadata exposes `TOPOEXEC_VERSION`,
 `TOPOEXEC_SCHEMA_VERSION`, `TOPOEXEC_SEMANTIC_CONTRACT_VERSION`,
 `TOPOEXEC_HAS_RUNTIME`, `TOPOEXEC_HAS_ADAPTER_SDK`, `TOPOEXEC_HAS_C_API`,
-`TOPOEXEC_HAS_PYTHON_PREVIEW`, `TOPOEXEC_HAS_YAML`,
-`TOPOEXEC_HAS_OTEL_ADAPTER`, `TOPOEXEC_HAS_PROMETHEUS_ADAPTER`,
+`TOPOEXEC_HAS_PYTHON_PREVIEW`, `TOPOEXEC_HAS_PLUGIN_LOADER`,
+`TOPOEXEC_HAS_YAML`, `TOPOEXEC_HAS_OTEL_ADAPTER`, `TOPOEXEC_HAS_PROMETHEUS_ADAPTER`,
 `TOPOEXEC_HAS_ROS2_ADAPTER`, `TOPOEXEC_HAS_CLI`, and
 `TOPOEXEC_HAS_EXAMPLES` so downstream projects can assert package capabilities
 at configure time. The Python automation preview is not a C++ target or native
 extension; when enabled, it installs `topoexec_preview` for CLI-backed
-automation only.
+automation only. The plugin loader preview is a C++ target and header, but it is
+trusted-native-code only and does not promise sandboxing or ABI stability.
 
 ## Stability markers
 
@@ -73,6 +75,7 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
 | `topoexec/c_api/topoexec.h` | C API/FFI preview: opaque handles, create/run/destroy, borrowed error strings, and metric iteration for downstream C smoke tests. |
+| `topoexec/plugins/loader.hpp` | Dynamic plugin loader preview: manifest/version/schema views, load options/result errors, and trusted native loader entry point. |
 | `topoexec/adapters/sdk.hpp` | Adapter SDK v0 preview: observer aliases, `BoundaryBridge`, and `ComponentFactoryProvider` for dependency-free future adapter packages. |
 | `topoexec/adapters/otel.hpp` | OTel exporter preview: dependency-free in-memory mapping records over runtime metrics, trace, health, and errors. |
 | `topoexec/adapters/prometheus.hpp` | Prometheus exporter preview: dependency-free text exposition mapping over runtime metric descriptors and histogram summaries. |
@@ -107,6 +110,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `ITaskExecutor`, `DeterministicTaskExecutor`, `TaskExecutor`, `ThreadedTaskExecutor` | experimental | The deterministic compatibility name remains available; threaded executor preview shutdown/admission details may change before beta. |
 | `RuntimeChannelBus`, `RuntimePublicationRouter`, `TriggerPolicyEngine`, `EventRuntime` | experimental | Advanced runtime internals may change as scheduler/channel/trigger v2 goals land. |
 | `topoexec/c_api/topoexec.h` opaque handles and functions | experimental | G61 C API/FFI preview, ABI version `0`. Names, ownership details, and exported functions may change before any stable ABI promise. |
+| `topoexec::plugins::load_plugin`, `LoadedPlugin`, and manifest view structs | experimental | G63 plugin loader preview, plugin API version `0`. The loader requires explicit paths and trusted native code, validates manifest/schema/component descriptors, defaults to no `dlclose`, and may change before any stable plugin ABI. |
 | `topoexec::adapters::BoundaryBridge`, `BoundaryMessage`, `BoundaryPollResult`, `BoundaryBridgeStatus`, `ComponentFactoryProvider` | experimental | Adapter SDK v0 is a header-only boundary. Bridges are bounded/best-effort and providers register components explicitly; concrete adapter packages and dynamic discovery remain future work. |
 | `topoexec::adapters::otel::ExporterPreview` and preview record structs | experimental | G58 dependency-free OTel-shaped mapping over the observer API. Record names and options may change before production exporter work. |
 | `topoexec::adapters::prometheus::TextExporterPreview` | experimental | G59 dependency-free Prometheus text exposition mapping over metric descriptors and custom histogram summaries. Text names/options may change before production exporter work. |
@@ -177,7 +181,7 @@ CLI JSON fields are part of the user-facing tooling contract even though the CLI
 
 G57 establishes Adapter SDK v0 as a preview/dependency-free boundary:
 
-- Core/runtime headers must not include ROS 2 client-library, OpenTelemetry, Prometheus, Python, Perfetto, dynamic plugin SDK headers, or `topoexec/adapters/*`.
+- Core/runtime headers must not include ROS 2 client-library, OpenTelemetry, Prometheus, Python, Perfetto, dynamic-loader APIs, plugin-loader headers, or `topoexec/adapters/*`.
 - `ResultSink`, `RuntimeObserver`, `MetricSink`, `TraceSink`, and `InMemoryRuntimeObserver` remain the stable-v0.2 in-process observer surface; `topoexec/adapters/sdk.hpp` re-exports them under `topoexec::adapters` for adapter authors.
 - `topoexec::adapter_sdk` is a header-only interface target that depends on `topoexec::runtime`; `topoexec::runtime` does not depend on it.
 - `topoexec_adapters::otel` is a default-off preview target that depends on
@@ -189,9 +193,14 @@ G57 establishes Adapter SDK v0 as a preview/dependency-free boundary:
 - `topoexec_adapters::ros2` is default-off and only validates adapter-side
   endpoint/QoS mapping plus fake boundary bridges; it does not create ROS nodes
   or link ROS packages.
+- `topoexec::plugin_loader` is default-off and only loads trusted native plugins
+  from explicit paths after manifest, plugin API version, schema version, and
+  descriptor checks; it does not add schema fields, sandboxing, package
+  discovery, or stable ABI promises.
 - `BoundaryBridge` is bounded/best-effort and must not directly affect runtime scheduling. Bridge failures are adapter health/diagnostic evidence unless represented as ordinary graph boundary input/output.
 - `ComponentFactoryProvider` registers explicit in-process factories into
-  `ComponentRegistry`; dynamic discovery, ABI policy, sandboxing, production
+  `ComponentRegistry`. G63 dynamic loading is a preview alternative for trusted
+  native components only; production package discovery, sandboxing, stable ABI,
   telemetry exporters, and network transports remain future work.
 
 ## Pure runtime embedding smoke

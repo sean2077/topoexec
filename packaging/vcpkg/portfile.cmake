@@ -13,6 +13,7 @@ vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
   FEATURES
     yaml TOPOEXEC_BUILD_YAML
     cli TOPOEXEC_BUILD_CLI
+    plugin-loader TOPOEXEC_BUILD_PLUGIN_LOADER
 )
 
 vcpkg_cmake_configure(

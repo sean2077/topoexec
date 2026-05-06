@@ -8,8 +8,10 @@ preview target, `topoexec_adapters::otel`, as a dependency-free OTel-shaped
 mapping over the observer API; G59 adds `topoexec_adapters::prometheus` as a
 dependency-free text exposition preview over the metric schema. G60 adds
 `topoexec_adapters::ros2` as a dependency-free fake-boundary preview for
-topics, services, actions, and adapter-side QoS. None of these targets is a
-production SDK/server/client-library integration.
+topics, services, actions, and adapter-side QoS. G63 adds `topoexec::plugin_loader`
+as a separate default-off trusted-native component-loading preview. None of these
+targets is a production SDK/server/client-library, sandbox, or stable plugin ABI
+integration.
 
 ## Core boundary
 
@@ -24,7 +26,8 @@ The core/runtime layer owns:
 
 The core/runtime layer must not depend on ROS, OpenTelemetry, Prometheus,
 Python, Perfetto SDKs, service-specific client libraries, or dynamic plugin
-loader frameworks.
+loader frameworks. The optional G63 loader depends outward on `topoexec::runtime`
+and is not linked by the runtime target.
 
 ## Future namespace and targets
 
@@ -37,10 +40,10 @@ topoexec_adapters::ros2    # optional fake-boundary preview, default OFF
 topoexec_adapters::perfetto
 topoexec_adapters::python
 topoexec_adapters::c_api
-topoexec_adapters::plugins
+topoexec::plugins             # G63 loader preview helper namespace
 ```
 
-CMake shape after G60:
+CMake shape after G63:
 
 ```text
 topoexec::runtime          # no adapter dependencies
@@ -49,7 +52,7 @@ topoexec::yaml             # optional graph loading
 topoexec_adapters::otel    # optional OTel-shaped preview, default OFF
 topoexec_adapters::prometheus # optional text exposition preview, default OFF
 topoexec_adapters::ros2    # optional fake-boundary preview, default OFF
-topoexec_adapters::plugins # future optional dynamic loading package
+topoexec::plugin_loader     # optional trusted-native loader preview, default OFF
 ```
 
 No `topoexec_adapters::*` target or `topoexec::adapter_sdk` dependency should be
@@ -137,9 +140,10 @@ Registers app or plugin factories into a `ComponentRegistry` through
 topoexec::Status register_components(topoexec::ComponentRegistry& registry);
 ```
 
-Dynamic discovery, ABI policy, version negotiation, and sandboxing are future
-plugin-package concerns. The current stable path is explicit in-process factory
-registration.
+G63 provides a preview-only dynamic loader with manifest, plugin API version,
+schema version, descriptor matching, and structured load errors. Plugins are
+trusted native code and are not sandboxed. The current stable path remains
+explicit in-process factory registration.
 
 ## Schema policy
 
@@ -165,7 +169,7 @@ not core schema and belongs in a ROS adapter config layer.
 | ROS 2 | G60 preview maps topics/services/actions and adapter-side QoS through `topoexec_adapters::ros2` fake boundary bridges. | Core does not include ROS client libraries, ROS executors, or ROS QoS fields. |
 | Python | G62 preview provides `topoexec_preview`, a stdlib-only CLI-backed automation package for validation, plan, run, metrics, and trace JSON. | Python is not a native component implementation or high-performance payload path. |
 | C API | G61 preview exposes `topoexec::c_api` opaque handles, create/run/destroy, error strings, and metric iteration. | ABI version remains `0`; no Python binding, dynamic plugin, or stable ABI promise. |
-| Plugin loader | Optional dynamic component discovery. | Current core uses explicit `ComponentRegistry` factories only. |
+| Plugin loader | G63 `topoexec::plugin_loader` loads trusted native components by explicit path with manifest/version/schema checks. | No default runtime dependency, no graph-driven discovery, no sandbox, no stable ABI, and explicit `ComponentRegistry` factories remain the stable path. |
 
 ## Detailed adapter plans
 
@@ -181,6 +185,9 @@ not core schema and belongs in a ROS adapter config layer.
   target, opaque handles, ownership, error-string, and metric iteration rules.
 - [Python automation preview](python-preview.md) documents the G62 default-off
   CLI-backed package, stdlib-only dependency model, and non-goals.
+- [Dynamic plugin loader preview](plugin-loader.md) documents the G63 default-off
+  trusted-native loader, manifest/export symbols, version checks, unload rules,
+  and no-sandbox security model.
 
 ## Stub examples
 
@@ -196,6 +203,7 @@ adapter SDK symbols such as ROS client-library includes, OpenTelemetry, Promethe
 it also checks that `topoexec_runtime` does not link `topoexec_adapter_sdk`,
 that `topoexec_adapter_sdk` depends only on runtime, and that optional preview
 targets depend outward through the adapter SDK or CLI-backed preview boundary.
-It also checks the optional Prometheus, ROS 2, C API, and Python preview
-option-smoke paths. The policy intentionally ignores docs and preview stub notes
+It also checks the optional Prometheus, ROS 2, C API, Python, and plugin-loader
+preview option-smoke paths, and forbids POSIX dynamic-loader calls from runtime
+sources. The policy intentionally ignores docs and preview stub notes
 where those names are discussed as deferred dependencies.

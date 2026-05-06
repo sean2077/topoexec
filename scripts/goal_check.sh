@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|adapters|ffi|python|release|sanitizer|format|debug]
+Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|adapters|ffi|python|plugins|release|sanitizer|format|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
@@ -19,6 +19,7 @@ Goal-specific validation dispatcher for TopoExec agents.
 - adapters: optional adapter-preview target/package smokes
 - ffi: optional C API/FFI preview target/package smoke
 - python: optional CLI-backed Python automation preview smoke
+- plugins: optional trusted-native dynamic plugin loader preview smoke
 - release: release automation dry-run smoke
 - sanitizer: ASAN+UBSAN Debug build and full CTest
 - format: clang-format check target
@@ -106,6 +107,13 @@ case "$MODE" in
     cmake --build "$PYTHON_BUILD_DIR" -j
     ctest --test-dir "$PYTHON_BUILD_DIR" --output-on-failure \
       -R 'python_preview_smoke|cmake_python_preview_options_smoke|policy_.*'
+    ;;
+  plugins)
+    PLUGIN_BUILD_DIR="${BUILD_DIR}-plugins"
+    cmake -S . -B "$PLUGIN_BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTOPOEXEC_BUILD_PLUGIN_LOADER=ON
+    cmake --build "$PLUGIN_BUILD_DIR" -j
+    ctest --test-dir "$PLUGIN_BUILD_DIR" --output-on-failure \
+      -R 'test_plugin_loader|cmake_plugin_loader_options_smoke|policy_.*'
     ;;
   release)
     configure_build

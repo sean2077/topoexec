@@ -81,6 +81,11 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
   metrics, and trace helpers, source/installed Python smokes, and disabled
   runtime-only C++ option coverage proving Python is not a required runtime
   dependency.
+- Added the default-off `topoexec::plugin_loader` trusted-native dynamic plugin
+  loader preview with `TOPOEXEC_BUILD_PLUGIN_LOADER`, manifest/plugin-API/schema
+  validation, descriptor mismatch errors, sample native plugin smokes, installed
+  package metadata, no default unload, and policy checks proving runtime has no
+  dynamic-loader dependency.
 - Added release automation with `scripts/release_prepare.sh`, `./scripts/goal_check.sh release`, manual CI dry-run artifact upload, release notes draft generation, annotated-tag/no-retag guardrails, source/CPack/schema artifacts, and checksum output without publishing or tagging automatically.
 - Added the G69 robot-cell pilot app and case study, composing multiple lanes, async overload drops, state/delay feedback, BufferPool frames, config transactions/snapshots, metrics/trace evidence, and invalid-config rejection without adapter dependencies.
 - Added the G70 beta readiness review, beta-candidate gate checklist, explicit
@@ -116,7 +121,8 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Runtime docs now distinguish channel health counters from optional bounded health events and document that health events are observer-only unless future graph-boundary wiring is explicitly added.
 - Release docs now distinguish a conditional core-runtime beta candidate review
   from adapter/ecosystem beta readiness, package-registry publication, signed
-  artifact release, or hard real-time guarantees.
+  artifact release, sandboxed/stable plugin ecosystems, or hard real-time
+  guarantees.
 - Hardened multi-reader channel cursor/drop tests and shared/loaned/move payload lifetime/no-copy evidence while keeping deeper zero-copy pool-return APIs deferred.
 - Hardened BufferPool tests for bounded allocation, exhaustion, detach accounting, outstanding-loan detection, release-on-drop, and copy/no-copy payload policy evidence.
 - Current baseline and release checklist now record the post-alpha `main` commit, local CTest count, CI run, tag relationship, and remaining limitations.

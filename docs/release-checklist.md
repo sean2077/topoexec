@@ -22,6 +22,7 @@ v0.2.0-alpha.0
 - [ ] `./scripts/goal_check.sh golden` passes.
 - [ ] `./scripts/goal_check.sh docs` passes.
 - [ ] `./scripts/goal_check.sh adapters` passes.
+- [ ] `./scripts/goal_check.sh plugins` passes.
 - [ ] `./scripts/goal_check.sh release` passes.
 - [ ] `./scripts/goal_check.sh stress` passes.
 - [ ] `./scripts/goal_check.sh bench` passes.
@@ -61,6 +62,17 @@ cmake --build build --target topoexec_format_check: passed.
 ./scripts/agent_check.sh: passed, 69/69 CTest tests.
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 69/69 ASAN+UBSAN CTest tests.
 git diff --check: passed.
+```
+
+Current local evidence after G63 plugin-loader preview:
+
+```text
+./scripts/goal_check.sh plugins: passed test_plugin_loader, cmake_plugin_loader_options_smoke, and policy smokes.
+./scripts/goal_check.sh docs: passed plugin-loader docs map.
+./scripts/goal_check.sh package: passed package/runtime-only/CPack/package-draft smokes after plugin-loader package-draft updates.
+./scripts/goal_check.sh policy: passed runtime/core dynamic-loader boundary checks.
+./scripts/agent_check.sh: passed, 78/78 CTest tests.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 78/78 ASAN+UBSAN CTest tests.
 ```
 
 ## Golden drift surfaces
@@ -144,8 +156,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - Benchmark schema v2 and local baseline generation exist, but global timing
   thresholds remain intentionally absent; use only opt-in per-machine
   comparisons.
-- Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python bindings, stable C ABI, dynamic plugin
-  loading, and external Perfetto adapters remain deferred.
+- Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python
+  bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems, graph-driven
+  plugin discovery, and external Perfetto adapters remain deferred.
 - Package-manager recipes under `packaging/` are drafts, not published ports.
 - `scripts/release_prepare.sh` can generate local candidate artifacts and
   checksums, but signed release uploads and annotated tag pushes still require a
@@ -157,8 +170,11 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
   template interpretation.
 - G57 Adapter SDK v0 is a dependency-free boundary and G58/G59 telemetry targets
   are only mapping/text previews, G60 is only a fake-boundary preview, G61 is only an unstable C API
-  preview, and G62 is only a CLI-backed Python automation preview; concrete ROS 2 client-library packages, production OTel/Prometheus,
-  native Python bindings, Perfetto, stable C ABI, and plugin adapters remain deferred.
+  preview, G62 is only a CLI-backed Python automation preview, and G63 is only a
+  trusted-native plugin-loader preview; concrete ROS 2 client-library packages,
+  production OTel/Prometheus, native Python bindings, Perfetto, stable C ABI,
+  sandboxed plugins, package discovery, and graph-driven plugin adapters remain
+  deferred.
 - G69 robot-cell pilot is a dependency-free in-process case study; it is not a
   hardware driver, ROS graph, camera SDK integration, exporter integration, or
   external scheduling guarantee.

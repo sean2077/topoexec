@@ -1,11 +1,12 @@
 # Examples
 
 TopoExec examples are intentionally small and dependency-free. They teach the
-core runtime contracts without implying that adapter packages, dynamic plugin
-loaders, production ROS 2 packages, production OpenTelemetry/Prometheus, or
-native Python bindings are implemented. The G58/G59 telemetry targets, G60
-ROS 2 target, G61 C API target, and G62 Python automation package are
-dependency-free or unstable previews, not example app dependencies.
+core runtime contracts without implying that production adapter packages,
+sandboxed/stable plugin ecosystems, production ROS 2 packages, production
+OpenTelemetry/Prometheus, or native Python bindings are implemented. The G58/G59
+telemetry targets, G60 ROS 2 target, G61 C API target, G62 Python automation
+package, and G63 plugin-loader target are dependency-free, CLI-backed,
+trusted-native, or unstable previews, not example app dependencies.
 
 Use this page as the learning path after the README quickstart.
 
@@ -60,7 +61,7 @@ component factories through `topoexec::ComponentRegistry`.
 
 G56 adds closer-to-real application slices while preserving the project boundary:
 all apps are dependency-free C++20 examples and no production ROS 2,
-OpenTelemetry, Prometheus, Python, external Perfetto, or shared-memory middleware adapter is
+OpenTelemetry, Prometheus, Python, dynamic plugin, external Perfetto, or shared-memory middleware adapter is
 implemented.
 
 Run the focused smoke set:
@@ -370,9 +371,9 @@ Semantic lesson: embedders can construct `GraphSpec` with
 `topoexec/runtime/graph_builder.hpp` and register app-defined factories in a
 `ComponentRegistry` while linking only the runtime target.
 
-Contrast invalid graph: dynamic plugin loading and package discovery are not
-implemented by this example; it demonstrates the stable in-process registry
-contract.
+Contrast invalid graph: dynamic plugin loading exists only through the separate
+default-off trusted-native G63 preview and package discovery is not implemented
+by this example; it demonstrates the stable in-process registry contract.
 
 ### 10. Boundary adapter pattern
 
@@ -400,4 +401,5 @@ would translate external I/O into TopoExec payloads. The core runtime remains
 adapter-agnostic.
 
 Contrast invalid graph: ROS 2 QoS, Prometheus scraping, OpenTelemetry export,
-and native Python bindings are not active dependencies or runtime features here.
+native Python bindings, and plugin discovery are not active dependencies or
+runtime features here.

@@ -1,8 +1,9 @@
 # Case Study: Dependency-Free Robot Cell Pilot
 
 G69 chooses an in-process robotics-like inspection/control cell as the first
-real-world pilot. It deliberately avoids ROS 2, camera SDKs, native Python bindings, OpenTelemetry,
-Prometheus, dynamic plugins, and external shared-memory middleware. The point is
+real-world pilot. It deliberately avoids ROS 2, camera SDKs, native Python
+bindings, OpenTelemetry, Prometheus, dynamic plugins, and external shared-memory
+middleware. The point is
 to show that the core C++ runtime can model a realistic embedded graph before any
 adapter layer exists.
 
@@ -67,5 +68,7 @@ pulling in an adapter stack.
 This pilot is still dependency-free and in-process. It does not implement robot
 hardware I/O, ROS 2 executors, camera drivers, OpenTelemetry/Prometheus exporters,
 external Perfetto integration, native Python bindings, stable C ABI usage, or
-dynamic plugin loading. Those remain future adapter/ecosystem goals beyond the
-separate G61/G62 previews.
+dynamic plugin loading. G63 now provides a separate default-off trusted-native
+loader preview, but this pilot intentionally stays on explicit in-process
+registration and does not claim plugin package discovery, sandboxing, or stable
+ABI support.

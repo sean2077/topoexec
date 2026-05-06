@@ -69,9 +69,10 @@
 - invocation metadata 已能携带 correlation/causation/epoch/source/trigger 信息进入 trace；metrics 默认仍避免高基数字段。
 - deterministic fuzz smoke 已有，但 coverage-guided fuzzing 仍未完成。
 - TSAN 仍可保持 non-blocking，beta 前需要更强并发信心。
-- ROS 2、production OpenTelemetry/Prometheus、Python、C API、dynamic plugin
-  loading、external Perfetto adapter 仍 deferred；G58 只完成 dependency-free
-  OTel mapping preview。
+- Production ROS 2、production OpenTelemetry/Prometheus、native Python、stable C
+  ABI、sandboxed/stable plugin ecosystem、external Perfetto adapter 仍 deferred；
+  G58-G63 只完成 dependency-free、CLI-backed、ABI-version-0、或
+  trusted-native/default-off previews。
 - package-manager recipes 仍是 draft，不应宣称生态包已成熟。
 - API 仍处于 pre-1.0，可继续调整，但必须通过版本策略和 changelog 记录。
 - 当前工具和文档已较丰富，下一阶段不应优先继续堆 CLI 命令，而应强化 runtime、API、concurrency、adapter-ready boundary 和真实应用信心。
@@ -216,7 +217,7 @@ Failure protocol:
 - adapter SDK preview
 - ResultSink / RuntimeObserver / BoundaryBridge API
 - C API design draft
-- dynamic plugin loader design draft
+- dynamic plugin loader trusted-native preview
 - ROS 2 fake-boundary tests
 - OTel/Prometheus dry-run exporter tests
 - Python config/test binding plan
@@ -1990,9 +1991,9 @@ G61 landed as an unstable ABI-version-0 preview, not a stable ABI.
 builder, and result handles; explicit create/run/destroy ownership; borrowed
 error strings; minimal event-loop/no-op graph construction; and runtime metric
 iteration. `test_c_api` and `cmake_c_api_options_smoke` prove a downstream C
-source can consume the installed target. Native Python bindings, dynamic
-plugins, C component callbacks, high-throughput payload handles, and ABI
-stability remain future scope.
+source can consume the installed target. Native Python bindings, stable plugin
+ABI/callbacks beyond the later G63 trusted-native loader, C component callbacks,
+high-throughput payload handles, and ABI stability remain future scope.
 
 ---
 
@@ -2077,6 +2078,20 @@ Priority: P2/P3
 
 - Dynamic loading is optional and explicit.
 - Core explicit registry path remains primary stable path.
+
+### Implementation note (2026-05-06)
+
+G63 landed as a default-off trusted-native preview target rather than a stable
+plugin ecosystem. `TOPOEXEC_BUILD_PLUGIN_LOADER=ON` builds and exports
+`topoexec::plugin_loader`, installs `topoexec/plugins/loader.hpp`, and reports
+`TOPOEXEC_HAS_PLUGIN_LOADER` in the package config. The loader requires explicit
+shared-object paths, manifest/plugin-API/schema validation, component descriptor
+matching, and structured errors; `close_on_destroy` remains opt-in because
+registries can retain plugin factories. Tests cover successful sample loading,
+plugin API version mismatch, descriptor mismatch, missing paths, package export,
+disabled runtime-only builds, and policy checks proving runtime/core do not
+depend on dynamic-loader APIs. No sandbox, graph-driven discovery, package
+registry, or stable ABI is claimed.
 
 ---
 
@@ -2395,7 +2410,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G42, G63-G65, or G68.
+  and hidden deferral of G42, G64-G65, or G68.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2465,7 +2480,7 @@ Priority: P0 before beta
 38. G60 ROS 2 Adapter Preview（complete）
 39. G61 C API / FFI Design（complete）
 40. G62 Python Binding Preview（complete）
-41. G63 Dynamic Plugin Loading Preview
+41. G63 Dynamic Plugin Loading Preview（complete）
 42. G64 Schema v2 Exploration
 43. G65 Editor / LSP UX
 

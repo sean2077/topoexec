@@ -32,6 +32,7 @@ def main() -> int:
         require(manifest["license"] == "MIT", "vcpkg license drifted")
         require("yaml" in manifest.get("features", {}), "vcpkg yaml feature missing")
         require("cli" in manifest.get("features", {}), "vcpkg cli feature missing")
+        require("plugin-loader" in manifest.get("features", {}), "vcpkg plugin-loader feature missing")
         require("vcpkg-cmake" in {dep["name"] for dep in manifest.get("dependencies", []) if isinstance(dep, dict)},
                 "vcpkg host cmake dependency missing")
     except Exception as error:  # noqa: BLE001
@@ -44,6 +45,7 @@ def main() -> int:
             "vcpkg_check_features",
             "TOPOEXEC_BUILD_TESTING=OFF",
             "TOPOEXEC_BUILD_EXAMPLES=OFF",
+            "TOPOEXEC_BUILD_PLUGIN_LOADER",
             "vcpkg_cmake_config_fixup",
             "vcpkg_install_copyright",
         ]:
@@ -59,9 +61,11 @@ def main() -> int:
             'version = "0.1.0"',
             '"yaml": [True, False]',
             '"cli": [True, False]',
+            'tc.variables["TOPOEXEC_BUILD_PLUGIN_LOADER"] = bool(self.options.plugin_loader)',
             'tc.variables["TOPOEXEC_BUILD_TESTING"] = False',
             'cmake.install()',
             'topoexec::runtime',
+            'topoexec::plugin_loader',
         ]:
             require(token in text, f"Conan draft missing {token}")
     except Exception as error:  # noqa: BLE001

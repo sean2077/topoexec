@@ -22,7 +22,7 @@ Use this checklist for any change that touches installed headers, public C++ typ
 
 - [ ] Stable-v0.2 fields/functions keep existing names and meanings, or the breaking change is explicitly documented with migration notes.
 - [ ] Runtime-only downstream consumers still link only `topoexec::runtime` and do not need YAML, CLI, or adapter targets.
-- [ ] Core/runtime headers do not include ROS 2, OpenTelemetry, Prometheus, Python, Perfetto, dynamic plugin SDK, or other adapter-only headers.
+- [ ] Core/runtime headers do not include ROS 2, OpenTelemetry, Prometheus, Python, Perfetto, dynamic-loader APIs, plugin-loader headers, or other adapter-only headers.
 - [ ] CLI JSON removals/renames have a changelog and versioning note; additive fields are preferred.
 - [ ] Schema v1 changes do not silently alter existing graph meaning.
 

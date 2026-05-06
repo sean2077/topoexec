@@ -39,6 +39,13 @@ PYTHON_NATIVE_TOKENS = (
     "Python.h",
 )
 
+PLUGIN_LOADER_TOKENS = (
+    "dlfcn.h",
+    "dlopen",
+    "dlsym",
+    "dlclose",
+)
+
 SEMANTIC_BYPASS_HEADERS = (
     "topoexec/runtime/channel.hpp",
     "topoexec/runtime/event_runtime.hpp",
@@ -140,6 +147,7 @@ def audit_files(root: Path) -> list[str]:
 
         if source.rel.startswith("include/topoexec/runtime/") or source.rel in RUNTIME_SOURCE_FILES:
             add_token_violations(violations, source, YAML_CLI_TOKENS, "runtime YAML/CLI dependency")
+            add_token_violations(violations, source, PLUGIN_LOADER_TOKENS, "runtime plugin-loader dependency")
 
         if source.rel.startswith("tools/topoexec/"):
             add_token_violations(violations, source, SEMANTIC_BYPASS_HEADERS, "CLI semantic-bypass include")
@@ -198,6 +206,17 @@ def audit_cmake(root: Path) -> list[str]:
         for token in ("topoexec_yaml", "topoexec_adapter_sdk", "CLI11", "YAML_CPP", "nlohmann_json"):
             if token in c_api_links:
                 violations.append(f"topoexec_c_api must not link {token}")
+
+    if "TOPOEXEC_BUILD_PLUGIN_LOADER" in cmake:
+        plugin_loader_option = cmake_call_body(cmake, "option(TOPOEXEC_BUILD_PLUGIN_LOADER")
+        if "option(TOPOEXEC_BUILD_PLUGIN_LOADER" not in cmake or "OFF" not in plugin_loader_option:
+            violations.append("topoexec_plugin_loader preview must be controlled by a default-OFF option")
+        plugin_loader_links = cmake_call_body(cmake, "target_link_libraries(topoexec_plugin_loader")
+        if "topoexec_runtime" not in plugin_loader_links:
+            violations.append("topoexec_plugin_loader must consume topoexec_runtime")
+        for token in ("topoexec_yaml", "topoexec_adapter_sdk", "CLI11", "YAML_CPP", "nlohmann_json", "Python"):
+            if token in plugin_loader_links:
+                violations.append(f"topoexec_plugin_loader must not link {token}")
 
     if "TOPOEXEC_BUILD_OTEL_ADAPTER" in cmake:
         otel_links = cmake_call_body(cmake, "target_link_libraries(topoexec_adapters_otel")
@@ -274,7 +293,10 @@ def run_self_test() -> int:
             '#include "topoexec/runtime/channel.hpp"\n', encoding="utf-8"
         )
         (root / "src").mkdir()
-        (root / "src/graph.cpp").write_text("// runtime source\n#include <yaml-cpp/yaml.h>\n", encoding="utf-8")
+        (root / "src/graph.cpp").write_text(
+            "// runtime source\n#include <yaml-cpp/yaml.h>\n#include <dlfcn.h>\n",
+            encoding="utf-8",
+        )
         (root / "python/topoexec_preview").mkdir(parents=True)
         (root / "python/topoexec_preview/bad.py").write_text("import ctypes\n", encoding="utf-8")
         (root / "cmake").mkdir()
@@ -285,6 +307,9 @@ add_library(topoexec_runtime
   src/graph_io.cpp
 )
 target_link_libraries(topoexec_runtime PUBLIC topoexec_core PRIVATE PkgConfig::YAML_CPP)
+option(TOPOEXEC_BUILD_PLUGIN_LOADER "bad plugin loader" ON)
+add_library(topoexec_plugin_loader src/plugin_loader.cpp)
+target_link_libraries(topoexec_plugin_loader PRIVATE topoexec_yaml CLI11::CLI11)
 add_library(topoexec_yaml src/graph_io.cpp)
 target_link_libraries(topoexec_yaml PUBLIC topoexec_runtime PRIVATE PkgConfig::YAML_CPP)
 add_executable(topoexec_cli tools/topoexec/main.cpp)
@@ -300,6 +325,8 @@ install(DIRECTORY include/ DESTINATION include)
             "common-layer dependency",
             "CLI semantic-bypass include",
             "native Python binding",
+            "runtime plugin-loader dependency",
+            "topoexec_plugin_loader must consume topoexec_runtime",
             "topoexec_runtime must not compile YAML graph_io.cpp",
             "topoexec_cli should consume topoexec_yaml",
         ]

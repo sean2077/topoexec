@@ -38,6 +38,9 @@
           "default-features": false
         }
       ]
+    },
+    "plugin-loader": {
+      "description": "Build and install the optional trusted-native dynamic plugin loader preview."
     }
   }
 }

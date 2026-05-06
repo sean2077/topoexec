@@ -70,6 +70,8 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
 - CompositeLoop solver-style residual reporting and partial-success policy.
 - OTel/Prometheus exporter preview targets, in-memory/text record shapes, and
   mapping options.
+- Trusted-native plugin loader preview target, manifest fields, error codes,
+  unload option, and plugin ABI/version policy.
 - Experimental headers listed in [public-api.md](public-api.md).
 
 Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, schema fields, or CLI JSON surfaces.
@@ -130,7 +132,8 @@ tag is a `v0.1.x` stabilization alpha, `v0.2.0-alpha` runtime-completeness alpha
 or a later preview. Release stage names must reflect implemented behavior, not
 only design docs. Adapter implementation tags should not be claimed while real ROS 2
 client-library packages, production OpenTelemetry/Prometheus, native Python
-bindings, stable C ABI, dynamic plugin loading, and external Perfetto
-integrations remain docs-only/deferred. G58/G59 telemetry targets, the G60 ROS 2
-target, the G61 C API target, and the G62 Python automation package are only
-dependency-free, CLI-backed, or ABI-version-0 previews.
+bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems, graph-driven
+plugin discovery, and external Perfetto integrations remain docs-only/deferred.
+G58/G59 telemetry targets, the G60 ROS 2 target, the G61 C API target, the G62
+Python automation package, and the G63 plugin loader target are only
+dependency-free, CLI-backed, ABI-version-0, or trusted-native previews.

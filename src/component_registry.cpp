@@ -16,7 +16,6 @@ bool ComponentRegistry::register_component(ComponentRegistration registration, C
   if (registrations_.count(type) != 0u) {
     return false;
   }
-  registration.static_registration = true;
   registrations_[type] = std::move(registration);
   factories_[type] = std::move(factory);
   return true;

@@ -6,7 +6,7 @@ TopoExec is a small C++20 in-process stateful dataflow runtime. It focuses on ex
 
 ## What is it not?
 
-It is not a distributed runtime, production ROS adapter, Python framework, GUI editor, or production OpenTelemetry/Prometheus exporter. Those adapters are deferred until the core runtime API is stable; the G58/G59 telemetry targets, G60 ROS 2 target, G61 C API target, and G62 Python automation package are dependency-free or unstable previews only.
+It is not a distributed runtime, production ROS adapter, Python framework, GUI editor, production OpenTelemetry/Prometheus exporter, or sandboxed plugin ecosystem. Those adapter/ecosystem surfaces are deferred until the core runtime API is stable; the G58/G59 telemetry targets, G60 ROS 2 target, G61 C API target, G62 Python automation package, and G63 plugin-loader target are dependency-free, CLI-backed, trusted-native, or unstable previews only.
 
 ## Do I need YAML?
 

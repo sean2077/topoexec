@@ -52,6 +52,8 @@ The installed package exports:
 - `topoexec::adapter_sdk`: dependency-free adapter SDK v0 boundary.
 - `topoexec::c_api`: optional unstable C API/FFI preview target when
   `TOPOEXEC_BUILD_C_API=ON`.
+- `topoexec::plugin_loader`: optional trusted-native dynamic plugin loader
+  preview target when `TOPOEXEC_BUILD_PLUGIN_LOADER=ON`.
 - `topoexec::yaml`: optional YAML graph loader target when built.
 - `topoexec::topoexec_cli`: optional imported executable target when the CLI is
   built and installed.
@@ -74,6 +76,7 @@ The installed config also exposes package metadata variables:
 - `TOPOEXEC_HAS_ADAPTER_SDK`
 - `TOPOEXEC_HAS_C_API`
 - `TOPOEXEC_HAS_PYTHON_PREVIEW`
+- `TOPOEXEC_HAS_PLUGIN_LOADER`
 - `TOPOEXEC_HAS_OTEL_ADAPTER`
 - `TOPOEXEC_HAS_PROMETHEUS_ADAPTER`
 - `TOPOEXEC_HAS_ROS2_ADAPTER`
@@ -92,6 +95,7 @@ The installed config also exposes package metadata variables:
 | `TOPOEXEC_BUILD_FUZZERS` | `OFF` | Build optional graph-input fuzz targets; requires YAML. |
 | `TOPOEXEC_BUILD_C_API` | `OFF` | Build and export the optional unstable C API/FFI preview target. |
 | `TOPOEXEC_BUILD_PYTHON_PREVIEW` | `OFF` | Install and test the optional CLI-backed Python automation preview; requires the CLI when enabled. |
+| `TOPOEXEC_BUILD_PLUGIN_LOADER` | `OFF` | Build, test, and export the optional trusted-native dynamic plugin loader preview. |
 | `TOPOEXEC_BUILD_OTEL_ADAPTER` | `OFF` | Build and export the optional dependency-free OTel exporter preview target. |
 | `TOPOEXEC_BUILD_PROMETHEUS_ADAPTER` | `OFF` | Build and export the optional dependency-free Prometheus text exporter preview target. |
 | `TOPOEXEC_BUILD_ROS2_ADAPTER` | `OFF` | Build and export the optional dependency-free ROS 2 fake-boundary preview target. |
@@ -150,6 +154,30 @@ out to `bin/topoexec` for JSON validate/plan/run/metrics/trace automation. It is
 not a native extension, has no pybind11 dependency, and is covered by
 `cmake_python_preview_options_smoke`, which also proves a disabled runtime-only
 C++ build still has no Python requirement.
+
+Optional dynamic plugin loader preview:
+
+```bash
+cmake -S . -B build-plugins -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DTOPOEXEC_BUILD_PLUGIN_LOADER=ON
+cmake --build build-plugins -j
+ctest --test-dir build-plugins --output-on-failure -R test_plugin_loader
+```
+
+Installed consumers request the optional package component and link the preview
+target explicitly:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED COMPONENTS plugin_loader)
+target_link_libraries(my_host PRIVATE topoexec::plugin_loader)
+```
+
+This preview loads trusted native components by explicit path, validates the
+manifest/plugin API/schema/component descriptors, and defaults to keeping the
+native handle open. It does not sandbox plugins, discover packages from graph
+schema, or promise a stable ABI. It is covered by
+`cmake_plugin_loader_options_smoke`, which also proves a disabled runtime-only
+build still has no plugin-loader requirement.
 
 Optional OTel preview target:
 
@@ -259,8 +287,8 @@ generation, and package-manager draft files.
 
 ## Dependency policy
 
-- Runtime code does not depend on YAML, CLI11, ROS, Python, OpenTelemetry, or
-  Prometheus.
+- Runtime code does not depend on YAML, CLI11, ROS, Python, OpenTelemetry,
+  Prometheus, or dynamic plugin loading APIs.
 - YAML loading requires `yaml-cpp` and `nlohmann_json`.
 - CLI builds require `CLI11` and `nlohmann_json`.
 - Fuzzer targets are off by default and require no runtime dependency; libFuzzer
@@ -271,6 +299,8 @@ generation, and package-manager draft files.
   and Python only; timing thresholds are never mandatory in CI.
 - Tests require GTest; if unavailable, the test build fetches it through CMake
   `FetchContent`.
+- The plugin loader preview uses POSIX dynamic-loading APIs in its optional
+  target only; core/runtime builds do not include or link that target by default.
 
 ## Package-manager drafts
 
@@ -284,7 +314,8 @@ Draft notes live under:
 
 They are intentionally not published package recipes yet. Keep them aligned with
 the CMake options above and do not add package-manager-specific dependencies to
-the core runtime.
+the core runtime. The plugin-loader draft feature is off by default and remains
+a trusted-native preview; it is not a published plugin ecosystem.
 
 ## CPack drafts
 
@@ -323,7 +354,7 @@ Release candidates should include:
 7. YAML and CLI installed package smoke evidence when those options are enabled;
 8. CPack source/binary archive smoke evidence;
 9. ASAN+UBSAN sanitizer evidence;
-10. known limitations for deferred adapters, benchmark thresholds, and non-blocking TSAN.
+10. known limitations for deferred adapters, trusted-native plugin preview scope, benchmark thresholds, and non-blocking TSAN.
 
 ## Troubleshooting
 

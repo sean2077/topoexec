@@ -21,6 +21,7 @@ REQUIRED_DOCS = [
     "public-api.md",
     "c-api.md",
     "python-preview.md",
+    "plugin-loader.md",
     "schema-v1.md",
     "hierarchical-graphs.md",
     "graph-templates.md",
@@ -79,6 +80,14 @@ REQUIRED_SECTIONS = {
         "## Non-goals",
         "## Validation",
     ],
+    "plugin-loader.md": [
+        "## Status",
+        "## Manifest and exports",
+        "## Security model",
+        "## Unload semantics",
+        "## Non-goals",
+        "## Validation",
+    ],
 }
 
 README_REQUIRED_LINKS = [
@@ -90,6 +99,7 @@ README_REQUIRED_LINKS = [
     "(public-api.md)",
     "(c-api.md)",
     "(python-preview.md)",
+    "(plugin-loader.md)",
     "(schema-v1.md)",
     "(hierarchical-graphs.md)",
     "(graph-templates.md)",

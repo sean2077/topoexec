@@ -16,11 +16,13 @@ class TopoExecConan(ConanFile):
         "yaml": [True, False],
         "cli": [True, False],
         "examples": [True, False],
+        "plugin_loader": [True, False],
     }
     default_options = {
         "yaml": True,
         "cli": True,
         "examples": False,
+        "plugin_loader": False,
     }
     exports_sources = "CMakeLists.txt", "cmake/*", "include/*", "src/*", "tools/*", "schema/*", "LICENSE"
 
@@ -45,6 +47,7 @@ class TopoExecConan(ConanFile):
         tc.variables["TOPOEXEC_BUILD_YAML"] = bool(self.options.yaml)
         tc.variables["TOPOEXEC_BUILD_CLI"] = bool(self.options.cli)
         tc.variables["TOPOEXEC_BUILD_EXAMPLES"] = bool(self.options.examples)
+        tc.variables["TOPOEXEC_BUILD_PLUGIN_LOADER"] = bool(self.options.plugin_loader)
         tc.variables["TOPOEXEC_BUILD_TESTING"] = False
         tc.generate()
 
@@ -66,3 +69,7 @@ class TopoExecConan(ConanFile):
             self.cpp_info.components["yaml"].set_property("cmake_target_name", "topoexec::yaml")
             self.cpp_info.components["yaml"].libs = ["topoexec"]
             self.cpp_info.components["yaml"].requires = ["runtime", "yaml-cpp::yaml-cpp", "nlohmann_json::nlohmann_json"]
+        if self.options.plugin_loader:
+            self.cpp_info.components["plugin_loader"].set_property("cmake_target_name", "topoexec::plugin_loader")
+            self.cpp_info.components["plugin_loader"].libs = ["topoexec_plugin_loader"]
+            self.cpp_info.components["plugin_loader"].requires = ["runtime"]

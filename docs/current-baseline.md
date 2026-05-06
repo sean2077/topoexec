@@ -26,7 +26,7 @@ Release decision note:
 
 ```text
 Recommended next prerelease: v0.2.0-alpha.0.
-Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while production exporter adapters, long fuzz/soak campaigns, and beta readiness remain explicit future work. RuntimeObserver v1, the dependency-free G58/G59 telemetry preview mappings, the G60 ROS 2 fake-boundary preview, the G61 C API/FFI preview, the G62 CLI-backed Python automation preview, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
+Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while production exporter adapters, long fuzz/soak campaigns, and beta readiness remain explicit future work. RuntimeObserver v1, the dependency-free G58/G59 telemetry preview mappings, the G60 ROS 2 fake-boundary preview, the G61 C API/FFI preview, the G62 CLI-backed Python automation preview, the G63 trusted-native plugin loader preview, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
 Human release approval should still verify CI on the exact tag commit before creating the annotated tag.
 ```
 
@@ -203,6 +203,21 @@ python3 -m py_compile python/topoexec_preview/__init__.py python/topoexec_previe
 git diff --check and git diff --cached --check passed.
 ```
 
+Observed G63 local result:
+
+```text
+./scripts/goal_check.sh plugins passed: test_plugin_loader, cmake_plugin_loader_options_smoke, and policy smokes, 4/4.
+./scripts/goal_check.sh quick passed: cli_golden_outputs and schema_v1_contract_smoke.
+./scripts/goal_check.sh docs passed: recursive docs command smoke after plugin-loader docs updates.
+./scripts/goal_check.sh package passed: package/runtime-only/CPack/package-draft smokes after plugin-loader package-draft updates.
+cmake --build build --target topoexec_format_check passed.
+./scripts/goal_check.sh policy passed: policy_no_core_adapter_deps and policy_architecture_self_test.
+./scripts/agent_check.sh passed: 78/78 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 78/78 CTest tests in the ASAN+UBSAN Debug build.
+python3 -m py_compile tests/docs/check_docs.py tests/policy/check_no_adapter_deps.py passed.
+git diff --check and git diff --cached --check passed.
+```
+
 Observed G67 local result:
 
 ```text
@@ -286,8 +301,10 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
   correlation/causation metadata, bounded observer-only health events,
   RuntimeObserver v1, Adapter SDK v0, the dependency-free G58 OTel preview
   mapping, G59 Prometheus text preview, G60 ROS 2 fake-boundary preview, G61
-  C API/FFI preview, and G62 CLI-backed Python automation preview. Concrete
-  production exporter/ROS adapters, stable ABI, native Python bindings, and a richer health-event v2
+  C API/FFI preview, G62 CLI-backed Python automation preview, and G63
+  trusted-native plugin loader preview. Concrete production exporter/ROS
+  adapters, stable ABI, native Python bindings, sandboxed/stable plugin
+  ecosystems, graph-driven plugin discovery, and a richer health-event v2
   contract remain future work.
 - Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, deterministic malformed-input fuzz smoke, and an optional `fuzz_graph_inputs` libFuzzer/standalone corpus target. Longer fuzz campaigns and broader target coverage remain future hardening work.
 - Hierarchical `subgraphs[]` are implemented as schema-v1 compile-time
@@ -315,10 +332,12 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
 - The robot-cell pilot is an embedded case study, not a hardware driver, robot controller, camera integration, ROS graph, exporter integration, or external scheduling guarantee.
 - ThreadSanitizer remains non-blocking.
 - Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python
-  bindings, stable C ABI, dynamic plugin loading, and external Perfetto adapters
-  remain deferred and must not be claimed as implemented; G57 provides a
-  dependency-free SDK boundary, G58/G59 provide only dependency-free telemetry
-  preview mappings, G60 provides only a dependency-free ROS 2 fake-boundary
-  preview, G61 provides only an unstable ABI-version-0 C API/FFI preview, and
-  G62 provides only a CLI-backed Python automation preview.
+  bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems,
+  graph-driven plugin discovery, and external Perfetto adapters remain deferred
+  and must not be claimed as implemented; G57 provides a dependency-free SDK
+  boundary, G58/G59 provide only dependency-free telemetry preview mappings, G60
+  provides only a dependency-free ROS 2 fake-boundary preview, G61 provides only
+  an unstable ABI-version-0 C API/FFI preview, G62 provides only a CLI-backed
+  Python automation preview, and G63 provides only a trusted-native plugin-loader
+  preview.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.
