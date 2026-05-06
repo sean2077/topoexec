@@ -309,8 +309,9 @@ The JSON Schema is a documentation and generation contract today; semantic rules
 
 The schema also records the executable defensive limits that are cheap to express
 in JSON Schema: 256 lanes, 4096 components, 8192 edges, 1024 CompositeLoop
-entries, and 128-byte ids. Additional parser limits such as graph text size and
-config nesting depth are documented in [Defensive input handling](defensive-input.md).
+entries, 128-byte ids, and 4096-byte non-config strings/endpoints. Additional
+parser limits such as graph text size, UTF-8 input, file read bounds, and config
+nesting depth are documented in [Defensive input handling](defensive-input.md).
 
 CLI validation exposes the same split:
 

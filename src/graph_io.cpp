@@ -13,14 +13,28 @@
 namespace topoexec {
 namespace {
 
-constexpr std::size_t kMaxGraphInputBytes = 1024u * 1024u;
-constexpr std::size_t kMaxLanes = 256u;
-constexpr std::size_t kMaxComponents = 4096u;
-constexpr std::size_t kMaxEdges = 8192u;
-constexpr std::size_t kMaxCompositeLoops = 1024u;
-constexpr std::size_t kMaxIdentifierLength = 128u;
-constexpr std::size_t kMaxConfigDepth = 8u;
-constexpr std::size_t kMaxConfigValueBytes = 4096u;
+thread_local const GraphInputLimits* g_active_limits = &default_graph_input_limits();
+
+const GraphInputLimits& active_limits() {
+  return g_active_limits == nullptr ? default_graph_input_limits() : *g_active_limits;
+}
+
+class ScopedGraphInputLimits {
+public:
+  explicit ScopedGraphInputLimits(const GraphInputLimits& limits) : previous_(g_active_limits) {
+    g_active_limits = &limits;
+  }
+
+  ~ScopedGraphInputLimits() {
+    g_active_limits = previous_;
+  }
+
+  ScopedGraphInputLimits(const ScopedGraphInputLimits&) = delete;
+  ScopedGraphInputLimits& operator=(const ScopedGraphInputLimits&) = delete;
+
+private:
+  const GraphInputLimits* previous_;
+};
 
 std::optional<EdgeKind> parse_edge_kind(const std::string& kind) {
   if (kind == "immediate") {
@@ -52,11 +66,71 @@ void enforce_limit(std::size_t value, std::size_t limit, const std::string& cont
   }
 }
 
-std::string checked_identifier(std::string value, const std::string& context) {
+bool is_valid_utf8(const std::string& text) {
+  for (std::size_t index = 0; index < text.size();) {
+    const auto byte = static_cast<unsigned char>(text[index]);
+    if (byte <= 0x7Fu) {
+      ++index;
+      continue;
+    }
+
+    std::size_t needed = 0u;
+    unsigned int codepoint = 0u;
+    if ((byte & 0xE0u) == 0xC0u) {
+      needed = 1u;
+      codepoint = byte & 0x1Fu;
+      if (codepoint == 0u) {
+        return false;
+      }
+    } else if ((byte & 0xF0u) == 0xE0u) {
+      needed = 2u;
+      codepoint = byte & 0x0Fu;
+    } else if ((byte & 0xF8u) == 0xF0u) {
+      needed = 3u;
+      codepoint = byte & 0x07u;
+    } else {
+      return false;
+    }
+
+    if (index + needed >= text.size()) {
+      return false;
+    }
+    for (std::size_t offset = 1u; offset <= needed; ++offset) {
+      const auto continuation = static_cast<unsigned char>(text[index + offset]);
+      if ((continuation & 0xC0u) != 0x80u) {
+        return false;
+      }
+      codepoint = (codepoint << 6u) | (continuation & 0x3Fu);
+    }
+    if ((needed == 1u && codepoint < 0x80u) || (needed == 2u && codepoint < 0x800u) ||
+        (needed == 3u && codepoint < 0x10000u) || (codepoint >= 0xD800u && codepoint <= 0xDFFFu) ||
+        codepoint > 0x10FFFFu) {
+      return false;
+    }
+    index += needed + 1u;
+  }
+  return true;
+}
+
+void enforce_valid_utf8(const std::string& text) {
+  if (!is_valid_utf8(text)) {
+    throw std::invalid_argument("graph input must be valid UTF-8 text");
+  }
+}
+
+void enforce_string_limit(const std::string& value, const std::string& context, const GraphInputLimits& limits) {
+  enforce_limit(value.size(), limits.max_string_bytes, context + " length");
+}
+
+void enforce_identifier_limit(const std::string& value, const std::string& context, const GraphInputLimits& limits) {
   if (value.empty()) {
     throw std::invalid_argument(context + " must not be empty");
   }
-  enforce_limit(value.size(), kMaxIdentifierLength, context + " length");
+  enforce_limit(value.size(), limits.max_identifier_bytes, context + " length");
+}
+
+std::string checked_identifier(std::string value, const std::string& context) {
+  enforce_identifier_limit(value, context, active_limits());
   return value;
 }
 
@@ -64,11 +138,11 @@ void enforce_config_limits(const YAML::Node& node, const std::string& context, s
   if (!node || node.IsNull()) {
     return;
   }
-  enforce_limit(depth, kMaxConfigDepth, context + " depth");
+  enforce_limit(depth, active_limits().max_config_depth, context + " depth");
   if (node.IsMap()) {
     for (const auto& item : node) {
       const auto key = item.first.as<std::string>();
-      enforce_limit(key.size(), kMaxIdentifierLength, context + " key length");
+      enforce_limit(key.size(), active_limits().max_identifier_bytes, context + " key length");
       enforce_config_limits(item.second, context + "." + key, depth + 1u);
     }
     return;
@@ -79,7 +153,7 @@ void enforce_config_limits(const YAML::Node& node, const std::string& context, s
     }
     return;
   }
-  enforce_limit(node.as<std::string>().size(), kMaxConfigValueBytes, context + " value size");
+  enforce_limit(node.as<std::string>().size(), active_limits().max_config_value_bytes, context + " value size");
 }
 
 void require_map(const YAML::Node& node, const std::string& context) {
@@ -191,7 +265,8 @@ ConfigView read_config_node(const YAML::Node& config, const std::string& context
     if (item.second.IsMap() || item.second.IsSequence()) {
       std::ostringstream out;
       out << item.second;
-      enforce_limit(out.str().size(), kMaxConfigValueBytes, context + "." + key + " serialized value size");
+      enforce_limit(out.str().size(), active_limits().max_config_value_bytes,
+                    context + "." + key + " serialized value size");
       view.values[key] = out.str();
       view.nested_values.insert(key);
     } else {
@@ -370,7 +445,7 @@ GraphSpec load_graph_node(const YAML::Node& root) {
 
   const auto lanes_node = require_node(root, "lanes", "runtime graph");
   require_map(lanes_node, "runtime graph.lanes");
-  enforce_limit(lanes_node.size(), kMaxLanes, "runtime graph.lanes count");
+  enforce_limit(lanes_node.size(), active_limits().max_lanes, "runtime graph.lanes count");
   for (const auto& item : lanes_node) {
     LaneSpec lane;
     lane.id = checked_identifier(item.first.as<std::string>(), "lanes id");
@@ -401,7 +476,7 @@ GraphSpec load_graph_node(const YAML::Node& root) {
 
   const auto components_node = require_node(root, "components", "runtime graph");
   require_sequence(components_node, "runtime graph.components");
-  enforce_limit(components_node.size(), kMaxComponents, "runtime graph.components count");
+  enforce_limit(components_node.size(), active_limits().max_components, "runtime graph.components count");
   for (std::size_t index = 0; index < components_node.size(); ++index) {
     const auto component_node = components_node[index];
     require_map(component_node, "components[" + std::to_string(index) + "]");
@@ -423,7 +498,7 @@ GraphSpec load_graph_node(const YAML::Node& root) {
 
   const auto edges_node = require_node(root, "edges", "runtime graph");
   require_sequence(edges_node, "runtime graph.edges");
-  enforce_limit(edges_node.size(), kMaxEdges, "runtime graph.edges count");
+  enforce_limit(edges_node.size(), active_limits().max_edges, "runtime graph.edges count");
   for (std::size_t index = 0; index < edges_node.size(); ++index) {
     const auto edge_node = edges_node[index];
     require_map(edge_node, "edges[" + std::to_string(index) + "]");
@@ -451,7 +526,7 @@ GraphSpec load_graph_node(const YAML::Node& root) {
   const auto loops_node = root["composite_loops"];
   if (loops_node && !loops_node.IsNull()) {
     require_sequence(loops_node, "runtime graph.composite_loops");
-    enforce_limit(loops_node.size(), kMaxCompositeLoops, "runtime graph.composite_loops count");
+    enforce_limit(loops_node.size(), active_limits().max_composite_loops, "runtime graph.composite_loops count");
     for (std::size_t index = 0; index < loops_node.size(); ++index) {
       graph.composite_loops.push_back(
           read_composite_loop(loops_node[index], "composite_loops[" + std::to_string(index) + "]"));
@@ -460,21 +535,137 @@ GraphSpec load_graph_node(const YAML::Node& root) {
   return graph;
 }
 
-} // namespace
-
-GraphSpec load_graph_text(const std::string& text) {
-  enforce_limit(text.size(), kMaxGraphInputBytes, "graph input size");
-  return load_graph_node(YAML::Load(text));
+void enforce_config_view_string_limits(const ConfigView& config, const std::string& context,
+                                       const GraphInputLimits& limits) {
+  for (const auto& [key, value] : config.values) {
+    enforce_limit(key.size(), limits.max_identifier_bytes, context + "." + key + " key length");
+    enforce_limit(value.size(), limits.max_config_value_bytes, context + "." + key + " value size");
+  }
 }
 
-GraphSpec load_graph_file(const std::string& path) {
-  std::ifstream input(path);
+void enforce_graph_string_limits(const GraphSpec& graph, const GraphInputLimits& limits) {
+  enforce_identifier_limit(graph.name, "runtime graph.graph.name", limits);
+  enforce_string_limit(graph.kind, "runtime graph.graph.kind", limits);
+  enforce_string_limit(graph.clock.runtime_domain, "runtime graph.graph.clock.runtime_domain", limits);
+  enforce_string_limit(graph.clock.event_domain, "runtime graph.graph.clock.event_domain", limits);
+  enforce_config_view_string_limits(graph.config, "runtime graph.graph.config", limits);
+
+  for (const auto& lane : graph.lanes) {
+    enforce_identifier_limit(lane.id, "lanes id", limits);
+    enforce_string_limit(lane.type, "lanes." + lane.id + ".type", limits);
+    enforce_string_limit(lane.priority, "lanes." + lane.id + ".priority", limits);
+    enforce_string_limit(lane.overflow, "lanes." + lane.id + ".overflow", limits);
+    enforce_string_limit(lane.overrun_policy, "lanes." + lane.id + ".overrun_policy", limits);
+    enforce_string_limit(lane.thread_name, "lanes." + lane.id + ".thread_name", limits);
+    enforce_string_limit(lane.rt_policy, "lanes." + lane.id + ".rt_policy", limits);
+    enforce_string_limit(lane.isolation_intent, "lanes." + lane.id + ".isolation_intent", limits);
+  }
+
+  for (const auto& component : graph.components) {
+    enforce_identifier_limit(component.id, "components." + component.id + ".id", limits);
+    enforce_string_limit(component.type, "components." + component.id + ".type", limits);
+    enforce_string_limit(component.boundary.descriptor, "components." + component.id + ".boundary.descriptor", limits);
+    enforce_string_limit(to_string(component.boundary.role), "components." + component.id + ".boundary.role", limits);
+    enforce_config_view_string_limits(component.config, "components." + component.id + ".config", limits);
+    for (const auto& dependency : component.depends_on) {
+      enforce_identifier_limit(dependency, "components." + component.id + ".depends_on", limits);
+    }
+    for (const auto& source : component.event_sources) {
+      enforce_string_limit(source.id, "components." + component.id + ".event_sources.id", limits);
+      enforce_string_limit(source.type, "components." + component.id + ".event_sources.type", limits);
+      enforce_string_limit(source.input, "components." + component.id + ".event_sources.input", limits);
+      for (const auto& input : source.inputs) {
+        enforce_string_limit(input, "components." + component.id + ".event_sources.inputs", limits);
+      }
+    }
+    enforce_string_limit(component.trigger_policy.type, "components." + component.id + ".trigger_policy.type", limits);
+    enforce_string_limit(component.trigger_policy.input, "components." + component.id + ".trigger_policy.input",
+                         limits);
+    for (const auto& input : component.trigger_policy.inputs) {
+      enforce_string_limit(input, "components." + component.id + ".trigger_policy.inputs", limits);
+    }
+    enforce_identifier_limit(component.execution.lane, "components." + component.id + ".execution.lane", limits);
+    enforce_string_limit(component.execution.priority, "components." + component.id + ".execution.priority", limits);
+    enforce_string_limit(component.execution.on_error, "components." + component.id + ".execution.on_error", limits);
+  }
+
+  for (const auto& edge : graph.edges) {
+    enforce_identifier_limit(edge.id, "edges." + edge.id + ".id", limits);
+    enforce_string_limit(edge.from, "edges." + edge.id + ".from", limits);
+    enforce_string_limit(edge.to, "edges." + edge.id + ".to", limits);
+    enforce_string_limit(edge.invalid_kind, "edges." + edge.id + ".kind", limits);
+    enforce_string_limit(edge.policy.mode, "edges." + edge.id + ".policy.mode", limits);
+    enforce_string_limit(edge.policy.overflow, "edges." + edge.id + ".policy.overflow", limits);
+    enforce_string_limit(edge.policy.timestamp_domain, "edges." + edge.id + ".policy.timestamp_domain", limits);
+    enforce_string_limit(edge.policy.copy_policy, "edges." + edge.id + ".policy.copy_policy", limits);
+    enforce_string_limit(edge.policy.owner, "edges." + edge.id + ".policy.owner", limits);
+    enforce_string_limit(edge.policy.readers, "edges." + edge.id + ".policy.readers", limits);
+  }
+
+  for (const auto& loop : graph.composite_loops) {
+    enforce_identifier_limit(loop.id, "composite_loops." + loop.id + ".id", limits);
+    for (const auto& component : loop.components) {
+      enforce_identifier_limit(component, "composite_loops." + loop.id + ".components", limits);
+    }
+    enforce_string_limit(loop.loop_policy.type, "composite_loops." + loop.id + ".loop_policy.type", limits);
+    enforce_string_limit(loop.loop_policy.drop_policy, "composite_loops." + loop.id + ".loop_policy.drop_policy",
+                         limits);
+    enforce_string_limit(loop.loop_policy.convergence, "composite_loops." + loop.id + ".loop_policy.convergence",
+                         limits);
+  }
+}
+
+std::string read_bounded_graph_file(const std::string& path, const GraphInputLimits& limits) {
+  std::ifstream input(path, std::ios::binary);
   if (!input) {
     throw std::invalid_argument("failed to open graph file: " + path);
   }
-  std::ostringstream text;
-  text << input.rdbuf();
-  return load_graph_text(text.str());
+
+  std::string text;
+  char buffer[4096];
+  while (input) {
+    input.read(buffer, sizeof(buffer));
+    const auto count = input.gcount();
+    if (count <= 0) {
+      break;
+    }
+    const auto chunk_size = static_cast<std::size_t>(count);
+    if (text.size() > limits.max_graph_input_bytes || chunk_size > limits.max_graph_input_bytes - text.size()) {
+      throw std::invalid_argument("graph input size exceeds limit " + std::to_string(limits.max_graph_input_bytes));
+    }
+    text.append(buffer, chunk_size);
+  }
+  if (input.bad()) {
+    throw std::invalid_argument("failed to read graph file: " + path);
+  }
+  return text;
+}
+
+} // namespace
+
+GraphSpec load_graph_text(const std::string& text) {
+  return load_graph_text(text, default_graph_input_limits());
+}
+
+GraphSpec load_graph_text(const std::string& text, const GraphInputLimits& limits) {
+  enforce_limit(text.size(), limits.max_graph_input_bytes, "graph input size");
+  enforce_valid_utf8(text);
+  const ScopedGraphInputLimits scope(limits);
+  try {
+    auto graph = load_graph_node(YAML::Load(text));
+    enforce_graph_string_limits(graph, limits);
+    return graph;
+  } catch (const YAML::Exception& error) {
+    throw std::invalid_argument(std::string("failed to parse graph input: ") + error.what());
+  }
+}
+
+GraphSpec load_graph_file(const std::string& path) {
+  return load_graph_file(path, default_graph_input_limits());
+}
+
+GraphSpec load_graph_file(const std::string& path, const GraphInputLimits& limits) {
+  return load_graph_text(read_bounded_graph_file(path, limits), limits);
 }
 
 nlohmann::json lane_capability_summary(const LaneSpec& lane) {

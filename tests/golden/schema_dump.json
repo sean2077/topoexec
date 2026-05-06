@@ -4,6 +4,7 @@
       "additionalProperties": false,
       "properties": {
         "descriptor": {
+          "maxLength": 4096,
           "type": "string"
         },
         "role": {
@@ -14,6 +15,7 @@
             "output",
             "input_output"
           ],
+          "maxLength": 4096,
           "type": "string"
         }
       },
@@ -26,6 +28,7 @@
         "device",
         "external"
       ],
+      "maxLength": 4096,
       "type": "string"
     },
     "component": {
@@ -56,6 +59,7 @@
           "$ref": "#/$defs/trigger_policy"
         },
         "type": {
+          "maxLength": 4096,
           "minLength": 1,
           "type": "string"
         }
@@ -107,6 +111,7 @@
             "state",
             "async"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "policy": {
@@ -144,6 +149,7 @@
             "loaned_view",
             "move_only"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "deadline_ms": {
@@ -175,6 +181,7 @@
             "barrier",
             "previous_tick"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "overflow": {
@@ -187,6 +194,7 @@
             "fail_fast",
             "reject"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "owner": {
@@ -196,6 +204,7 @@
             "runtime",
             "consumer"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "preserve_order": {
@@ -209,6 +218,7 @@
             "multi",
             "multiple"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "timestamp_domain": {
@@ -219,6 +229,7 @@
       "type": "object"
     },
     "endpoint": {
+      "maxLength": 4096,
       "minLength": 1,
       "pattern": "^[A-Za-z0-9_.:-]+$",
       "type": "string"
@@ -230,6 +241,7 @@
           "$ref": "#/$defs/id"
         },
         "input": {
+          "maxLength": 4096,
           "type": "string"
         },
         "inputs": {
@@ -252,6 +264,7 @@
             "task_ready",
             "future_ready"
           ],
+          "maxLength": 4096,
           "type": "string"
         }
       },
@@ -275,6 +288,7 @@
             "continue",
             "isolate"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "priority": {
@@ -285,6 +299,7 @@
             "normal",
             "high"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "reentrant": {
@@ -312,6 +327,7 @@
               "enum": [
                 "steady"
               ],
+              "maxLength": 4096,
               "type": "string"
             }
           },
@@ -326,6 +342,7 @@
             "runnable",
             "internal_test"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "name": {
@@ -358,6 +375,7 @@
         },
         "isolation_intent": {
           "default": "none",
+          "maxLength": 4096,
           "type": "string"
         },
         "max_callback_ms": {
@@ -385,6 +403,7 @@
             "fail_fast",
             "block"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "overrun_policy": {
@@ -394,6 +413,7 @@
             "skip_next",
             "catch_up_once"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "period_ms": {
@@ -403,6 +423,7 @@
         },
         "priority": {
           "default": "",
+          "maxLength": 4096,
           "type": "string"
         },
         "queue_capacity": {
@@ -412,6 +433,7 @@
         },
         "rt_policy": {
           "default": "none",
+          "maxLength": 4096,
           "type": "string"
         },
         "rt_priority": {
@@ -419,6 +441,7 @@
           "type": "integer"
         },
         "thread_name": {
+          "maxLength": 4096,
           "type": "string"
         },
         "tick_budget_ms": {
@@ -432,6 +455,7 @@
             "fixed_rate",
             "thread_pool"
           ],
+          "maxLength": 4096,
           "type": "string"
         },
         "wall_clock_enabled": {
@@ -453,9 +477,11 @@
           "type": "integer"
         },
         "convergence": {
+          "maxLength": 4096,
           "type": "string"
         },
         "drop_policy": {
+          "maxLength": 4096,
           "type": "string"
         },
         "max_inflight": {
@@ -480,6 +506,7 @@
             "coalesced_event",
             "async_task"
           ],
+          "maxLength": 4096,
           "type": "string"
         }
       },
@@ -490,6 +517,7 @@
     },
     "string_array": {
       "items": {
+        "maxLength": 4096,
         "type": "string"
       },
       "type": "array"
@@ -512,6 +540,7 @@
           "type": "boolean"
         },
         "input": {
+          "maxLength": 4096,
           "type": "string"
         },
         "inputs": {
@@ -544,6 +573,7 @@
             "request",
             "task_ready"
           ],
+          "maxLength": 4096,
           "type": "string"
         }
       },

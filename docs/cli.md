@@ -11,6 +11,7 @@ without CLI or YAML.
 ./build/topoexec graph validate examples/minimal.yaml --schema-only --format json
 ./build/topoexec graph validate examples/minimal.yaml --semantic --format json
 ./build/topoexec graph validate examples/diagnostic_warnings.yaml --strict-diagnostics --format json
+./build/topoexec graph validate examples/minimal.yaml --max-graph-input-bytes 65536 --format json
 ./build/topoexec graph plan examples/composite_loop.yaml --format json
 ./build/topoexec graph render examples/minimal.yaml --format mermaid
 ./build/topoexec graph run examples/minimal.yaml --steps 1
@@ -29,6 +30,11 @@ mapping. `graph trace --format json` and `graph trace --format chrome` include
 contract before mapping spans or tracks. `graph validate --format json` includes
 `diagnostics_schema_version`, diagnostic `category`, and `suggested_fix`;
 `--strict-diagnostics` fails warning diagnostics for stricter CI/editor workflows.
+Graph-reading commands also accept per-invocation defensive parser overrides:
+`--max-graph-input-bytes`, `--max-lanes`, `--max-components`, `--max-edges`,
+`--max-composite-loops`, `--max-identifier-bytes`, `--max-config-depth`,
+`--max-config-value-bytes`, and `--max-string-bytes`. Parse failures are reported
+as normal validation JSON when `--format json` is selected.
 
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --schema-only --format json -->
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --semantic --format json -->
@@ -47,7 +53,8 @@ contract before mapping spans or tracks. `graph validate --format json` includes
 `schema dump --format json` includes the schema annotation
 `x-topoexec-semantic_contract_version`. `doctor --format json` reports the same
 runtime contract as `semantic_contract_version` alongside the graph
-`schema_version` and health-event observer defaults.
+`schema_version`, health-event observer defaults, and default
+`graph_input_limits`.
 
 <!-- topoexec-doc-test: ${TOPOEXEC} schema dump --format json -->
 <!-- topoexec-doc-test: ${TOPOEXEC} schema check ${SOURCE_DIR}/examples/minimal.yaml --format json -->
@@ -65,7 +72,7 @@ runtime contract as `semantic_contract_version` alongside the graph
 
 ## Debugging sequence
 
-1. `validate --schema-only` catches shape and unknown-field issues.
+1. `validate --schema-only` catches shape, parser-limit, UTF-8, and unknown-field issues.
 2. `validate --semantic` adds compiler diagnostics and region order. Use `--strict-diagnostics` when warning diagnostics should fail CI.
 3. `explain --format json` groups diagnostics by graph structure, scheduler, channel, payload, and trigger categories.
 4. `plan --format json` shows what will execute.

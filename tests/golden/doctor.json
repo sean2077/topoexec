@@ -21,6 +21,18 @@
     "sanitizers": "external-ci",
     "yaml": true
   },
+  "graph_input_limits": {
+    "max_components": 4096,
+    "max_composite_loops": 1024,
+    "max_config_depth": 8,
+    "max_config_value_bytes": 4096,
+    "max_edges": 8192,
+    "max_graph_input_bytes": 1048576,
+    "max_identifier_bytes": 128,
+    "max_lanes": 256,
+    "max_string_bytes": 4096,
+    "valid_text_encoding": "utf-8"
+  },
   "health_events": {
     "bounded_sink": true,
     "control_flow": "observer_only",

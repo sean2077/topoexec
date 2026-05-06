@@ -4,6 +4,8 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <random>
@@ -138,6 +140,30 @@ std::string graph_with_component_count(std::size_t count) {
   return out.str();
 }
 
+std::string graph_with_edge_count(std::size_t count) {
+  std::ostringstream out;
+  out << "schema_version: 1\n";
+  out << "graph: {name: edge_limit, kind: internal_test}\n";
+  out << "lanes: {main: {type: event_loop}}\n";
+  out << "components:\n";
+  out << "  - {id: a, type: topoexec.test.A, event_sources: [{type: manual}], trigger_policy: {type: manual}, "
+         "execution: {lane: main}}\n";
+  out << "  - {id: b, type: topoexec.test.B, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: "
+         "any_input, inputs: [in]}, execution: {lane: main}}\n";
+  out << "edges:\n";
+  for (std::size_t index = 0; index < count; ++index) {
+    out << "  - {id: e" << index << ", kind: immediate, from: a.out, to: b.in}\n";
+  }
+  return out.str();
+}
+
+std::filesystem::path write_temp_graph_file(const std::string& name, const std::string& content) {
+  const auto path = std::filesystem::temp_directory_path() / name;
+  std::ofstream output(path, std::ios::binary);
+  output << content;
+  return path;
+}
+
 std::string component_id_from_endpoint(const std::string& endpoint) {
   const auto dot = endpoint.find('.');
   if (dot == std::string::npos) {
@@ -252,6 +278,55 @@ TEST(GraphInputLimits, RejectsOversizedGraphTextBeforeYamlParse) {
       std::invalid_argument);
 }
 
+TEST(GraphInputLimits, ExposesDefaultLimitContract) {
+  const auto& limits = topoexec::default_graph_input_limits();
+  EXPECT_EQ(limits.max_graph_input_bytes, 1024u * 1024u);
+  EXPECT_EQ(limits.max_lanes, 256u);
+  EXPECT_EQ(limits.max_components, 4096u);
+  EXPECT_EQ(limits.max_edges, 8192u);
+  EXPECT_EQ(limits.max_composite_loops, 1024u);
+  EXPECT_EQ(limits.max_identifier_bytes, 128u);
+  EXPECT_EQ(limits.max_config_depth, 8u);
+  EXPECT_EQ(limits.max_config_value_bytes, 4096u);
+  EXPECT_EQ(limits.max_string_bytes, 4096u);
+}
+
+TEST(GraphInputLimits, CustomLimitsApplyToGraphText) {
+  auto limits = topoexec::default_graph_input_limits();
+  limits.max_components = 1u;
+
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(graph_with_component_count(2u), limits);
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("runtime graph.components count exceeds limit 1"),
+                    std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
+TEST(GraphInputLimits, CustomFileLimitRejectsBeforeUnboundedRead) {
+  auto limits = topoexec::default_graph_input_limits();
+  limits.max_graph_input_bytes = 32u;
+  const auto path = write_temp_graph_file("topoexec_graph_limit.yaml", graph_with_component_count(1u));
+
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_file(path.string(), limits);
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("graph input size exceeds limit 32"), std::string::npos);
+          std::filesystem::remove(path);
+          throw;
+        }
+      },
+      std::invalid_argument);
+  std::filesystem::remove(path);
+}
+
 TEST(GraphInputLimits, RejectsTooManyComponents) {
   EXPECT_THROW(
       {
@@ -260,6 +335,19 @@ TEST(GraphInputLimits, RejectsTooManyComponents) {
         } catch (const std::invalid_argument& error) {
           EXPECT_NE(std::string(error.what()).find("runtime graph.components count exceeds limit 4096"),
                     std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
+TEST(GraphInputLimits, RejectsTooManyEdges) {
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(graph_with_edge_count(8193u));
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("runtime graph.edges count exceeds limit 8192"), std::string::npos);
           throw;
         }
       },
@@ -291,6 +379,31 @@ TEST(GraphInputLimits, RejectsOverlongIdentifiers) {
       std::invalid_argument);
 }
 
+TEST(GraphInputLimits, RejectsOverlongNonConfigStrings) {
+  const std::string long_type(4097u, 'x');
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text("schema_version: 1\n"
+                                          "graph: {name: string_limit, kind: internal_test}\n"
+                                          "lanes: {main: {type: event_loop}}\n"
+                                          "components:\n"
+                                          "  - id: a\n"
+                                          "    type: " +
+                                          long_type +
+                                          "\n"
+                                          "    event_sources: [{type: manual}]\n"
+                                          "    trigger_policy: {type: manual}\n"
+                                          "    execution: {lane: main}\n"
+                                          "edges: []\n");
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("components.a.type length exceeds limit 4096"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
 TEST(GraphInputLimits, RejectsDeepConfigSnapshots) {
   EXPECT_THROW(
       {
@@ -308,6 +421,23 @@ edges: []
         } catch (const std::invalid_argument& error) {
           EXPECT_NE(std::string(error.what()).find("config"), std::string::npos);
           EXPECT_NE(std::string(error.what()).find("depth exceeds limit 8"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
+TEST(GraphInputLimits, RejectsInvalidUtf8BeforeYamlParse) {
+  std::string text = "schema_version: 1\n";
+  text.push_back(static_cast<char>(0xC3));
+  text.push_back(static_cast<char>(0x28));
+
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(text);
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("valid UTF-8"), std::string::npos);
           throw;
         }
       },

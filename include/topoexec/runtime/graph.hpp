@@ -17,6 +17,18 @@ namespace topoexec {
 inline constexpr int kTopoExecSchemaVersion = 1;
 inline constexpr const char* kTopoExecSemanticContractVersion = "0.2";
 
+struct GraphInputLimits {
+  std::size_t max_graph_input_bytes{1024u * 1024u};
+  std::size_t max_lanes{256u};
+  std::size_t max_components{4096u};
+  std::size_t max_edges{8192u};
+  std::size_t max_composite_loops{1024u};
+  std::size_t max_identifier_bytes{128u};
+  std::size_t max_config_depth{8u};
+  std::size_t max_config_value_bytes{4096u};
+  std::size_t max_string_bytes{4096u};
+};
+
 struct LaneSpec {
   std::string id;
   std::string type;
@@ -225,8 +237,14 @@ struct GraphDryRunResult {
   std::vector<RuntimeMetricSample> runtime_metrics;
 };
 
+inline const GraphInputLimits& default_graph_input_limits() {
+  static const GraphInputLimits limits{};
+  return limits;
+}
 GraphSpec load_graph_text(const std::string& text);
+GraphSpec load_graph_text(const std::string& text, const GraphInputLimits& limits);
 GraphSpec load_graph_file(const std::string& path);
+GraphSpec load_graph_file(const std::string& path, const GraphInputLimits& limits);
 std::string to_string(EdgeKind kind);
 std::string to_string(CompiledRegionKind kind);
 GraphCompileResult compile_graph(const GraphSpec& graph);

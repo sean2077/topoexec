@@ -29,6 +29,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added runtime metric schema version 1 with descriptor metadata, cardinality validation, forbidden high-cardinality default-label checks, and CLI metrics JSON schema-version output.
 - Added runtime trace schema version 1 with ordered timeline fields, explicit phase/component/channel/lane/worker/epoch/transaction/correlation/causation identifiers, and Chrome trace phase tracks.
 - Added graph diagnostic schema version 1 with stable severity/category fields, warning diagnostics for backpressure/deep queues/large copies/never-ready triggers, grouped explain output, and CLI strict-diagnostics failure mode.
+- Added `GraphInputLimits`, bounded incremental graph file reads, UTF-8 input validation, non-config string limits, CLI parser-limit overrides, schema string-limit checks, and stronger deterministic malformed-input fuzz coverage.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
 - Added deterministic benchmark case YAMLs and richer `bench --format json` output with case, params, per-run latency percentiles, throughput, and environment summary.
@@ -39,7 +40,6 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added optional YAML/CLI/example CMake build switches, runtime-only option smoke coverage, and package-manager draft notes.
 - Added adapter-boundary preview contracts, dependency-free adapter stub notes, and a policy smoke for accidental core adapter SDK dependencies.
 - Added a deferred ROS 2 adapter design covering boundary mapping, QoS separation, executor interaction, lifecycle, diagnostics, and fake-boundary-first tests.
-- Added parser-level graph input limits, schema limit checks, defensive input docs, and graph loader tests for oversized input, too many components, overlong ids, and deep config.
 - Added release progression docs that map completed goals to prerelease stages and refresh the release checklist evidence.
 - Added optional deterministic `TaskExecutor`, `GraphContext::submit_task`, bounded task admission metrics, cancellation, and failure completions.
 - Added CompositeLoop internal failure accounting, `runtime.loop.error`, `loop_error` trace events, and docs for external-output commit isolation.

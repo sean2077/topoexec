@@ -19,9 +19,36 @@ limits are exceeded:
 | Identifier length | 128 bytes | graph name, lane ids, component ids, edge ids, loop ids |
 | Config nesting depth | 8 | graph/component config maps and sequences |
 | Config scalar/serialized value | 4096 bytes | config scalar values and serialized nested values |
+| Non-config string length | 4096 bytes | component types, endpoints, policy names, descriptors, and other YAML strings |
 
 Limit errors are explicit `std::invalid_argument` messages that name the graph
 path and limit, for example `runtime graph.components count exceeds limit 4096`.
+Inputs must be valid UTF-8 text; invalid byte sequences fail before YAML parsing
+with a bounded diagnostic instead of being treated as opaque binary.
+
+The public `GraphInputLimits` struct exposes these defaults through
+`default_graph_input_limits()`. Embedders can call `load_graph_text(text,
+limits)` or `load_graph_file(path, limits)` to tighten limits for tests,
+editors, or CI. File loading reads incrementally and fails once the configured
+byte limit would be exceeded, so oversized files do not need to be materialized
+fully before rejection.
+
+## CLI overrides
+
+Graph-reading CLI commands accept the same local parser-limit overrides:
+
+```bash
+./build/topoexec graph validate examples/minimal.yaml \
+  --max-graph-input-bytes 65536 \
+  --max-components 512 \
+  --max-edges 1024 \
+  --format json
+```
+
+Overrides are intentionally per-invocation; TopoExec does not persist them in
+project state. The defaults remain safe for normal examples, while CI/editor
+jobs can lower them to protect interactive workflows. `topoexec doctor --format
+json` reports the default `graph_input_limits` contract.
 
 ## Numeric validation
 
@@ -33,9 +60,19 @@ validation before runtime execution.
 ## Fuzz and malformed input
 
 `fuzz_graph_input_smoke` runs a deterministic corpus of malformed, cyclic,
-partial, nested, and mutated YAML inputs. The smoke fails on timeouts, crash-like
-exit codes, or sanitizer/crash markers. It is a no-crash gate, not a replacement
-for future coverage-guided fuzzing.
+partial, nested, invalid-UTF-8, oversized, and mutated YAML inputs. The smoke
+fails on timeouts, crash-like exit codes, or sanitizer/crash markers. It is a
+no-crash gate that can run locally via `./scripts/goal_check.sh fuzz`; it is not
+a replacement for the future coverage-guided fuzzing goal.
+
+## Trust boundary
+
+TopoExec YAML declares graph structure. It is not an untrusted code execution
+engine: the loader parses data, validates semantics, and returns a `GraphSpec`;
+component instantiation still comes from an embedder-provided registry. Future
+dynamic plugin loading must treat plugin discovery, shared-library paths,
+signing/allowlists, and ABI compatibility as a separate security boundary before
+it can be enabled by default.
 
 ## CLI output paths
 

@@ -45,6 +45,7 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
 - Runtime result metrics/trace/error field meanings exposed through `RuntimeRunnerResult`.
 - Runtime metric descriptor names, kinds, units, allowed labels, and `metric_schema_version`.
 - Graph diagnostic descriptor codes, severities, categories, suggested fixes, and `diagnostics_schema_version`.
+- Graph parser limit field names/defaults exposed through `GraphInputLimits` and CLI parser-limit options.
 - CompositeLoop ownership requirements and fixed-point runtime metrics.
 - CMake package target names: `topoexec::core`, `topoexec::runtime`, and `topoexec::yaml`.
 - CLI JSON field names documented in [metrics.md](metrics.md), [trace-events.md](trace-events.md), schema tooling docs, and G26 goldens.

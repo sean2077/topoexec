@@ -59,12 +59,14 @@
     "endpoint": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^[A-Za-z0-9_.:-]+$"
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "maxLength": 4096
     },
     "string_array": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "maxLength": 4096
       }
     },
     "clock_domain": {
@@ -74,7 +76,8 @@
         "system",
         "device",
         "external"
-      ]
+      ],
+      "maxLength": 4096
     },
     "graph": {
       "type": "object",
@@ -92,7 +95,8 @@
           "enum": [
             "runnable",
             "internal_test"
-          ]
+          ],
+          "maxLength": 4096
         },
         "clock": {
           "type": "object",
@@ -103,7 +107,8 @@
               "default": "steady",
               "enum": [
                 "steady"
-              ]
+              ],
+              "maxLength": 4096
             },
             "event_domain": {
               "$ref": "#/$defs/clock_domain",
@@ -129,7 +134,8 @@
             "event_loop",
             "fixed_rate",
             "thread_pool"
-          ]
+          ],
+          "maxLength": 4096
         },
         "hz": {
           "type": "number",
@@ -138,7 +144,8 @@
         },
         "priority": {
           "type": "string",
-          "default": ""
+          "default": "",
+          "maxLength": 4096
         },
         "max_callback_ms": {
           "type": "integer",
@@ -166,7 +173,8 @@
             "reject_new",
             "fail_fast",
             "block"
-          ]
+          ],
+          "maxLength": 4096
         },
         "wall_clock_enabled": {
           "type": "boolean",
@@ -189,10 +197,12 @@
             "drop_tick",
             "skip_next",
             "catch_up_once"
-          ]
+          ],
+          "maxLength": 4096
         },
         "thread_name": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 4096
         },
         "cpu_affinity": {
           "type": "array",
@@ -206,7 +216,8 @@
         },
         "rt_policy": {
           "type": "string",
-          "default": "none"
+          "default": "none",
+          "maxLength": 4096
         },
         "rt_priority": {
           "type": "integer",
@@ -214,7 +225,8 @@
         },
         "isolation_intent": {
           "type": "string",
-          "default": "none"
+          "default": "none",
+          "maxLength": 4096
         }
       }
     },
@@ -237,13 +249,15 @@
             "action_cancel",
             "task_ready",
             "future_ready"
-          ]
+          ],
+          "maxLength": 4096
         },
         "inputs": {
           "$ref": "#/$defs/string_array"
         },
         "input": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 4096
         },
         "period_ms": {
           "type": "integer",
@@ -268,13 +282,15 @@
             "batch",
             "request",
             "task_ready"
-          ]
+          ],
+          "maxLength": 4096
         },
         "inputs": {
           "$ref": "#/$defs/string_array"
         },
         "input": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 4096
         },
         "batch_size": {
           "type": "integer",
@@ -329,7 +345,8 @@
             "low",
             "normal",
             "high"
-          ]
+          ],
+          "maxLength": 4096
         },
         "budget_ms": {
           "type": "integer",
@@ -343,7 +360,8 @@
             "fail_fast",
             "continue",
             "isolate"
-          ]
+          ],
+          "maxLength": 4096
         }
       }
     },
@@ -359,10 +377,12 @@
             "input",
             "output",
             "input_output"
-          ]
+          ],
+          "maxLength": 4096
         },
         "descriptor": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 4096
         }
       }
     },
@@ -380,7 +400,8 @@
         },
         "type": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 4096
         },
         "event_sources": {
           "type": "array",
@@ -419,7 +440,8 @@
             "latched",
             "barrier",
             "previous_tick"
-          ]
+          ],
+          "maxLength": 4096
         },
         "capacity": {
           "type": "integer",
@@ -436,7 +458,8 @@
             "block",
             "fail_fast",
             "reject"
-          ]
+          ],
+          "maxLength": 4096
         },
         "lifespan_ms": {
           "type": "integer",
@@ -477,7 +500,8 @@
             "shared_view",
             "loaned_view",
             "move_only"
-          ]
+          ],
+          "maxLength": 4096
         },
         "owner": {
           "type": "string",
@@ -486,7 +510,8 @@
             "producer",
             "runtime",
             "consumer"
-          ]
+          ],
+          "maxLength": 4096
         },
         "readers": {
           "type": "string",
@@ -495,7 +520,8 @@
             "single",
             "multi",
             "multiple"
-          ]
+          ],
+          "maxLength": 4096
         }
       }
     },
@@ -525,7 +551,8 @@
             "delay",
             "state",
             "async"
-          ]
+          ],
+          "maxLength": 4096
         },
         "policy": {
           "$ref": "#/$defs/edge_policy"
@@ -546,7 +573,8 @@
             "transaction",
             "coalesced_event",
             "async_task"
-          ]
+          ],
+          "maxLength": 4096
         },
         "budget_ms": {
           "type": "integer",
@@ -564,7 +592,8 @@
           "default": 0
         },
         "drop_policy": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 4096
         },
         "min_interval_ms": {
           "type": "integer",
@@ -572,7 +601,8 @@
           "default": 0
         },
         "convergence": {
-          "type": "string"
+          "type": "string",
+          "maxLength": 4096
         }
       }
     },

@@ -1394,6 +1394,12 @@ Priority: P0/P1
 - Parser failure is safe, bounded, and diagnostic.
 - Fuzz harness can run locally and in optional CI.
 
+Implementation note: the G50 pass promotes defensive graph input handling to a
+stable parser contract with `GraphInputLimits`, bounded incremental file reads,
+UTF-8 validation, max string/count/config limits, CLI parser-limit overrides,
+schema limit checks, and deterministic fuzz seeds for malformed, oversized, and
+invalid-UTF-8 inputs. Coverage-guided fuzzing remains G51 scope.
+
 ---
 
 ## G51. Coverage-Guided Fuzzing

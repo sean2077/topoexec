@@ -210,6 +210,40 @@ void apply_strict_diagnostics(topoexec::GraphValidationResult& result) {
   }
 }
 
+void add_input_limit_options(CLI::App* command, topoexec::GraphInputLimits& limits) {
+  command->add_option("--max-graph-input-bytes", limits.max_graph_input_bytes, "Maximum graph YAML input bytes")
+      ->check(CLI::PositiveNumber);
+  command->add_option("--max-lanes", limits.max_lanes, "Maximum lane entries in one graph")->check(CLI::PositiveNumber);
+  command->add_option("--max-components", limits.max_components, "Maximum component entries in one graph")
+      ->check(CLI::PositiveNumber);
+  command->add_option("--max-edges", limits.max_edges, "Maximum edge entries in one graph")->check(CLI::PositiveNumber);
+  command->add_option("--max-composite-loops", limits.max_composite_loops, "Maximum composite loop entries")
+      ->check(CLI::PositiveNumber);
+  command->add_option("--max-identifier-bytes", limits.max_identifier_bytes, "Maximum graph id bytes")
+      ->check(CLI::PositiveNumber);
+  command->add_option("--max-config-depth", limits.max_config_depth, "Maximum graph/component config nesting depth")
+      ->check(CLI::PositiveNumber);
+  command
+      ->add_option("--max-config-value-bytes", limits.max_config_value_bytes,
+                   "Maximum graph/component config scalar or serialized nested value bytes")
+      ->check(CLI::PositiveNumber);
+  command->add_option("--max-string-bytes", limits.max_string_bytes, "Maximum non-config string field bytes")
+      ->check(CLI::PositiveNumber);
+}
+
+nlohmann::json graph_input_limits_json(const topoexec::GraphInputLimits& limits) {
+  return {{"max_graph_input_bytes", limits.max_graph_input_bytes},
+          {"max_lanes", limits.max_lanes},
+          {"max_components", limits.max_components},
+          {"max_edges", limits.max_edges},
+          {"max_composite_loops", limits.max_composite_loops},
+          {"max_identifier_bytes", limits.max_identifier_bytes},
+          {"max_config_depth", limits.max_config_depth},
+          {"max_config_value_bytes", limits.max_config_value_bytes},
+          {"max_string_bytes", limits.max_string_bytes},
+          {"valid_text_encoding", "utf-8"}};
+}
+
 int print_validation(const topoexec::GraphValidationResult& result, const std::string& format) {
   if (format == "json") {
     nlohmann::json value;
@@ -241,8 +275,25 @@ int print_validation(const topoexec::GraphValidationResult& result, const std::s
   return result.ok ? 0 : 1;
 }
 
-topoexec::GraphValidationResult load_and_validate(const std::string& path, topoexec::GraphSpec& graph) {
-  graph = topoexec::load_graph_file(path);
+topoexec::GraphValidationResult load_graph_file_result(const std::string& path, topoexec::GraphSpec& graph,
+                                                       const topoexec::GraphInputLimits& limits) {
+  topoexec::GraphValidationResult result;
+  try {
+    graph = topoexec::load_graph_file(path, limits);
+    result.ok = true;
+  } catch (const std::exception& error) {
+    result.ok = false;
+    result.errors.push_back(error.what());
+  }
+  return result;
+}
+
+topoexec::GraphValidationResult load_and_validate(const std::string& path, topoexec::GraphSpec& graph,
+                                                  const topoexec::GraphInputLimits& limits) {
+  auto result = load_graph_file_result(path, graph, limits);
+  if (!result.ok) {
+    return result;
+  }
   return topoexec::validate_graph_structure(graph);
 }
 
@@ -296,7 +347,7 @@ nlohmann::json edge_policy_json(const topoexec::EdgeSpec& edge) {
 }
 
 topoexec::RuntimeRunnerResult run_graph_file(const std::string& path, std::size_t steps, std::uint64_t duration_ms,
-                                             bool until_idle = false) {
+                                             bool until_idle, const topoexec::GraphInputLimits& limits) {
   const auto registry = demo_registry();
   topoexec::RuntimeRunner runner(registry);
   topoexec::RuntimeRunnerOptions options;
@@ -304,7 +355,7 @@ topoexec::RuntimeRunnerResult run_graph_file(const std::string& path, std::size_
   options.tick_iterations = steps;
   options.run_duration_ms = duration_ms;
   options.run_until_idle = until_idle;
-  return runner.run(topoexec::load_graph_file(path), options);
+  return runner.run(topoexec::load_graph_file(path, limits), options);
 }
 
 std::string join(const std::vector<std::string>& values) {
@@ -791,11 +842,12 @@ nlohmann::json region_json(const topoexec::GraphCompiledPlan& plan) {
   return regions;
 }
 
-int print_diff_plan(const std::string& left_path, const std::string& right_path, const std::string& format) {
+int print_diff_plan(const std::string& left_path, const std::string& right_path, const std::string& format,
+                    const topoexec::GraphInputLimits& limits) {
   topoexec::GraphSpec left_graph;
   topoexec::GraphSpec right_graph;
-  const auto left = load_and_validate(left_path, left_graph);
-  const auto right = load_and_validate(right_path, right_graph);
+  const auto left = load_and_validate(left_path, left_graph, limits);
+  const auto right = load_and_validate(right_path, right_graph, limits);
   const bool same_region_order = left.compiled_plan.region_order == right.compiled_plan.region_order;
   const bool same_component_regions = left.compiled_plan.component_region == right.compiled_plan.component_region;
   const bool ok = left.ok && right.ok;
@@ -821,7 +873,8 @@ int print_diff_plan(const std::string& left_path, const std::string& right_path,
   return ok ? 0 : 1;
 }
 
-int print_bench_result(const std::string& path, std::size_t steps, std::size_t runs, const std::string& format) {
+int print_bench_result(const std::string& path, std::size_t steps, std::size_t runs, const std::string& format,
+                       const topoexec::GraphInputLimits& limits) {
   if (runs == 0u) {
     throw std::runtime_error("bench --runs must be positive");
   }
@@ -833,7 +886,7 @@ int print_bench_result(const std::string& path, std::size_t steps, std::size_t r
   run_elapsed_ms.reserve(runs);
   for (std::size_t run_index = 0; run_index < runs; ++run_index) {
     const auto run_started = std::chrono::steady_clock::now();
-    const auto result = run_graph_file(path, steps, 0);
+    const auto result = run_graph_file(path, steps, 0, false, limits);
     const auto run_elapsed =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - run_started).count();
     run_elapsed_ms.push_back(run_elapsed);
@@ -909,6 +962,7 @@ int print_doctor(const std::string& format) {
                               {"default_capacity", topoexec::kDefaultHealthEventCapacity},
                               {"bounded_sink", true},
                               {"control_flow", "observer_only"}};
+    value["graph_input_limits"] = graph_input_limits_json(topoexec::default_graph_input_limits());
     std::cout << value.dump(2) << "\n";
   } else {
     std::cout << (ok ? "ok" : "error") << "\n";
@@ -918,6 +972,10 @@ int print_doctor(const std::string& format) {
     std::cout << "cxx_standard: " << __cplusplus << "\n";
     std::cout << "health_events: observer_only bounded default_capacity=" << topoexec::kDefaultHealthEventCapacity
               << "\n";
+    std::cout << "graph_input_limits: max_graph_input_bytes="
+              << topoexec::default_graph_input_limits().max_graph_input_bytes
+              << " max_components=" << topoexec::default_graph_input_limits().max_components
+              << " max_edges=" << topoexec::default_graph_input_limits().max_edges << "\n";
     std::cout << "schema_found: " << (!schema_path.empty() ? "true" : "false") << "\n";
     if (!schema_path.empty()) {
       std::cout << "schema_path: " << schema_path << "\n";
@@ -946,10 +1004,10 @@ int print_schema_dump(const std::string& format) {
   return 0;
 }
 
-int print_schema_check(const std::string& path, const std::string& format) {
+int print_schema_check(const std::string& path, const std::string& format, const topoexec::GraphInputLimits& limits) {
   topoexec::GraphValidationResult result;
   try {
-    (void)topoexec::load_graph_file(path);
+    (void)topoexec::load_graph_file(path, limits);
     result.ok = true;
   } catch (const std::exception& error) {
     result.ok = false;
@@ -963,6 +1021,7 @@ int print_schema_check(const std::string& path, const std::string& format) {
 int main(int argc, char** argv) {
   CLI::App app{"TopoExec graph tooling"};
   app.require_subcommand(1);
+  auto input_limits = topoexec::default_graph_input_limits();
 
   auto* graph_cmd = app.add_subcommand("graph", "Graph inspection commands");
   graph_cmd->require_subcommand(1);
@@ -981,6 +1040,7 @@ int main(int argc, char** argv) {
   auto* schema_check = schema_cmd->add_subcommand("check", "Check graph file against the strict schema loader");
   schema_check->add_option("file", schema_check_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
   schema_check->add_option("--format", schema_check_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  add_input_limit_options(schema_check, input_limits);
 
   std::string validate_path;
   std::string validate_format{"text"};
@@ -995,18 +1055,21 @@ int main(int argc, char** argv) {
   validate->add_flag("--semantic", validate_semantic, "Run full semantic validation; this is the default");
   validate->add_flag("--strict-diagnostics", validate_strict_diagnostics,
                      "Fail validation when warning diagnostics are emitted");
+  add_input_limit_options(validate, input_limits);
 
   std::string plan_path;
   std::string plan_format{"text"};
   auto* plan = graph_cmd->add_subcommand("plan", "Print compiled graph plan");
   plan->add_option("file", plan_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
   plan->add_option("--format", plan_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  add_input_limit_options(plan, input_limits);
 
   std::string render_path;
   std::string render_format{"mermaid"};
   auto* render = graph_cmd->add_subcommand("render", "Render a graph");
   render->add_option("file", render_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
   render->add_option("--format", render_format, "Output format")->check(CLI::IsMember({"mermaid", "text", "json"}));
+  add_input_limit_options(render, input_limits);
 
   std::string run_path;
   std::string run_format{"text"};
@@ -1019,6 +1082,7 @@ int main(int argc, char** argv) {
   run->add_option("--duration-ms", run_duration_ms, "Optional duration bound in milliseconds");
   run->add_flag("--until-idle", run_until_idle, "Stop early after an event-loop iteration executes no components");
   run->add_option("--format", run_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  add_input_limit_options(run, input_limits);
 
   std::string metrics_path;
   std::string metrics_format{"text"};
@@ -1032,6 +1096,7 @@ int main(int argc, char** argv) {
   metrics->add_flag("--until-idle", metrics_until_idle,
                     "Stop early after an event-loop iteration executes no components");
   metrics->add_option("--format", metrics_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  add_input_limit_options(metrics, input_limits);
 
   std::string trace_path;
   std::string trace_format{"text"};
@@ -1044,18 +1109,21 @@ int main(int argc, char** argv) {
   trace->add_option("--duration-ms", trace_duration_ms, "Optional duration bound in milliseconds");
   trace->add_flag("--until-idle", trace_until_idle, "Stop early after an event-loop iteration executes no components");
   trace->add_option("--format", trace_format, "Output format")->check(CLI::IsMember({"text", "json", "chrome"}));
+  add_input_limit_options(trace, input_limits);
 
   std::string lint_path;
   std::string lint_format{"text"};
   auto* lint = graph_cmd->add_subcommand("lint", "Lint a graph for suspicious runtime contracts");
   lint->add_option("file", lint_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
   lint->add_option("--format", lint_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  add_input_limit_options(lint, input_limits);
 
   std::string explain_path;
   std::string explain_format{"text"};
   auto* explain = graph_cmd->add_subcommand("explain", "Explain graph runtime semantics and compiled plan");
   explain->add_option("file", explain_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
   explain->add_option("--format", explain_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  add_input_limit_options(explain, input_limits);
 
   std::string diff_left_path;
   std::string diff_right_path;
@@ -1064,6 +1132,7 @@ int main(int argc, char** argv) {
   diff_plan->add_option("left", diff_left_path, "Left graph YAML file")->required()->check(CLI::ExistingFile);
   diff_plan->add_option("right", diff_right_path, "Right graph YAML file")->required()->check(CLI::ExistingFile);
   diff_plan->add_option("--format", diff_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  add_input_limit_options(diff_plan, input_limits);
 
   std::string bench_path;
   std::string bench_format{"text"};
@@ -1074,6 +1143,7 @@ int main(int argc, char** argv) {
   bench->add_option("--steps", bench_steps, "Bounded event-loop steps per run")->check(CLI::PositiveNumber);
   bench->add_option("--runs", bench_runs, "Number of repeated runs")->check(CLI::PositiveNumber);
   bench->add_option("--format", bench_format, "Output format")->check(CLI::IsMember({"text", "json"}));
+  add_input_limit_options(bench, input_limits);
 
   try {
     app.parse(argc, argv);
@@ -1084,7 +1154,7 @@ int main(int argc, char** argv) {
       return print_schema_dump(schema_dump_format);
     }
     if (*schema_check) {
-      return print_schema_check(schema_check_path, schema_check_format);
+      return print_schema_check(schema_check_path, schema_check_format, input_limits);
     }
     if (*validate) {
       if (validate_schema_only && validate_semantic) {
@@ -1093,10 +1163,9 @@ int main(int argc, char** argv) {
       topoexec::GraphSpec graph;
       topoexec::GraphValidationResult result;
       if (validate_schema_only) {
-        graph = topoexec::load_graph_file(validate_path);
-        result.ok = true;
+        result = load_graph_file_result(validate_path, graph, input_limits);
       } else {
-        result = load_and_validate(validate_path, graph);
+        result = load_and_validate(validate_path, graph, input_limits);
       }
       if (validate_strict_diagnostics) {
         apply_strict_diagnostics(result);
@@ -1105,7 +1174,7 @@ int main(int argc, char** argv) {
     }
     if (*plan) {
       topoexec::GraphSpec graph;
-      const auto result = load_and_validate(plan_path, graph);
+      const auto result = load_and_validate(plan_path, graph, input_limits);
       if (!result.ok) {
         return print_validation(result, plan_format == "json" ? "json" : "text");
       }
@@ -1118,7 +1187,7 @@ int main(int argc, char** argv) {
     }
     if (*render) {
       topoexec::GraphSpec graph;
-      const auto result = load_and_validate(render_path, graph);
+      const auto result = load_and_validate(render_path, graph, input_limits);
       if (!result.ok) {
         return print_validation(result, render_format == "json" ? "json" : "text");
       }
@@ -1132,30 +1201,33 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (*run) {
-      return print_runner_result(run_graph_file(run_path, run_steps, run_duration_ms, run_until_idle), run_format);
+      return print_runner_result(run_graph_file(run_path, run_steps, run_duration_ms, run_until_idle, input_limits),
+                                 run_format);
     }
     if (*metrics) {
-      return print_metrics_result(run_graph_file(metrics_path, metrics_steps, metrics_duration_ms, metrics_until_idle),
-                                  metrics_format);
+      return print_metrics_result(
+          run_graph_file(metrics_path, metrics_steps, metrics_duration_ms, metrics_until_idle, input_limits),
+          metrics_format);
     }
     if (*trace) {
-      return print_trace_result(run_graph_file(trace_path, trace_steps, trace_duration_ms, trace_until_idle),
-                                trace_format);
+      return print_trace_result(
+          run_graph_file(trace_path, trace_steps, trace_duration_ms, trace_until_idle, input_limits), trace_format);
     }
     if (*lint) {
       const auto registry = demo_registry();
-      return print_lint_findings(lint_graph(topoexec::load_graph_file(lint_path), &registry), lint_format);
+      return print_lint_findings(lint_graph(topoexec::load_graph_file(lint_path, input_limits), &registry),
+                                 lint_format);
     }
     if (*explain) {
       topoexec::GraphSpec graph;
-      const auto validation = load_and_validate(explain_path, graph);
+      const auto validation = load_and_validate(explain_path, graph, input_limits);
       return print_explain(graph, validation, explain_format);
     }
     if (*diff_plan) {
-      return print_diff_plan(diff_left_path, diff_right_path, diff_format);
+      return print_diff_plan(diff_left_path, diff_right_path, diff_format, input_limits);
     }
     if (*bench) {
-      return print_bench_result(bench_path, bench_steps, bench_runs, bench_format);
+      return print_bench_result(bench_path, bench_steps, bench_runs, bench_format, input_limits);
     }
   } catch (const CLI::ParseError& error) {
     return app.exit(error);

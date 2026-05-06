@@ -235,6 +235,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --schema-only --format json
   )
   set_tests_properties(cli_validate_schema_only_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"ok\": true")
+  add_test(NAME cli_validate_input_limit_override_fails_safely
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/check_parser_limits.py
+      --topoexec $<TARGET_FILE:topoexec_cli>
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+  )
   add_test(NAME cli_validate_semantic_minimal
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --semantic --format json
   )

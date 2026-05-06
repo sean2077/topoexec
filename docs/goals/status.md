@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, and G49 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P0/P1 goal in backlog order is G50 Defensive Input Handling v2. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, and G50 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P0/P1 goal in backlog order is G51 Coverage-Guided Fuzzing. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Active / Recent Goals
 
@@ -40,12 +40,37 @@ The next unfinished P0/P1 goal in backlog order is G50 Defensive Input Handling 
 | G47 | complete | `include/topoexec/runtime/metric_schema.hpp`, `src/metric_schema.cpp`, `tools/topoexec/main.cpp`, `tests/test_runtime.cpp`, `tests/golden/metrics_minimal.json`, metrics/API/CLI/versioning/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Runtime metric schema version 1 now records descriptor name/kind/unit/labels/cardinality/stability, validates exported runtime samples, forbids high-cardinality default tags like correlation ids, and exposes the schema version in metrics JSON. |
 | G48 | complete | `include/topoexec/runtime/runtime_runner.hpp`, `src/runtime_runner.cpp`, `tools/topoexec/main.cpp`, `tests/test_runtime.cpp`, updated trace/metrics goldens, trace/API/CLI/runtime/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Trace schema version 1 now records ordered timeline events with explicit phase/component/channel/lane/worker/epoch/transaction/correlation/causation fields and Chrome trace phase tracks, while legacy `trace_events` remains a compatibility name list. |
 | G49 | complete | `include/topoexec/runtime/diagnostics.hpp`, `include/topoexec/runtime/graph.hpp`, `src/diagnostics.cpp`, `src/graph.cpp`, `tools/topoexec/main.cpp`, `tests/test_graph.cpp`, `examples/diagnostic_warnings.yaml`, diagnostics/API/CLI/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Diagnostic schema version 1 now exposes stable severity/category/suggested-fix descriptors, warning diagnostics for backpressure/deep queues/large copies/never-ready triggers, grouped explain JSON/text output, and `--strict-diagnostics` warning failure mode. |
+| G50 | complete | `include/topoexec/runtime/graph.hpp`, `src/graph_io.cpp`, `tools/topoexec/main.cpp`, `schema/topoexec.schema.v1.json`, `tests/test_graph.cpp`, `tests/cli/check_parser_limits.py`, `tests/fuzz/fuzz_graph_inputs.py`, updated schema/doctor goldens, defensive-input/API/CLI/schema/testing/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Graph input loading now exposes `GraphInputLimits`, reads files incrementally under byte caps, rejects invalid UTF-8 and overlong strings/counts/configs before runtime execution, reports parser-limit CLI failures as validation JSON, and expands deterministic fuzz smoke coverage while keeping coverage-guided fuzzing in G51. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+cmake --build build -j
+# G50 passed: defensive parser-limit code/tests rebuilt successfully
+
+cmake --build build --target topoexec_format_check
+# G50 passed
+
+ctest --test-dir build --output-on-failure -R 'test_graph|cli_validate_input_limit_override_fails_safely|schema_v1_contract_smoke|fuzz_graph_input_smoke|cli_golden_outputs|cli_doctor_json|cli_schema_dump_json'
+# G50 passed: parser limit API/tests, CLI JSON limit failure, schema/golden drift, doctor/schema JSON, and deterministic malformed-input fuzz smoke
+
+./scripts/goal_check.sh quick
+# G50 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+./scripts/goal_check.sh fuzz
+# G50 passed: deterministic malformed/invalid-UTF-8/oversized parser fuzz smoke
+
+./scripts/agent_check.sh
+# G50 passed: 56/56 CTest tests after defensive input updates
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G50 passed: 56/56 CTest tests in the ASAN+UBSAN Debug build
+
+git diff --check
+# G50 passed
+
 cmake --build build -j
 # G49 passed: diagnostic schema/category/warning code rebuilt successfully
 

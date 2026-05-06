@@ -18,16 +18,17 @@ This configures, builds, and runs all default CTest tests.
 | Golden CLI | normalized plan, metrics, trace, and render outputs | `./scripts/goal_check.sh golden` |
 | Schema | strict schema contract plus schema/semantic CLI split | `./scripts/goal_check.sh schema` |
 | Docs | executable `topoexec-doc-test` tutorial/CLI markers | `./scripts/goal_check.sh docs` |
-| Fuzz smoke | deterministic malformed graph input corpus | `./scripts/goal_check.sh fuzz` |
+| Fuzz smoke | deterministic malformed, invalid-UTF-8, oversized, and parser-limit graph input corpus | `./scripts/goal_check.sh fuzz` |
 | Package | install/export/downstream `find_package(topoexec)` runtime-only smoke | `./scripts/goal_check.sh package` |
 | Sanitizers | ASAN+UBSAN full CTest; TSAN non-blocking CI | `./scripts/goal_check.sh sanitizer` |
 
 ## Fuzz smoke
 
 `tests/fuzz/fuzz_graph_inputs.py` generates a deterministic corpus of malformed,
-partial, cyclic, nested, and mutated YAML graph inputs. The smoke does not claim
-coverage-guided fuzzing. It proves the CLI parser/compiler path rejects hostile
-inputs without timeouts, crash-like exits, or sanitizer/crash markers.
+partial, cyclic, nested, invalid-UTF-8, oversized, and mutated YAML graph inputs.
+The smoke does not claim coverage-guided fuzzing. It proves the CLI
+parser/compiler path rejects hostile inputs without timeouts, crash-like exits,
+or sanitizer/crash markers.
 
 Run it directly with:
 
