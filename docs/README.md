@@ -12,7 +12,7 @@ reviewing changes.
 4. [Graph spec](graph-spec.md): author YAML or C++ graphs that validate.
 5. [CLI](cli.md): validate, plan, run, inspect metrics, and debug trace output.
 6. [Examples](examples.md): concrete examples for each core semantic.
-7. [Testing strategy](testing-strategy.md): test layers, fuzz smoke, and sanitizer gates.
+7. [Testing strategy](testing-strategy.md): test layers, fuzz/stress smoke, and sanitizer gates.
 
 A new user should be able to build the repository, run the C++ builder app, and
 inspect a YAML graph in less than 30 minutes by following these pages in order.
@@ -29,6 +29,7 @@ inspect a YAML graph in less than 30 minutes by following these pages in order.
 - [Diagnostics](diagnostics.md)
 - [Defensive input handling](defensive-input.md)
 - [Coverage-guided fuzzing](fuzzing.md)
+- [Stress and soak testing](stress-testing.md)
 - [Versioning](versioning.md)
 
 ## Design path
@@ -51,6 +52,7 @@ inspect a YAML graph in less than 30 minutes by following these pages in order.
 - [Performance baselines](performance-baselines.md)
 - [Testing strategy](testing-strategy.md)
 - [Coverage-guided fuzzing](fuzzing.md)
+- [Stress and soak testing](stress-testing.md)
 - [Build and package](build-and-package.md)
 - [Release checklist](release-checklist.md)
 - [Release progression](release-progression.md)

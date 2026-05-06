@@ -74,6 +74,16 @@ TOPOEXEC_FUZZER_ENGINE=STANDALONE ./scripts/fuzz_smoke.sh
 Use `TOPOEXEC_FUZZER_ENGINE=LIBFUZZER` with `CXX=clang++` for the libFuzzer
 instrumented target.
 
+Optional stress/soak smoke:
+
+```bash
+./scripts/goal_check.sh stress
+TOPOEXEC_STRESS_PROFILE=soak TOPOEXEC_STRESS_DURATION_SECONDS=60 ./scripts/stress_smoke.sh
+```
+
+The first command is a bounded smoke. The soak profile repeats bounded-step
+stress graph suites only for the caller-selected duration/iteration limits.
+
 ## Dependency policy
 
 - Runtime code does not depend on YAML, CLI11, ROS, Python, OpenTelemetry, or
@@ -82,6 +92,8 @@ instrumented target.
 - CLI builds require `CLI11` and `nlohmann_json`.
 - Fuzzer targets are off by default and require no runtime dependency; libFuzzer
   instrumentation requires Clang.
+- Stress and soak scripts use the built CLI plus CTest/Python only; they add no
+  runtime dependency.
 - Tests require GTest; if unavailable, the test build fetches it through CMake
   `FetchContent`.
 

@@ -26,7 +26,7 @@ Release decision note:
 
 ```text
 Recommended next prerelease: v0.2.0-alpha.0.
-Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while exporter adapters, coverage-guided fuzzing, and beta readiness remain explicit future work. RuntimeObserver v1, persistent worker-pool v1, and fixed-rate wall-clock cadence v1 are now part of the plan2 architecture-stabilization line.
+Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while exporter adapters, long fuzz/soak campaigns, and beta readiness remain explicit future work. RuntimeObserver v1, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
 Human release approval should still verify CI on the exact tag commit before creating the annotated tag.
 ```
 
@@ -48,6 +48,7 @@ git diff --check
 cmake --build build --target topoexec_format_check
 ./scripts/goal_check.sh package
 ./scripts/goal_check.sh golden
+./scripts/goal_check.sh stress
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
 ```
 
@@ -62,6 +63,20 @@ cmake --build build --target topoexec_format_check passed.
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 50/50 CTest tests in the ASAN+UBSAN Debug build.
 ```
 
+Observed G52 local result:
+
+```text
+cmake --build build -j passed.
+cmake --build build --target topoexec_format_check passed.
+ctest -R 'test_stress|stress_graph_smoke|docs_command_smoke|cli_golden_outputs|schema_v1_contract_smoke' passed: 5/5 focused tests.
+./scripts/goal_check.sh quick passed.
+./scripts/goal_check.sh stress passed: test_stress plus generated stress graph smoke.
+TOPOEXEC_STRESS_PROFILE=soak TOPOEXEC_STRESS_SCALE=16 TOPOEXEC_STRESS_STEPS=8 TOPOEXEC_STRESS_DURATION_SECONDS=1 TOPOEXEC_STRESS_MAX_ITERATIONS=2 ./scripts/stress_smoke.sh passed: two bounded iterations.
+./scripts/agent_check.sh passed: 58/58 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 58/58 CTest tests in the ASAN+UBSAN Debug build.
+git diff --check and python3 -m py_compile tests/stress/check_stress_workloads.py passed.
+```
+
 Golden output surfaces protected after G26:
 
 - `tests/golden/plan_composite_loop.json` — graph plan JSON.
@@ -72,7 +87,7 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations after the plan2 G51 coverage-guided fuzzing pass:
+Current branch limitations after the plan2 G52 stress/soak testing pass:
 
 - `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, cooperative cancellation/timeout-budget observation, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and hard timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
@@ -80,6 +95,7 @@ Current branch limitations after the plan2 G51 coverage-guided fuzzing pass:
 - `TaskExecutor` remains deterministic by default with cooperative pending-task cancellation and post-return task-budget metrics; `ThreadedTaskExecutor` is now an opt-in bounded preview, not a default scheduler lane.
 - Metrics/trace/diagnostics exist, including metric schema version 1, trace schema version 1, diagnostic schema version 1, invocation correlation/causation metadata, bounded observer-only health events, and RuntimeObserver v1; exporter adapters and a richer health-event v2 contract remain future work.
 - Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, deterministic malformed-input fuzz smoke, and an optional `fuzz_graph_inputs` libFuzzer/standalone corpus target. Longer fuzz campaigns and broader target coverage remain future hardening work.
+- Bounded stress smoke now covers generated scheduler/channel graph workloads, `thread_pool` overload, and `ThreadedTaskExecutor` overload. Longer soak runs are opt-in release-candidate evidence, not default slow-path CI or performance claims.
 - ThreadSanitizer remains non-blocking.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external Perfetto adapters remain deferred and must not be claimed as implemented.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

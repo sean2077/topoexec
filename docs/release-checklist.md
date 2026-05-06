@@ -20,6 +20,7 @@ v0.2.0-alpha.0
 - [ ] `cmake --build build --target topoexec_format_check` passes.
 - [ ] `./scripts/goal_check.sh package` passes.
 - [ ] `./scripts/goal_check.sh golden` passes.
+- [ ] `./scripts/goal_check.sh stress` passes.
 - [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer` passes.
 - [ ] `cmake_runtime_only_options_smoke` passes as part of CTest/package smoke.
 - [ ] `cmake_package_runtime_smoke` passes as part of CTest/package smoke.
@@ -59,6 +60,8 @@ Intentional changes to these files require a changelog and semantic/API/doc note
 - [ ] GitHub Actions CI is green for Clang RelWithDebInfo.
 - [ ] GitHub Actions ASAN+UBSAN job is green.
 - [ ] GitHub Actions TSAN job result is recorded; it remains non-blocking until beta.
+- [ ] Optional soak evidence is recorded when release risk warrants it, for example
+  `TOPOEXEC_STRESS_PROFILE=soak TOPOEXEC_STRESS_DURATION_SECONDS=60 ./scripts/stress_smoke.sh`.
 
 ## Artifact smoke
 
@@ -98,7 +101,8 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
   naming guarantees, independent fixed-rate lane threads, OS jitter control, advanced starvation aging, and
   hard timeout preemption are still not implemented.
 - ThreadSanitizer is non-blocking.
-- Deterministic fuzz smoke exists, but coverage-guided fuzzing is future beta work.
+- Coverage-guided fuzzing and stress smoke exist, but long fuzz campaigns and
+  longer soak runs remain non-blocking release-candidate evidence.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and
   external Perfetto adapters remain deferred.
 - Package-manager recipes under `packaging/` are drafts, not published ports.

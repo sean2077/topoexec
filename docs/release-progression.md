@@ -16,6 +16,8 @@ the repository has:
   and tests disabled.
 - Adapter and ROS 2 previews documented only; no adapter SDK dependency in core.
 - Defensive parser limits plus deterministic fuzz smoke.
+- Bounded stress smoke for generated scheduler/channel workloads, thread-pool
+  overload, and task-executor overload.
 - G26 adds golden coverage for Chrome trace shape, schema dump JSON, and doctor
   JSON in addition to plan/metrics/trace/render outputs.
 
@@ -36,11 +38,12 @@ Rationale:
   scheduler, async admission, channel/backpressure, trigger, payload, loop,
   state/config, observability, benchmark, packaging, and defensive-input work.
 - The new G26 baseline protects that state before deeper plan2 runtime/API work.
-- The tag must still be an alpha because exporter adapters, coverage-guided
-  fuzzing, and beta readiness remain incomplete. RuntimeObserver v1 is now
-  available for in-process adapters. Persistent
-  worker-pool v1 and fixed-rate wall-clock cadence v1 are implemented in the
-  plan2 line but are still experimental alpha scheduler surfaces.
+- The tag must still be an alpha because exporter adapters, long fuzz/soak
+  campaigns, and beta readiness remain incomplete. RuntimeObserver v1 is now
+  available for in-process adapters. Persistent worker-pool v1, fixed-rate
+  wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke
+  are implemented in the plan2 line, while scheduler concurrency surfaces remain
+  experimental alpha surfaces.
 
 ## Version ladder
 
@@ -49,7 +52,7 @@ Rationale:
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
 | `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs. | Verify CI on exact tag commit; run local release checklist; prepare notes/checksums. |
 | `v0.3.0-alpha` | Preview-doc ready, partial observer API implemented | RuntimeObserver v1, adapter contracts, stub layout, and ROS 2 design are complete without core dependency pollution. | Add concrete exporter/adapter targets before claiming adapter implementation readiness. |
-| `v0.5.0-beta` | Not ready | ASAN+UBSAN and fuzz smoke exist; docs/examples are mature. | Blocking TSAN decision, coverage-guided fuzz/property tests, API/deprecation hardening, and external release artifact rehearsals. |
+| `v0.5.0-beta` | Not ready | ASAN+UBSAN, fuzz smoke, and bounded stress smoke exist; docs/examples are mature. | Blocking TSAN decision, longer fuzz/property/soak evidence, API/deprecation hardening, and external release artifact rehearsals. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
 
 ## Goal completion rollup
@@ -64,7 +67,8 @@ Deferred capabilities remain documented as limitations rather than hidden TODOs:
 - ROS 2, OpenTelemetry, Prometheus, Python, Perfetto, C API, dynamic plugin
   loaders, and package-manager publication are preview/deferred surfaces.
 - TSAN remains non-blocking until concurrency signal is stable.
-- Coverage-guided fuzzing and stress/soak expansion remain beta hardening work.
+- Coverage-guided fuzzing and bounded stress smoke exist; longer fuzz campaigns
+  and soak runs remain non-blocking beta hardening evidence.
 - Scheduler runtime priority/admission ordering exists for component invocations, while affinity/RT policy, independent
   fixed-rate lane threads, OS jitter control, advanced starvation aging, and hard timeout preemption remain
   future work.
@@ -80,6 +84,7 @@ git diff --check
 cmake --build build --target topoexec_format_check
 ./scripts/goal_check.sh package
 ./scripts/goal_check.sh golden
+./scripts/goal_check.sh stress
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
 ```
 
@@ -101,4 +106,5 @@ A release artifact rehearsal should produce:
 5. runtime-only package smoke summary;
 6. ASAN+UBSAN summary;
 7. golden output summary for plan, metrics, trace, Chrome trace, render, schema dump, and doctor JSON;
-8. known limitations copied into release notes.
+8. stress smoke summary, plus optional soak summary when run;
+9. known limitations copied into release notes.

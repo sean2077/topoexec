@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|policy|sanitizer|format|debug]
+Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|policy|sanitizer|format|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
@@ -13,6 +13,7 @@ Goal-specific validation dispatcher for TopoExec agents.
 - package: install/export downstream smoke plus runtime-only option smoke
 - docs:   executable docs command smoke
 - fuzz:   deterministic parser/compiler fuzz smoke plus optional fuzzer target corpus replay
+- stress: bounded runtime stress graph smoke plus task-executor overload stress
 - policy: architecture/dependency policy smokes
 - sanitizer: ASAN+UBSAN Debug build and full CTest
 - format: clang-format check target
@@ -58,6 +59,11 @@ case "$MODE" in
     configure_build
     ctest --test-dir "$BUILD_DIR" --output-on-failure -R fuzz_graph_input_smoke
     TOPOEXEC_FUZZER_ENGINE="${TOPOEXEC_FUZZER_ENGINE:-STANDALONE}" ./scripts/fuzz_smoke.sh
+    ;;
+  stress)
+    configure_build
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R test_stress
+    ./scripts/stress_smoke.sh
     ;;
   policy)
     configure_build

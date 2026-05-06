@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, and G51 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P0/P1 goal in backlog order is G52 Stress and Soak Tests. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, and G52 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P0/P1 goal in backlog order is G53 Benchmark v2 and Regression Policy. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Active / Recent Goals
 
@@ -42,12 +42,41 @@ The next unfinished P0/P1 goal in backlog order is G52 Stress and Soak Tests. Lo
 | G49 | complete | `include/topoexec/runtime/diagnostics.hpp`, `include/topoexec/runtime/graph.hpp`, `src/diagnostics.cpp`, `src/graph.cpp`, `tools/topoexec/main.cpp`, `tests/test_graph.cpp`, `examples/diagnostic_warnings.yaml`, diagnostics/API/CLI/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Diagnostic schema version 1 now exposes stable severity/category/suggested-fix descriptors, warning diagnostics for backpressure/deep queues/large copies/never-ready triggers, grouped explain JSON/text output, and `--strict-diagnostics` warning failure mode. |
 | G50 | complete | `include/topoexec/runtime/graph.hpp`, `src/graph_io.cpp`, `tools/topoexec/main.cpp`, `schema/topoexec.schema.v1.json`, `tests/test_graph.cpp`, `tests/cli/check_parser_limits.py`, `tests/fuzz/fuzz_graph_inputs.py`, updated schema/doctor goldens, defensive-input/API/CLI/schema/testing/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Graph input loading now exposes `GraphInputLimits`, reads files incrementally under byte caps, rejects invalid UTF-8 and overlong strings/counts/configs before runtime execution, reports parser-limit CLI failures as validation JSON, and expands deterministic fuzz smoke coverage while keeping coverage-guided fuzzing in G51. |
 | G51 | complete | `CMakeLists.txt`, `tests/fuzz/fuzz_graph_inputs.cpp`, `tests/fuzz/corpus/graph_inputs/*`, `scripts/fuzz_smoke.sh`, `scripts/goal_check.sh`, `.github/workflows/ci.yml`, fuzzing/build/testing/defensive-input docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Coverage-guided graph input fuzzing is now optional through `TOPOEXEC_BUILD_FUZZERS` with libFuzzer on Clang and standalone corpus replay elsewhere; minimized crash regressions can be committed as corpus seeds without changing the default agent gate. |
+| G52 | complete | `tests/test_stress.cpp`, `tests/stress/check_stress_workloads.py`, `scripts/stress_smoke.sh`, `CMakeLists.txt`, `scripts/goal_check.sh`, `docs/stress-testing.md`, testing/build/release/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Bounded stress smoke now covers generated scheduler/channel workloads, `thread_pool` overload, and `ThreadedTaskExecutor` overload with queue-depth/drop/reject assertions; opt-in soak mode is bounded by steps/duration/iterations and remains confidence evidence, not a performance claim. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+cmake --build build -j
+# G52 passed: stress target and generated graph smoke wiring rebuilt successfully
+
+cmake --build build --target topoexec_format_check
+# G52 passed
+
+ctest --test-dir build --output-on-failure -R 'test_stress|stress_graph_smoke|docs_command_smoke|cli_golden_outputs|schema_v1_contract_smoke'
+# G52 passed: C++ overload stress, generated stress graph smoke, docs, golden, and schema drift checks
+
+./scripts/goal_check.sh quick
+# G52 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+./scripts/goal_check.sh stress
+# G52 passed: test_stress plus stress_smoke high fan-out, high fan-in, long chain, mixed edge-kind, and bounded thread-pool workloads
+
+TOPOEXEC_STRESS_PROFILE=soak TOPOEXEC_STRESS_SCALE=16 TOPOEXEC_STRESS_STEPS=8 TOPOEXEC_STRESS_DURATION_SECONDS=1 TOPOEXEC_STRESS_MAX_ITERATIONS=2 ./scripts/stress_smoke.sh
+# G52 passed: opt-in soak wrapper completed two bounded iterations
+
+./scripts/agent_check.sh
+# G52 passed: 58/58 CTest tests with default stress smoke included
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G52 passed: 58/58 CTest tests in the ASAN+UBSAN Debug build
+
+git diff --check
+python3 -m py_compile tests/stress/check_stress_workloads.py
+# G52 passed
+
 cmake --build build -j
 # G51 passed: optional fuzzer build wiring left default build unaffected
 

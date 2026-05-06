@@ -247,6 +247,7 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   topoexec_add_test(test_channel tests/test_channel.cpp)
   topoexec_add_test(test_state tests/test_state.cpp)
   topoexec_add_test(test_runtime tests/test_runtime.cpp)
+  topoexec_add_test(test_stress tests/test_stress.cpp)
 
   add_test(NAME cli_validate_minimal
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml
@@ -396,6 +397,14 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/fuzz_graph_inputs.py
       --topoexec $<TARGET_FILE:topoexec_cli>
+  )
+  add_test(NAME stress_graph_smoke
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/stress/check_stress_workloads.py
+      --topoexec $<TARGET_FILE:topoexec_cli>
+      --profile smoke
+      --scale 12
+      --steps 4
   )
   if(TARGET fuzz_graph_inputs)
     if(TOPOEXEC_FUZZER_ENGINE_EFFECTIVE STREQUAL "LIBFUZZER")

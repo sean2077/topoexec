@@ -1483,6 +1483,14 @@ Priority: P1/P2
 - Concurrency surfaces have workload tests beyond unit tests.
 - Stress tests can be run by release candidate process.
 
+Implementation note: the G52 pass adds `test_stress` for overloaded
+`ThreadedTaskExecutor` and bursty `thread_pool` graph admission, plus
+`stress_graph_smoke` / `scripts/stress_smoke.sh` for generated high fan-out,
+high fan-in, long-chain, mixed edge-kind, and bounded thread-pool workloads.
+Smoke stress runs are short default CTest entries; soak mode is opt-in and
+bounded by caller-selected steps, duration, and iteration limits. Stress output
+is confidence evidence only, not a performance or real-time claim.
+
 ---
 
 ## G53. Benchmark v2 and Regression Policy

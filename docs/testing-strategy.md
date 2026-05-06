@@ -19,6 +19,7 @@ This configures, builds, and runs all default CTest tests.
 | Schema | strict schema contract plus schema/semantic CLI split | `./scripts/goal_check.sh schema` |
 | Docs | executable `topoexec-doc-test` tutorial/CLI markers | `./scripts/goal_check.sh docs` |
 | Fuzz smoke | deterministic malformed, invalid-UTF-8, oversized, parser-limit corpus plus optional fuzzer target corpus replay | `./scripts/goal_check.sh fuzz` |
+| Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
 | Package | install/export/downstream `find_package(topoexec)` runtime-only smoke | `./scripts/goal_check.sh package` |
 | Sanitizers | ASAN+UBSAN full CTest; TSAN non-blocking CI | `./scripts/goal_check.sh sanitizer` |
 
@@ -41,6 +42,31 @@ TOPOEXEC_FUZZER_ENGINE=STANDALONE ./scripts/fuzz_smoke.sh
 
 See [Coverage-guided fuzzing](fuzzing.md) for libFuzzer commands and corpus
 rules.
+
+## Stress and soak smoke
+
+`test_stress` exercises opt-in `ThreadedTaskExecutor` overload and a bursty
+`thread_pool` graph with expected rejections and bounded queue-depth assertions.
+`stress_graph_smoke` generates high fan-out, high fan-in, long-chain, mixed
+immediate/delay/state/async, and bounded thread-pool graph workloads and runs
+them through `topoexec graph metrics`.
+
+Run the focused gate with:
+
+```bash
+./scripts/goal_check.sh stress
+```
+
+Longer soak runs are opt-in and bounded by caller-selected steps, duration, and
+iteration limits:
+
+```bash
+TOPOEXEC_STRESS_PROFILE=soak TOPOEXEC_STRESS_DURATION_SECONDS=60 ./scripts/stress_smoke.sh
+```
+
+See [Stress and soak testing](stress-testing.md) for workload details and
+configuration. Stress success is confidence evidence, not a performance or
+real-time guarantee.
 
 ## Sanitizer gates
 
@@ -71,7 +97,8 @@ verify install/export behavior.
 - GCC and Clang Debug/RelWithDebInfo matrix jobs run the default gate.
 - ASAN+UBSAN is a blocking CI job.
 - TSAN remains non-blocking until the runtime concurrency surface is mature
-  enough to make it a release blocker.
+  enough to make it a release blocker. The selected stress smoke tests run in
+  TSAN because they are normal CTest entries.
 
 ## Adding tests
 

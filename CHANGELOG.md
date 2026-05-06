@@ -31,6 +31,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added graph diagnostic schema version 1 with stable severity/category fields, warning diagnostics for backpressure/deep queues/large copies/never-ready triggers, grouped explain output, and CLI strict-diagnostics failure mode.
 - Added `GraphInputLimits`, bounded incremental graph file reads, UTF-8 input validation, non-config string limits, CLI parser-limit overrides, schema string-limit checks, and stronger deterministic malformed-input fuzz coverage.
 - Added optional `TOPOEXEC_BUILD_FUZZERS` support with libFuzzer/standalone `fuzz_graph_inputs`, checked-in seed corpus, local fuzz smoke script, and optional Clang CI fuzz smoke.
+- Added bounded stress and soak testing with `test_stress`, generated scheduler/channel graph workloads, `scripts/stress_smoke.sh`, release-candidate stress documentation, and queue-depth/drop/reject assertions for scheduler, channel, thread-pool, and task-executor surfaces.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
 - Added deterministic benchmark case YAMLs and richer `bench --format json` output with case, params, per-run latency percentiles, throughput, and environment summary.
