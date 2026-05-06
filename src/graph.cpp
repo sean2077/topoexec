@@ -300,7 +300,18 @@ bool is_allowed_trigger_condition(const std::string& condition) {
 }
 
 bool is_allowed_loop_policy_type(const std::string& type) {
-  return type == "fixed_point" || type == "transaction" || type == "coalesced_event" || type == "async_task";
+  return type == "fixed_point" || type == "transaction" || type == "solver_iteration" || type == "coalesced_event" ||
+         type == "async_task";
+}
+
+bool is_allowed_loop_convergence(const std::string& convergence) {
+  return convergence.empty() || convergence == "single_pass" || convergence == "after_first_iteration" ||
+         convergence == "always" || convergence == "stable_state";
+}
+
+bool is_allowed_loop_partial_success(const std::string& partial_success) {
+  return partial_success.empty() || partial_success == "commit_outputs" || partial_success == "discard_outputs" ||
+         partial_success == "fail_run";
 }
 
 struct LifecycleOrderResult {
@@ -1113,6 +1124,17 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     if (loop.loop_policy.budget_ms < 0 || loop.loop_policy.max_iterations < 0 || loop.loop_policy.max_inflight < 0 ||
         loop.loop_policy.min_interval_ms < 0) {
       add_error(result, "composite_loop " + loop.id + " numeric policy fields must be non-negative");
+    }
+    if (loop.loop_policy.residual_threshold.has_value() && *loop.loop_policy.residual_threshold < 0.0) {
+      add_error(result, "composite_loop " + loop.id + " residual_threshold must be non-negative");
+    }
+    if (!is_allowed_loop_convergence(loop.loop_policy.convergence)) {
+      add_error(result, "composite_loop " + loop.id + " has unsupported loop_policy.convergence " +
+                            loop.loop_policy.convergence);
+    }
+    if (!is_allowed_loop_partial_success(loop.loop_policy.partial_success)) {
+      add_error(result, "composite_loop " + loop.id + " has unsupported loop_policy.partial_success " +
+                            loop.loop_policy.partial_success);
     }
   }
 

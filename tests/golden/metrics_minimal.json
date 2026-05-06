@@ -17,7 +17,10 @@
   "loop_budget_overrun_count": 0,
   "loop_converged_count": 0,
   "loop_iteration_count": 0,
+  "loop_last_residual": {},
   "loop_max_iteration_hit_count": 0,
+  "loop_output_discarded_count": 0,
+  "loop_stop_reason": {},
   "metric_schema_version": "1",
   "metrics": [
     {
@@ -841,6 +844,14 @@
       "component_id": "",
       "lane": "",
       "name": "runtime.publication.failed_commit",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.publication.composite_discarded",
       "tags": [],
       "value": 0.0
     },

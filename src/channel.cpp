@@ -932,6 +932,13 @@ RuntimeChannelPublishResult RuntimePublicationRouter::commit_composite_region_ou
   return commit_batch(std::move(immediate_publications));
 }
 
+void RuntimePublicationRouter::discard_composite_region_outputs() {
+  std::lock_guard lock(mutex_);
+  metrics_.composite_discarded_count += composite_external_stage_.size();
+  composite_external_stage_.clear();
+  active_composite_components_.clear();
+}
+
 RuntimeChannelPublishResult RuntimePublicationRouter::publish_from(const std::string& source_endpoint,
                                                                    RuntimePayload payload,
                                                                    std::optional<EventTimestamp> event_timestamp) {

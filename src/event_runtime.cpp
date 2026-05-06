@@ -91,6 +91,78 @@ bool loop_policy_converged_after_iteration(const LoopPolicySpec& policy) {
          policy.convergence == "always";
 }
 
+bool loop_policy_is_solver_iteration(const LoopPolicySpec& policy) {
+  return policy.type == "solver_iteration";
+}
+
+std::string effective_partial_success_policy(const LoopPolicySpec& policy) {
+  if (!policy.partial_success.empty()) {
+    return policy.partial_success;
+  }
+  return loop_policy_is_solver_iteration(policy) ? "discard_outputs" : "commit_outputs";
+}
+
+std::string double_to_string(double value) {
+  std::ostringstream out;
+  out << value;
+  return out.str();
+}
+
+struct LoopConvergenceSnapshot {
+  bool reported{false};
+  bool converged{false};
+  std::optional<double> residual;
+  std::string reason;
+};
+
+class LoopConvergenceState {
+public:
+  void begin_iteration() {
+    std::lock_guard lock(mutex_);
+    snapshot_ = {};
+  }
+
+  void record(LoopConvergenceReport report) {
+    std::lock_guard lock(mutex_);
+    snapshot_.reported = true;
+    snapshot_.converged = snapshot_.converged || report.converged;
+    if (report.residual.has_value()) {
+      snapshot_.residual = report.residual;
+    }
+    if (!report.reason.empty()) {
+      snapshot_.reason = std::move(report.reason);
+    }
+  }
+
+  LoopConvergenceSnapshot snapshot() const {
+    std::lock_guard lock(mutex_);
+    return snapshot_;
+  }
+
+private:
+  mutable std::mutex mutex_;
+  LoopConvergenceSnapshot snapshot_;
+};
+
+std::map<std::string, std::string> loop_iteration_attributes(const std::string& loop_id, std::size_t iteration,
+                                                             const LoopPolicySpec& policy,
+                                                             const LoopConvergenceSnapshot& snapshot,
+                                                             const std::string& reason = {}) {
+  std::map<std::string, std::string> attributes{
+      {"loop_id", loop_id}, {"iteration", std::to_string(iteration)}, {"policy", policy.type}};
+  if (snapshot.residual.has_value()) {
+    attributes["residual"] = double_to_string(*snapshot.residual);
+  }
+  if (policy.residual_threshold.has_value()) {
+    attributes["residual_threshold"] = double_to_string(*policy.residual_threshold);
+  }
+  const auto& selected_reason = reason.empty() ? snapshot.reason : reason;
+  if (!selected_reason.empty()) {
+    attributes["reason"] = selected_reason;
+  }
+  return attributes;
+}
+
 std::size_t worker_count_for_lane(const SchedulerGroupConfig& lane) {
   return lane.max_threads > 0 ? static_cast<std::size_t>(lane.max_threads) : 1u;
 }
@@ -549,6 +621,8 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
         return result;
       }
     }
+    LoopConvergenceState* active_loop_convergence = nullptr;
+    LoopIterationContext active_loop_iteration;
     auto execute_component = [&](const std::string& component_id) {
       auto found = std::find_if(components_.begin(), components_.end(),
                                 [&component_id](const auto& item) { return item.id == component_id; });
@@ -599,6 +673,15 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           auto invocation_context = *found->context;
           invocation_context.cancel_token = invocation_cancel_token;
           invocation_context.invocation_metadata = invocation_for_execute.metadata;
+          if (active_loop_convergence != nullptr) {
+            invocation_context.loop_iteration = active_loop_iteration;
+            invocation_context.loop_convergence_reporter = [active_loop_convergence](LoopConvergenceReport report) {
+              active_loop_convergence->record(std::move(report));
+            };
+          } else {
+            invocation_context.loop_iteration = {};
+            invocation_context.loop_convergence_reporter = {};
+          }
 
           ComponentInvocationOutcome outcome;
           outcome.cancellation_observed_before = invocation_cancel_token.observed_count();
@@ -837,9 +920,11 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       if (region.kind == CompiledRegionKind::kCompositeLoop) {
         const auto max_iterations =
             region.loop_policy.max_iterations > 0 ? static_cast<std::size_t>(region.loop_policy.max_iterations) : 1u;
+        LoopConvergenceState loop_convergence;
         bool converged = false;
         bool budget_overrun = false;
         bool cancelled = false;
+        std::string stop_reason;
         const auto loop_started_at = std::chrono::steady_clock::now();
         if (publications_ != nullptr) {
           publications_->begin_composite_region(region.components);
@@ -848,6 +933,8 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           if (loop_iteration > 0u && runtime_cancel_token.requested()) {
             cancelled = true;
             result.stop_reason = SchedulerStopReason::kStopRequested;
+            stop_reason = "cancelled";
+            result.loop_stop_reason[region.id] = stop_reason;
             ++result.loop_cancellation_requested_count[region.id];
             ++result.loop_cancellation_observed_count[region.id];
             record_trace_event(trace_, "loop_cancellation_requested",
@@ -857,12 +944,21 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
             break;
           }
           const auto loop_iteration_started_at = std::chrono::steady_clock::now();
+          loop_convergence.begin_iteration();
+          active_loop_convergence = &loop_convergence;
+          active_loop_iteration = LoopIterationContext{region.id, region.loop_policy.type, loop_iteration,
+                                                       loop_iteration + 1u, max_iterations};
           record_trace_event(trace_, "loop_iteration_begin",
-                             {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
+                             {{"loop_id", region.id},
+                              {"iteration", std::to_string(loop_iteration + 1u)},
+                              {"policy", region.loop_policy.type}});
           ++result.loop_iteration_count[region.id];
           for (const auto& component_id : region.components) {
             if (!execute_component(component_id)) {
+              active_loop_convergence = nullptr;
+              active_loop_iteration = {};
               ++result.loop_error_count[region.id];
+              result.loop_stop_reason[region.id] = "component_error";
               record_trace_event(trace_, "loop_error",
                                  {{"loop_id", region.id},
                                   {"component_id", component_id},
@@ -870,34 +966,86 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
               return result;
             }
           }
+          active_loop_convergence = nullptr;
+          active_loop_iteration = {};
           const auto loop_iteration_finished_at = std::chrono::steady_clock::now();
+          const auto convergence_snapshot = loop_convergence.snapshot();
+          if (convergence_snapshot.residual.has_value()) {
+            result.loop_last_residual[region.id] = *convergence_snapshot.residual;
+          }
+          auto iteration_attributes =
+              loop_iteration_attributes(region.id, loop_iteration + 1u, region.loop_policy, convergence_snapshot);
           record_trace_span(trace_, "loop_iteration", loop_iteration_started_at, loop_iteration_finished_at,
-                            {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
-          record_trace_event(trace_, "loop_iteration_end",
-                             {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
+                            iteration_attributes);
+          record_trace_event(trace_, "loop_iteration_end", std::move(iteration_attributes));
+          std::string convergence_reason;
           if (loop_policy_converged_after_iteration(region.loop_policy)) {
+            convergence_reason = region.loop_policy.convergence;
+          } else if (convergence_snapshot.converged) {
+            convergence_reason = convergence_snapshot.reason.empty() ? "component_report" : convergence_snapshot.reason;
+          } else if (convergence_snapshot.residual.has_value() && region.loop_policy.residual_threshold.has_value() &&
+                     *convergence_snapshot.residual <= *region.loop_policy.residual_threshold) {
+            convergence_reason = "residual_threshold";
+          }
+          if (!convergence_reason.empty()) {
             converged = true;
+            stop_reason = convergence_reason;
+            result.loop_stop_reason[region.id] = stop_reason;
             ++result.loop_converged_count[region.id];
+            record_trace_event(trace_, "loop_converged",
+                               loop_iteration_attributes(region.id, loop_iteration + 1u, region.loop_policy,
+                                                         convergence_snapshot, convergence_reason));
             break;
           }
           if (region.loop_policy.budget_ms > 0 && std::chrono::steady_clock::now() - loop_started_at >=
                                                       std::chrono::milliseconds(region.loop_policy.budget_ms)) {
             budget_overrun = true;
+            stop_reason = "budget_overrun";
+            result.loop_stop_reason[region.id] = stop_reason;
             ++result.loop_budget_overrun_count[region.id];
+            record_trace_event(trace_, "loop_budget_overrun",
+                               loop_iteration_attributes(region.id, loop_iteration + 1u, region.loop_policy,
+                                                         convergence_snapshot, stop_reason));
             break;
           }
         }
-        if (!converged && !budget_overrun && !cancelled && region.loop_policy.max_iterations > 0) {
-          ++result.loop_max_iteration_hit_count[region.id];
+        if (!converged && !budget_overrun && !cancelled) {
+          stop_reason = "max_iterations";
+          result.loop_stop_reason[region.id] = stop_reason;
+          if (region.loop_policy.max_iterations > 0) {
+            ++result.loop_max_iteration_hit_count[region.id];
+            record_trace_event(trace_, "loop_max_iterations_hit",
+                               {{"loop_id", region.id}, {"iteration", std::to_string(max_iterations)}});
+          }
         }
+        const auto partial_policy = effective_partial_success_policy(region.loop_policy);
+        const auto partial_solver_stop = loop_policy_is_solver_iteration(region.loop_policy) && !converged;
+        if (partial_solver_stop && partial_policy == "fail_run") {
+          if (publications_ != nullptr) {
+            publications_->discard_composite_region_outputs();
+          }
+          ++result.loop_output_discarded_count[region.id];
+          result.ok = false;
+          result.stop_reason = SchedulerStopReason::kError;
+          result.errors.push_back("composite_loop " + region.id + " stopped without convergence: " + stop_reason);
+          return result;
+        }
+        const auto commit_outputs = !partial_solver_stop || partial_policy == "commit_outputs";
         if (publications_ != nullptr) {
-          const auto commit = publications_->commit_composite_region_outputs();
-          if (!commit.accepted) {
-            result.ok = false;
-            result.stop_reason = SchedulerStopReason::kError;
-            result.errors.push_back("composite region publication commit failed after region " + region.id + ": " +
-                                    commit.reason);
-            return result;
+          if (commit_outputs) {
+            const auto commit = publications_->commit_composite_region_outputs();
+            if (!commit.accepted) {
+              result.ok = false;
+              result.stop_reason = SchedulerStopReason::kError;
+              result.errors.push_back("composite region publication commit failed after region " + region.id + ": " +
+                                      commit.reason);
+              return result;
+            }
+          } else {
+            publications_->discard_composite_region_outputs();
+            ++result.loop_output_discarded_count[region.id];
+            record_trace_event(trace_, "loop_output_discarded",
+                               {{"loop_id", region.id}, {"reason", stop_reason}, {"policy", partial_policy}});
           }
         }
         if (cancelled) {

@@ -130,6 +130,7 @@ struct RuntimePublicationRouterMetrics {
   std::size_t async_max_in_flight_count{0};
   std::size_t async_cancelled_count{0};
   std::size_t committed_count{0};
+  std::size_t composite_discarded_count{0};
   std::size_t failed_commit_count{0};
 };
 
@@ -244,6 +245,7 @@ public:
   void set_trace_collector(TraceCollector* trace);
   void begin_composite_region(const std::vector<std::string>& components);
   RuntimeChannelPublishResult commit_composite_region_outputs();
+  void discard_composite_region_outputs();
 
   RuntimeChannelPublishResult publish_from(const std::string& source_endpoint, RuntimePayload payload,
                                            std::optional<EventTimestamp> event_timestamp = std::nullopt) override;

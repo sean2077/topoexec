@@ -59,6 +59,13 @@ def main() -> int:
             "edge kind enum drifted")
     require("thread_pool" in defs["lane"]["properties"]["type"]["enum"], "thread_pool lane missing")
     require("time_sync" in defs["trigger_policy"]["properties"]["type"]["enum"], "time_sync trigger missing")
+    require("solver_iteration" in defs["loop_policy"]["properties"]["type"]["enum"],
+            "solver_iteration loop policy missing")
+    require(defs["loop_policy"]["properties"]["residual_threshold"]["minimum"] == 0,
+            "loop residual threshold minimum drifted")
+    require(defs["loop_policy"]["properties"]["partial_success"]["enum"] ==
+            ["commit_outputs", "discard_outputs", "fail_run"],
+            "loop partial_success enum drifted")
     require(defs["execution"]["properties"]["on_error"]["enum"] == ["fail_fast", "continue", "isolate"],
             "execution.on_error enum drifted")
     require("loaned_view" in defs["edge_policy"]["properties"]["copy_policy"]["enum"],

@@ -84,7 +84,7 @@ The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, run
 - `examples/apps/low_latency_sensor_pipeline`: source/preprocessor/detector/tracker latest-only path.
 - `examples/apps/control_loop_with_state`: fixed-rate control loop with state and delay boundaries.
 - `examples/apps/async_request_response`: request boundary, validator, task executor, and response boundary.
-- `examples/apps/composite_solver`: CompositeLoop convergence and budget-overrun evidence.
+- `examples/apps/composite_solver`: CompositeLoop solver residual convergence and budget-overrun evidence.
 - `examples/apps/payload_pool_pipeline`: BufferPool copy/shared/loaned payload metrics.
 - `examples/apps/robot_cell_pilot`: composed robotics-like pilot with multiple lanes, async/drop overload, state/delay feedback, BufferPool frames, config snapshots, metrics/trace, and invalid-config rejection.
 - YAML examples in `examples/` also cover state/config snapshots, batch/time-sync, service-style async flow, large-payload linting, and app-owned boundary adapter patterns.
@@ -130,6 +130,9 @@ Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and 
 
 - `thread_pool` lanes support bounded runtime-priority admission and cooperative cancellation/timeout observation for ready invocations, but affinity, RT policy, portable worker-name guarantees, advanced starvation aging, and hard timeout preemption remain advisory or not implemented.
 - Async `policy.max_inflight` admission is implemented for `async` edges; it is an admission limit for deferred completions, while optional `TaskExecutor` / `ThreadedTaskExecutor` helpers are separate bounded task-execution surfaces.
+- CompositeLoop `solver_iteration` supports in-process residual/convergence
+  reporting and explicit partial-success output policy; external solver plugins
+  and optimizer dependencies are not implemented.
 - Trigger v2 `watermark`, `condition`, `debounce`, and `rate_limit` policies are
   declarative previews; arbitrary trigger scripts and wall-clock debounce timers
   are not implemented.

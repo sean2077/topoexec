@@ -1219,6 +1219,65 @@ composite_loops:
   EXPECT_TRUE(has_error_containing(result.errors, "component b is owned by multiple composite_loops"));
 }
 
+TEST(Graph, SolverIterationLoopPolicyFieldsValidate) {
+  const auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: solver_iteration_loop, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components:
+  - {id: a, type: topoexec.test.A, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+  - {id: b, type: topoexec.test.B, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+edges:
+  - {id: a_b, kind: immediate, from: a.out, to: b.in}
+  - {id: b_a, kind: immediate, from: b.out, to: a.in}
+composite_loops:
+  - id: solver
+    components: [a, b]
+    loop_policy:
+      type: solver_iteration
+      max_iterations: 4
+      residual_threshold: 0.01
+      partial_success: discard_outputs
+)");
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_EQ(result.compiled_plan.regions.size(), 1u);
+  EXPECT_EQ(result.compiled_plan.regions.front().loop_policy.type, "solver_iteration");
+  ASSERT_TRUE(result.compiled_plan.regions.front().loop_policy.residual_threshold.has_value());
+  EXPECT_DOUBLE_EQ(*result.compiled_plan.regions.front().loop_policy.residual_threshold, 0.01);
+  EXPECT_EQ(result.compiled_plan.regions.front().loop_policy.partial_success, "discard_outputs");
+}
+
+TEST(Graph, InvalidSolverIterationPolicyFieldsAreRejected) {
+  auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: bad_solver_iteration_loop, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components:
+  - {id: a, type: topoexec.test.A, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+  - {id: b, type: topoexec.test.B, event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+edges:
+  - {id: a_b, kind: immediate, from: a.out, to: b.in}
+  - {id: b_a, kind: immediate, from: b.out, to: a.in}
+composite_loops:
+  - id: solver
+    components: [a, b]
+    loop_policy: {type: solver_iteration, max_iterations: 4}
+)");
+  graph.composite_loops.front().loop_policy.residual_threshold = -0.1;
+  graph.composite_loops.front().loop_policy.partial_success = "sometimes";
+  graph.composite_loops.front().loop_policy.convergence = "maybe";
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "residual_threshold must be non-negative"));
+  EXPECT_TRUE(has_error_containing(result.errors, "unsupported loop_policy.partial_success"));
+  EXPECT_TRUE(has_error_containing(result.errors, "unsupported loop_policy.convergence"));
+}
+
 TEST(Graph, NonImmediateFeedbackEdgesDoNotCreateImmediateSccs) {
   for (const auto kind : {topoexec::EdgeKind::kDelay, topoexec::EdgeKind::kState, topoexec::EdgeKind::kAsync}) {
     auto graph = minimal_graph();

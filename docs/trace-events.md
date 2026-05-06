@@ -90,6 +90,10 @@ Composite loops:
 - `loop_iteration`
 - `loop_iteration_begin`
 - `loop_iteration_end`
+- `loop_converged`
+- `loop_budget_overrun`
+- `loop_max_iterations_hit`
+- `loop_output_discarded`
 - `loop_error`
 - `loop_cancellation_requested`
 - `loop_cancellation_observed`
@@ -103,6 +107,9 @@ The runtime includes identifiers where the event source has them:
 - Component events include `component_id` and `lane`; `thread_pool` component events also include `worker_id`. Timeout-budget events add `budget_ms` and `duration_ns`. When available, component/channel events also include bounded metadata attributes: `correlation_id`, `causation_id`, `epoch_id`, `transaction_id`, `source_component`, `source_port`, and `trigger_kind`.
 - Channel publish events include `channel_id`, `source_component`, `target_component`, and `edge_kind`.
 - Channel commit events include `channel_id` and `edge_kind`.
+- CompositeLoop iteration/convergence events include `loop_id`, `iteration`,
+  and `policy`; solver-style events may also include `residual`,
+  `residual_threshold`, and `reason`.
 - State commit events include `channel_id` and `edge_kind` when a `state` edge becomes visible at an epoch boundary.
 - Async admission events include `channel_id`, `accepted`, and `max_inflight`.
 - Config transaction events include `component_id`, `status`, `reason`, or applied component counts where applicable. They are emitted at epoch boundaries before component execution.

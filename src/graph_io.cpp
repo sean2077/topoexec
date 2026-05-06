@@ -537,9 +537,9 @@ EdgeSpec read_edge_node(const YAML::Node& edge_node, const std::string& edge_id,
 
 LoopPolicySpec read_loop_policy(const YAML::Node& policy_node, const std::string& context) {
   require_map(policy_node, context);
-  reject_unknown_fields(
-      policy_node, context,
-      {"type", "budget_ms", "max_iterations", "max_inflight", "drop_policy", "min_interval_ms", "convergence"});
+  reject_unknown_fields(policy_node, context,
+                        {"type", "budget_ms", "max_iterations", "max_inflight", "drop_policy", "min_interval_ms",
+                         "convergence", "residual_threshold", "partial_success"});
   LoopPolicySpec policy;
   policy.type = require_string(policy_node, "type", context);
   policy.budget_ms = optional_int(policy_node, "budget_ms");
@@ -548,6 +548,11 @@ LoopPolicySpec read_loop_policy(const YAML::Node& policy_node, const std::string
   policy.drop_policy = optional_string(policy_node, "drop_policy");
   policy.min_interval_ms = optional_int(policy_node, "min_interval_ms");
   policy.convergence = optional_string(policy_node, "convergence");
+  const auto residual_threshold_node = policy_node["residual_threshold"];
+  if (residual_threshold_node && !residual_threshold_node.IsNull()) {
+    policy.residual_threshold = residual_threshold_node.as<double>();
+  }
+  policy.partial_success = optional_string(policy_node, "partial_success");
   return policy;
 }
 
@@ -907,6 +912,8 @@ void enforce_graph_string_limits(const GraphSpec& graph, const GraphInputLimits&
                          limits);
     enforce_string_limit(loop.loop_policy.convergence, "composite_loops." + loop.id + ".loop_policy.convergence",
                          limits);
+    enforce_string_limit(loop.loop_policy.partial_success,
+                         "composite_loops." + loop.id + ".loop_policy.partial_success", limits);
   }
 
   for (const auto& hierarchy : graph.hierarchy) {

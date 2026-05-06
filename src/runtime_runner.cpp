@@ -835,6 +835,17 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       result.loop_cancellation_observed_count += count;
       append_runtime_metric(result, "runtime.loop.cancellation_observed", static_cast<double>(count), loop_id);
     }
+    for (const auto& [loop_id, count] : run_result.loop_output_discarded_count) {
+      result.loop_output_discarded_count += count;
+      append_runtime_metric(result, "runtime.loop.output_discarded", static_cast<double>(count), loop_id);
+    }
+    for (const auto& [loop_id, residual] : run_result.loop_last_residual) {
+      result.loop_last_residual[loop_id] = residual;
+      append_runtime_metric(result, "runtime.loop.residual", residual, loop_id);
+    }
+    for (const auto& [loop_id, reason] : run_result.loop_stop_reason) {
+      result.loop_stop_reason[loop_id] = reason;
+    }
     if (options.capture_component_state_snapshots) {
       for (const auto& instance : instances) {
         if (!instance.started) {
@@ -924,6 +935,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                           static_cast<double>(publication_metrics.async_staged_count));
     append_runtime_metric(result, "runtime.publication.failed_commit",
                           static_cast<double>(publication_metrics.failed_commit_count));
+    append_runtime_metric(result, "runtime.publication.composite_discarded",
+                          static_cast<double>(publication_metrics.composite_discarded_count));
     append_runtime_metric(result, "runtime.async.accepted_count",
                           static_cast<double>(publication_metrics.async_admission_accepted_count));
     append_runtime_metric(result, "runtime.async.rejected_count",

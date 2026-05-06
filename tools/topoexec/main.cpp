@@ -740,6 +740,9 @@ nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
           {"loop_converged_count", result.loop_converged_count},
           {"loop_budget_overrun_count", result.loop_budget_overrun_count},
           {"loop_max_iteration_hit_count", result.loop_max_iteration_hit_count},
+          {"loop_output_discarded_count", result.loop_output_discarded_count},
+          {"loop_last_residual", result.loop_last_residual},
+          {"loop_stop_reason", result.loop_stop_reason},
           {"metric_schema_version", std::string(topoexec::kRuntimeMetricSchemaVersion)},
           {"metrics", runtime_metrics_json(result)}};
 }

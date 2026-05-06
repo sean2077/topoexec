@@ -80,6 +80,8 @@ public:
   void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
 
   void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    const auto residual = context.loop_iteration.iteration_number >= 2u ? 0.05 : 0.5;
+    context.report_loop_convergence(topoexec::LoopConvergenceReport{false, residual, "solver_residual"});
     if (invocation.payload != nullptr) {
       publish_or_throw(context, "command", "command:" + invocation.payload->text());
       publish_or_throw(context, "correction", "correction:" + invocation.payload->text());
@@ -132,7 +134,7 @@ edges:
 composite_loops:
   - id: solver_loop
     components: [estimator, controller]
-    loop_policy: {type: fixed_point, max_iterations: 5, convergence: single_pass}
+    loop_policy: {type: solver_iteration, max_iterations: 5, residual_threshold: 0.1}
 )");
 }
 
@@ -165,8 +167,13 @@ int main() {
     }
     return 1;
   }
-  if (converged.loop_iteration_count != 1u || converged.loop_converged_count != 1u) {
-    std::cerr << "error: solver did not converge in one bounded pass\n";
+  if (converged.loop_iteration_count != 2u || converged.loop_converged_count != 1u) {
+    std::cerr << "error: solver did not converge by residual threshold\n";
+    return 2;
+  }
+  const auto residual = converged.loop_last_residual.find("solver_loop");
+  if (residual == converged.loop_last_residual.end() || residual->second > 0.1) {
+    std::cerr << "error: solver residual evidence was not reported\n";
     return 2;
   }
 
@@ -184,6 +191,7 @@ int main() {
 
   std::cout << "converged_iteration_count=" << converged.loop_iteration_count << "\n";
   std::cout << "loop_converged_count=" << converged.loop_converged_count << "\n";
+  std::cout << "solver_residual=" << residual->second << "\n";
   std::cout << "budget_overrun_count=" << budget.loop_budget_overrun_count << "\n";
   return 0;
 }

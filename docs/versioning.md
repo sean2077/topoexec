@@ -33,6 +33,9 @@ Current runtime semantic contract:
   flat `GraphSpec` semantics before validation and runtime execution.
 - `templates[]` and `template_instances[]` are additive schema-v1 fields because
   they are strict parameter-substitution inputs that disappear before runtime.
+- CompositeLoop `solver_iteration`, `residual_threshold`, and `partial_success`
+  are additive schema-v1 fields because they extend the existing explicit loop
+  owner without weakening immediate-SCC validation or adding runtime plugins.
 - A semantic change can require a contract-version update even if the schema shape does not change.
 - A schema bump can be required when old graph files would be rejected or would mean something different.
 
@@ -64,6 +67,7 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
 - Worker-pool and async max-inflight policy.
 - Trigger v2 preview fields beyond the current declarative
   `watermark`/`condition`/`debounce`/`rate_limit` behavior.
+- CompositeLoop solver-style residual reporting and partial-success policy.
 - Experimental headers listed in [public-api.md](public-api.md).
 
 Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, schema fields, or CLI JSON surfaces.

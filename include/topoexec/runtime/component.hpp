@@ -44,6 +44,20 @@ struct InvocationMetadata {
   std::string trigger_kind;
 };
 
+struct LoopIterationContext {
+  std::string loop_id;
+  std::string policy_type;
+  std::size_t iteration_index{0};
+  std::size_t iteration_number{0};
+  std::size_t max_iterations{0};
+};
+
+struct LoopConvergenceReport {
+  bool converged{false};
+  std::optional<double> residual;
+  std::string reason;
+};
+
 struct ComponentStateSnapshot {
   std::string component_type;
   std::string version;
@@ -188,6 +202,8 @@ struct GraphContext {
   ConfigSnapshotStore* config_store{nullptr};
   CancellationToken cancel_token;
   InvocationMetadata invocation_metadata;
+  LoopIterationContext loop_iteration;
+  std::function<void(LoopConvergenceReport)> loop_convergence_reporter;
   std::string graph_name;
   std::string component_id;
 
@@ -200,6 +216,7 @@ struct GraphContext {
   RuntimeChannelPublishResult publish_shared(const std::string& port, RuntimePayloadPtr payload,
                                              std::optional<EventTimestamp> event_timestamp = std::nullopt) const;
   TaskSubmissionResult submit_task(const std::string& completion_port, ITaskExecutor::Work work) const;
+  void report_loop_convergence(LoopConvergenceReport report) const;
   bool cancel_requested() const;
 };
 

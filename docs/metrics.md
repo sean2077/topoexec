@@ -124,6 +124,8 @@ Publication router:
 - `runtime.publication.state_committed`: state-edge publications committed at epoch boundaries.
 - `runtime.publication.async`: publications deferred by `async` edges.
 - `runtime.publication.failed_commit`: failed publication commit batches.
+- `runtime.publication.composite_discarded`: CompositeLoop external outputs
+  discarded by a partial-success policy before they reached runtime channels.
 
 Async admission:
 
@@ -144,6 +146,10 @@ Composite loops:
 - `runtime.loop.error`: internal CompositeLoop component failures. `component_id` carries the loop id.
 - `runtime.loop.cancellation_requested`: cancellation requests observed by a CompositeLoop between iterations. `component_id` carries the loop id.
 - `runtime.loop.cancellation_observed`: CompositeLoop cancellation stops performed between iterations. `component_id` carries the loop id.
+- `runtime.loop.output_discarded`: non-converged solver stops whose staged
+  external outputs were discarded. `component_id` carries the loop id.
+- `runtime.loop.residual`: latest residual reported by a solver-style
+  CompositeLoop iteration. `component_id` carries the loop id.
 
 State/config snapshots:
 
@@ -203,6 +209,9 @@ The top-level JSON result also carries aggregate counters for common dashboards:
 - `loop_converged_count`
 - `loop_budget_overrun_count`
 - `loop_max_iteration_hit_count`
+- `loop_output_discarded_count`
+- `loop_last_residual`
+- `loop_stop_reason`
 - `loop_cancellation_requested_count`
 - `loop_cancellation_observed_count`
 

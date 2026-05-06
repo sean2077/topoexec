@@ -94,17 +94,21 @@ const std::vector<RuntimeMetricDescriptor>& runtime_metric_descriptors() {
       add_descriptor(values, name, "counter", "count", component, "bounded: graph component id");
     }
 
-    for (const auto& name : {"runtime.loop.iterations", "runtime.loop.converged", "runtime.loop.budget_overrun",
-                             "runtime.loop.max_iterations_hit", "runtime.loop.error",
-                             "runtime.loop.cancellation_requested", "runtime.loop.cancellation_observed"}) {
+    for (const auto& name :
+         {"runtime.loop.iterations", "runtime.loop.converged", "runtime.loop.budget_overrun",
+          "runtime.loop.max_iterations_hit", "runtime.loop.error", "runtime.loop.cancellation_requested",
+          "runtime.loop.cancellation_observed", "runtime.loop.output_discarded"}) {
       add_descriptor(values, name, "counter", "count", component, "bounded: composite loop id in component_id");
     }
+    add_descriptor(values, "runtime.loop.residual", "gauge", "residual", component,
+                   "bounded: composite loop id in component_id", "experimental");
 
     for (const auto& name :
          {"runtime.publication.staged", "runtime.publication.committed", "runtime.publication.delayed",
           "runtime.publication.state", "runtime.publication.state_committed", "runtime.publication.async",
           "runtime.publication.failed_commit", "runtime.async.accepted_count", "runtime.async.rejected_count",
-          "runtime.async.dropped_count", "runtime.async.completed_count", "runtime.async.cancelled_count"}) {
+          "runtime.async.dropped_count", "runtime.async.completed_count", "runtime.async.cancelled_count",
+          "runtime.publication.composite_discarded"}) {
       add_descriptor(values, name, "counter", "count", no_labels, "none");
     }
     for (const auto& name : {"runtime.async.in_flight_count", "runtime.async.max_in_flight_count"}) {

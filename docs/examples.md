@@ -49,7 +49,7 @@ component factories through `topoexec::ComponentRegistry`.
 | Reference app v2 | `examples/apps/low_latency_sensor_pipeline` | Source/preprocessor/detector/tracker latest-only path with explicit drop metrics. | `app_low_latency_sensor_pipeline_runs` |
 | Reference app v2 | `examples/apps/control_loop_with_state` | Fixed-rate control loop with state snapshot and delay feedback boundaries. | `app_control_loop_with_state_runs` |
 | Reference app v2 | `examples/apps/async_request_response` | Request boundary, validator, deterministic task executor, and response boundary without service adapters. | `app_async_request_response_runs` |
-| Reference app v2 | `examples/apps/composite_solver` | CompositeLoop convergence and loop-budget overrun evidence. | `app_composite_solver_runs` |
+| Reference app v2 | `examples/apps/composite_solver` | CompositeLoop solver-iteration residual convergence and loop-budget overrun evidence. | `app_composite_solver_runs` |
 | Reference app v2 | `examples/apps/payload_pool_pipeline` | BufferPool, copy/shared/loaned payload metrics, and in-process frame identity. | `app_payload_pool_pipeline_runs` |
 | Real-world pilot | `examples/apps/robot_cell_pilot` | Composes multiple lanes, async overload, state/delay feedback, BufferPool frames, config transactions, metrics/trace, and invalid-config rejection without adapters. | `app_robot_cell_pilot_runs` |
 

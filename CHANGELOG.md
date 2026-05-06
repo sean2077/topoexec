@@ -35,6 +35,10 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
   for strict scalar `{{parameter}}` substitution, deterministic namespace
   expansion before validation/runtime, invalid-parameter tests, and a runnable
   source-transform-sink template example without a runtime template interpreter.
+- Added CompositeLoop `solver_iteration` preview with loop-local iteration
+  context, typed convergence/residual reports, residual-threshold convergence,
+  partial-success output discard/fail/commit policy, runtime residual/discard
+  metrics, and trace evidence while keeping cycles exact-owned and in-process.
 - Added experimental component reset, snapshot, and restore lifecycle hooks with start-epoch runner options, post-run snapshot capture, lifecycle metrics, trace events, and cleanup-on-failure coverage.
 - Added experimental config hot-reload transactions with component validate/apply hooks, epoch-boundary commit, transaction/version metrics, and rollback coverage for invalid or failed applies.
 - Added RuntimeObserver v1 with result/metric/trace/health/error callbacks, runner option registration, no-op and bounded in-memory observers, and non-fatal observer failure/drop metrics.

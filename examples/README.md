@@ -47,5 +47,6 @@ ctest --test-dir build --output-on-failure -R 'app_|cli_run_|cli_validate_'
 
 These examples do not implement ROS 2, OpenTelemetry, Prometheus, Python, or
 external Perfetto adapters. Boundary examples show where such adapters can attach
-once the core API is stable. The `hierarchical_graph_preview` candidate remains
-deferred until G41 adds a hierarchy/subgraph contract.
+once the core API is stable. Hierarchy and graph templates are compile-time
+schema features covered by parser/runtime tests and YAML examples rather than
+runtime nesting apps.

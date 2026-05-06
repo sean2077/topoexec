@@ -70,7 +70,12 @@ Checklist:
 
 - The loop component set must exactly match one immediate SCC.
 - Set `max_iterations` and budget fields before treating it as solver-like work.
-- Keep external publication committed after the loop, not recursively inside it.
+- For `solver_iteration`, report convergence from component code with
+  `GraphContext::report_loop_convergence()` and set either a residual threshold
+  or a clear partial-success policy.
+- Keep external publication staged until the loop succeeds, not recursively
+  inside it. Use `partial_success: commit_outputs` only when downstream
+  consumers can tolerate a non-converged result.
 
 ## Async request/response
 

@@ -23,6 +23,9 @@ namespace {
 struct RuntimeRecord {
   std::uint64_t sequence{0};
   std::string component_id;
+  std::string loop_id;
+  std::size_t loop_iteration_index{0};
+  std::size_t loop_iteration_number{0};
   topoexec::EventKind event{topoexec::EventKind::kManual};
   topoexec::TriggerKind trigger{topoexec::TriggerKind::kManual};
   std::string correlation_id;
@@ -162,6 +165,9 @@ void record_invocation(const topoexec::Invocation& invocation, const topoexec::G
   RuntimeRecord record;
   record.sequence = invocation.sequence;
   record.component_id = context.component_id;
+  record.loop_id = context.loop_iteration.loop_id;
+  record.loop_iteration_index = context.loop_iteration.iteration_index;
+  record.loop_iteration_number = context.loop_iteration.iteration_number;
   record.event = invocation.event;
   record.trigger = invocation.trigger;
   record.correlation_id = invocation.correlation_id;
@@ -785,6 +791,44 @@ public:
   }
 };
 
+class ResidualLoopControllerComponent : public LoopControllerComponent {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    auto descriptor = LoopControllerComponent::describe();
+    descriptor.type = "topoexec.test.ResidualLoopController";
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView& config) override {
+    const auto found = config.values.find("report_converged");
+    report_converged_ = found == config.values.end() || found->second != "false";
+  }
+
+  void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    record_invocation(invocation, context);
+    const auto residual = context.loop_iteration.iteration_number >= 2u ? 0.05 : 0.5;
+    const auto converged = report_converged_ && residual <= 0.05;
+    context.report_loop_convergence(
+        topoexec::LoopConvergenceReport{converged, residual, converged ? "controller_residual" : "residual_pending"});
+    if (invocation.payload == nullptr) {
+      return;
+    }
+    const auto command =
+        context.publish("command", topoexec::make_text_payload("command:" + invocation.payload->text()));
+    if (!command.accepted) {
+      throw std::runtime_error(command.reason);
+    }
+    const auto correction =
+        context.publish("correction", topoexec::make_text_payload("correction:" + invocation.payload->text()));
+    if (!correction.accepted) {
+      throw std::runtime_error(correction.reason);
+    }
+  }
+
+private:
+  bool report_converged_{true};
+};
+
 class FailingLoopControllerComponent : public LoopControllerComponent {
 public:
   topoexec::ComponentDescriptor describe() const override {
@@ -1138,6 +1182,8 @@ topoexec::ComponentRegistry delay_registry() {
                               []() { return std::make_unique<SlowLoopEstimatorComponent>(); });
   registry.register_component({"topoexec.test.LoopController"},
                               []() { return std::make_unique<LoopControllerComponent>(); });
+  registry.register_component({"topoexec.test.ResidualLoopController"},
+                              []() { return std::make_unique<ResidualLoopControllerComponent>(); });
   registry.register_component({"topoexec.test.FailingLoopController"},
                               []() { return std::make_unique<FailingLoopControllerComponent>(); });
   registry.register_component({"topoexec.test.CancellingLoopController"},
@@ -1604,6 +1650,19 @@ topoexec::GraphSpec cancelling_composite_loop_runtime_graph() {
   auto graph = composite_loop_runtime_graph();
   graph.components[2].type = "topoexec.test.CancellingLoopController";
   graph.composite_loops.front().loop_policy.max_iterations = 5;
+  return graph;
+}
+
+topoexec::GraphSpec solver_iteration_composite_loop_runtime_graph(bool report_converged = true) {
+  auto graph = composite_loop_runtime_graph();
+  graph.components[2].type = "topoexec.test.ResidualLoopController";
+  if (!report_converged) {
+    graph.components[2].config.values["report_converged"] = "false";
+  }
+  auto& policy = graph.composite_loops.front().loop_policy;
+  policy.type = "solver_iteration";
+  policy.max_iterations = 5;
+  policy.partial_success.clear();
   return graph;
 }
 
@@ -3317,6 +3376,105 @@ TEST(Runtime, CompositeLoopConvergenceStopsBeforeMaxIterations) {
   EXPECT_EQ(result.loop_converged_count, 1u);
   EXPECT_EQ(result.loop_max_iteration_hit_count, 0u);
   EXPECT_TRUE(has_metric(result, "runtime.loop.converged"));
+}
+
+TEST(Runtime, CompositeLoopSolverIterationConvergesByTypedReportAndResidualMetric) {
+  const auto reg = delay_registry();
+  const auto spec = solver_iteration_composite_loop_runtime_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.loop_iteration_count, 2u);
+  EXPECT_EQ(result.loop_converged_count, 1u);
+  EXPECT_EQ(result.loop_max_iteration_hit_count, 0u);
+  ASSERT_TRUE(result.loop_last_residual.contains("estimator_controller_loop"));
+  EXPECT_DOUBLE_EQ(result.loop_last_residual.at("estimator_controller_loop"), 0.05);
+  ASSERT_TRUE(result.loop_stop_reason.contains("estimator_controller_loop"));
+  EXPECT_EQ(result.loop_stop_reason.at("estimator_controller_loop"), "controller_residual");
+  EXPECT_TRUE(has_component_metric(result, "runtime.loop.residual", "estimator_controller_loop"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "loop_converged", "reason", "controller_residual"));
+  EXPECT_TRUE(has_trace_event_attribute(result, "loop_iteration_end", "residual", "0.05"));
+  EXPECT_TRUE(has_component_record(1, "sink"));
+  const auto controller = find_record_snapshot(1, "controller", "state");
+  ASSERT_TRUE(controller.has_value());
+  EXPECT_EQ(controller->loop_id, "estimator_controller_loop");
+  EXPECT_EQ(controller->loop_iteration_index, 1u);
+  EXPECT_EQ(controller->loop_iteration_number, 2u);
+}
+
+TEST(Runtime, CompositeLoopSolverIterationConvergesByResidualThreshold) {
+  const auto reg = delay_registry();
+  auto spec = solver_iteration_composite_loop_runtime_graph(false);
+  spec.composite_loops.front().loop_policy.residual_threshold = 0.1;
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.loop_iteration_count, 2u);
+  EXPECT_EQ(result.loop_converged_count, 1u);
+  ASSERT_TRUE(result.loop_stop_reason.contains("estimator_controller_loop"));
+  EXPECT_EQ(result.loop_stop_reason.at("estimator_controller_loop"), "residual_threshold");
+  EXPECT_TRUE(has_trace_event_attribute(result, "loop_converged", "residual_threshold", "0.1"));
+  EXPECT_TRUE(has_component_record(1, "sink"));
+}
+
+TEST(Runtime, CompositeLoopSolverIterationDiscardsPartialOutputsByDefault) {
+  const auto reg = delay_registry();
+  auto spec = solver_iteration_composite_loop_runtime_graph(false);
+  spec.composite_loops.front().loop_policy.max_iterations = 2;
+  spec.composite_loops.front().loop_policy.residual_threshold = 0.01;
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.loop_iteration_count, 2u);
+  EXPECT_EQ(result.loop_converged_count, 0u);
+  EXPECT_EQ(result.loop_max_iteration_hit_count, 1u);
+  EXPECT_EQ(result.loop_output_discarded_count, 1u);
+  ASSERT_TRUE(result.loop_stop_reason.contains("estimator_controller_loop"));
+  EXPECT_EQ(result.loop_stop_reason.at("estimator_controller_loop"), "max_iterations");
+  EXPECT_FALSE(has_component_record(1, "sink"));
+  EXPECT_TRUE(has_component_metric(result, "runtime.loop.output_discarded", "estimator_controller_loop"));
+  EXPECT_TRUE(has_metric(result, "runtime.publication.composite_discarded"));
+  EXPECT_TRUE(has_trace_event(result, "loop_output_discarded"));
+}
+
+TEST(Runtime, CompositeLoopSolverIterationCanFailOnPartialSuccessPolicy) {
+  const auto reg = delay_registry();
+  auto spec = solver_iteration_composite_loop_runtime_graph(false);
+  spec.composite_loops.front().loop_policy.max_iterations = 2;
+  spec.composite_loops.front().loop_policy.residual_threshold = 0.01;
+  spec.composite_loops.front().loop_policy.partial_success = "fail_run";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kError);
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_NE(result.errors.front().find("stopped without convergence"), std::string::npos);
+  EXPECT_EQ(result.loop_output_discarded_count, 1u);
+  EXPECT_FALSE(has_component_record(1, "sink"));
 }
 
 TEST(Runtime, CompositeLoopBudgetOverrunStopsLoopAndReportsMetric) {

@@ -150,6 +150,9 @@ struct SchedulerRunResult {
   std::map<std::string, std::size_t> loop_error_count;
   std::map<std::string, std::size_t> loop_cancellation_requested_count;
   std::map<std::string, std::size_t> loop_cancellation_observed_count;
+  std::map<std::string, std::size_t> loop_output_discarded_count;
+  std::map<std::string, double> loop_last_residual;
+  std::map<std::string, std::string> loop_stop_reason;
   std::vector<std::string> ticked_tasks;
 };
 

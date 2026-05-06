@@ -114,6 +114,7 @@ struct RuntimeRunnerResult {
   std::size_t loop_error_count{0};
   std::size_t loop_cancellation_requested_count{0};
   std::size_t loop_cancellation_observed_count{0};
+  std::size_t loop_output_discarded_count{0};
   std::size_t lifecycle_reset_count{0};
   std::size_t lifecycle_reset_failure_count{0};
   std::size_t lifecycle_restore_count{0};
@@ -131,6 +132,8 @@ struct RuntimeRunnerResult {
   std::vector<RuntimeMetricSample> runtime_metrics;
   std::vector<RuntimeError> runtime_errors;
   std::vector<std::string> errors;
+  std::map<std::string, double> loop_last_residual;
+  std::map<std::string, std::string> loop_stop_reason;
   std::map<std::string, ComponentStateSnapshot> component_state_snapshots;
 };
 

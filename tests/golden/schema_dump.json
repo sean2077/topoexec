@@ -538,10 +538,24 @@
           "minimum": 0,
           "type": "integer"
         },
+        "partial_success": {
+          "enum": [
+            "commit_outputs",
+            "discard_outputs",
+            "fail_run"
+          ],
+          "maxLength": 4096,
+          "type": "string"
+        },
+        "residual_threshold": {
+          "minimum": 0,
+          "type": "number"
+        },
         "type": {
           "enum": [
             "fixed_point",
             "transaction",
+            "solver_iteration",
             "coalesced_event",
             "async_task"
           ],

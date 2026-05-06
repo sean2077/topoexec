@@ -1198,6 +1198,16 @@ Priority: P2
 - CompositeLoop can represent real iterative components without exposing unsafe cycles.
 - External observers never see half-updated loop output.
 
+Implementation note: G45 adds a bounded `solver_iteration` policy slice on top
+of exact CompositeLoop SCC ownership. Components receive loop-local iteration
+context through `GraphContext::loop_iteration` and can report typed convergence
+with `GraphContext::report_loop_convergence({converged, residual, reason})`.
+`residual_threshold` can mark convergence from a reported residual, and
+`partial_success` (`commit_outputs`, `discard_outputs`, `fail_run`) controls
+non-converged solver stops. Runtime metrics/trace expose residual, stop reason,
+and discarded-output evidence. No external solver plugin, adapter, dependency,
+or unsafe cycle bypass is added.
+
 ---
 
 ## G46. Runtime Observer API v1
@@ -2329,7 +2339,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G42, G45, G58-G65, or G68.
+  and hidden deferral of G42, G58-G65, or G68.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2362,7 +2372,7 @@ Priority: P0 before beta
 13. G38 Multi-Reader / Move-Only Hardening
 14. G39 Payload and Memory v2
 15. G40 Typed Ports and Constraints
-16. G45 CompositeLoop Solver-Style Policies
+16. G45 CompositeLoop Solver-Style Policies（complete）
 17. G35 Trigger Engine v2
 
 ## Phase D：可观测性与工具产品化

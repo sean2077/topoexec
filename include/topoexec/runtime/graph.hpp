@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -133,6 +134,8 @@ struct LoopPolicySpec {
   std::string drop_policy;
   int min_interval_ms{0};
   std::string convergence;
+  std::optional<double> residual_threshold;
+  std::string partial_success;
 };
 
 struct CompositeLoopSpec {

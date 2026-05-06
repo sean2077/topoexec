@@ -351,15 +351,23 @@ Fields:
 
 Loop policy fields:
 
-- `type` required string; allowed values are `fixed_point`, `transaction`, `coalesced_event`, and `async_task`.
+- `type` required string; allowed values are `fixed_point`, `transaction`, `solver_iteration`, `coalesced_event`, and `async_task`.
 - `budget_ms` optional non-negative integer; the loop checks this cooperatively between completed iterations.
 - `max_iterations` optional non-negative integer.
 - `max_inflight` optional non-negative integer.
 - `drop_policy` optional string.
 - `min_interval_ms` optional non-negative integer.
-- `convergence` optional string.
+- `convergence` optional string. `single_pass`, `after_first_iteration`, and
+  `always` stop after one iteration; `stable_state` is accepted as an advisory
+  existing-example value.
+- `residual_threshold` optional non-negative number used by
+  `solver_iteration`.
+- `partial_success` optional string: `commit_outputs`, `discard_outputs`, or
+  `fail_run`.
 
-Current runtime execution is strongest for `fixed_point`. `loop_policy.max_inflight` is reserved for loop-level async policies and is separate from edge-level async `policy.max_inflight`.
+Current runtime execution is strongest for `fixed_point` and the bounded
+`solver_iteration` slice. `loop_policy.max_inflight` is reserved for loop-level
+async policies and is separate from edge-level async `policy.max_inflight`.
 
 ## Valid Minimal Example
 

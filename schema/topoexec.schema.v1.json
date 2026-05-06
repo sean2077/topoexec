@@ -615,6 +615,7 @@
           "enum": [
             "fixed_point",
             "transaction",
+            "solver_iteration",
             "coalesced_event",
             "async_task"
           ],
@@ -646,6 +647,19 @@
         },
         "convergence": {
           "type": "string",
+          "maxLength": 4096
+        },
+        "residual_threshold": {
+          "type": "number",
+          "minimum": 0
+        },
+        "partial_success": {
+          "type": "string",
+          "enum": [
+            "commit_outputs",
+            "discard_outputs",
+            "fail_run"
+          ],
           "maxLength": 4096
         }
       }

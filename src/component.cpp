@@ -137,6 +137,12 @@ TaskSubmissionResult GraphContext::submit_task(const std::string& completion_por
   });
 }
 
+void GraphContext::report_loop_convergence(LoopConvergenceReport report) const {
+  if (loop_convergence_reporter) {
+    loop_convergence_reporter(std::move(report));
+  }
+}
+
 bool GraphContext::cancel_requested() const {
   return cancel_token.cancel_requested();
 }
