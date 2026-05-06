@@ -375,6 +375,23 @@ TEST(Channel, CopyPolicyRejectsLargePayloads) {
   EXPECT_NE(result.reason.find("cannot copy large payload schema topoexec.runtime.BinaryBlob"), std::string::npos);
 }
 
+TEST(Channel, CopyPolicyCopiesTextPayloadAndOwnsResult) {
+  auto spec = edge("copied_events", "queue", 1);
+  spec.policy.copy_policy = "copy";
+  topoexec::RuntimeChannelBus bus({spec});
+  auto original = topoexec::make_shared_payload(topoexec::make_text_payload("copy-me"));
+  std::weak_ptr<const topoexec::RuntimePayload> weak = original;
+
+  ASSERT_TRUE(bus.publish_shared_from("producer.out", original).accepted);
+  original.reset();
+  EXPECT_TRUE(weak.expired());
+
+  const auto messages = bus.consume_for_component("consumer");
+  ASSERT_EQ(messages.size(), 1u);
+  EXPECT_EQ(*messages.front().payload, "copy-me");
+  EXPECT_EQ(bus.metrics("copied_events").payload_copy_count, 1u);
+}
+
 TEST(Channel, SharedAndLoanedViewDoNotCopyPayloads) {
   for (const auto* copy_policy : {"shared_view", "loaned_view"}) {
     auto spec = edge(std::string("frames_") + copy_policy);
@@ -430,6 +447,8 @@ TEST(Channel, LoanedViewPreservesLoanedFrameBufferWithoutCopying) {
   EXPECT_EQ(stats.alloc_count, 1u);
   EXPECT_EQ(stats.loan_count, 1u);
   EXPECT_EQ(stats.release_count, 0u);
+  EXPECT_EQ(stats.detached_count, 1u);
+  EXPECT_EQ(stats.active_count, 0u);
   EXPECT_EQ(stats.bytes_allocated, 32u);
 }
 
@@ -455,6 +474,8 @@ TEST(Channel, BufferPoolReusesReleasedFramesAndReportsMetrics) {
   {
     auto loan = pool.loan_frame(16, 4, 4, 4, "gray8");
     ASSERT_TRUE(loan.valid());
+    EXPECT_TRUE(pool.has_outstanding_loans());
+    EXPECT_EQ(pool.stats().active_count, 1u);
   }
   auto reused = pool.loan_frame(8, 2, 2, 4, "gray8");
 
@@ -464,6 +485,51 @@ TEST(Channel, BufferPoolReusesReleasedFramesAndReportsMetrics) {
   EXPECT_EQ(stats.reuse_count, 1u);
   EXPECT_EQ(stats.loan_count, 2u);
   EXPECT_EQ(stats.release_count, 1u);
+  EXPECT_EQ(stats.active_count, 1u);
+  EXPECT_EQ(stats.available_count, 0u);
+  EXPECT_EQ(stats.high_watermark_bytes, 16u);
+}
+
+TEST(Channel, BufferPoolBoundsAllocationWithBucketsAlignmentAndMaxBytes) {
+  topoexec::BufferPoolConfig config;
+  config.bucket_sizes = {64u, 256u};
+  config.alignment = 16u;
+  config.max_bytes = 320u;
+  topoexec::BufferPool pool(config);
+
+  auto small = pool.loan_frame(17, 1, 1, 17, "bytes");
+  auto large = pool.loan_frame(200, 1, 1, 200, "bytes");
+  ASSERT_TRUE(small.valid());
+  ASSERT_TRUE(large.valid());
+  EXPECT_EQ(small.view().buffer->size(), 64u);
+  EXPECT_EQ(large.view().buffer->size(), 256u);
+  EXPECT_EQ(pool.stats().bytes_owned, 320u);
+  EXPECT_EQ(pool.stats().active_bytes, 320u);
+  EXPECT_EQ(pool.stats().high_watermark_bytes, 320u);
+
+  auto exhausted = pool.loan_frame(1, 1, 1, 1, "bytes");
+  EXPECT_FALSE(exhausted.valid());
+  EXPECT_EQ(pool.stats().exhausted_count, 1u);
+  EXPECT_EQ(pool.stats().max_bytes, 320u);
+}
+
+TEST(Channel, BufferPoolDetachTransfersOwnershipOutOfPoolAccounting) {
+  topoexec::BufferPoolConfig config;
+  config.fixed_block_size = 64u;
+  config.max_bytes = 64u;
+  topoexec::BufferPool pool(config);
+  auto loan = pool.loan_frame(32, 4, 4, 8, "gray8");
+  ASSERT_TRUE(loan.valid());
+
+  const auto frame = loan.detach();
+
+  EXPECT_TRUE(frame.valid());
+  const auto stats = pool.stats();
+  EXPECT_EQ(stats.detached_count, 1u);
+  EXPECT_EQ(stats.active_count, 0u);
+  EXPECT_EQ(stats.bytes_owned, 0u);
+  EXPECT_EQ(stats.bytes_available, 0u);
+  EXPECT_FALSE(pool.has_outstanding_loans());
 }
 
 TEST(Payload, OpaqueCustomPayloadPreservesSchemaAddressAndSummary) {
@@ -476,6 +542,32 @@ TEST(Payload, OpaqueCustomPayloadPreservesSchemaAddressAndSummary) {
   EXPECT_EQ(opaque.size_bytes, sizeof(int));
   EXPECT_EQ(opaque.debug_summary, "answer");
   EXPECT_EQ(topoexec::payload_address(payload), value.get());
+}
+
+TEST(Payload, DescribesBuiltInPayloadSchemaAndSize) {
+  const auto text = topoexec::describe_payload_schema(topoexec::make_text_payload("hello"));
+  EXPECT_EQ(text.type_name, "TextPayload");
+  EXPECT_EQ(text.schema_id, topoexec::kTextPayloadSchema);
+  EXPECT_EQ(text.summary, "hello");
+  EXPECT_EQ(text.size_estimate, 5u);
+  EXPECT_FALSE(text.large);
+
+  auto buffer = std::make_shared<const topoexec::SharedBuffer>(128);
+  const auto blob = topoexec::describe_payload_schema(topoexec::make_binary_blob_payload(buffer, 0, 64, "bytes"));
+  EXPECT_EQ(blob.type_name, "BinaryBlobPayload");
+  EXPECT_EQ(blob.schema_id, topoexec::kBinaryBlobPayloadSchema);
+  EXPECT_EQ(blob.summary, "bytes");
+  EXPECT_EQ(blob.size_estimate, 64u);
+  EXPECT_TRUE(blob.large);
+
+  auto value = std::make_shared<const int>(42);
+  const auto opaque =
+      topoexec::describe_payload_schema(topoexec::make_custom_payload(value, "example.Answer", "answer"));
+  EXPECT_EQ(opaque.type_name, "OpaquePayload");
+  EXPECT_EQ(opaque.schema_id, "example.Answer");
+  EXPECT_EQ(opaque.summary, "answer");
+  EXPECT_EQ(opaque.size_estimate, sizeof(int));
+  EXPECT_TRUE(opaque.large);
 }
 
 TEST(Payload, TypedHelpersReturnExpectedPayloadVariants) {

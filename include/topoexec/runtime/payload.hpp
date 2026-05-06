@@ -58,6 +58,14 @@ struct RuntimePayload {
 
 using RuntimePayloadPtr = std::shared_ptr<const RuntimePayload>;
 
+struct PayloadSchemaInfo {
+  std::string type_name;
+  std::string schema_id;
+  std::string summary;
+  std::size_t size_estimate{0};
+  bool large{false};
+};
+
 RuntimePayload make_text_payload(std::string text, std::string schema = kTextPayloadSchema);
 RuntimePayload make_frame_payload(FrameView frame, std::string schema = kFrameViewPayloadSchema);
 RuntimePayload make_binary_blob_payload(std::shared_ptr<const SharedBuffer> buffer, std::size_t offset,
@@ -95,6 +103,7 @@ const FrameView& require_frame_payload(const RuntimePayload& payload, const std:
 const BinaryBlobPayload& require_binary_blob_payload(const RuntimePayload& payload, const std::string& context = {});
 const OpaquePayload& require_opaque_payload(const RuntimePayload& payload, const std::string& context = {});
 const void* payload_address(const RuntimePayload& payload);
+PayloadSchemaInfo describe_payload_schema(const RuntimePayload& payload);
 RuntimePayload copy_text_payload(const RuntimePayload& payload);
 
 bool operator==(const RuntimePayload& lhs, const std::string& rhs);

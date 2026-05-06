@@ -890,6 +890,11 @@ Priority: P1/P2
 - It does not claim external SHM zero-copy.
 - Memory use is observable and bounded.
 
+### Implementation note
+
+- G39 adds additive in-process memory planning surfaces: configurable BufferPool block/bucket sizing, allocation-size rounding, `max_bytes` exhaustion, high-watermark/active/owned/detached stats, and outstanding-loan detection.
+- Payload schema summaries and CLI lints make copy/loan ownership decisions visible while keeping cross-process shared-memory and adapter-specific ownership out of core.
+
 ---
 
 ## G40. Graph Compiler v2: Typed Ports and Constraints

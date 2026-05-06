@@ -294,6 +294,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       $<TARGET_FILE:topoexec_cli>
       ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_move_only_multireader.yaml
   )
+  add_test(NAME cli_lint_loaned_view_without_pool_owner
+    COMMAND topoexec graph lint ${CMAKE_CURRENT_SOURCE_DIR}/examples/loaned_view_without_pool_owner.yaml
+  )
+  set_tests_properties(cli_lint_loaned_view_without_pool_owner PROPERTIES
+    PASS_REGULAR_EXPRESSION "loaned_view_without_pool_owner"
+  )
   add_test(NAME cli_explain_minimal
     COMMAND topoexec graph explain ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml
   )

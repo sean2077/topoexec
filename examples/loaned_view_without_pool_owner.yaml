@@ -1,0 +1,27 @@
+schema_version: 1
+graph:
+  name: loaned_view_without_pool_owner
+  kind: internal_test
+lanes:
+  main:
+    type: event_loop
+components:
+  - id: camera
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [frame]}]
+    trigger_policy: {type: any_input, inputs: [frame]}
+    execution: {lane: main}
+edges:
+  - id: camera_sink
+    kind: immediate
+    from: camera.frame
+    to: sink.frame
+    policy:
+      mode: latest
+      copy_policy: loaned_view
+      owner: runtime

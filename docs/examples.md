@@ -41,6 +41,7 @@ component factories through `topoexec::ComponentRegistry`.
 | Async | `examples/apps/async_worker`, `examples/service_pipeline.yaml` | Async delivery is deferred, bounded, and observable; request/task-ready triggers model service-style flow. | `app_async_worker_runs`, `cli_run_service_pipeline` |
 | Batch/time sync | `examples/batch_time_sync.yaml` | A time-sync trigger waits for both input streams within the configured slop. | `cli_run_batch_time_sync` |
 | Large payload | `examples/large_payload_copy.yaml` | Copy policy is explicit and lintable; use shared/loaned paths for real large data flows. | `cli_lint_large_payload_copy` |
+| Loaned owner lint | `examples/loaned_view_without_pool_owner.yaml` | `loaned_view` should name a producer/pool owner until pool-return callbacks exist. | `cli_lint_loaned_view_without_pool_owner` |
 | Registry / app factories | `examples/apps/cpp_builder_minimal` | Pure C++ apps build graphs and register factories without YAML/CLI dependencies. | `app_cpp_builder_minimal_runs` |
 | Boundary adapter pattern | `examples/boundary_adapter_pattern.yaml` | Boundary nodes mark where an app-owned adapter injects or drains data without adding adapter dependencies to core. | `cli_run_boundary_adapter_pattern` |
 
@@ -277,6 +278,11 @@ large_payload_copy
 Semantic lesson: large data movement is part of the graph contract. The demo
 uses a copy policy so lint can warn; real high-volume data paths should evaluate
 `shared_view` or `loaned_view` and buffer-pool ownership.
+
+`examples/loaned_view_without_pool_owner.yaml` is the companion lint example:
+`loaned_view` preserves in-process buffer identity, but until pool-return
+callbacks exist the edge should declare a producer/pool owner instead of relying
+on implicit runtime ownership.
 
 Contrast invalid graph: do not claim external shared-memory or zero-copy
 middleware integration from this example; those adapters remain deferred.

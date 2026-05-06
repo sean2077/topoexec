@@ -1709,6 +1709,7 @@ TEST(Runtime, ImmediateFeedForwardIsVisibleInSameEpochAndMetricsMatch) {
   EXPECT_EQ(result.staged_publication_count, 4u);
   EXPECT_EQ(result.committed_publication_count, 3u);
   EXPECT_EQ(result.delayed_publication_count, 1u);
+  EXPECT_EQ(result.payload_copy_count, 0u);
 
   const auto staged = metric_value(result, "runtime.publication.staged");
   const auto committed = metric_value(result, "runtime.publication.committed");

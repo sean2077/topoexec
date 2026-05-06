@@ -1,6 +1,17 @@
 #include "topoexec/runtime/payload.hpp"
 
 namespace topoexec {
+namespace {
+
+std::string summarize_text(const std::string& text) {
+  constexpr std::size_t kMaxSummaryBytes = 64u;
+  if (text.size() <= kMaxSummaryBytes) {
+    return text;
+  }
+  return text.substr(0, kMaxSummaryBytes) + "...";
+}
+
+} // namespace
 
 const std::uint8_t* BinaryBlobPayload::data() const {
   if (!valid()) {
@@ -122,6 +133,41 @@ const void* payload_address(const RuntimePayload& payload) {
     return std::get<BinaryBlobPayload>(payload.value).payload_address();
   }
   return std::get<OpaquePayload>(payload.value).payload_address();
+}
+
+PayloadSchemaInfo describe_payload_schema(const RuntimePayload& payload) {
+  PayloadSchemaInfo info;
+  info.schema_id = payload.schema;
+  info.large = payload.is_large_payload();
+  if (std::holds_alternative<TextPayload>(payload.value)) {
+    const auto& text = std::get<TextPayload>(payload.value).text;
+    info.type_name = "TextPayload";
+    info.size_estimate = text.size();
+    info.summary = summarize_text(text);
+    return info;
+  }
+  if (std::holds_alternative<FrameView>(payload.value)) {
+    const auto& frame = std::get<FrameView>(payload.value);
+    info.type_name = "FrameView";
+    info.size_estimate = frame.size;
+    info.summary = frame.format.empty() ? "frame" : frame.format;
+    if (frame.width != 0u || frame.height != 0u) {
+      info.summary += " " + std::to_string(frame.width) + "x" + std::to_string(frame.height);
+    }
+    return info;
+  }
+  if (std::holds_alternative<BinaryBlobPayload>(payload.value)) {
+    const auto& blob = std::get<BinaryBlobPayload>(payload.value);
+    info.type_name = "BinaryBlobPayload";
+    info.size_estimate = blob.size;
+    info.summary = blob.format.empty() ? "binary_blob" : blob.format;
+    return info;
+  }
+  const auto& opaque = std::get<OpaquePayload>(payload.value);
+  info.type_name = "OpaquePayload";
+  info.size_estimate = opaque.size_bytes;
+  info.summary = opaque.debug_summary;
+  return info;
 }
 
 RuntimePayload copy_text_payload(const RuntimePayload& payload) {

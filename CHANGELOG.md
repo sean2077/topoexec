@@ -20,6 +20,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added invocation metadata v1 with correlation, causation, epoch, transaction, source endpoint, and trigger-kind propagation through publish/channel/trigger/invocation/task/composite-loop paths plus trace attributes.
 - Added bounded runtime health events for channel overflow/stale/deadline/high-watermark, task reject, and scheduler reject paths, exposed through `RuntimeRunnerResult`, CLI JSON, doctor feature metadata, and trace events without adding health-triggered control flow.
 - Added edge reader/copy-policy explainability in plan/explain output, including `slow_reader_drop_risk`, plus lint surfacing for slow multi-reader drop risk and invalid `move_only` multi-reader edges.
+- Added `BufferPoolConfig`, bounded pool allocation stats, payload schema summaries, and loaned-view pool-owner lint coverage for in-process large-payload memory planning.
 - Added `OpaquePayload`/`make_custom_payload` and BufferPool loan/release/byte metrics with memory docs.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
@@ -54,6 +55,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Runtime docs now describe bounded-cardinality correlation/causation metadata on invocations, channel messages, and trace events while keeping metrics labels stable by default.
 - Runtime docs now distinguish channel health counters from optional bounded health events and document that health events are observer-only unless future graph-boundary wiring is explicitly added.
 - Hardened multi-reader channel cursor/drop tests and shared/loaned/move payload lifetime/no-copy evidence while keeping deeper zero-copy pool-return APIs deferred.
+- Hardened BufferPool tests for bounded allocation, exhaustion, detach accounting, outstanding-loan detection, release-on-drop, and copy/no-copy payload policy evidence.
 - Current baseline and release checklist now record the post-alpha `main` commit, local CTest count, CI run, tag relationship, and remaining limitations.
 - Added an optional CMake `topoexec_format_check` target for local clang-format validation.
 - Expanded the public API map with stable, mixed, experimental, internal, schema, and CLI JSON compatibility boundaries.

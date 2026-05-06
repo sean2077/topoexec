@@ -42,9 +42,23 @@ struct BufferPoolStats {
   std::size_t reuse_count{0};
   std::size_t loan_count{0};
   std::size_t release_count{0};
+  std::size_t detached_count{0};
+  std::size_t exhausted_count{0};
   std::size_t bytes_allocated{0};
+  std::size_t bytes_owned{0};
+  std::size_t active_bytes{0};
+  std::size_t high_watermark_bytes{0};
   std::size_t bytes_available{0};
+  std::size_t active_count{0};
   std::size_t available_count{0};
+  std::size_t max_bytes{0};
+};
+
+struct BufferPoolConfig {
+  std::size_t fixed_block_size{0};
+  std::vector<std::size_t> bucket_sizes;
+  std::size_t alignment{1};
+  std::size_t max_bytes{0};
 };
 
 class BufferPool;
@@ -73,15 +87,25 @@ private:
 
 class BufferPool {
 public:
+  BufferPool() = default;
+  explicit BufferPool(BufferPoolConfig config);
+
   LoanedFrame loan_frame(std::size_t size, std::uint32_t width, std::uint32_t height, std::uint32_t stride,
                          std::string format);
+  const BufferPoolConfig& config() const;
   BufferPoolStats stats() const;
+  bool has_outstanding_loans() const;
 
 private:
   friend class LoanedFrame;
 
+  std::size_t allocation_size(std::size_t requested) const;
+  bool can_allocate(std::size_t allocation_size) const;
+  void mark_detached(const std::shared_ptr<SharedBuffer>& buffer);
   void return_buffer(std::shared_ptr<SharedBuffer> buffer);
+  void refresh_available_stats();
 
+  BufferPoolConfig config_;
   std::vector<std::shared_ptr<SharedBuffer>> available_;
   BufferPoolStats stats_;
 };

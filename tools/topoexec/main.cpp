@@ -582,6 +582,10 @@ std::vector<LintFinding> lint_graph(const topoexec::GraphSpec& graph,
                           "multi-reader edge keeps only bounded history; slow readers can miss dropped messages",
                           edge.id});
     }
+    if (edge.policy.copy_policy == "loaned_view" && edge.policy.owner != "producer") {
+      findings.push_back({"warning", "loaned_view_without_pool_owner",
+                          "loaned_view should declare owner: producer until pool-return callbacks exist", edge.id});
+    }
     if (edge.policy.copy_policy == "copy") {
       const auto source_component = component_id_from_endpoint(edge.from);
       const auto source_port = port_name_from_endpoint(edge.from);

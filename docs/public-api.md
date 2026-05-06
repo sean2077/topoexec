@@ -29,7 +29,7 @@ These headers are safe for ordinary runtime users to include directly.
 | --- | --- | --- |
 | `topoexec/runtime/status.hpp` | `Status`, `Result<T>` | Status-returning hooks use this instead of exceptions when failures are expected. |
 | `topoexec/runtime/clock.hpp` | `TimestampDomain`, `EventTimestamp` | Stable timestamp value types for event-time payloads and policies. |
-| `topoexec/runtime/payload.hpp` | Built-in payload variants, schema constants, typed access helpers | Custom `OpaquePayload`/`make_custom_payload` are stable enough for in-process embedding; external shared-memory zero-copy remains out of scope. |
+| `topoexec/runtime/payload.hpp` | Built-in payload variants, schema constants, typed access helpers, payload schema summaries | Custom `OpaquePayload`/`make_custom_payload` are stable enough for in-process embedding; external shared-memory zero-copy remains out of scope. |
 | `topoexec/runtime/cancellation.hpp` | `CancellationToken`, `CancellationSource` | Stable cooperative cancellation value types; they report requests and observations without hard preemption. |
 | `topoexec/runtime/component.hpp` | `Component`, `ComponentDescriptor`, `GraphContext`, `Invocation`, `InvocationMetadata`, `InputView`, `ConfigView`, publication result | `GraphContext::publish()` stages through the runtime publisher and never calls downstream components directly. |
 | `topoexec/runtime/component_registry.hpp` | `ComponentRegistry`, `ComponentRegistration`, `ComponentFactory` | Stable registry entry point for embedders and examples. |
@@ -42,7 +42,7 @@ These headers are safe for ordinary runtime users to include directly.
 
 | Header | Stable subset | Experimental subset |
 | --- | --- | --- |
-| `topoexec/runtime/buffer.hpp` | `SharedBuffer`, `FrameView`, `BinaryBlobPayload` support types | `BufferPool`, `LoanedFrame`, and pool metrics may grow in Payload/Memory v2. |
+| `topoexec/runtime/buffer.hpp` | `SharedBuffer`, `FrameView`, `BinaryBlobPayload` support types | `BufferPool`, `BufferPoolConfig`, `LoanedFrame`, and pool metrics are in-process helpers; external allocator/SHM ownership remains out of scope. |
 | `topoexec/runtime/scheduler.hpp` | `SchedulerStopToken` and `SchedulerStopReason` as used by `RuntimeRunnerOptions`/`RuntimeRunnerResult` | Direct scheduler classes, lane metric structs, worker-loop details, and lane implementation hooks may change before beta. |
 
 ### Experimental headers

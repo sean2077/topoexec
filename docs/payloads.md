@@ -38,6 +38,14 @@ Input lookup by port is nullable:
 
 Batch triggers expose ordered `Invocation::batch_payloads`; use the same typed helpers on each non-null payload pointer.
 
+Use `describe_payload_schema(payload)` for tooling or diagnostics that need a stable `PayloadSchemaInfo` record:
+
+- `type_name`: built-in variant name such as `TextPayload`, `FrameView`, `BinaryBlobPayload`, or `OpaquePayload`;
+- `schema_id`: the payload schema string carried by `RuntimePayload::schema`;
+- `summary`: text/debug/format summary suitable for logs;
+- `size_estimate`: byte estimate for memory planning;
+- `large`: true for non-text payload categories.
+
 ## Copy Policy
 
 Edge `policy.copy_policy` controls how published payloads enter runtime channels:
@@ -68,4 +76,4 @@ loaned_view  detached FrameView/SharedBuffer --------------------> retained chan
 move_only    producer payload -----------------------------------> single-reader channel ---> one reader
 ```
 
-Plan/explain output includes the selected copy policy and reader policy per edge. Lint flags large payloads with `copy` and invalid `move_only` multi-reader combinations so ownership mistakes are visible before runtime.
+Plan/explain output includes the selected copy policy and reader policy per edge. Lint flags large payloads with `copy`, invalid `move_only` multi-reader combinations, and `loaned_view` edges that do not declare `owner: producer` while pool-return callbacks remain explicit/future work.
