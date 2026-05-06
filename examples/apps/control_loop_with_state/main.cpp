@@ -23,7 +23,8 @@ std::vector<Observation>& observations() {
 
 void record(const topoexec::Invocation& invocation, const std::string& component) {
   for (const auto& [port, payload] : invocation.payloads_by_port) {
-    observations().push_back(Observation{invocation.sequence, component, port, payload == nullptr ? "" : payload->text()});
+    observations().push_back(
+        Observation{invocation.sequence, component, port, payload == nullptr ? "" : payload->text()});
   }
 }
 
@@ -114,7 +115,8 @@ topoexec::ComponentRegistry registry() {
   topoexec::ComponentRegistry registry;
   registry.register_component({"topoexec.app.StateSensor"}, []() { return std::make_unique<SensorComponent>(); });
   registry.register_component({"topoexec.app.StateEstimator"}, []() { return std::make_unique<EstimatorComponent>(); });
-  registry.register_component({"topoexec.app.StateController"}, []() { return std::make_unique<ControllerComponent>(); });
+  registry.register_component({"topoexec.app.StateController"},
+                              []() { return std::make_unique<ControllerComponent>(); });
   registry.register_component({"topoexec.app.StateActuator"}, []() { return std::make_unique<ActuatorComponent>(); });
   return registry;
 }

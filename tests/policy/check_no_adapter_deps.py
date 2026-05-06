@@ -156,9 +156,16 @@ def audit_cmake(root: Path) -> list[str]:
     runtime_links = cmake_call_body(cmake, "target_link_libraries(topoexec_runtime")
     if "topoexec_core" not in runtime_links:
         violations.append("topoexec_runtime must link topoexec_core")
-    for token in ("topoexec_yaml", "CLI11", "YAML_CPP", "nlohmann_json"):
+    for token in ("topoexec_yaml", "topoexec_adapter_sdk", "CLI11", "YAML_CPP", "nlohmann_json"):
         if token in runtime_links:
             violations.append(f"topoexec_runtime must not link {token}")
+
+    adapter_links = cmake_call_body(cmake, "target_link_libraries(topoexec_adapter_sdk")
+    if "topoexec_runtime" not in adapter_links:
+        violations.append("topoexec_adapter_sdk must consume topoexec_runtime")
+    for token in ("topoexec_yaml", "CLI11", "YAML_CPP", "nlohmann_json"):
+        if token in adapter_links:
+            violations.append(f"topoexec_adapter_sdk must not link {token}")
 
     yaml_links = cmake_call_body(cmake, "target_link_libraries(topoexec_yaml")
     if "topoexec_runtime" not in yaml_links:

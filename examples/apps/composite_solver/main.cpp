@@ -104,10 +104,12 @@ public:
 topoexec::ComponentRegistry registry() {
   topoexec::ComponentRegistry registry;
   registry.register_component({"topoexec.app.SolverSource"}, []() { return std::make_unique<SourceComponent>(); });
-  registry.register_component({"topoexec.app.SolverEstimator"}, []() { return std::make_unique<EstimatorComponent>(); });
+  registry.register_component({"topoexec.app.SolverEstimator"},
+                              []() { return std::make_unique<EstimatorComponent>(); });
   registry.register_component({"topoexec.app.SlowSolverEstimator"},
                               []() { return std::make_unique<SlowEstimatorComponent>(); });
-  registry.register_component({"topoexec.app.SolverController"}, []() { return std::make_unique<ControllerComponent>(); });
+  registry.register_component({"topoexec.app.SolverController"},
+                              []() { return std::make_unique<ControllerComponent>(); });
   registry.register_component({"topoexec.app.SolverSink"}, []() { return std::make_unique<SinkComponent>(); });
   return registry;
 }

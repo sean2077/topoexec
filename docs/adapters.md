@@ -1,8 +1,9 @@
 # Adapter Boundaries
 
-Adapters are intentionally deferred until the core runtime and API stabilize. This
-page defines the preview architecture so future adapter work consumes stable
-runtime surfaces instead of leaking adapter assumptions into `topoexec::runtime`.
+Concrete adapters are intentionally deferred until the core runtime and API stabilize.
+G57 adds a dependency-free Adapter SDK v0 boundary so future adapter packages can
+consume stable runtime surfaces without leaking adapter assumptions into
+`topoexec::runtime`.
 
 ## Core boundary
 
@@ -33,24 +34,31 @@ topoexec_adapters::c_api
 topoexec_adapters::plugins
 ```
 
-Expected future CMake shape:
+CMake shape after G57:
 
 ```text
 topoexec::runtime          # no adapter dependencies
+topoexec::adapter_sdk      # header-only SDK v0, depends on runtime
 topoexec::yaml             # optional graph loading
-topoexec_adapters::otel    # optional exporter target
-topoexec_adapters::ros2    # optional package, built separately
-topoexec_adapters::plugins # optional dynamic loading package
+topoexec_adapters::otel    # future optional exporter target
+topoexec_adapters::ros2    # future optional package, built separately
+topoexec_adapters::plugins # future optional dynamic loading package
 ```
 
-No `topoexec_adapters::*` target should be a transitive dependency of
-`topoexec::runtime`.
+No `topoexec_adapters::*` target or `topoexec::adapter_sdk` dependency should be
+a transitive dependency of `topoexec::runtime`. Adapter packages depend outward
+on `topoexec::adapter_sdk`, not inward from runtime.
 
 ## Adapter interface concepts
 
-G46 establishes the first committed in-process observer API. Concrete adapter
-targets remain deferred, but future exporters should consume these runtime
-surfaces rather than adding SDK dependencies to core.
+Include Adapter SDK v0 with:
+
+```cpp
+#include "topoexec/adapters/sdk.hpp"
+```
+
+Concrete adapter targets remain deferred, but future exporters should consume
+these runtime surfaces rather than adding SDK dependencies to core.
 
 ### Result sink
 
@@ -88,22 +96,28 @@ Metrics exporters should also read `runtime_metric_descriptors()` and verify
 
 ### Boundary bridge
 
-Connects app-owned external I/O to boundary components:
+Connects app-owned external I/O to boundary components through
+`topoexec::adapters::BoundaryBridge`:
 
-```text
-poll_external_inputs() -> RuntimePayload
-publish_boundary_output(RuntimePayload)
+```cpp
+topoexec::adapters::BoundaryPollResult poll_input();
+topoexec::Status publish_output(const topoexec::adapters::BoundaryMessage& message);
 ```
 
-Boundary bridges translate at graph boundaries only. Internal `EdgePolicy`,
-trigger policy, and payload ownership remain TopoExec-owned.
+`poll_input()` is a non-blocking/best-effort boundary poll: `ready=false` means no
+input is available, and `reason` carries adapter-side failure text.
+`publish_output()` reports adapter-side output failures as `Status`; it must not
+call downstream runtime components directly. Boundary bridges translate at graph
+boundaries only. Internal `EdgePolicy`, trigger policy, and payload ownership
+remain TopoExec-owned.
 
 ### Component factory provider
 
-Registers app or plugin factories into a `ComponentRegistry`:
+Registers app or plugin factories into a `ComponentRegistry` through
+`topoexec::adapters::ComponentFactoryProvider`:
 
-```text
-register_components(ComponentRegistry& registry)
+```cpp
+topoexec::Status register_components(topoexec::ComponentRegistry& registry);
 ```
 
 Dynamic discovery, ABI policy, version negotiation, and sandboxing are future
@@ -152,5 +166,7 @@ not built and contain no external SDK includes. The runnable boundary pattern is
 
 `policy_no_core_adapter_deps` scans core/source/build files for accidental adapter
 SDK symbols such as `rclcpp`, OpenTelemetry, Prometheus, Perfetto, `pybind11`, or
-`Python.h`. It intentionally ignores docs and preview stub notes where those
-names are discussed as deferred dependencies.
+`Python.h`; it also checks that `topoexec_runtime` does not link
+`topoexec_adapter_sdk` and that `topoexec_adapter_sdk` depends only on runtime. It
+intentionally ignores docs and preview stub notes where those names are discussed
+as deferred dependencies.

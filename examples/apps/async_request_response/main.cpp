@@ -59,9 +59,8 @@ int main() {
       return 2;
     }
 
-    const auto submitted = validator_context.submit_task("accepted", [request]() {
-      return topoexec::make_text_payload("accepted:" + request);
-    });
+    const auto submitted = validator_context.submit_task(
+        "accepted", [request]() { return topoexec::make_text_payload("accepted:" + request); });
     if (!submitted.accepted) {
       std::cerr << "error: task submission failed: " << submitted.reason << "\n";
       return 3;

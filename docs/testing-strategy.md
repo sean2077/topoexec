@@ -22,7 +22,7 @@ This configures, builds, and runs all default CTest tests.
 | Fuzz smoke | deterministic malformed, invalid-UTF-8, oversized, parser-limit corpus plus optional fuzzer target corpus replay | `./scripts/goal_check.sh fuzz` |
 | Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
 | Benchmark smoke | RuntimeRunner benchmark cases, task-executor benchmark output, schema v2 metadata, and optional local baseline generation | `./scripts/goal_check.sh bench` |
-| Package | install/export/downstream `find_package(topoexec)` runtime-only smoke | `./scripts/goal_check.sh package` |
+| Package | install/export/downstream `find_package(topoexec)` runtime-only, adapter SDK, YAML, and CLI smokes | `./scripts/goal_check.sh package` |
 | Sanitizers | ASAN+UBSAN full CTest; TSAN non-blocking CI | `./scripts/goal_check.sh sanitizer` |
 
 ## Fuzz smoke

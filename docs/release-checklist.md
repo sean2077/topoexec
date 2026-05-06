@@ -24,8 +24,8 @@ v0.2.0-alpha.0
 - [ ] `./scripts/goal_check.sh stress` passes.
 - [ ] `./scripts/goal_check.sh bench` passes.
 - [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer` passes.
-- [ ] `cmake_runtime_only_options_smoke` passes as part of CTest/package smoke.
-- [ ] `cmake_package_runtime_smoke` passes as part of CTest/package smoke.
+- [ ] `cmake_runtime_only_options_smoke` passes as part of CTest/package smoke, including runtime-only adapter SDK downstream consumption.
+- [ ] `cmake_package_runtime_smoke` passes as part of CTest/package smoke, including installed `topoexec::adapter_sdk` consumption.
 - [ ] `cmake_cpack_smoke` passes as part of package smoke.
 - [ ] `package_draft_smoke` passes as part of package smoke.
 - [ ] `docs/release-progression.md` names the intended stage and remaining limitations.
@@ -117,6 +117,8 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
   archives/checksums still require a human release step.
 - G56 reference apps are dependency-free in-process examples; they do not implement
   hierarchical graphs or external adapter stacks.
+- G57 Adapter SDK v0 is a dependency-free boundary only; concrete ROS 2, OTel,
+  Prometheus, Python, Perfetto, C API, and plugin adapters remain deferred.
 
 ## Tagging
 

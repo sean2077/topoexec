@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.20)
+project(topoexec_adapter_sdk_smoke LANGUAGES CXX)
+
+find_package(topoexec CONFIG REQUIRED COMPONENTS adapter_sdk)
+
+if(NOT TOPOEXEC_HAS_RUNTIME)
+  message(FATAL_ERROR "Installed package did not report TOPOEXEC_HAS_RUNTIME")
+endif()
+if(NOT TOPOEXEC_HAS_ADAPTER_SDK)
+  message(FATAL_ERROR "Installed package did not report TOPOEXEC_HAS_ADAPTER_SDK")
+endif()
+if(NOT TARGET topoexec::adapter_sdk)
+  message(FATAL_ERROR "Installed package did not export topoexec::adapter_sdk")
+endif()
+if(NOT TOPOEXEC_SCHEMA_VERSION EQUAL 1)
+  message(FATAL_ERROR "Unexpected TopoExec schema version metadata")
+endif()
+if(NOT TOPOEXEC_SEMANTIC_CONTRACT_VERSION STREQUAL "0.2")
+  message(FATAL_ERROR "Unexpected TopoExec semantic contract metadata")
+endif()
+
+add_executable(topoexec_adapter_sdk_smoke main.cpp)
+target_link_libraries(topoexec_adapter_sdk_smoke PRIVATE topoexec::adapter_sdk)

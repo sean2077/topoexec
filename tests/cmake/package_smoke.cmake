@@ -10,6 +10,7 @@ set(INSTALL_DIR "${SMOKE_ROOT}/install")
 set(DOWNSTREAM_BUILD_DIR "${SMOKE_ROOT}/runtime-build")
 set(YAML_DOWNSTREAM_BUILD_DIR "${SMOKE_ROOT}/yaml-build")
 set(CLI_DOWNSTREAM_BUILD_DIR "${SMOKE_ROOT}/cli-build")
+set(ADAPTER_SDK_DOWNSTREAM_BUILD_DIR "${SMOKE_ROOT}/adapter-sdk-build")
 set(SANITIZER_CONFIGURE_ARGS)
 if(DEFINED SANITIZER_FLAGS AND NOT "${SANITIZER_FLAGS}" STREQUAL "")
   list(APPEND SANITIZER_CONFIGURE_ARGS
@@ -56,6 +57,35 @@ execute_process(
 )
 if(NOT run_result EQUAL 0)
   message(FATAL_ERROR "Runtime package smoke executable failed")
+endif()
+
+execute_process(
+  COMMAND "${CMAKE_COMMAND}"
+    -S "${SOURCE_DIR}/tests/cmake/adapter_sdk_smoke"
+    -B "${ADAPTER_SDK_DOWNSTREAM_BUILD_DIR}"
+    "-DCMAKE_PREFIX_PATH=${INSTALL_DIR}"
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    ${SANITIZER_CONFIGURE_ARGS}
+  RESULT_VARIABLE adapter_sdk_configure_result
+)
+if(NOT adapter_sdk_configure_result EQUAL 0)
+  message(FATAL_ERROR "Adapter SDK package smoke configure failed")
+endif()
+
+execute_process(
+  COMMAND "${CMAKE_COMMAND}" --build "${ADAPTER_SDK_DOWNSTREAM_BUILD_DIR}" -j
+  RESULT_VARIABLE adapter_sdk_build_result
+)
+if(NOT adapter_sdk_build_result EQUAL 0)
+  message(FATAL_ERROR "Adapter SDK package smoke build failed")
+endif()
+
+execute_process(
+  COMMAND "${ADAPTER_SDK_DOWNSTREAM_BUILD_DIR}/topoexec_adapter_sdk_smoke"
+  RESULT_VARIABLE adapter_sdk_run_result
+)
+if(NOT adapter_sdk_run_result EQUAL 0)
+  message(FATAL_ERROR "Adapter SDK package smoke executable failed")
 endif()
 
 if(NOT EXISTS "${INSTALL_DIR}/lib/cmake/topoexec/topoexecConfig.cmake")

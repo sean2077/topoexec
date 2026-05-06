@@ -128,7 +128,14 @@ target_link_libraries(topoexec_runtime PUBLIC topoexec_core)
 
 add_library(topoexec::runtime ALIAS topoexec_runtime)
 
-set(TOPOEXEC_INSTALL_TARGETS topoexec_core topoexec_runtime)
+add_library(topoexec_adapter_sdk INTERFACE)
+set_target_properties(topoexec_adapter_sdk PROPERTIES
+  EXPORT_NAME adapter_sdk
+)
+target_link_libraries(topoexec_adapter_sdk INTERFACE topoexec_runtime)
+add_library(topoexec::adapter_sdk ALIAS topoexec_adapter_sdk)
+
+set(TOPOEXEC_INSTALL_TARGETS topoexec_core topoexec_runtime topoexec_adapter_sdk)
 
 if(TOPOEXEC_BUILD_YAML)
   add_library(topoexec_yaml
@@ -305,6 +312,10 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   topoexec_add_test(test_state tests/test_state.cpp)
   topoexec_add_test(test_runtime tests/test_runtime.cpp)
   topoexec_add_test(test_stress tests/test_stress.cpp)
+
+  add_executable(test_adapter_sdk tests/test_adapter_sdk.cpp)
+  target_link_libraries(test_adapter_sdk PRIVATE topoexec_adapter_sdk GTest::gtest_main)
+  add_test(NAME test_adapter_sdk COMMAND test_adapter_sdk)
 
   add_executable(topoexec_bench_task_executor benchmarks/task_executor.cpp)
   target_link_libraries(topoexec_bench_task_executor PRIVATE topoexec_runtime)

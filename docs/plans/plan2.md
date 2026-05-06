@@ -1747,6 +1747,15 @@ Priority: P1/P2
 6. Policy smoke:
    - prevent ROS/OTel/Prometheus/Python includes in core
 
+### G57 implementation note
+
+Completed as a dependency-free preview SDK in `include/topoexec/adapters/sdk.hpp`
+and exported as `topoexec::adapter_sdk`. The SDK depends outward on public
+runtime types and re-exports the observer/result-sink surface while adding
+`BoundaryBridge`, `BoundaryMessage`, `BoundaryPollResult`, `BoundaryBridgeStatus`,
+and `ComponentFactoryProvider`. `topoexec::runtime` does not link or include the
+adapter SDK, and no concrete adapter target is implemented.
+
 ### Acceptance
 
 - Future adapters can be built without reaching into internals.

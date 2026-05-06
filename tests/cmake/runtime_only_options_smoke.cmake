@@ -9,6 +9,7 @@ set(SMOKE_ROOT "${BUILD_DIR}/runtime-only-options-smoke")
 set(RUNTIME_ONLY_BUILD_DIR "${SMOKE_ROOT}/build")
 set(RUNTIME_ONLY_INSTALL_DIR "${SMOKE_ROOT}/install")
 set(DOWNSTREAM_BUILD_DIR "${SMOKE_ROOT}/downstream-build")
+set(ADAPTER_SDK_DOWNSTREAM_BUILD_DIR "${SMOKE_ROOT}/adapter-sdk-build")
 
 file(REMOVE_RECURSE "${SMOKE_ROOT}")
 file(MAKE_DIRECTORY "${SMOKE_ROOT}")
@@ -50,6 +51,9 @@ endif()
 if(NOT EXISTS "${RUNTIME_ONLY_INSTALL_DIR}/include/topoexec/runtime/runtime_runner.hpp")
   message(FATAL_ERROR "Runtime-only install did not install public runtime headers")
 endif()
+if(NOT EXISTS "${RUNTIME_ONLY_INSTALL_DIR}/include/topoexec/adapters/sdk.hpp")
+  message(FATAL_ERROR "Runtime-only install did not install adapter SDK header")
+endif()
 
 execute_process(
   COMMAND "${CMAKE_COMMAND}"
@@ -77,4 +81,32 @@ execute_process(
 )
 if(NOT downstream_run_result EQUAL 0)
   message(FATAL_ERROR "Runtime-only downstream executable failed")
+endif()
+
+execute_process(
+  COMMAND "${CMAKE_COMMAND}"
+    -S "${SOURCE_DIR}/tests/cmake/adapter_sdk_smoke"
+    -B "${ADAPTER_SDK_DOWNSTREAM_BUILD_DIR}"
+    "-DCMAKE_PREFIX_PATH=${RUNTIME_ONLY_INSTALL_DIR}"
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo
+  RESULT_VARIABLE adapter_sdk_configure_result
+)
+if(NOT adapter_sdk_configure_result EQUAL 0)
+  message(FATAL_ERROR "Runtime-only adapter SDK downstream configure failed")
+endif()
+
+execute_process(
+  COMMAND "${CMAKE_COMMAND}" --build "${ADAPTER_SDK_DOWNSTREAM_BUILD_DIR}" -j
+  RESULT_VARIABLE adapter_sdk_build_result
+)
+if(NOT adapter_sdk_build_result EQUAL 0)
+  message(FATAL_ERROR "Runtime-only adapter SDK downstream build failed")
+endif()
+
+execute_process(
+  COMMAND "${ADAPTER_SDK_DOWNSTREAM_BUILD_DIR}/topoexec_adapter_sdk_smoke"
+  RESULT_VARIABLE adapter_sdk_run_result
+)
+if(NOT adapter_sdk_run_result EQUAL 0)
+  message(FATAL_ERROR "Runtime-only adapter SDK downstream executable failed")
 endif()

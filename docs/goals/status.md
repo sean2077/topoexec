@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, and G56 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P0/P1 goal in backlog order is G57 Adapter SDK v0. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened; concrete adapter implementations remain deferred.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, and G57 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P0/P1 goal in backlog order is G67 Release Automation and Artifact Reproducibility. Lower-priority G35, G41, G42, G45, and G58-G65 remain pending P2/P3 design/adapter/ecosystem work and are deferred by the active ordering rule unless the plan order is explicitly reopened; concrete adapter implementations remain deferred.
 
 ## Active / Recent Goals
 
@@ -47,12 +47,40 @@ The next unfinished P0/P1 goal in backlog order is G57 Adapter SDK v0. Lower-pri
 | G54 | complete | `cmake/topoexecConfig.cmake.in`, `CMakeLists.txt`, `tests/cmake/*_smoke`, `tests/package/check_package_drafts.py`, `packaging/vcpkg/*`, `packaging/conan/*`, `tools/topoexec/main.cpp`, packaging/build/release docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Installed CMake packages now expose version/schema/semantic metadata, discover YAML dependencies when the YAML component is requested, support runtime-only/YAML/imported-CLI downstream consumption, find installed schema from the CLI path, generate CPack TGZ archives, and keep package-manager recipes as reviewable drafts. |
 | G55 | complete | `docs/README.md`, `docs/cookbook.md`, `docs/architecture-diagrams.md`, `docs/why-topoexec.md`, `docs/design-principles.md`, `tests/docs/check_docs.py`, testing docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Documentation now has a learning/reference/release map, executable cookbook recipes, architecture diagrams, why-not comparisons, design principles, and a recursive docs smoke that checks required G55 pages and sections. |
 | G56 | complete | `examples/apps/low_latency_sensor_pipeline`, `examples/apps/control_loop_with_state`, `examples/apps/async_request_response`, `examples/apps/composite_solver`, `examples/apps/payload_pool_pipeline`, `CMakeLists.txt`, examples/testing/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Reference apps now exercise latest/drop semantics, fixed-rate state plus delay boundaries, deterministic task-completion response flow, CompositeLoop convergence and budget-overrun metrics, and BufferPool copy/shared/loaned metrics without adding external adapters; hierarchical preview remains deferred until G41. |
+| G57 | complete | `include/topoexec/adapters/sdk.hpp`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `tests/test_adapter_sdk.cpp`, `tests/cmake/adapter_sdk_smoke`, package/runtime-only smokes, architecture policy, adapter/API/guardrail docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Adapter SDK v0 now exports a dependency-free `topoexec::adapter_sdk` interface target over public runtime types, observer/result-sink aliases, bounded `BoundaryBridge` contracts, and explicit `ComponentFactoryProvider`; runtime does not link/include the SDK and no concrete adapter is implemented. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+ctest --test-dir build --output-on-failure -R 'test_adapter_sdk|policy_no_core_adapter_deps|cmake_package_runtime_smoke|cmake_runtime_only_options_smoke'
+# G57 focused pass: adapter SDK unit tests, adapter policy, installed package smoke, and runtime-only adapter SDK smoke (4/4).
+
+./scripts/goal_check.sh quick
+# G57 passed: cli_golden_outputs and schema_v1_contract_smoke.
+
+cmake --build build --target topoexec_format_check
+# G57 passed.
+
+./scripts/agent_check.sh
+# G57 passed: 68/68 CTest tests in the default RelWithDebInfo GCC build.
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G57 passed: 68/68 CTest tests in the ASAN+UBSAN Debug build.
+
+./scripts/goal_check.sh docs
+# G57 passed: recursive docs command smoke after adapter docs updates.
+
+git diff --check
+# G57 passed.
+
+./scripts/goal_check.sh package
+# G57 passed: package smoke now includes adapter SDK downstream consumption.
+
+./scripts/goal_check.sh policy
+# G57 passed: adapter SDK target boundary and no-core-adapter-deps checks.
+
 ctest --test-dir build --output-on-failure -R 'app_|docs_command_smoke'
 # G56 passed: docs command smoke plus all 11 example-app smokes, including five new reference apps (12/12).
 
