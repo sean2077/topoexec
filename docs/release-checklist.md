@@ -160,6 +160,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
   Adapter/ecosystem beta readiness, hard real-time scheduling, signed release
   uploads, and package-registry publication remain out of scope unless separately
   implemented and verified.
+- G35 trigger-v2 policies are additive declarative previews. They do not provide
+  arbitrary trigger scripts, wall-clock debounce timers, external watermark
+  coordination, or schema-v2 trigger expressions.
 
 ## Tagging
 

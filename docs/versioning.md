@@ -57,6 +57,8 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
 - Error propagation surface from component execution to runtime result.
 - Scheduler lane concurrency behavior beyond the current documented MVP.
 - Worker-pool and async max-inflight policy.
+- Trigger v2 preview fields beyond the current declarative
+  `watermark`/`condition`/`debounce`/`rate_limit` behavior.
 - Experimental headers listed in [public-api.md](public-api.md).
 
 Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, schema fields, or CLI JSON surfaces.

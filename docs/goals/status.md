@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, G57, G67, G69, and G70 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" objective, the next unfinished backlog goal is G35 Trigger Engine v2. Lower-priority G41, G42, G45, G58-G65, and G68 remain pending P2/P3 design/adapter/ecosystem/community work; concrete adapter implementations remain deferred unless that scope is explicitly opened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G35, G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, G57, G67, G69, and G70 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" objective, the next unfinished backlog goal is G41 Hierarchical Graph. Lower-priority G42, G45, G58-G65, and G68 remain pending P2/P3 design/adapter/ecosystem/community work; concrete adapter implementations remain deferred unless that scope is explicitly opened.
 
 ## Active / Recent Goals
 
@@ -29,6 +29,7 @@ All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" obje
 | G32 | complete | `include/topoexec/runtime/scheduler.hpp`, `schema/topoexec.schema.v1.json`, `src/event_runtime.cpp`, `src/graph.cpp`, `src/graph_io.cpp`, `src/runtime_runner.cpp`, `src/diagnostics.cpp`, `tests/test_runtime.cpp`, `tests/test_graph.cpp`, updated goldens, scheduler/concurrency/schema/metrics/diagnostics docs, release docs, goal ledgers, and `CHANGELOG.md`. | `execution.priority` now accepts `background`/`low`/`normal`/`high`, orders independent ready regions and worker-queue items deterministically, reports priority/rejection/starvation metrics, rejects unknown runtime priority classes, and keeps lane/OS priority fields advisory. |
 | G33 | complete | `include/topoexec/runtime/cancellation.hpp`, `include/topoexec/runtime/component.hpp`, `include/topoexec/runtime/task_executor.hpp`, `src/event_runtime.cpp`, `src/runtime_runner.cpp`, `src/task_executor.cpp`, `tests/test_runtime.cpp`, updated goldens, scheduler/concurrency/runtime-semantics/metrics/trace/API docs, release docs, goal ledgers, and `CHANGELOG.md`. | Cooperative cancellation is now exposed through `CancellationToken`, `Invocation::cancel_requested()`, and `GraphContext::cancel_requested()`; component/task/CompositeLoop timeout and cancellation evidence is reported without hard preemption or forced thread termination. |
 | G34 | complete | `include/topoexec/runtime/task_executor.hpp`, `include/topoexec/runtime/component.hpp`, `src/task_executor.cpp`, `src/component.cpp`, `tests/test_runtime.cpp`, `docs/async-tasks.md`, public API/semantic/concurrency/baseline docs, goal ledgers, and `CHANGELOG.md`. | `TaskExecutor` remains the deterministic compatibility helper, `ITaskExecutor` is the attachable interface, and `ThreadedTaskExecutor` is an opt-in bounded worker preview with smoke, cancel-pending, shutdown-drain, failure, and exactly-once publication coverage. |
+| G35 | complete | `TriggerPolicySpec`, trigger schema v1, `TriggerPolicyEngine`, trigger metrics, runtime/graph tests, goldens, trigger/schema/runtime/metrics/API/versioning docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Trigger Engine v2 preview adds `watermark`, `condition`, `debounce`, and `rate_limit` without breaking existing trigger types; condition predicates are enum-only, watermark drops late timestamped samples, debounce/rate-limit reuse deterministic readiness, and metrics explain late drops or suppressions. |
 | G36 | complete | `include/topoexec/runtime/component.hpp`, `include/topoexec/runtime/channel.hpp`, `src/component.cpp`, `src/channel.cpp`, `src/trigger_policy.cpp`, `src/event_runtime.cpp`, `tests/test_runtime.cpp`, updated trace/metrics goldens, runtime/trace/channel/trigger/API docs, goal ledgers, and `CHANGELOG.md`. | Correlation/causation metadata now flows through publication, channel messages, trigger-created invocations, task completions, and CompositeLoop external commits; trace events include metadata attributes while metrics avoid default high-cardinality labels. |
 | G37 | complete | `include/topoexec/runtime/health.hpp`, channel/event-runtime/runner/task-executor headers, `src/channel.cpp`, `src/event_runtime.cpp`, `src/runtime_runner.cpp`, `src/task_executor.cpp`, `tools/topoexec/main.cpp`, `tests/test_channel.cpp`, `tests/test_runtime.cpp`, updated metrics/doctor goldens, runtime/channel/metrics/trace/API docs, goal ledgers, and `CHANGELOG.md`. | Health is now observable through bounded observer-only events without recursive control flow; `emit_health_events` can disable event capture, `health_event_capacity` bounds retained records, high-watermark/overflow events are coalesced, and overflow events include edge id and policy. |
 | G38 | complete | `tests/test_channel.cpp`, `tests/test_graph.cpp`, `src/graph.cpp`, `src/graph_io.cpp`, `tools/topoexec/main.cpp`, `CMakeLists.txt`, `examples/invalid_move_only_multireader.yaml`, updated plan golden, channel/payload/CLI/diagnostics docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Multi-reader queues now have focused slow-reader/drop and overflow-cursor coverage; `move_only` multi-reader misuse is visible through validation diagnostics and lint; plan/explain output exposes `readers`, `copy_policy`, and `slow_reader_drop_risk`; shared/loaned/move paths have no-copy/lifetime evidence while deeper loan-return callbacks and zero-copy pools remain G39 scope. |
@@ -50,13 +51,35 @@ All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" obje
 | G57 | complete | `include/topoexec/adapters/sdk.hpp`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `tests/test_adapter_sdk.cpp`, `tests/cmake/adapter_sdk_smoke`, package/runtime-only smokes, architecture policy, adapter/API/guardrail docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Adapter SDK v0 now exports a dependency-free `topoexec::adapter_sdk` interface target over public runtime types, observer/result-sink aliases, bounded `BoundaryBridge` contracts, and explicit `ComponentFactoryProvider`; runtime does not link/include the SDK and no concrete adapter is implemented. |
 | G67 | complete | `scripts/release_prepare.sh`, `.github/workflows/release-dry-run.yml`, `tests/release/check_release_prepare.py`, `docs/release-runbook.md`, release/progression/versioning docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Release preparation is now reproducible from a clean candidate commit: the script checks tag/changelog/doc policy, runs gates unless skipped, drafts notes, generates source/CPack/schema artifacts plus checksums, writes a human-only annotated tag command, and never tags or publishes automatically. |
 | G69 | complete | `examples/apps/robot_cell_pilot`, `docs/case-study-robot-cell.md`, `docs/examples.md`, `examples/README.md`, README/docs index updates, `CMakeLists.txt`, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | The robot-cell pilot composes event-loop/thread-pool/fixed-rate lanes, async frame overload/drop, state and delay feedback, BufferPool `FrameView` payloads, config transaction/snapshot evidence, runtime metrics/trace/observer evidence, and invalid-config rejection while linking only `topoexec_runtime` and adding no adapter dependency. |
-| G70 | complete | `docs/beta-readiness-review.md`, `docs/public-api.md`, `docs/versioning.md`, `docs/runtime-invariants.md`, release docs, README/docs index updates, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | TopoExec can honestly enter a human-approved core-runtime beta candidate review after the required gates pass, but must not claim adapter/ecosystem beta readiness, signed/published package artifacts, hard real-time scheduling, or deferred G35/G41/G42/G45/G58-G65/G68 scope. |
+| G70 | complete | `docs/beta-readiness-review.md`, `docs/public-api.md`, `docs/versioning.md`, `docs/runtime-invariants.md`, release docs, README/docs index updates, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | TopoExec can honestly enter a human-approved core-runtime beta candidate review after the required gates pass, but must not claim adapter/ecosystem beta readiness, signed/published package artifacts, hard real-time scheduling, or deferred G41/G42/G45/G58-G65/G68 scope. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+ctest --test-dir build --output-on-failure -R 'test_runtime|test_graph|schema_v1_contract_smoke'
+# G35 focused pass: runtime trigger-v2 tests, graph validation, and schema contract passed.
+
+python3 tests/golden/check_cli_golden.py --topoexec build/topoexec --source-dir . --golden-dir tests/golden --update
+./scripts/goal_check.sh quick
+# G35 passed: updated schema/metrics goldens then cli_golden_outputs and schema_v1_contract_smoke.
+
+./scripts/goal_check.sh docs
+# G35 passed: recursive docs command smoke after trigger-v2 docs updates.
+
+cmake --build build --target topoexec_format_check
+# G35 passed.
+
+./scripts/agent_check.sh
+# G35 passed: 70/70 CTest tests in the default RelWithDebInfo GCC build.
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G35 passed: 70/70 CTest tests in the ASAN+UBSAN Debug build.
+
+git diff --check
+# G35 passed.
+
 ./scripts/goal_check.sh docs
 # G70 passed: recursive docs command smoke includes the beta-readiness review.
 

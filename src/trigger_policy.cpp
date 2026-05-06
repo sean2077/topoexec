@@ -102,6 +102,18 @@ TriggerKind trigger_kind_for_policy(const TriggerPolicySpec& policy, EventKind e
   if (policy.type == "task_ready") {
     return TriggerKind::kTaskReady;
   }
+  if (policy.type == "watermark") {
+    return TriggerKind::kWatermark;
+  }
+  if (policy.type == "condition") {
+    return TriggerKind::kCondition;
+  }
+  if (policy.type == "debounce") {
+    return TriggerKind::kDebounce;
+  }
+  if (policy.type == "rate_limit") {
+    return TriggerKind::kRateLimit;
+  }
   return TriggerKind::kManual;
 }
 
@@ -127,6 +139,14 @@ std::string trigger_kind_name(TriggerKind trigger) {
     return "task_ready";
   case TriggerKind::kManual:
     return "manual";
+  case TriggerKind::kWatermark:
+    return "watermark";
+  case TriggerKind::kCondition:
+    return "condition";
+  case TriggerKind::kDebounce:
+    return "debounce";
+  case TriggerKind::kRateLimit:
+    return "rate_limit";
   }
   return "unknown";
 }
@@ -145,6 +165,10 @@ bool messages_have_comparable_timestamps(const std::vector<std::pair<std::string
 
 std::int64_t timestamp_slop_ns(const TriggerPolicySpec& policy) {
   return static_cast<std::int64_t>(policy.sync_slop_ms) * 1000000LL;
+}
+
+std::int64_t watermark_lateness_ns(const TriggerPolicySpec& policy) {
+  return static_cast<std::int64_t>(policy.watermark_lateness_ms) * 1000000LL;
 }
 
 std::optional<std::chrono::steady_clock::time_point> oldest_pending_batch_time(const std::vector<std::string>& inputs,
@@ -249,6 +273,7 @@ std::vector<Invocation> TriggerPolicyEngine::collect_ready_invocations(const Tic
   drain_inputs(component, pending);
   stats.timeout_drop_count += prune_timed_out_messages(component, pending, context.started_at);
   if (rate_limited(component, context.started_at)) {
+    ++stats.rate_limit_suppressed_count;
     return {};
   }
   if (component.trigger_policy.type == "all_inputs") {
@@ -267,6 +292,27 @@ std::vector<Invocation> TriggerPolicyEngine::collect_ready_invocations(const Tic
   }
   if (component.trigger_policy.type == "batch") {
     auto invocations = collect_batch(context, component, lane, pending, stats);
+    if (!invocations.empty()) {
+      record_invocation(component, context.started_at);
+    }
+    return invocations;
+  }
+  if (component.trigger_policy.type == "watermark") {
+    auto invocations = collect_watermark(context, component, lane, pending, stats);
+    if (!invocations.empty()) {
+      record_invocation(component, context.started_at);
+    }
+    return invocations;
+  }
+  if (component.trigger_policy.type == "condition") {
+    auto invocations = collect_condition(context, component, lane, pending, stats);
+    if (!invocations.empty()) {
+      record_invocation(component, context.started_at);
+    }
+    return invocations;
+  }
+  if (component.trigger_policy.type == "debounce") {
+    auto invocations = collect_coalesced_any_input(context, component, lane, pending);
     if (!invocations.empty()) {
       record_invocation(component, context.started_at);
     }
@@ -469,6 +515,78 @@ std::vector<Invocation> TriggerPolicyEngine::collect_time_sync(const TickContext
     pending[min_item->first].pop_front();
     ++stats.time_sync_drop_count;
   }
+}
+
+std::vector<Invocation> TriggerPolicyEngine::collect_watermark(const TickContext& context,
+                                                               const ComponentNodeSpec& component,
+                                                               const SchedulerGroupConfig& lane,
+                                                               PendingMessages& pending, TriggerRuntimeMetrics& stats) {
+  auto& component_watermarks = watermarks_[component.id];
+  const auto lateness_ns = watermark_lateness_ns(component.trigger_policy);
+  for (auto& [port, queue] : pending) {
+    (void)port;
+    std::deque<RuntimeChannelMessage> retained;
+    while (!queue.empty()) {
+      auto message = std::move(queue.front());
+      queue.pop_front();
+      if (message.event_timestamp.has_value()) {
+        const auto domain = message.event_timestamp->domain;
+        const auto timestamp = message.event_timestamp->nanoseconds;
+        const auto found = component_watermarks.find(domain);
+        if (found != component_watermarks.end() && timestamp < found->second - lateness_ns) {
+          ++stats.late_drop_count;
+          continue;
+        }
+        if (found == component_watermarks.end() || timestamp > found->second) {
+          component_watermarks[domain] = timestamp;
+        }
+      }
+      retained.push_back(std::move(message));
+    }
+    queue = std::move(retained);
+  }
+  return collect_any_input(context, component, lane, pending);
+}
+
+std::vector<Invocation> TriggerPolicyEngine::collect_condition(const TickContext& context,
+                                                               const ComponentNodeSpec& component,
+                                                               const SchedulerGroupConfig& lane,
+                                                               PendingMessages& pending, TriggerRuntimeMetrics& stats) {
+  const auto condition =
+      component.trigger_policy.condition.empty() ? std::string("all_inputs_ready") : component.trigger_policy.condition;
+  if (condition == "any_input_ready") {
+    auto invocations = collect_any_input(context, component, lane, pending);
+    if (invocations.empty()) {
+      ++stats.condition_suppressed_count;
+    }
+    return invocations;
+  }
+  if (condition == "all_inputs_ready") {
+    auto invocations = collect_all_inputs(context, component, lane, pending);
+    if (invocations.empty()) {
+      ++stats.condition_suppressed_count;
+    }
+    return invocations;
+  }
+  if (condition == "event_timestamp_present") {
+    const auto inputs = trigger_policy_inputs_for(component);
+    if (inputs.empty()) {
+      ++stats.condition_suppressed_count;
+      return {};
+    }
+    auto messages = front_messages_for_inputs(inputs, pending);
+    if (!messages.has_value() || !std::all_of(messages->begin(), messages->end(), [](const auto& item) {
+          return item.second.event_timestamp.has_value();
+        })) {
+      ++stats.condition_suppressed_count;
+      return {};
+    }
+    consume_front_messages(inputs, pending);
+    return {
+        invocation_from_messages(EventKind::kMessage, TriggerKind::kCondition, context, component, lane, *messages)};
+  }
+  ++stats.condition_suppressed_count;
+  return {};
 }
 
 std::vector<Invocation> TriggerPolicyEngine::collect_batch(const TickContext& context,

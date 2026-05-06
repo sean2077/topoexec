@@ -17,6 +17,9 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added runtime-level scheduler priority/admission v1 with `execution.priority` classes, priority queue ordering, priority metrics, low-priority rejection metrics, schema validation, and starvation smoke coverage.
 - Added cooperative cancellation/timeout semantics v1 with `CancellationToken`, `GraphContext::cancel_requested()`, `Invocation::cancel_requested()`, component/loop/task cancellation metrics, and post-return timeout-budget reporting without hard preemption.
 - Added TaskExecutor v2 preview with `ITaskExecutor`, explicit `DeterministicTaskExecutor`, opt-in bounded `ThreadedTaskExecutor`, queued-task metrics, shutdown policy, and threaded completion-routing tests.
+- Added Trigger Engine v2 preview policies: `watermark`, `condition`,
+  `debounce`, and `rate_limit`, with declarative schema fields, late/drop and
+  suppression metrics, and runtime/graph coverage without arbitrary scripting.
 - Added invocation metadata v1 with correlation, causation, epoch, transaction, source endpoint, and trigger-kind propagation through publish/channel/trigger/invocation/task/composite-loop paths plus trace attributes.
 - Added bounded runtime health events for channel overflow/stale/deadline/high-watermark, task reject, and scheduler reject paths, exposed through `RuntimeRunnerResult`, CLI JSON, doctor feature metadata, and trace events without adding health-triggered control flow.
 - Added edge reader/copy-policy explainability in plan/explain output, including `slow_reader_drop_risk`, plus lint surfacing for slow multi-reader drop risk and invalid `move_only` multi-reader edges.

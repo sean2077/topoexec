@@ -86,6 +86,12 @@ Triggers:
 - `runtime.trigger.timeout_drop_count`: pending messages dropped by trigger `max_latency_ms`.
 - `runtime.trigger.batch_flush_count`: batch invocations flushed by size or window.
 - `runtime.trigger.time_sync_drop_count`: oldest out-of-slop samples dropped by `time_sync`.
+- `runtime.trigger.late_drop_count`: timestamped samples dropped by `watermark`
+  because they arrived behind the accepted lateness window.
+- `runtime.trigger.condition_suppressed_count`: `condition` checks that did not
+  admit an invocation because the declarative predicate was not satisfied.
+- `runtime.trigger.rate_limit_suppressed_count`: ready checks suppressed by
+  `min_interval_ms`, including `rate_limit` trigger policies.
 
 Channels:
 

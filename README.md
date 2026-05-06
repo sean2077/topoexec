@@ -127,6 +127,9 @@ Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and 
 
 - `thread_pool` lanes support bounded runtime-priority admission and cooperative cancellation/timeout observation for ready invocations, but affinity, RT policy, portable worker-name guarantees, advanced starvation aging, and hard timeout preemption remain advisory or not implemented.
 - Async `policy.max_inflight` admission is implemented for `async` edges; it is an admission limit for deferred completions, while optional `TaskExecutor` / `ThreadedTaskExecutor` helpers are separate bounded task-execution surfaces.
+- Trigger v2 `watermark`, `condition`, `debounce`, and `rate_limit` policies are
+  declarative previews; arbitrary trigger scripts and wall-clock debounce timers
+  are not implemented.
 - Non-blocking ThreadSanitizer CI is wired for GitHub Actions and passed on current `main`; local `scripts/agent_check.sh` remains the required agent gate.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.
 - The beta readiness review covers only a possible core-runtime beta candidate;

@@ -880,6 +880,31 @@ TEST(Graph, TriggerPolicyNumericFieldsMustBeNonNegative) {
   EXPECT_TRUE(has_error_containing(result.errors, "trigger_policy numeric fields must be non-negative"));
 }
 
+TEST(Graph, TriggerV2PoliciesValidateDeclarativeFields) {
+  auto graph = minimal_graph();
+  graph.components.back().trigger_policy.type = "watermark";
+  graph.components.back().trigger_policy.watermark_lateness_ms = 5;
+  auto result = topoexec::validate_graph_structure(graph);
+  ASSERT_TRUE(result.ok) << result.errors.front();
+
+  graph = minimal_graph();
+  graph.components.back().trigger_policy.type = "condition";
+  graph.components.back().trigger_policy.condition = "event_timestamp_present";
+  result = topoexec::validate_graph_structure(graph);
+  ASSERT_TRUE(result.ok) << result.errors.front();
+
+  graph.components.back().trigger_policy.condition = "payload.text == 'unsafe script'";
+  result = topoexec::validate_graph_structure(graph);
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "condition trigger_policy.condition must be one of"));
+
+  graph = minimal_graph();
+  graph.components.back().trigger_policy.type = "rate_limit";
+  result = topoexec::validate_graph_structure(graph);
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "rate_limit trigger_policy requires positive min_interval_ms"));
+}
+
 TEST(Graph, PartialCompositeLoopDeclarationIsRejected) {
   auto graph = topoexec::load_graph_text(R"(
 schema_version: 1

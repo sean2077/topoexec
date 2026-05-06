@@ -291,7 +291,12 @@ bool is_allowed_event_source_type(const std::string& type) {
 
 bool is_allowed_trigger_policy_type(const std::string& type) {
   return type == "on_event" || type == "any_input" || type == "all_inputs" || type == "time_sync" || type == "batch" ||
-         type == "request" || type == "task_ready" || type == "manual";
+         type == "request" || type == "task_ready" || type == "manual" || type == "watermark" || type == "condition" ||
+         type == "debounce" || type == "rate_limit";
+}
+
+bool is_allowed_trigger_condition(const std::string& condition) {
+  return condition == "all_inputs_ready" || condition == "any_input_ready" || condition == "event_timestamp_present";
 }
 
 bool is_allowed_loop_policy_type(const std::string& type) {
@@ -851,13 +856,16 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     }
     if ((component.trigger_policy.type == "on_event" || component.trigger_policy.type == "all_inputs" ||
          component.trigger_policy.type == "any_input" || component.trigger_policy.type == "time_sync" ||
-         component.trigger_policy.type == "batch") &&
+         component.trigger_policy.type == "batch" || component.trigger_policy.type == "watermark" ||
+         component.trigger_policy.type == "condition" || component.trigger_policy.type == "debounce" ||
+         component.trigger_policy.type == "rate_limit") &&
         has_message_event_source(component) && trigger_policy_inputs_for(component).empty()) {
       add_error(result, "component " + component.id + " trigger_policy requires at least one input");
     }
     if (component.trigger_policy.batch_size < 0 || component.trigger_policy.batch_window_ms < 0 ||
         component.trigger_policy.sync_slop_ms < 0 || component.trigger_policy.min_interval_ms < 0 ||
-        component.trigger_policy.max_latency_ms < 0) {
+        component.trigger_policy.max_latency_ms < 0 || component.trigger_policy.watermark_lateness_ms < 0 ||
+        component.trigger_policy.debounce_window_ms < 0) {
       add_error(result, "component " + component.id + " trigger_policy numeric fields must be non-negative");
     }
     if (component.trigger_policy.type == "batch" && component.trigger_policy.batch_size <= 0 &&
@@ -865,12 +873,23 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
       add_error(result, "component " + component.id + " batch trigger_policy requires batch_size or batch_window_ms");
     }
     if ((component.trigger_policy.type == "all_inputs" || component.trigger_policy.type == "time_sync" ||
-         component.trigger_policy.type == "batch") &&
+         component.trigger_policy.type == "batch" || component.trigger_policy.type == "watermark" ||
+         component.trigger_policy.type == "condition" || component.trigger_policy.type == "debounce" ||
+         component.trigger_policy.type == "rate_limit") &&
         !trigger_policy_inputs_for(component).empty() && !has_message_event_source(component)) {
       add_warning(result, "trigger_never_ready",
                   "component " + component.id + " trigger_policy " + component.trigger_policy.type +
                       " names message inputs but has no message event_source",
                   "components." + component.id + ".trigger_policy", {component.id});
+    }
+    if (component.trigger_policy.type == "condition" &&
+        !is_allowed_trigger_condition(component.trigger_policy.condition)) {
+      add_error(result, "component " + component.id +
+                            " condition trigger_policy.condition must be one of "
+                            "all_inputs_ready, any_input_ready, or event_timestamp_present");
+    }
+    if (component.trigger_policy.type == "rate_limit" && component.trigger_policy.min_interval_ms <= 0) {
+      add_error(result, "component " + component.id + " rate_limit trigger_policy requires positive min_interval_ms");
     }
     if (component.boundary.role != ComponentRole::kProcessing) {
       has_input_boundary = has_input_boundary || component_role_has_input(component.boundary.role);

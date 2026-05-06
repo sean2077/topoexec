@@ -7,6 +7,7 @@
 #include "topoexec/runtime/scheduler.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <deque>
 #include <map>
 #include <mutex>
@@ -62,11 +63,18 @@ private:
   std::vector<Invocation> collect_batch(const TickContext& context, const ComponentNodeSpec& component,
                                         const SchedulerGroupConfig& lane, PendingMessages& pending,
                                         TriggerRuntimeMetrics& stats);
+  std::vector<Invocation> collect_watermark(const TickContext& context, const ComponentNodeSpec& component,
+                                            const SchedulerGroupConfig& lane, PendingMessages& pending,
+                                            TriggerRuntimeMetrics& stats);
+  std::vector<Invocation> collect_condition(const TickContext& context, const ComponentNodeSpec& component,
+                                            const SchedulerGroupConfig& lane, PendingMessages& pending,
+                                            TriggerRuntimeMetrics& stats);
 
   RuntimeChannelBus* channels_{nullptr};
   std::mutex mutex_;
   std::map<std::string, PendingMessages> pending_;
   std::map<std::string, std::chrono::steady_clock::time_point> last_invoked_;
+  std::map<std::string, std::map<TimestampDomain, std::int64_t>> watermarks_;
   std::map<std::string, TriggerRuntimeMetrics> last_stats_;
 };
 

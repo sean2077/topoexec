@@ -67,6 +67,9 @@ struct TriggerPolicySpec {
   int sync_slop_ms{0};
   int min_interval_ms{0};
   int max_latency_ms{0};
+  int watermark_lateness_ms{0};
+  int debounce_window_ms{0};
+  std::string condition{"all_inputs_ready"};
   bool coalesce{false};
 };
 

@@ -27,7 +27,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G32 | P1 | complete | Scheduler Priority and Admission Policy v1 | Runtime-level `execution.priority` now has deterministic high/normal/low/background semantics, priority queue admission, priority/rejection metrics, schema validation, docs, and runtime/graph/golden coverage without OS priority claims. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
 | G33 | P1 | complete | Cooperative Cancellation and Timeout Semantics | `CancellationToken`/`CancellationSource`, `Invocation::cancel_requested()`, `GraphContext::cancel_requested()`, component/loop/task cancellation and timeout metrics, trace events, docs, and runtime/task coverage now provide honest cooperative semantics without hard preemption. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
 | G34 | P1/P2 | complete | TaskExecutor v2: Threaded Executor Preview | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in bounded `ThreadedTaskExecutor` preview now cover threaded smoke, cancellation, shutdown drain, failure completion, and exactly-once completion publication while preserving deterministic defaults. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
-| G35 | P2 | pending | Trigger Engine v2: Watermark and Condition Triggers | 扩展 trigger policy，但不破坏现有 v1 trigger semantics。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G35 | P2 | complete | Trigger Engine v2: Watermark and Condition Triggers | `watermark`, `condition`, `debounce`, and `rate_limit` trigger policies are additive schema-v1 preview fields with runtime metrics, graph validation, docs, and tests while preserving existing v1 trigger semantics. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
 | G36 | P1 | complete | Correlation, Causality, and Invocation Metadata | `InvocationMetadata` now propagates correlation, causation, epoch, transaction, source endpoint, and trigger-kind metadata through publish/channel/trigger/invocation/task/composite-loop paths, with trace attributes, docs, goldens, and runtime coverage while keeping metrics labels bounded. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
 | G37 | P1 | complete | Channel v2: Explicit Backpressure Events | `HealthEvent` and a bounded non-waiting sink now expose channel overflow/stale/deadline/high-watermark, task reject, and scheduler reject paths through RuntimeRunnerResult, CLI JSON, doctor metadata, and trace events without recursive control flow. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_channel|test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G38 | P1 | complete | Channel v2: Multi-Reader and Move-Only Hardening | Multi-reader bounded-history cursor/drop tests, move-only multi-reader diagnostics/lint, plan/explain `readers`/`copy_policy`/`slow_reader_drop_risk`, shared/loaned/move no-copy evidence, ownership docs, and goldens are complete without changing ownership primitives. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_channel|test_graph|cli_lint_reject_move_only_multireader|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
@@ -67,10 +67,10 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 ## Next goal
 
 All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals"
-objective, the next unfinished backlog goal is G35 Trigger Engine v2; G41, G42,
-G45, G58-G65, and G68 remain pending lower-priority design/adapter/ecosystem
-work and concrete adapter implementations remain deferred unless that scope is
-explicitly opened.
+objective, the next unfinished backlog goal is G41 Hierarchical Graph; G42, G45,
+G58-G65, and G68 remain pending lower-priority design/adapter/ecosystem work and
+concrete adapter implementations remain deferred unless that scope is explicitly
+opened.
 
 ## Blockers
 

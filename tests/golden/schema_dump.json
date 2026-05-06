@@ -539,6 +539,21 @@
           "default": false,
           "type": "boolean"
         },
+        "condition": {
+          "default": "all_inputs_ready",
+          "enum": [
+            "all_inputs_ready",
+            "any_input_ready",
+            "event_timestamp_present"
+          ],
+          "maxLength": 4096,
+          "type": "string"
+        },
+        "debounce_window_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
         "input": {
           "maxLength": 4096,
           "type": "string"
@@ -571,10 +586,19 @@
             "time_sync",
             "batch",
             "request",
-            "task_ready"
+            "task_ready",
+            "watermark",
+            "condition",
+            "debounce",
+            "rate_limit"
           ],
           "maxLength": 4096,
           "type": "string"
+        },
+        "watermark_lateness_ms": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
         }
       },
       "type": "object"

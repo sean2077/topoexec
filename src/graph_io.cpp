@@ -318,7 +318,7 @@ TriggerPolicySpec read_trigger_policy(const YAML::Node& component_node, const st
   require_map(policy_node, "components." + component_id + ".trigger_policy");
   reject_unknown_fields(policy_node, "components." + component_id + ".trigger_policy",
                         {"type", "inputs", "input", "batch_size", "batch_window_ms", "sync_slop_ms", "min_interval_ms",
-                         "max_latency_ms", "coalesce"});
+                         "max_latency_ms", "watermark_lateness_ms", "debounce_window_ms", "condition", "coalesce"});
   TriggerPolicySpec policy;
   policy.type = optional_string(policy_node, "type", "manual");
   policy.inputs = optional_string_vector(policy_node, "inputs", "components." + component_id + ".trigger_policy");
@@ -331,6 +331,9 @@ TriggerPolicySpec read_trigger_policy(const YAML::Node& component_node, const st
   policy.sync_slop_ms = optional_int(policy_node, "sync_slop_ms");
   policy.min_interval_ms = optional_int(policy_node, "min_interval_ms");
   policy.max_latency_ms = optional_int(policy_node, "max_latency_ms");
+  policy.watermark_lateness_ms = optional_int(policy_node, "watermark_lateness_ms");
+  policy.debounce_window_ms = optional_int(policy_node, "debounce_window_ms");
+  policy.condition = optional_string(policy_node, "condition", "all_inputs_ready");
   policy.coalesce = optional_bool(policy_node, "coalesce");
   return policy;
 }
@@ -580,6 +583,8 @@ void enforce_graph_string_limits(const GraphSpec& graph, const GraphInputLimits&
     }
     enforce_string_limit(component.trigger_policy.type, "components." + component.id + ".trigger_policy.type", limits);
     enforce_string_limit(component.trigger_policy.input, "components." + component.id + ".trigger_policy.input",
+                         limits);
+    enforce_string_limit(component.trigger_policy.condition, "components." + component.id + ".trigger_policy.condition",
                          limits);
     for (const auto& input : component.trigger_policy.inputs) {
       enforce_string_limit(input, "components." + component.id + ".trigger_policy.inputs", limits);

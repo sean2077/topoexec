@@ -124,7 +124,7 @@ Allowed fields:
 
 Allowed fields:
 
-- `type` optional string, default `manual`; allowed values are `manual`, `on_event`, `any_input`, `all_inputs`, `time_sync`, `batch`, `request`, and `task_ready`.
+- `type` optional string, default `manual`; allowed values are `manual`, `on_event`, `any_input`, `all_inputs`, `time_sync`, `batch`, `request`, `task_ready`, `watermark`, `condition`, `debounce`, and `rate_limit`.
 - `inputs` optional string array.
 - `input` optional string shorthand for one input.
 - `batch_size` optional non-negative integer.
@@ -132,9 +132,20 @@ Allowed fields:
 - `sync_slop_ms` optional non-negative integer.
 - `min_interval_ms` optional non-negative integer.
 - `max_latency_ms` optional non-negative integer; when positive, pending trigger input messages older than this limit are dropped before readiness is evaluated.
+- `watermark_lateness_ms` optional non-negative integer; `watermark` drops
+  timestamped messages older than the component's observed watermark minus this
+  allowance.
+- `debounce_window_ms` optional non-negative integer reserved for future
+  wall-clock debounce windows. In schema v1, `debounce` coalesces pending inputs
+  at the current scheduler check without sleeping.
+- `condition` optional string for `condition` triggers. Allowed values are
+  `all_inputs_ready`, `any_input_ready`, and `event_timestamp_present`; arbitrary
+  expressions or scripts are invalid.
 - `coalesce` optional boolean, default `false`.
 
-Input-driven trigger policies require incoming edges for every listed input. `batch` requires `batch_size` or `batch_window_ms`.
+Input-driven trigger policies require incoming edges for every listed input.
+`batch` requires `batch_size` or `batch_window_ms`; `rate_limit` requires a
+positive `min_interval_ms`.
 
 ### execution
 

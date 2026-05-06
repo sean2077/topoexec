@@ -7,8 +7,8 @@ a tag announcement.
 ## Current candidate state
 
 The post-G25 baseline commit `b86a586d3a48d84bf4e03ccabde3d061e3073579`
-started the current release-candidate line. As of the plan2 line through G70,
-the repository has:
+started the current release-candidate line. As of the plan2 line through G70
+plus the later G35 trigger-v2 preview, the repository has:
 
 - G0-G25 complete and archived as the previous plan sweep.
 - 50/50 default CTest tests passing in the previous baseline evidence.
@@ -38,6 +38,9 @@ the repository has:
   deprecation policy, and explicit deferred-scope ledger. It supports only a
   human-approved core-runtime beta candidate review, not adapter/ecosystem beta
   readiness.
+- G35 adds declarative trigger-v2 preview policies for watermark late-drop,
+  condition readiness, debounce coalescing, and rate limiting without arbitrary
+  scripting or schema-v2 expression language claims.
 - G26 adds golden coverage for Chrome trace shape, schema dump JSON, and doctor
   JSON in addition to plan/metrics/trace/render outputs.
 

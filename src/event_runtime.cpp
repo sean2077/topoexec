@@ -569,11 +569,14 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
         trigger_metrics.timeout_drop_count += trigger_stats.timeout_drop_count;
         trigger_metrics.batch_flush_count += trigger_stats.batch_flush_count;
         trigger_metrics.time_sync_drop_count += trigger_stats.time_sync_drop_count;
+        trigger_metrics.late_drop_count += trigger_stats.late_drop_count;
+        trigger_metrics.condition_suppressed_count += trigger_stats.condition_suppressed_count;
+        trigger_metrics.rate_limit_suppressed_count += trigger_stats.rate_limit_suppressed_count;
         if (invocations.empty() && has_message_event_source(found->spec)) {
           ++trigger_metrics.suppressed_count;
         } else {
           trigger_metrics.ready_count += invocations.size();
-          if (found->spec.trigger_policy.coalesce) {
+          if (found->spec.trigger_policy.coalesce || found->spec.trigger_policy.type == "debounce") {
             trigger_metrics.coalesced_count += invocations.size();
           }
         }

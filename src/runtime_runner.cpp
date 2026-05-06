@@ -800,6 +800,12 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                             component_id);
       append_runtime_metric(result, "runtime.trigger.time_sync_drop_count",
                             static_cast<double>(metrics.time_sync_drop_count), component_id);
+      append_runtime_metric(result, "runtime.trigger.late_drop_count", static_cast<double>(metrics.late_drop_count),
+                            component_id);
+      append_runtime_metric(result, "runtime.trigger.condition_suppressed_count",
+                            static_cast<double>(metrics.condition_suppressed_count), component_id);
+      append_runtime_metric(result, "runtime.trigger.rate_limit_suppressed_count",
+                            static_cast<double>(metrics.rate_limit_suppressed_count), component_id);
     }
     for (const auto& [loop_id, count] : run_result.loop_iteration_count) {
       result.loop_iteration_count += count;

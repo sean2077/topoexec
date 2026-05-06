@@ -3065,6 +3065,147 @@ TEST(Runtime, MinIntervalSuppressesRepeatedInvocationsInsideInterval) {
   EXPECT_FALSE(has_record(2, "target", "in"));
 }
 
+TEST(Runtime, DebounceTriggerCoalescesPendingEventsWithoutCoalesceFlag) {
+  const auto reg = delay_registry();
+  auto spec = coalesce_graph(false);
+  spec.name = "debounce";
+  spec.components.back().trigger_policy.type = "debounce";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_FALSE(has_record(1, "target", "in", "burst-1-1"));
+  EXPECT_FALSE(has_record(1, "target", "in", "burst-1-2"));
+  EXPECT_TRUE(has_record(1, "target", "in", "burst-1-3"));
+  EXPECT_TRUE(has_trigger_record(1, "target", topoexec::EventKind::kMessage, topoexec::TriggerKind::kDebounce));
+  EXPECT_TRUE(has_component_metric_at_least(result, "runtime.trigger.coalesced_count", "target", 1.0));
+}
+
+TEST(Runtime, RateLimitTriggerSuppressesRepeatedReadyChecksWithReasonMetric) {
+  const auto reg = delay_registry();
+  auto spec = min_interval_graph();
+  spec.name = "rate_limit";
+  spec.components.back().trigger_policy.type = "rate_limit";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_record(1, "target", "in", "burst-1-1"));
+  EXPECT_FALSE(has_record(1, "target", "in", "burst-1-2"));
+  EXPECT_FALSE(has_record(2, "target", "in"));
+  EXPECT_TRUE(has_trigger_record(1, "target", topoexec::EventKind::kMessage, topoexec::TriggerKind::kRateLimit));
+  EXPECT_TRUE(has_component_metric_at_least(result, "runtime.trigger.rate_limit_suppressed_count", "target", 1.0));
+}
+
+TEST(Runtime, WatermarkTriggerDropsLateSamplesAndReportsMetrics) {
+  reset_runtime_records();
+  topoexec::RuntimeChannelBus channels({runtime_edge("source_target", "source.out", "target.in")});
+  ASSERT_TRUE(channels
+                  .publish_from("source.out", topoexec::make_text_payload("new"),
+                                topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 100000000))
+                  .accepted);
+  ASSERT_TRUE(channels
+                  .publish_from("source.out", topoexec::make_text_payload("late"),
+                                topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 90000000))
+                  .accepted);
+  ASSERT_TRUE(channels
+                  .publish_from("source.out", topoexec::make_text_payload("newer"),
+                                topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 103000000))
+                  .accepted);
+
+  topoexec::GraphContext context;
+  context.channels = &channels;
+  context.component_id = "target";
+  BatchTargetComponent target;
+
+  topoexec::ComponentNodeSpec target_spec;
+  target_spec.id = "target";
+  target_spec.type = "topoexec.test.BatchTarget";
+  target_spec.event_sources = {topoexec::EventSourceSpec{}};
+  target_spec.event_sources.front().type = "message";
+  target_spec.event_sources.front().inputs = {"in"};
+  target_spec.trigger_policy.type = "watermark";
+  target_spec.trigger_policy.inputs = {"in"};
+  target_spec.trigger_policy.watermark_lateness_ms = 5;
+  target_spec.execution.lane = "main";
+
+  topoexec::SchedulerGroupConfig lane;
+  lane.id = "main";
+  lane.type = "event_loop";
+  topoexec::EventRuntime runtime(&channels);
+  runtime.add_component({"target", &target, &context, target_spec, lane});
+
+  topoexec::SchedulerRunOptions options;
+  options.tick_iterations = 1;
+  const auto result = runtime.run(options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_record(1, "target", "in", "new"));
+  EXPECT_FALSE(has_record(1, "target", "in", "late"));
+  EXPECT_TRUE(has_record(1, "target", "in", "newer"));
+  EXPECT_TRUE(has_trigger_record(1, "target", topoexec::EventKind::kMessage, topoexec::TriggerKind::kWatermark));
+  ASSERT_NE(result.trigger_metrics.find("target"), result.trigger_metrics.end());
+  EXPECT_EQ(result.trigger_metrics.at("target").late_drop_count, 1u);
+}
+
+TEST(Runtime, ConditionTriggerWaitsForDeclarativeReadinessWithoutScripting) {
+  reset_runtime_records();
+  topoexec::RuntimeChannelBus channels(
+      {runtime_edge("left_join", "left.out", "join.main"), runtime_edge("right_join", "right.out", "join.delayed")});
+  ASSERT_TRUE(channels.publish_from("left.out", topoexec::make_text_payload("left")).accepted);
+
+  topoexec::GraphContext context;
+  context.channels = &channels;
+  context.component_id = "join";
+  DelayTargetComponent join;
+
+  topoexec::ComponentNodeSpec join_spec;
+  join_spec.id = "join";
+  join_spec.type = "topoexec.test.DelayTarget";
+  join_spec.event_sources = {topoexec::EventSourceSpec{}};
+  join_spec.event_sources.front().type = "message";
+  join_spec.event_sources.front().inputs = {"main", "delayed"};
+  join_spec.trigger_policy.type = "condition";
+  join_spec.trigger_policy.inputs = {"main", "delayed"};
+  join_spec.trigger_policy.condition = "all_inputs_ready";
+  join_spec.execution.lane = "main";
+
+  topoexec::SchedulerGroupConfig lane;
+  lane.id = "main";
+  lane.type = "event_loop";
+  topoexec::EventRuntime runtime(&channels);
+  runtime.add_component({"join", &join, &context, join_spec, lane});
+
+  topoexec::SchedulerRunOptions options;
+  options.tick_iterations = 2;
+  bool right_publish_accepted = false;
+  options.after_iteration = [&](std::uint64_t iteration) {
+    if (iteration == 1u) {
+      right_publish_accepted = channels.publish_from("right.out", topoexec::make_text_payload("right")).accepted;
+    }
+  };
+  const auto result = runtime.run(options);
+
+  EXPECT_TRUE(right_publish_accepted);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_FALSE(has_record(1, "join", "main"));
+  EXPECT_TRUE(has_record(2, "join", "main", "left"));
+  EXPECT_TRUE(has_record(2, "join", "delayed", "right"));
+  EXPECT_TRUE(has_trigger_record(2, "join", topoexec::EventKind::kMessage, topoexec::TriggerKind::kCondition));
+  ASSERT_NE(result.trigger_metrics.find("join"), result.trigger_metrics.end());
+  EXPECT_EQ(result.trigger_metrics.at("join").condition_suppressed_count, 1u);
+}
+
 TEST(Runtime, CompositeLoopRegionOwnsInternalFixedPointIterations) {
   const auto reg = delay_registry();
   const auto spec = composite_loop_runtime_graph();

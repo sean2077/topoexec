@@ -185,6 +185,19 @@ TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./
 git diff --check passed.
 ```
 
+Observed G35 local result:
+
+```text
+ctest --test-dir build --output-on-failure -R 'test_runtime|test_graph|schema_v1_contract_smoke' passed: trigger-v2 runtime policy tests, graph validation, and schema contract.
+python3 tests/golden/check_cli_golden.py --topoexec build/topoexec --source-dir . --golden-dir tests/golden --update refreshed metrics/schema goldens for new trigger-v2 fields.
+./scripts/goal_check.sh quick passed: cli_golden_outputs and schema_v1_contract_smoke.
+./scripts/goal_check.sh docs passed: recursive docs command smoke after trigger-v2 docs updates.
+cmake --build build --target topoexec_format_check passed.
+./scripts/agent_check.sh passed: 70/70 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 70/70 CTest tests in the ASAN+UBSAN Debug build.
+git diff --check passed.
+```
+
 Golden output surfaces protected after G26:
 
 - `tests/golden/plan_composite_loop.json` — graph plan JSON.
@@ -195,11 +208,15 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations after the plan2 G70 beta-readiness review pass:
+Current branch limitations after the plan2 G35 trigger-v2 preview pass:
 
 - `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, cooperative cancellation/timeout-budget observation, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and hard timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
 - Async `policy.max_inflight` controls async edge admission; it is separate from optional task executors.
+- Trigger Engine v2 preview now covers `watermark`, `condition`, `debounce`, and
+  `rate_limit` as additive declarative schema-v1 policies. It does not add
+  arbitrary scripting, wall-clock debounce sleeping, external watermark
+  coordination, or a broader schema-v2 trigger expression language.
 - `TaskExecutor` remains deterministic by default with cooperative pending-task cancellation and post-return task-budget metrics; `ThreadedTaskExecutor` is now an opt-in bounded preview, not a default scheduler lane.
 - Metrics/trace/diagnostics exist, including metric schema version 1, trace schema version 1, diagnostic schema version 1, invocation correlation/causation metadata, bounded observer-only health events, RuntimeObserver v1, and Adapter SDK v0. Concrete exporter adapters and a richer health-event v2 contract remain future work.
 - Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, deterministic malformed-input fuzz smoke, and an optional `fuzz_graph_inputs` libFuzzer/standalone corpus target. Longer fuzz campaigns and broader target coverage remain future hardening work.

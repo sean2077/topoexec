@@ -228,6 +228,10 @@ enum class TriggerKind {
   kRequest,
   kTaskReady,
   kManual,
+  kWatermark,
+  kCondition,
+  kDebounce,
+  kRateLimit,
 };
 
 struct Invocation {

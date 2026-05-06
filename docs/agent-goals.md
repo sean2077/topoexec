@@ -6,16 +6,17 @@ This file is the human-readable entry point for continuing `docs/plans/plan2.md`
 
 Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/status.md` as the current ledger.
 
-Current safe order:
+Current safe order after the completed P0/P1 queue and G35:
 
-1. G38 Channel v2: Multi-Reader and Move-Only Hardening
-2. G39 Payload and Memory v2
-3. G40 Graph Compiler v2: Typed Ports and Constraints
-4. G43 Component Lifecycle v2: Reset, Snapshot, Restore
+1. G41 Hierarchical Graph.
+2. G42 Graph Templates.
+3. G45 CompositeLoop Solver-Style Policies.
+4. G58-G65 adapter/interface/ecosystem preview goals only after the core/API
+   boundary remains clean for the chosen slice.
+5. G68 Community and Contribution Readiness.
 
-G35 remains pending P2 and should be deferred until the active P0/P1 queue allows it.
-
-After those, continue by the phase ordering in `docs/plans/plan2.md`, always finishing the earliest unfinished P0/P1 goal before opening lower-priority adapter/ecosystem work.
+Continue by backlog order in `docs/goals/backlog.md`, keeping concrete adapter
+implementations deferred unless the user explicitly opens that scope.
 
 ## Goal handoff template
 

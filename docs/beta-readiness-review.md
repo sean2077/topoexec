@@ -12,7 +12,7 @@ hardware, package-registry, or 1.0 readiness claim.
 
 | Question | Verdict |
 | --- | --- |
-| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G34, G36-G40, G43-G44, G46-G57, G66-G67, and G69 are complete; remaining G35, G41-G42, G45, G58-G65, and G68 are P2/P3 or community/ecosystem work and must stay explicit if not done before beta. |
+| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G40, G43-G44, G46-G57, G66-G67, and G69-G70 are complete; remaining G41-G42, G45, G58-G65, and G68 are P2/P3 or community/ecosystem work and must stay explicit if not done before beta. |
 | Can TopoExec honestly prepare a core-runtime beta candidate? | Yes, if release notes keep the deferred features and alpha/experimental surfaces explicit and CI/release-prep evidence is attached for the exact candidate commit. |
 | Can TopoExec claim adapter/ecosystem beta readiness? | No. Concrete ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin, external Perfetto, and package-registry surfaces remain deferred or draft-only. |
 | Can TopoExec claim hard real-time or external scheduling guarantees? | No. Fixed-rate/thread-pool behavior is cooperative and observable; OS RT policy, CPU affinity guarantees, independent lane threads, hard preemption, and advanced starvation aging remain future work. |
@@ -82,7 +82,6 @@ blocking for a beta tag, record that decision in release notes.
 
 ## Explicitly deferred from beta scope unless completed first
 
-- Trigger Engine v2 watermark/condition triggers (G35).
 - Hierarchical graph/subgraph runtime contract (G41).
 - Graph templates/reusable pattern system (G42).
 - CompositeLoop solver-style policies beyond current fixed-point/budget behavior (G45).

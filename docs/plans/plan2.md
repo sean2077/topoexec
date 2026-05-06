@@ -718,6 +718,23 @@ Priority: P2
 - New trigger types do not introduce arbitrary code execution.
 - Metrics explain why trigger did or did not fire.
 
+### Implementation note (2026-05-06)
+
+- Chose schema v1 additive preview fields for G35 instead of schema v2 because
+  the new policies do not change existing trigger meanings or make old graphs
+  invalid. `TriggerPolicySpec` now accepts `watermark`, `condition`, `debounce`,
+  and `rate_limit` plus declarative `condition`, `watermark_lateness_ms`, and
+  reserved `debounce_window_ms` fields.
+- Implemented `watermark` as per-component/per-timestamp-domain late-sample
+  filtering, `condition` as enum-only readiness predicates
+  (`all_inputs_ready`, `any_input_ready`, `event_timestamp_present`), `debounce`
+  as deterministic pending-input coalescing, and `rate_limit` as a positive
+  `min_interval_ms` trigger policy.
+- Added reason metrics for `late_drop_count`, `condition_suppressed_count`, and
+  `rate_limit_suppressed_count`, runtime/graph tests for each policy, schema and
+  metrics golden updates, and trigger/schema/runtime/metrics docs. Arbitrary
+  expressions or scripts are rejected by validation.
+
 ---
 
 ## G36. Correlation, Causality, and Invocation Metadata
@@ -2292,7 +2309,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G35, G41, G42, G45, G58-G65, or G68.
+  and hidden deferral of G41, G42, G45, G58-G65, or G68.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
