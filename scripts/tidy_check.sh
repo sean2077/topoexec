@@ -61,7 +61,12 @@ for path in files:
         relative = path.relative_to(root)
     except ValueError:
         continue
-    if ".git" in relative.parts or relative.parts[:1] == ("tests",):
+    if (
+        ".git" in relative.parts
+        or "_deps" in relative.parts
+        or (relative.parts and relative.parts[0].startswith("build"))
+        or relative.parts[:1] == ("tests",)
+    ):
         continue
     print(path)
 PY
