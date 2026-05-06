@@ -45,6 +45,7 @@ component factories through `topoexec::ComponentRegistry`.
 | Loaned owner lint | `examples/loaned_view_without_pool_owner.yaml` | `loaned_view` should name a producer/pool owner until pool-return callbacks exist. | `cli_lint_loaned_view_without_pool_owner` |
 | Registry / app factories | `examples/apps/cpp_builder_minimal` | Pure C++ apps build graphs and register factories without YAML/CLI dependencies. | `app_cpp_builder_minimal_runs` |
 | Boundary adapter pattern | `examples/boundary_adapter_pattern.yaml` | Boundary nodes mark where an app-owned adapter injects or drains data without adding adapter dependencies to core. | `cli_run_boundary_adapter_pattern` |
+| Graph templates | `examples/template_source_transform_sink.yaml` | Parameter-substituted snippets expand before validation/runtime so repeated graph shapes stay explicit. | `cli_run_template_source_transform_sink` |
 | Reference app v2 | `examples/apps/low_latency_sensor_pipeline` | Source/preprocessor/detector/tracker latest-only path with explicit drop metrics. | `app_low_latency_sensor_pipeline_runs` |
 | Reference app v2 | `examples/apps/control_loop_with_state` | Fixed-rate control loop with state snapshot and delay feedback boundaries. | `app_control_loop_with_state_runs` |
 | Reference app v2 | `examples/apps/async_request_response` | Request boundary, validator, deterministic task executor, and response boundary without service adapters. | `app_async_request_response_runs` |

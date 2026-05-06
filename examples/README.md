@@ -25,6 +25,7 @@ ctest --test-dir build --output-on-failure -R 'app_|cli_run_|cli_validate_'
 | `batch_time_sync.yaml` | Two-input time-sync trigger. | `./build/topoexec graph run examples/batch_time_sync.yaml --steps 1` |
 | `service_pipeline.yaml` | Request, async, and task-ready pipeline shape. | `./build/topoexec graph run examples/service_pipeline.yaml --steps 2` |
 | `boundary_adapter_pattern.yaml` | App-owned external I/O boundary pattern. | `./build/topoexec graph run examples/boundary_adapter_pattern.yaml --steps 1` |
+| `template_source_transform_sink.yaml` | Parameter-substituted reusable graph snippet. | `./build/topoexec graph run examples/template_source_transform_sink.yaml --steps 1` |
 | `invalid_*.yaml` | Negative validation fixtures. | `./build/topoexec graph validate examples/invalid_immediate_cycle.yaml` |
 
 ## C++ apps

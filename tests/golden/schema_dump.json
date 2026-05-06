@@ -354,6 +354,45 @@
       ],
       "type": "object"
     },
+    "graph_template": {
+      "additionalProperties": false,
+      "properties": {
+        "components": {
+          "items": {
+            "$ref": "#/$defs/component"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "composite_loops": {
+          "items": {
+            "$ref": "#/$defs/composite_loop"
+          },
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/edge"
+          },
+          "type": "array"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "parameters": {
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "components",
+        "edges"
+      ],
+      "type": "object"
+    },
     "id": {
       "maxLength": 128,
       "minLength": 1,
@@ -555,6 +594,29 @@
       ],
       "type": "object"
     },
+    "template_instance": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "template": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "id",
+        "template"
+      ],
+      "type": "object"
+    },
     "trigger_policy": {
       "additionalProperties": false,
       "properties": {
@@ -679,6 +741,20 @@
     "subgraphs": {
       "items": {
         "$ref": "#/$defs/subgraph"
+      },
+      "maxItems": 4096,
+      "type": "array"
+    },
+    "template_instances": {
+      "items": {
+        "$ref": "#/$defs/template_instance"
+      },
+      "maxItems": 4096,
+      "type": "array"
+    },
+    "templates": {
+      "items": {
+        "$ref": "#/$defs/graph_template"
       },
       "maxItems": 4096,
       "type": "array"

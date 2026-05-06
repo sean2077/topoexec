@@ -18,8 +18,9 @@ without introducing nested runtime schedulers.
 - lanes remain top-level and runtime execution sees one flat `GraphSpec`.
 
 This is intentionally not a CompositeComponent runtime, nested executor, dynamic
-template loader, or adapter boundary. Future `components[].graph_ref` or schema
-v2 template work must be a separate compatibility decision.
+graph loader, or adapter boundary. Reusable snippets are handled separately by
+[Graph templates](graph-templates.md); future `components[].graph_ref` or runtime
+template loading must be a separate compatibility decision.
 
 ## Example
 

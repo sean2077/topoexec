@@ -1048,6 +1048,16 @@ Priority: P2/P3
 - Templates help examples and app users.
 - Runtime remains unaware of templates after compile.
 
+Implementation note: G42 adds schema-v1 `templates[]` and
+`template_instances[]` as strict parameter-substitution snippets. Placeholders
+use `{{name}}`, instances must provide exactly the declared scalar parameters,
+and expansion reuses the same compile-time namespace path as G41 before normal
+validation. No CLI template command, arbitrary code, includes, conditionals,
+loops, runtime interpreter, or hidden edges are added. The
+`examples/template_source_transform_sink.yaml` example and graph/schema/docs
+tests cover deterministic expansion, invalid parameters, and validation of the
+expanded graph.
+
 ---
 
 ## G43. Component Lifecycle v2: Reset, Snapshot, Restore
@@ -2374,7 +2384,7 @@ Priority: P0 before beta
 ## Phase F：扩展架构和生态
 
 28. G41 Hierarchical Graph（complete）
-29. G42 Graph Templates
+29. G42 Graph Templates（complete）
 30. G43 Component Lifecycle v2
 31. G44 Config Hot Reload Transaction
 32. G55 Documentation System v2

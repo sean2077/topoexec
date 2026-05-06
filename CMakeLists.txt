@@ -340,6 +340,9 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   add_test(NAME cli_validate_boundary_adapter_pattern
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/boundary_adapter_pattern.yaml
   )
+  add_test(NAME cli_validate_template_source_transform_sink
+    COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/template_source_transform_sink.yaml
+  )
   add_test(NAME cli_validate_schema_only_minimal
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --schema-only --format json
   )
@@ -389,6 +392,10 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph run ${CMAKE_CURRENT_SOURCE_DIR}/examples/boundary_adapter_pattern.yaml --steps 1
   )
   set_tests_properties(cli_run_boundary_adapter_pattern PROPERTIES PASS_REGULAR_EXPRESSION "order: external_input,app_logic,external_output")
+  add_test(NAME cli_run_template_source_transform_sink
+    COMMAND topoexec graph run ${CMAKE_CURRENT_SOURCE_DIR}/examples/template_source_transform_sink.yaml --steps 1
+  )
+  set_tests_properties(cli_run_template_source_transform_sink PROPERTIES PASS_REGULAR_EXPRESSION "order: demo.source,demo.transform,demo.sink")
   add_test(NAME cli_metrics_json_minimal
     COMMAND topoexec graph metrics ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --format json
   )

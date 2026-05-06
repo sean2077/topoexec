@@ -33,6 +33,7 @@ This document maps the invariants from `docs/plans/plan.md` G3 to concrete CI te
 | 26 | Release preparation is reproducible and non-publishing unless a human performs the tag/push step. | `release_prepare_smoke`; `tests/release/check_release_prepare.py`; `scripts/release_prepare.sh --skip-gates` artifact rehearsal evidence. |
 | 27 | The real-world pilot composes current runtime semantics without adapter dependencies or hardware claims. | `app_robot_cell_pilot_runs`; `docs/case-study-robot-cell.md`; `examples/apps/robot_cell_pilot/README.md`. |
 | 28 | Hierarchical subgraph organization expands before validation and cannot hide cycles or metric paths. | `Graph.SubgraphExpandsToNamespacedComponentsEdgesAndPlanHierarchy`; `Graph.SubgraphExpansionDoesNotHideImmediateCycles`; `Graph.SubgraphCompositeLoopOwnsExpandedCycle`; `Runtime.HierarchicalGraphMetricsPreserveExpandedComponentPath`. |
+| 29 | Graph templates expand deterministically through strict parameter substitution and leave runtime unaware of templates. | `Graph.TemplateInstanceExpandsDeterministicallyAndValidates`; `Graph.TemplateInstanceRejectsMissingOrUnknownParameter`; `Graph.TemplateInstanceRejectsUnknownPlaceholder`; `cli_validate_template_source_transform_sink`; `cli_run_template_source_transform_sink`. |
 
 ## Maintenance rule
 

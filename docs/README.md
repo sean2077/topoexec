@@ -42,6 +42,7 @@ inspect a YAML graph in less than 30 minutes by following this path.
 - [Graph spec](graph-spec.md)
 - [Schema v1](schema-v1.md)
 - [Hierarchical graphs](hierarchical-graphs.md)
+- [Graph templates](graph-templates.md)
 - [Channels and backpressure](channels.md)
 - [Triggers](triggers.md)
 - [Scheduler](scheduler.md)

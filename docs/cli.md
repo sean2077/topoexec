@@ -8,6 +8,7 @@ without CLI or YAML.
 
 ```bash
 ./build/topoexec graph validate examples/minimal.yaml
+./build/topoexec graph validate examples/template_source_transform_sink.yaml
 ./build/topoexec graph validate examples/minimal.yaml --schema-only --format json
 ./build/topoexec graph validate examples/minimal.yaml --semantic --format json
 ./build/topoexec graph validate examples/diagnostic_warnings.yaml --strict-diagnostics --format json
@@ -36,6 +37,9 @@ tracking without global timing thresholds.
 `graph plan --format json` includes `hierarchy[]` when schema-v1 `subgraphs[]`
 compile-time namespace expansion is used; empty hierarchy is emitted as `[]` for
 stable scripting.
+There is intentionally no separate template CLI; validate/plan/run operate on
+the expanded graph after schema-v1 `templates[]` / `template_instances[]`
+substitution.
 Graph-reading commands also accept per-invocation defensive parser overrides:
 `--max-graph-input-bytes`, `--max-lanes`, `--max-components`, `--max-edges`,
 `--max-composite-loops`, `--max-identifier-bytes`, `--max-config-depth`,
@@ -43,6 +47,7 @@ Graph-reading commands also accept per-invocation defensive parser overrides:
 as normal validation JSON when `--format json` is selected.
 
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --schema-only --format json -->
+<!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/template_source_transform_sink.yaml -->
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --semantic --format json -->
 <!-- topoexec-doc-test: ${TOPOEXEC} graph render ${SOURCE_DIR}/examples/minimal.yaml --format mermaid -->
 <!-- topoexec-doc-test: ${TOPOEXEC} graph lint ${SOURCE_DIR}/examples/control_feedback_delay.yaml -->

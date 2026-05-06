@@ -99,6 +99,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [Robot cell pilot case study](docs/case-study-robot-cell.md)
 - [Graph spec](docs/graph-spec.md)
 - [Hierarchical graphs](docs/hierarchical-graphs.md)
+- [Graph templates](docs/graph-templates.md)
 - [Components](docs/components.md)
 - [Component lifecycle](docs/lifecycle.md)
 - [CLI](docs/cli.md)

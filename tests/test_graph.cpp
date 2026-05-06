@@ -551,6 +551,135 @@ subgraphs:
   EXPECT_EQ(result.compiled_plan.regions.front().kind, topoexec::CompiledRegionKind::kCompositeLoop);
 }
 
+TEST(Graph, TemplateInstanceExpandsDeterministicallyAndValidates) {
+  const auto graph_text = R"(
+schema_version: 1
+graph: {name: templated_pipeline, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+templates:
+  - id: source_sink
+    parameters: [source_type, sink_type, edge_mode]
+    components:
+      - {id: source, type: "{{source_type}}", event_sources: [{type: manual}], trigger_policy: {type: manual}, execution: {lane: main}}
+      - {id: sink, type: "{{sink_type}}", event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+    edges:
+      - {id: source_sink, kind: immediate, from: source.out, to: sink.in, policy: {mode: "{{edge_mode}}", copy_policy: shared_view}}
+template_instances:
+  - id: cell
+    template: source_sink
+    parameters: {source_type: topoexec.test.Source, sink_type: topoexec.test.Sink, edge_mode: latest}
+)";
+
+  const auto first = topoexec::load_graph_text(graph_text);
+  const auto second = topoexec::load_graph_text(graph_text);
+
+  ASSERT_EQ(first.components.size(), 2u);
+  ASSERT_EQ(first.edges.size(), 1u);
+  EXPECT_EQ(first.components.front().id, "cell.source");
+  EXPECT_EQ(first.components.front().type, "topoexec.test.Source");
+  EXPECT_EQ(first.components.back().type, "topoexec.test.Sink");
+  EXPECT_EQ(first.edges.front().id, "cell.source_sink");
+  EXPECT_EQ(first.edges.front().from, "cell.source.out");
+  EXPECT_EQ(first.edges.front().to, "cell.sink.in");
+  EXPECT_EQ(first.edges.front().policy.mode, "latest");
+  EXPECT_EQ(second.components.front().id, first.components.front().id);
+  EXPECT_EQ(second.edges.front().id, first.edges.front().id);
+
+  const auto result = topoexec::validate_graph_structure(first);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.compiled_plan.region_order, std::vector<std::string>({"cell.source", "cell.sink"}));
+  const auto plan_json = topoexec::graph_plan_json(first, result.compiled_plan);
+  EXPECT_NE(plan_json.find("\"id\": \"cell\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"cell.source_sink\""), std::string::npos);
+}
+
+TEST(Graph, TemplateInstanceRejectsMissingOrUnknownParameter) {
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: missing_template_parameter, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+templates:
+  - id: single
+    parameters: [type_name]
+    components:
+      - {id: node, type: "{{type_name}}", event_sources: [{type: manual}], trigger_policy: {type: manual}, execution: {lane: main}}
+    edges: []
+template_instances:
+  - id: one
+    template: single
+    parameters: {}
+)");
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("missing template parameter type_name"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: unknown_template_parameter, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+templates:
+  - id: single
+    parameters: [type_name]
+    components:
+      - {id: node, type: "{{type_name}}", event_sources: [{type: manual}], trigger_policy: {type: manual}, execution: {lane: main}}
+    edges: []
+template_instances:
+  - id: one
+    template: single
+    parameters: {type_name: topoexec.test.Node, extra: nope}
+)");
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("unknown template parameter extra"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
+TEST(Graph, TemplateInstanceRejectsUnknownPlaceholder) {
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: unknown_placeholder, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+templates:
+  - id: single
+    parameters: [type_name]
+    components:
+      - {id: node, type: "{{missing}}", event_sources: [{type: manual}], trigger_policy: {type: manual}, execution: {lane: main}}
+    edges: []
+template_instances:
+  - id: one
+    template: single
+    parameters: {type_name: topoexec.test.Node}
+)");
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("references missing template parameter missing"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
 TEST(Graph, PayloadTypeMismatchIsRejectedWithDiagnostic) {
   auto graph = minimal_graph();
   graph.edges.front().kind = topoexec::EdgeKind::kState;

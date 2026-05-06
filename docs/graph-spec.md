@@ -51,6 +51,8 @@ Validate it with:
 - `composite_loops`: optional exact immediate-SCC ownership declarations.
 - `subgraphs`: optional schema-v1 compile-time namespace expansion for grouped
   components/edges; see [Hierarchical graphs](hierarchical-graphs.md).
+- `templates` / `template_instances`: optional parameter-substituted reusable
+  snippets that expand before validation; see [Graph templates](graph-templates.md).
 
 See [Schema v1](schema-v1.md) for the strict field contract and
 [Runtime semantics](runtime-semantics.md) for visibility rules.

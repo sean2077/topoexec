@@ -18,9 +18,12 @@ Optional fields:
 
 - `composite_loops`
 - `subgraphs`
+- `templates`
+- `template_instances`
 
 Allowed root fields are exactly `schema_version`, `graph`, `lanes`,
-`components`, `edges`, `composite_loops`, and `subgraphs`.
+`components`, `edges`, `composite_loops`, `subgraphs`, `templates`, and
+`template_instances`.
 
 ## graph
 
@@ -237,6 +240,47 @@ Validation runs after expansion. Immediate cycles inside or across expanded
 subgraph boundaries are still rejected unless a matching expanded
 `composite_loops[]` entry owns the SCC. Plan JSON includes `hierarchy[]`, and
 Mermaid output groups expanded components under `Subgraph: <id>`.
+
+## templates and template_instances
+
+`templates` and `template_instances` are optional. They are compile-time reusable
+snippets and are expanded before normal validation. See
+[Graph templates](graph-templates.md) for the full contract.
+
+```yaml
+templates:
+  - id: source_sink
+    parameters: [source_type, sink_type]
+    components:
+      - {id: source, type: "{{source_type}}", event_sources: [{type: manual}], trigger_policy: {type: manual}, execution: {lane: main}}
+      - {id: sink, type: "{{sink_type}}", event_sources: [{type: message, inputs: [in]}], trigger_policy: {type: any_input, inputs: [in]}, execution: {lane: main}}
+    edges:
+      - {id: source_sink, kind: immediate, from: source.out, to: sink.in}
+template_instances:
+  - id: cell
+    template: source_sink
+    parameters: {source_type: topoexec.test.Source, sink_type: topoexec.test.Sink}
+```
+
+Template fields:
+
+- `id` required string.
+- `parameters` optional string array of placeholder names.
+- `components` required non-empty sequence using component schema.
+- `edges` required sequence using edge schema.
+- `composite_loops` optional sequence using CompositeLoop schema.
+
+Template instance fields:
+
+- `id` required string; this becomes the expansion namespace.
+- `template` required string referencing a template id.
+- `parameters` optional mapping of string values. It must include every declared
+  template parameter and no unknown names.
+
+Only scalar placeholder substitution is supported. Placeholders use `{{name}}`
+and missing or unknown parameters fail during graph loading. Expanded output then
+follows the same namespace rules as `subgraphs[]`, so runtime remains unaware of
+templates.
 
 ## edges
 

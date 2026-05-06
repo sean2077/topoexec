@@ -31,6 +31,8 @@ Current runtime semantic contract:
 - Schema-v1 additive fields are allowed only when the existing runtime meaning stays compatible.
 - `subgraphs[]` is an additive schema-v1 field because it expands to the same
   flat `GraphSpec` semantics before validation and runtime execution.
+- `templates[]` and `template_instances[]` are additive schema-v1 fields because
+  they are strict parameter-substitution inputs that disappear before runtime.
 - A semantic change can require a contract-version update even if the schema shape does not change.
 - A schema bump can be required when old graph files would be rejected or would mean something different.
 

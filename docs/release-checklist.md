@@ -151,6 +151,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
   human release step.
 - G41 hierarchical graphs are compile-time namespace expansion only; they do not
   implement runtime nesting, `graph_ref` templates, or external adapter stacks.
+- G42 graph templates are strict parameter-substitution snippets only; they do
+  not implement arbitrary expressions, includes, conditionals, loops, or runtime
+  template interpretation.
 - G57 Adapter SDK v0 is a dependency-free boundary only; concrete ROS 2, OTel,
   Prometheus, Python, Perfetto, C API, and plugin adapters remain deferred.
 - G69 robot-cell pilot is a dependency-free in-process case study; it is not a

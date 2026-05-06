@@ -28,6 +28,11 @@ expanded component ids such as `cell.sink` while preserving the normal
 `component.port` contract. Immediate-cycle validation runs after expansion, so
 subgraph boundaries cannot hide feedback loops.
 
+`templates` and `template_instances` use the same compile-time expansion path
+after strict parameter substitution. Missing or unknown template parameters fail
+while loading; expanded components/edges are then validated exactly like
+handwritten or subgraph-expanded graph entries.
+
 ## Edge Visibility
 
 `immediate` edges are same-transaction dependencies. They participate in immediate dependency SCC analysis, and a nontrivial immediate SCC is rejected unless it exactly matches one declared `composite_loops[]` entry. In a DAG, immediate publications may become visible to downstream components during the same epoch according to compiled region order.

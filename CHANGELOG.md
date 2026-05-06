@@ -31,6 +31,10 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
   endpoint parsing for namespaced component ids, CompositeLoop ownership after
   expansion, and graph/runtime tests proving hierarchy does not hide cycles or
   metric paths.
+- Added graph templates with schema-v1 `templates[]` and `template_instances[]`
+  for strict scalar `{{parameter}}` substitution, deterministic namespace
+  expansion before validation/runtime, invalid-parameter tests, and a runnable
+  source-transform-sink template example without a runtime template interpreter.
 - Added experimental component reset, snapshot, and restore lifecycle hooks with start-epoch runner options, post-run snapshot capture, lifecycle metrics, trace events, and cleanup-on-failure coverage.
 - Added experimental config hot-reload transactions with component validate/apply hooks, epoch-boundary commit, transaction/version metrics, and rollback coverage for invalid or failed applies.
 - Added RuntimeObserver v1 with result/metric/trace/health/error callbacks, runner option registration, no-op and bounded in-memory observers, and non-fatal observer failure/drop metrics.

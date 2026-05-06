@@ -12,7 +12,8 @@ exporter. Adapter packages are deferred until the core runtime API is stable.
   registry; the CLI has a tiny demo registry for examples.
 - **GraphSpec**: lanes, components, edges, triggers, optional graph config,
   optional CompositeLoop declarations, and optional `subgraphs[]` compile-time
-  namespace expansion for organizing larger graphs without runtime nesting.
+  namespace expansion for organizing larger graphs without runtime nesting. YAML
+  `templates`/`template_instances` expand before `GraphSpec` reaches runtime.
 - **CompiledPlan**: validated graph regions, SCC ownership, trigger wiring, and
   deterministic region order.
 - **RuntimeRunner**: executes the compiled graph, owns publication routing, and

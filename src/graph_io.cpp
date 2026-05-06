@@ -1,6 +1,7 @@
 #include "topoexec/runtime/graph.hpp"
 
 #include <fstream>
+#include <map>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <set>
@@ -263,6 +264,66 @@ std::vector<std::string> namespace_component_refs(const std::string& namespace_i
     enforce_identifier_limit(values.back(), context, active_limits());
   }
   return values;
+}
+
+struct GraphTemplateDefinition {
+  std::string id;
+  std::vector<std::string> parameters;
+  YAML::Node body;
+};
+
+std::string substitute_placeholders(const std::string& value, const std::map<std::string, std::string>& parameters,
+                                    const std::string& context) {
+  std::string output;
+  std::size_t cursor = 0u;
+  while (cursor < value.size()) {
+    const auto open = value.find("{{", cursor);
+    if (open == std::string::npos) {
+      output.append(value.substr(cursor));
+      break;
+    }
+    output.append(value.substr(cursor, open - cursor));
+    const auto close = value.find("}}", open + 2u);
+    if (close == std::string::npos) {
+      throw std::invalid_argument(context + " has an unterminated template parameter");
+    }
+    const auto name = value.substr(open + 2u, close - open - 2u);
+    checked_identifier(name, context + " parameter");
+    const auto found = parameters.find(name);
+    if (found == parameters.end()) {
+      throw std::invalid_argument(context + " references missing template parameter " + name);
+    }
+    output.append(found->second);
+    cursor = close + 2u;
+  }
+  enforce_string_limit(output, context, active_limits());
+  return output;
+}
+
+YAML::Node substitute_template_node(const YAML::Node& node, const std::map<std::string, std::string>& parameters,
+                                    const std::string& context) {
+  if (!node || node.IsNull()) {
+    return {};
+  }
+  if (node.IsScalar()) {
+    return YAML::Node(substitute_placeholders(node.as<std::string>(), parameters, context));
+  }
+  if (node.IsSequence()) {
+    YAML::Node output(YAML::NodeType::Sequence);
+    for (std::size_t index = 0; index < node.size(); ++index) {
+      output.push_back(substitute_template_node(node[index], parameters, context + "[" + std::to_string(index) + "]"));
+    }
+    return output;
+  }
+  if (node.IsMap()) {
+    YAML::Node output(YAML::NodeType::Map);
+    for (const auto& item : node) {
+      const auto key = substitute_placeholders(item.first.as<std::string>(), parameters, context + ".key");
+      output[key] = substitute_template_node(item.second, parameters, context + "." + key);
+    }
+    return output;
+  }
+  throw std::invalid_argument(context + " has unsupported template node type");
 }
 
 std::vector<int> optional_int_vector(const YAML::Node& node, const char* key, const std::string& context) {
@@ -561,10 +622,85 @@ void append_subgraph_expansion(const YAML::Node& subgraph_node, GraphSpec& graph
   graph.hierarchy.push_back(std::move(hierarchy));
 }
 
+GraphTemplateDefinition read_graph_template(const YAML::Node& template_node, const std::string& context) {
+  require_map(template_node, context);
+  reject_unknown_fields(template_node, context, {"id", "parameters", "components", "edges", "composite_loops"});
+  GraphTemplateDefinition definition;
+  definition.id = checked_identifier(require_string(template_node, "id", context), context + ".id");
+  definition.parameters = optional_string_vector(template_node, "parameters", context);
+  std::set<std::string> parameter_names;
+  for (const auto& parameter : definition.parameters) {
+    checked_identifier(parameter, context + ".parameters");
+    if (!parameter_names.insert(parameter).second) {
+      throw std::invalid_argument(context + " lists duplicate template parameter " + parameter);
+    }
+  }
+  require_node(template_node, "components", context);
+  require_node(template_node, "edges", context);
+  definition.body = template_node;
+  return definition;
+}
+
+std::map<std::string, std::string> read_template_instance_parameters(const YAML::Node& instance_node,
+                                                                     const GraphTemplateDefinition& definition,
+                                                                     const std::string& context) {
+  std::set<std::string> required(definition.parameters.begin(), definition.parameters.end());
+  std::map<std::string, std::string> values;
+  const auto parameters_node = instance_node["parameters"];
+  if (parameters_node && !parameters_node.IsNull()) {
+    require_map(parameters_node, context + ".parameters");
+    for (const auto& item : parameters_node) {
+      const auto name = checked_identifier(item.first.as<std::string>(), context + ".parameters key");
+      if (required.count(name) == 0u) {
+        throw std::invalid_argument(context + " provides unknown template parameter " + name);
+      }
+      if (!item.second.IsScalar()) {
+        throw std::invalid_argument(context + ".parameters." + name + " must be a scalar string");
+      }
+      const auto value = item.second.as<std::string>();
+      enforce_string_limit(value, context + ".parameters." + name, active_limits());
+      values[name] = value;
+    }
+  }
+  for (const auto& required_name : definition.parameters) {
+    if (values.count(required_name) == 0u) {
+      throw std::invalid_argument(context + " is missing template parameter " + required_name);
+    }
+  }
+  return values;
+}
+
+void append_template_instance_expansion(const YAML::Node& instance_node,
+                                        const std::map<std::string, GraphTemplateDefinition>& templates,
+                                        GraphSpec& graph, const std::string& context) {
+  require_map(instance_node, context);
+  reject_unknown_fields(instance_node, context, {"id", "template", "parameters"});
+  const auto instance_id = checked_identifier(require_string(instance_node, "id", context), context + ".id");
+  const auto template_id =
+      checked_identifier(require_string(instance_node, "template", context), context + ".template");
+  const auto found = templates.find(template_id);
+  if (found == templates.end()) {
+    throw std::invalid_argument(context + " references unknown template " + template_id);
+  }
+
+  const auto parameter_values = read_template_instance_parameters(instance_node, found->second, context);
+  YAML::Node expansion(YAML::NodeType::Map);
+  expansion["id"] = instance_id;
+  expansion["components"] =
+      substitute_template_node(found->second.body["components"], parameter_values, context + ".components");
+  expansion["edges"] = substitute_template_node(found->second.body["edges"], parameter_values, context + ".edges");
+  const auto loops_node = found->second.body["composite_loops"];
+  if (loops_node && !loops_node.IsNull()) {
+    expansion["composite_loops"] = substitute_template_node(loops_node, parameter_values, context + ".composite_loops");
+  }
+  append_subgraph_expansion(expansion, graph, context);
+}
+
 GraphSpec load_graph_node(const YAML::Node& root) {
   require_map(root, "runtime graph");
   reject_unknown_fields(root, "runtime graph",
-                        {"schema_version", "graph", "components", "lanes", "edges", "composite_loops", "subgraphs"});
+                        {"schema_version", "graph", "components", "lanes", "edges", "composite_loops", "subgraphs",
+                         "templates", "template_instances"});
   GraphSpec graph;
   graph.schema_version = require_node(root, "schema_version", "runtime graph").as<int>();
 
@@ -659,6 +795,29 @@ GraphSpec load_graph_node(const YAML::Node& root) {
         throw std::invalid_argument("duplicate subgraph: " + subgraph_id);
       }
       append_subgraph_expansion(subgraphs_node[index], graph, context);
+    }
+  }
+
+  std::map<std::string, GraphTemplateDefinition> templates;
+  const auto templates_node = root["templates"];
+  if (templates_node && !templates_node.IsNull()) {
+    require_sequence(templates_node, "runtime graph.templates");
+    enforce_limit(templates_node.size(), active_limits().max_components, "runtime graph.templates count");
+    for (std::size_t index = 0; index < templates_node.size(); ++index) {
+      const auto definition = read_graph_template(templates_node[index], "templates[" + std::to_string(index) + "]");
+      if (!templates.emplace(definition.id, definition).second) {
+        throw std::invalid_argument("duplicate template: " + definition.id);
+      }
+    }
+  }
+
+  const auto instances_node = root["template_instances"];
+  if (instances_node && !instances_node.IsNull()) {
+    require_sequence(instances_node, "runtime graph.template_instances");
+    enforce_limit(instances_node.size(), active_limits().max_components, "runtime graph.template_instances count");
+    for (std::size_t index = 0; index < instances_node.size(); ++index) {
+      append_template_instance_expansion(instances_node[index], templates, graph,
+                                         "template_instances[" + std::to_string(index) + "]");
     }
   }
 

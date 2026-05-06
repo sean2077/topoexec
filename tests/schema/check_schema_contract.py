@@ -35,6 +35,9 @@ def main() -> int:
     require(schema["properties"]["edges"]["maxItems"] == 8192, "edge count limit drifted")
     require(schema["properties"]["composite_loops"]["maxItems"] == 1024, "loop count limit drifted")
     require(schema["properties"]["subgraphs"]["maxItems"] == 4096, "subgraph count limit drifted")
+    require(schema["properties"]["templates"]["maxItems"] == 4096, "template count limit drifted")
+    require(schema["properties"]["template_instances"]["maxItems"] == 4096,
+            "template instance count limit drifted")
     require(defs["id"]["maxLength"] == 128, "id length limit drifted")
     require(defs["endpoint"]["maxLength"] == 4096, "endpoint string length limit drifted")
     require(defs["string_array"]["items"]["maxLength"] == 4096, "string array limit drifted")
@@ -45,6 +48,13 @@ def main() -> int:
             "subgraph required fields drifted")
     require(defs["subgraph"]["properties"]["components"]["minItems"] == 1,
             "subgraph components must stay non-empty")
+    require(defs["graph_template"]["additionalProperties"] is False, "graph template schema must be strict")
+    require(defs["graph_template"]["required"] == ["id", "components", "edges"],
+            "graph template required fields drifted")
+    require(defs["template_instance"]["additionalProperties"] is False,
+            "template instance schema must be strict")
+    require(defs["template_instance"]["required"] == ["id", "template"],
+            "template instance required fields drifted")
     require(defs["edge"]["properties"]["kind"]["enum"] == ["immediate", "delay", "state", "async"],
             "edge kind enum drifted")
     require("thread_pool" in defs["lane"]["properties"]["type"]["enum"], "thread_pool lane missing")
@@ -63,6 +73,7 @@ def main() -> int:
         "examples/batch_time_sync.yaml",
         "examples/service_pipeline.yaml",
         "examples/boundary_adapter_pattern.yaml",
+        "examples/template_source_transform_sink.yaml",
     ]
     for example in valid_examples:
         completed = subprocess.run(
