@@ -23,6 +23,7 @@ REQUIRED_DOCS = [
     "python-preview.md",
     "plugin-loader.md",
     "schema-v1.md",
+    "schema-v2-notes.md",
     "hierarchical-graphs.md",
     "graph-templates.md",
     "cookbook.md",
@@ -88,6 +89,15 @@ REQUIRED_SECTIONS = {
         "## Non-goals",
         "## Validation",
     ],
+    "schema-v2-notes.md": [
+        "## Status",
+        "## Decision rules",
+        "## Candidate feature classification",
+        "## Breaking vs additive changes",
+        "## Migration plan",
+        "## Non-goals",
+        "## Validation",
+    ],
 }
 
 README_REQUIRED_LINKS = [
@@ -101,6 +111,7 @@ README_REQUIRED_LINKS = [
     "(python-preview.md)",
     "(plugin-loader.md)",
     "(schema-v1.md)",
+    "(schema-v2-notes.md)",
     "(hierarchical-graphs.md)",
     "(graph-templates.md)",
     "(cookbook.md)",

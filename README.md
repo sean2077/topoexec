@@ -105,6 +105,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [CLI](docs/cli.md)
 - [Runtime semantics](docs/runtime-semantics.md)
 - [Schema v1](docs/schema-v1.md)
+- [Schema v2 notes](docs/schema-v2-notes.md)
 - [API overview](docs/api-overview.md)
 - [Public API stability](docs/public-api.md)
 - [Python automation preview](docs/python-preview.md)
@@ -140,10 +141,11 @@ Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and 
   are not implemented.
 - Non-blocking ThreadSanitizer CI is wired for GitHub Actions and passed on current `main`; local `scripts/agent_check.sh` remains the required agent gate.
 - Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python
-  bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems, and
-  external Perfetto adapters are deferred; the default-off OTel, Prometheus,
-  ROS 2, C API, Python, and plugin-loader preview targets are only
-  dependency-free/unstable/trusted-native previews.
+  bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems, schema v2
+  implementation/migration tooling, and external Perfetto adapters are deferred;
+  the default-off OTel, Prometheus, ROS 2, C API, Python, and plugin-loader
+  preview targets are only dependency-free/unstable/trusted-native previews, and
+  the schema v2 work is currently a decision note only.
 - The beta readiness review covers only a possible core-runtime beta candidate;
   adapter/ecosystem beta readiness, hard real-time scheduling, signed release
   uploads, and package-registry publication remain deferred.

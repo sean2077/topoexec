@@ -14,7 +14,7 @@ Use this checklist for any change that touches installed headers, public C++ typ
 - [ ] Update `docs/public-api.md` when a header/type/function/class stability level changes.
 - [ ] Update `docs/versioning.md` for schema, semantic-contract, release-target, or compatibility-policy changes.
 - [ ] Update `CHANGELOG.md` for public behavior/API/docs changes.
-- [ ] Update schema docs and JSON schema if a schema field changes.
+- [ ] Update schema docs, JSON schema, and `docs/schema-v2-notes.md` classification if a schema field changes.
 - [ ] Update metrics/trace/diagnostics docs and goldens if CLI JSON changes.
 - [ ] Add or update a downstream smoke when embedder usage changes.
 

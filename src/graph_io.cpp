@@ -708,6 +708,9 @@ GraphSpec load_graph_node(const YAML::Node& root) {
                          "templates", "template_instances"});
   GraphSpec graph;
   graph.schema_version = require_node(root, "schema_version", "runtime graph").as<int>();
+  if (graph.schema_version != kTopoExecSchemaVersion) {
+    throw std::invalid_argument("runtime graph.schema_version must be " + std::to_string(kTopoExecSchemaVersion));
+  }
 
   const auto graph_node = require_node(root, "graph", "runtime graph");
   require_map(graph_node, "runtime graph.graph");

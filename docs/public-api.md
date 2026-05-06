@@ -166,6 +166,10 @@ A schema version bump is required when a graph that was valid under the old sche
 - incompatible validation behavior for existing graph files.
 
 Additive optional fields with documented defaults can remain in schema v1.
+[Schema v2 notes](schema-v2-notes.md) are the review gate for candidates such
+as runtime-nested subgraphs, YAML-authored typed ports, graph-declared adapter
+or plugin/package discovery, arbitrary trigger expressions, and schema-selected
+runtime behavior.
 
 ## CLI JSON Compatibility
 
@@ -265,4 +269,4 @@ topoexec::Status execute_status(const topoexec::Invocation& invocation,
 
 ## API change checklist
 
-Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, CLI JSON, schema fields, or adapter-preview boundaries.
+Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, CLI JSON, schema fields, or adapter-preview boundaries; schema-field proposals must also classify v1 vs v2 impact in [schema-v2-notes.md](schema-v2-notes.md).

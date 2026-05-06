@@ -6,10 +6,10 @@ This file is the human-readable entry point for continuing `docs/plans/plan2.md`
 
 Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/status.md` as the current ledger.
 
-Current safe order after the completed P0/P1 queue plus G35/G41/G42/G45/G58/G59/G60/G61/G62/G63:
+Current safe order after the completed P0/P1 queue plus G35/G41/G42/G45/G58/G59/G60/G61/G62/G63/G64:
 
-1. G64-G65 schema/editor ecosystem preview goals only after the core/API
-   boundary remains clean for the chosen slice.
+1. G65 Editor / LSP / JSON Schema UX, keeping schema v2 implementation and
+   migration tooling deferred unless explicitly opened.
 2. G68 Community and Contribution Readiness.
 
 Continue by backlog order in `docs/goals/backlog.md`, keeping concrete adapter

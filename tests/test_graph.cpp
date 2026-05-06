@@ -453,6 +453,25 @@ TEST(Graph, LoadsAndValidatesSchemaVersionOne) {
   EXPECT_NE(topoexec::graph_mermaid(graph, result.compiled_plan).find("flowchart TD"), std::string::npos);
 }
 
+TEST(Graph, RejectsSchemaVersionTwoUntilV2LoaderExists) {
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(R"(
+schema_version: 2
+graph: {name: future_v2_sketch, kind: runnable}
+lanes: {main: {type: event_loop}}
+components: []
+edges: []
+)");
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("schema_version must be 1"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
 TEST(Graph, SubgraphExpandsToNamespacedComponentsEdgesAndPlanHierarchy) {
   const auto graph = topoexec::load_graph_text(R"(
 schema_version: 1

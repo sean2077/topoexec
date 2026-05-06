@@ -7,6 +7,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -26,6 +27,8 @@ def main() -> int:
     require(schema.get("x-topoexec-semantic_contract_version") == "0.2",
             "semantic contract version annotation drifted")
     require(schema.get("additionalProperties") is False, "root must be strict")
+    require(schema["properties"]["schema_version"] == {"const": 1},
+            "schema_version must remain v1-only until a reviewed v2 loader exists")
     require(schema.get("required") == ["schema_version", "graph", "lanes", "components", "edges"],
             "root required fields drifted")
     defs = schema["$defs"]
@@ -94,6 +97,32 @@ def main() -> int:
         if completed.returncode != 0:
             sys.stderr.write(f"{example} failed validation\n{completed.stdout}\n{completed.stderr}\n")
             return 1
+
+    with tempfile.NamedTemporaryFile("w", suffix=".yaml", encoding="utf-8", delete=False) as handle:
+        handle.write(
+            "schema_version: 2\n"
+            "graph: {name: future_v2_sketch, kind: runnable}\n"
+            "lanes: {main: {type: event_loop}}\n"
+            "components: []\n"
+            "edges: []\n"
+        )
+        v2_sketch = Path(handle.name)
+    try:
+        completed = subprocess.run(
+            [str(args.topoexec), "schema", "check", str(v2_sketch), "--format", "json"],
+            cwd=args.source_dir,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if completed.returncode == 0:
+            sys.stderr.write("schema_version: 2 sketch was accepted by the v1 schema checker\n")
+            sys.stderr.write(completed.stdout)
+            sys.stderr.write(completed.stderr)
+            return 1
+    finally:
+        v2_sketch.unlink(missing_ok=True)
     return 0
 
 

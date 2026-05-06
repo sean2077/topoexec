@@ -91,6 +91,10 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added the G70 beta readiness review, beta-candidate gate checklist, explicit
   deferred-scope ledger, and pre-1.0 deprecation policy for stable-v0.2,
   experimental, schema, and CLI JSON surfaces.
+- Added `docs/schema-v2-notes.md` as the G64 schema-v2 decision boundary, with
+  candidate feature classification, additive-v1 vs breaking-v2 rules, migration
+  guidance, docs-map coverage, and schema-contract coverage proving v1 remains
+  strict and v2 sketches are not accepted by the v1 checker.
 - Added `topoexec schema dump`, `topoexec schema check`, and `topoexec doctor` JSON/text tooling.
 - Added state/config, batch/time-sync, service-style async, and boundary-adapter-pattern YAML examples plus an examples catalog with CLI smokes.
 - Added a documentation index, tutorial/reference pages, and doc-command smoke coverage for the getting-started and CLI paths.

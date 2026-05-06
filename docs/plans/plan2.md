@@ -2133,6 +2133,20 @@ Priority: P2
 - Future schema changes are deliberate.
 - No accidental v1 semantic drift.
 
+### Implementation note (2026-05-06)
+
+- Added `docs/schema-v2-notes.md` as the G64 design boundary. It classifies
+  hierarchical subgraphs, typed ports, semantic contract selection, richer
+  scheduler lanes, trigger expressions/watermarks, health sinks, adapter
+  descriptors, config hot reload, and plugin/package refs into additive-v1 vs
+  schema-v2-required categories.
+- Kept schema v2 implementation, v2 loader, v2 migration CLI, dynamic discovery,
+  arbitrary expressions, runtime nesting, and adapter-specific graph fields as
+  explicit non-goals.
+- Expanded docs/schema contract checks so v1 examples still validate, the JSON
+  Schema remains `schema_version: 1`, and a `schema_version: 2` sketch is rejected
+  by the current v1 schema checker.
+
 ---
 
 ## G65. Editor / LSP / JSON Schema UX
@@ -2410,7 +2424,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G42, G64-G65, or G68.
+  and hidden deferral of G65, G68, or actual schema v2 implementation/migration scope.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2481,7 +2495,7 @@ Priority: P0 before beta
 39. G61 C API / FFI Design（complete）
 40. G62 Python Binding Preview（complete）
 41. G63 Dynamic Plugin Loading Preview（complete）
-42. G64 Schema v2 Exploration
+42. G64 Schema v2 Exploration（complete）
 43. G65 Editor / LSP UX
 
 ## Phase H：Beta

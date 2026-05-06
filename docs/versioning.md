@@ -38,6 +38,9 @@ Current runtime semantic contract:
   owner without weakening immediate-SCC validation or adding runtime plugins.
 - A semantic change can require a contract-version update even if the schema shape does not change.
 - A schema bump can be required when old graph files would be rejected or would mean something different.
+- [Schema v2 notes](schema-v2-notes.md) classify candidate future fields so v1
+  does not absorb breaking behavior, graph-driven plugin/package discovery,
+  adapter-specific transport config, or arbitrary expression languages.
 
 The current semantic contract is documented in [semantic-contract.md](semantic-contract.md) and exposed through `topoexec doctor` plus the schema dump annotation `x-topoexec-semantic_contract_version`.
 
@@ -72,6 +75,8 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
   mapping options.
 - Trusted-native plugin loader preview target, manifest fields, error codes,
   unload option, and plugin ABI/version policy.
+- Schema v2 candidate sketches in [schema-v2-notes.md](schema-v2-notes.md);
+  no v2 loader or migration CLI exists yet.
 - Experimental headers listed in [public-api.md](public-api.md).
 
 Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, schema fields, or CLI JSON surfaces.
@@ -108,6 +113,7 @@ Schema v1 is strict and compatibility-preserving:
 - Unknown fields remain invalid.
 - Breaking semantic changes require a schema version bump.
 - New adapter-specific fields should not be added to core schema v1 unless they are useful without that adapter.
+- Candidate v2 features must be classified against [schema-v2-notes.md](schema-v2-notes.md) before changing v1.
 
 ## Release Tags
 
@@ -133,7 +139,8 @@ or a later preview. Release stage names must reflect implemented behavior, not
 only design docs. Adapter implementation tags should not be claimed while real ROS 2
 client-library packages, production OpenTelemetry/Prometheus, native Python
 bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems, graph-driven
-plugin discovery, and external Perfetto integrations remain docs-only/deferred.
+plugin discovery, schema v2 implementation/migration tooling, and external
+Perfetto integrations remain docs-only/deferred.
 G58/G59 telemetry targets, the G60 ROS 2 target, the G61 C API target, the G62
 Python automation package, and the G63 plugin loader target are only
 dependency-free, CLI-backed, ABI-version-0, or trusted-native previews.

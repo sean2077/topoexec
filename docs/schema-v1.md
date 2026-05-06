@@ -449,4 +449,4 @@ topoexec schema check examples/minimal.yaml --format json
 
 ## Versioning
 
-Schema v1 is strict and compatibility-preserving. Additive fields require a schema update only when v1 validation or runtime meaning would change. Breaking semantic changes should bump the schema version rather than silently changing v1 behavior.
+Schema v1 is strict and compatibility-preserving. Additive fields require a schema update only when v1 validation or runtime meaning would change. Breaking semantic changes should bump the schema version rather than silently changing v1 behavior. See [Schema v2 notes](schema-v2-notes.md) before adding fields that would require runtime nesting, graph-declared adapter/plugin discovery, arbitrary expressions, or behavior selection by schema version.

@@ -44,6 +44,7 @@ inspect a YAML graph in less than 30 minutes by following this path.
 
 - [Graph spec](graph-spec.md)
 - [Schema v1](schema-v1.md)
+- [Schema v2 notes](schema-v2-notes.md)
 - [Hierarchical graphs](hierarchical-graphs.md)
 - [Graph templates](graph-templates.md)
 - [Channels and backpressure](channels.md)
@@ -69,8 +70,8 @@ inspect a YAML graph in less than 30 minutes by following this path.
 
 Adapters remain deferred/preview unless a later goal explicitly implements them.
 Do not infer production ROS 2, production OpenTelemetry/Prometheus, Python,
-stable ABI, production plugin ecosystem, or sandbox support from docs that only
-describe boundaries. The G58 OTel, G59 Prometheus, G60 ROS 2, G61 C API, G62
+stable ABI, production plugin ecosystem, schema v2 implementation, migration CLI,
+or sandbox support from docs that only describe boundaries or design notes. The G58 OTel, G59 Prometheus, G60 ROS 2, G61 C API, G62
 Python, and G63 plugin-loader targets are dependency-free/unstable/default-off
 previews, not production telemetry SDK/server/client, native binding, stable ABI,
 sandboxed plugin, or package-discovery integrations.
@@ -100,6 +101,6 @@ sandboxed plugin, or package-discovery integrations.
 
 The `docs_command_smoke` CTest runs selected commands embedded as
 `topoexec-doc-test` markers across the docs tree. It also checks that the G55
-learning map, cookbook, diagrams, comparisons, and design-principle pages keep
-required sections present. Package, C++ app, benchmark, fuzz, and stress smokes
+learning map, cookbook, diagrams, comparisons, design-principle pages, and G64
+schema-v2 decision note keep required sections present. Package, C++ app, benchmark, fuzz, and stress smokes
 cover compileable/runtime snippets outside docs.

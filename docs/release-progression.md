@@ -8,7 +8,8 @@ a tag announcement.
 
 The post-G25 baseline commit `b86a586d3a48d84bf4e03ccabde3d061e3073579`
 started the current release-candidate line. As of the plan2 line through G70
-plus the later G35 trigger-v2 preview and G63 plugin-loader preview, the repository has:
+plus the later G35 trigger-v2 preview, G63 plugin-loader preview, and G64
+schema-v2 exploration, the repository has:
 
 - G0-G25 complete and archived as the previous plan sweep.
 - 50/50 default CTest tests passing in the previous baseline evidence.
@@ -42,6 +43,8 @@ plus the later G35 trigger-v2 preview and G63 plugin-loader preview, the reposit
   deprecation policy, and explicit deferred-scope ledger. It supports only a
   human-approved core-runtime beta candidate review, not adapter/ecosystem beta
   readiness.
+- G64 adds schema-v2 notes that classify additive-v1 vs breaking-v2 candidates
+  and keep v2 loader/migration tooling deferred until design review.
 - G35 adds declarative trigger-v2 preview policies for watermark late-drop,
   condition readiness, debounce coalescing, and rate limiting without arbitrary
   scripting or schema-v2 expression language claims.
@@ -78,9 +81,9 @@ Rationale:
 | Stage | Status | Evidence | Remaining before tagging that stage |
 | --- | --- | --- | --- |
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
-| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, OTel/Prometheus preview mappings, C API preview, Python automation preview, trusted-native plugin-loader preview, CPack smoke, G67 release-prep automation, G69 pilot-app evidence, and the G70 beta-readiness audit. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
+| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, OTel/Prometheus preview mappings, C API preview, Python automation preview, trusted-native plugin-loader preview, schema-v2 decision notes, CPack smoke, G67 release-prep automation, G69 pilot-app evidence, and the G70 beta-readiness audit. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
 | `v0.3.0-alpha` | Preview-doc ready, partial observer/exporter API implemented | RuntimeObserver v1, adapter contracts, OTel/Prometheus preview targets, ROS 2 fake-boundary preview, C API/FFI preview, Python automation preview, trusted-native plugin-loader preview, and stub layout are complete without core dependency pollution. | Add concrete production exporter/adapter targets before claiming adapter implementation readiness. |
-| `v0.5.0-beta` | Conditional core-runtime review only; not automatically tag-ready | ASAN+UBSAN, fuzz smoke, bounded stress smoke, docs/examples, API/deprecation policy, G67 release prep, G69 pilot, and G70 audit exist. | Human release owner must accept deferrals, run gates on exact candidate commit, attach release-prep artifacts, decide TSAN/soak/fuzz scope, and avoid adapter/ecosystem beta claims. |
+| `v0.5.0-beta` | Conditional core-runtime review only; not automatically tag-ready | ASAN+UBSAN, fuzz smoke, bounded stress smoke, docs/examples, API/deprecation policy, G64 schema-v2 boundary, G67 release prep, G69 pilot, and G70 audit exist. | Human release owner must accept deferrals, run gates on exact candidate commit, attach release-prep artifacts, decide TSAN/soak/fuzz scope, and avoid adapter/ecosystem beta claims. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
 
 ## Goal completion rollup
@@ -94,8 +97,8 @@ Deferred capabilities remain documented as limitations rather than hidden TODOs:
 
 - Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python
   bindings, Perfetto, stable C ABI, sandboxed/stable plugin ecosystems,
-  graph-driven plugin discovery, and package-manager publication are
-  preview/deferred surfaces.
+  graph-driven plugin discovery, schema v2 implementation/migration tooling, and
+  package-manager publication are preview/deferred surfaces.
 - TSAN remains non-blocking until concurrency signal is stable.
 - Coverage-guided fuzzing, bounded stress smoke, and benchmark schema v2 baseline
   tooling exist; longer fuzz campaigns, soak runs, and opt-in per-machine

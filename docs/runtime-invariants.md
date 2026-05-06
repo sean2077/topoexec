@@ -39,6 +39,7 @@ This document maps the invariants from `docs/plans/plan.md` G3 to concrete CI te
 | 32 | FFI preview uses opaque handles and explicit ownership without freezing ABI or importing language runtimes into core. | `CApiPreview.RunsNoopGraphAndIteratesMetrics`; `CApiPreview.ReportsBuilderErrorsWithoutExceptions`; `cmake_c_api_options_smoke`; `policy_no_core_adapter_deps`. |
 | 33 | Python automation preview stays CLI-backed, default-off, and outside core/runtime native bindings. | `python_preview_smoke`; `cmake_python_preview_options_smoke`; `policy_no_core_adapter_deps`. |
 | 34 | Dynamic plugin loading is optional, explicit, trusted-native only, and does not become a runtime/core dependency. | `test_plugin_loader`; `cmake_plugin_loader_options_smoke`; `policy_no_core_adapter_deps`; `policy_architecture_self_test`. |
+| 35 | Schema v2 remains a design boundary until a reviewed v2 loader exists; schema v1 stays strict and rejects `schema_version: 2`. | `schema_v1_contract_smoke`; `docs_command_smoke`; `docs/schema-v2-notes.md`. |
 
 ## Maintenance rule
 

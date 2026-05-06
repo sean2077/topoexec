@@ -75,6 +75,17 @@ Current local evidence after G63 plugin-loader preview:
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 78/78 ASAN+UBSAN CTest tests.
 ```
 
+Current local evidence after G64 schema-v2 exploration:
+
+```text
+./scripts/goal_check.sh schema: passed schema_v1_contract_smoke plus schema-only/semantic minimal CLI smokes; contract now verifies schema_version remains const 1 and rejects schema_version: 2 sketches.
+./scripts/goal_check.sh docs: passed docs map including schema-v2-notes.md.
+./scripts/goal_check.sh quick: passed golden/schema smokes.
+./scripts/goal_check.sh policy: passed architecture policy smokes.
+./scripts/agent_check.sh: passed, 78/78 CTest tests.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 78/78 ASAN+UBSAN CTest tests.
+```
+
 ## Golden drift surfaces
 
 The release candidate must preserve or intentionally update these goldens:
@@ -157,8 +168,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
   thresholds remain intentionally absent; use only opt-in per-machine
   comparisons.
 - Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python
-  bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems, graph-driven
-  plugin discovery, and external Perfetto adapters remain deferred.
+  bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems,
+  graph-driven plugin discovery, schema v2 implementation/migration tooling, and
+  external Perfetto adapters remain deferred.
 - Package-manager recipes under `packaging/` are drafts, not published ports.
 - `scripts/release_prepare.sh` can generate local candidate artifacts and
   checksums, but signed release uploads and annotated tag pushes still require a
@@ -185,6 +197,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - G35 trigger-v2 policies are additive declarative previews. They do not provide
   arbitrary trigger scripts, wall-clock debounce timers, external watermark
   coordination, or schema-v2 trigger expressions.
+- G64 is a schema-v2 design note only. It classifies future schema candidates but
+  does not implement a v2 loader, migration CLI, runtime nesting, graph-driven
+  plugin/package discovery, adapter-specific graph fields, or expression language.
 
 ## Tagging
 
