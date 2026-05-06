@@ -1990,9 +1990,9 @@ G61 landed as an unstable ABI-version-0 preview, not a stable ABI.
 builder, and result handles; explicit create/run/destroy ownership; borrowed
 error strings; minimal event-loop/no-op graph construction; and runtime metric
 iteration. `test_c_api` and `cmake_c_api_options_smoke` prove a downstream C
-source can consume the installed target. Python bindings, dynamic plugins, C
-component callbacks, high-throughput payload handles, and ABI stability remain
-future scope.
+source can consume the installed target. Native Python bindings, dynamic
+plugins, C component callbacks, high-throughput payload handles, and ABI
+stability remain future scope.
 
 ---
 
@@ -2027,6 +2027,19 @@ Priority: P3
 
 - Python helps testing and automation.
 - It does not become required runtime dependency.
+
+### Implementation note (2026-05-06)
+
+G62 landed as a default-off, stdlib-only Python automation preview rather than a
+native binding. `python/topoexec_preview` shells out to the built or installed
+`topoexec` CLI for JSON validate, plan, bounded run, metrics, and trace helpers;
+`GraphDocument` supports path or in-memory YAML materialization for tests.
+`TOPOEXEC_BUILD_PYTHON_PREVIEW=ON` installs the package under
+`share/topoexec/python` and runs `python_preview_smoke`.
+`cmake_python_preview_options_smoke` proves both source and installed package
+usage and also proves the disabled runtime-only C++ build has no Python/CLI/YAML
+requirement. Native extensions, Python component callbacks, high-throughput
+payloads, zero-copy bridges, and stable Python API shape remain future scope.
 
 ---
 
@@ -2382,7 +2395,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G42, G62-G65, or G68.
+  and hidden deferral of G42, G63-G65, or G68.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2451,7 +2464,7 @@ Priority: P0 before beta
 37. G59 Prometheus Exporter Preview（complete）
 38. G60 ROS 2 Adapter Preview（complete）
 39. G61 C API / FFI Design（complete）
-40. G62 Python Binding Preview
+40. G62 Python Binding Preview（complete）
 41. G63 Dynamic Plugin Loading Preview
 42. G64 Schema v2 Exploration
 43. G65 Editor / LSP UX

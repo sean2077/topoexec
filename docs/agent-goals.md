@@ -6,9 +6,9 @@ This file is the human-readable entry point for continuing `docs/plans/plan2.md`
 
 Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/status.md` as the current ledger.
 
-Current safe order after the completed P0/P1 queue plus G35/G41/G42/G45/G58/G59/G60/G61:
+Current safe order after the completed P0/P1 queue plus G35/G41/G42/G45/G58/G59/G60/G61/G62:
 
-1. G62-G65 adapter/interface/ecosystem preview goals only after the core/API
+1. G63-G65 adapter/interface/ecosystem preview goals only after the core/API
    boundary remains clean for the chosen slice.
 2. G68 Community and Contribution Readiness.
 
@@ -51,6 +51,8 @@ Blocker protocol:
 - `./scripts/goal_check.sh fuzz` — deterministic parser/compiler fuzz smoke.
 - `./scripts/goal_check.sh policy` — architecture/dependency policy smokes.
 - `./scripts/goal_check.sh adapters` — optional adapter-preview target/package smokes.
+- `./scripts/goal_check.sh ffi` — optional C API/FFI preview target/package smokes.
+- `./scripts/goal_check.sh python` — optional CLI-backed Python automation preview smokes.
 - `./scripts/goal_check.sh sanitizer` — ASAN+UBSAN Debug build plus full CTest.
 - `./scripts/goal_check.sh format` — clang-format target.
 - `./scripts/goal_check.sh debug` — local Debug GCC build and CTest.

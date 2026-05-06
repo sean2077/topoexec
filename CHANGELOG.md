@@ -76,6 +76,11 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
   handles, create/run/destroy, borrowed error strings, metric iteration,
   downstream C smoke coverage, and ABI version `0` to avoid accidental ABI
   freeze.
+- Added the default-off `topoexec_preview` Python automation preview with
+  `TOPOEXEC_BUILD_PYTHON_PREVIEW`, stdlib-only CLI-backed validate/plan/run,
+  metrics, and trace helpers, source/installed Python smokes, and disabled
+  runtime-only C++ option coverage proving Python is not a required runtime
+  dependency.
 - Added release automation with `scripts/release_prepare.sh`, `./scripts/goal_check.sh release`, manual CI dry-run artifact upload, release notes draft generation, annotated-tag/no-retag guardrails, source/CPack/schema artifacts, and checksum output without publishing or tagging automatically.
 - Added the G69 robot-cell pilot app and case study, composing multiple lanes, async overload drops, state/delay feedback, BufferPool frames, config transactions/snapshots, metrics/trace evidence, and invalid-config rejection without adapter dependencies.
 - Added the G70 beta readiness review, beta-candidate gate checklist, explicit
@@ -153,5 +158,5 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 - Threaded worker-pool scheduling is not implemented; use `event_loop` for runnable alpha graphs.
 - Async max-inflight policy is represented by bounded async channel capacity and overflow policy, not a dedicated worker-pool admission controller.
-- Production OpenTelemetry, Prometheus, ROS 2, Python, and Perfetto adapters are deferred until after beta core stabilization; current adapter targets are dependency-free previews only.
+- Production OpenTelemetry, Prometheus, ROS 2, native Python bindings, and Perfetto adapters are deferred until after beta core stabilization; current adapter/Python preview targets are dependency-free or CLI-backed previews only.
 - Sanitizer CI is planned but not yet wired.

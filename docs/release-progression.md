@@ -16,9 +16,9 @@ plus the later G35 trigger-v2 preview, the repository has:
 - Runtime-only configure/build/install smoke coverage with YAML, CLI, examples,
   and tests disabled.
 - Dependency-free Adapter SDK v0 plus G58/G59 dependency-free telemetry mapping
-  previews, the G60 ROS 2 fake-boundary preview, and the G61 unstable C
-  API/FFI preview; no concrete ROS 2 client-library package, production
-  OpenTelemetry/Prometheus, stable C ABI, Python binding, dynamic plugin, or
+  previews, the G60 ROS 2 fake-boundary preview, the G61 unstable C
+  API/FFI preview, and the G62 CLI-backed Python automation preview; no concrete ROS 2 client-library package, production
+  OpenTelemetry/Prometheus, stable C ABI, native Python binding, dynamic plugin, or
   external Perfetto adapter is implemented.
 - Defensive parser limits plus deterministic fuzz smoke.
 - Bounded stress smoke for generated scheduler/channel workloads, thread-pool
@@ -76,8 +76,8 @@ Rationale:
 | Stage | Status | Evidence | Remaining before tagging that stage |
 | --- | --- | --- | --- |
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
-| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, OTel/Prometheus preview mappings, C API preview, CPack smoke, G67 release-prep automation, G69 pilot-app evidence, and the G70 beta-readiness audit. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
-| `v0.3.0-alpha` | Preview-doc ready, partial observer/exporter API implemented | RuntimeObserver v1, adapter contracts, OTel/Prometheus preview targets, ROS 2 fake-boundary preview, C API/FFI preview, and stub layout are complete without core dependency pollution. | Add concrete production exporter/adapter targets before claiming adapter implementation readiness. |
+| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, OTel/Prometheus preview mappings, C API preview, Python automation preview, CPack smoke, G67 release-prep automation, G69 pilot-app evidence, and the G70 beta-readiness audit. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
+| `v0.3.0-alpha` | Preview-doc ready, partial observer/exporter API implemented | RuntimeObserver v1, adapter contracts, OTel/Prometheus preview targets, ROS 2 fake-boundary preview, C API/FFI preview, Python automation preview, and stub layout are complete without core dependency pollution. | Add concrete production exporter/adapter targets before claiming adapter implementation readiness. |
 | `v0.5.0-beta` | Conditional core-runtime review only; not automatically tag-ready | ASAN+UBSAN, fuzz smoke, bounded stress smoke, docs/examples, API/deprecation policy, G67 release prep, G69 pilot, and G70 audit exist. | Human release owner must accept deferrals, run gates on exact candidate commit, attach release-prep artifacts, decide TSAN/soak/fuzz scope, and avoid adapter/ecosystem beta claims. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
 
@@ -90,7 +90,7 @@ Rationale:
 
 Deferred capabilities remain documented as limitations rather than hidden TODOs:
 
-- Production ROS 2 packages, production OpenTelemetry/Prometheus, Python, Perfetto, stable C ABI, dynamic plugin
+- Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python bindings, Perfetto, stable C ABI, dynamic plugin
   loaders, and package-manager publication are preview/deferred surfaces.
 - TSAN remains non-blocking until concurrency signal is stable.
 - Coverage-guided fuzzing, bounded stress smoke, and benchmark schema v2 baseline

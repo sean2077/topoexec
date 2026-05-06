@@ -11,6 +11,7 @@ option(TOPOEXEC_BUILD_CLI "Build topoexec CLI" ON)
 option(TOPOEXEC_BUILD_EXAMPLES "Build runnable example applications" ON)
 option(TOPOEXEC_BUILD_FUZZERS "Build optional graph input fuzz targets" OFF)
 option(TOPOEXEC_BUILD_C_API "Build optional unstable C API preview target" OFF)
+option(TOPOEXEC_BUILD_PYTHON_PREVIEW "Enable optional unstable CLI-backed Python automation preview" OFF)
 option(TOPOEXEC_BUILD_OTEL_ADAPTER "Build optional OTel exporter preview target" OFF)
 option(TOPOEXEC_BUILD_PROMETHEUS_ADAPTER "Build optional Prometheus text exporter preview target" OFF)
 option(TOPOEXEC_BUILD_ROS2_ADAPTER "Build optional dependency-free ROS 2 adapter preview target" OFF)
@@ -87,6 +88,9 @@ if(TOPOEXEC_BUILD_CLI)
     message(FATAL_ERROR "TOPOEXEC_BUILD_CLI=ON requires TOPOEXEC_BUILD_YAML=ON")
   endif()
   find_package(CLI11 REQUIRED)
+endif()
+if(TOPOEXEC_BUILD_PYTHON_PREVIEW AND NOT TOPOEXEC_BUILD_CLI)
+  message(FATAL_ERROR "TOPOEXEC_BUILD_PYTHON_PREVIEW=ON requires TOPOEXEC_BUILD_CLI=ON because the G62 preview is CLI-backed")
 endif()
 if(TOPOEXEC_BUILD_EXAMPLES AND NOT TOPOEXEC_BUILD_YAML)
   message(FATAL_ERROR "TOPOEXEC_BUILD_EXAMPLES=ON requires TOPOEXEC_BUILD_YAML=ON")
@@ -328,6 +332,12 @@ install(FILES
   DESTINATION lib/cmake/topoexec
 )
 install(FILES schema/topoexec.schema.v1.json DESTINATION share/topoexec/schema)
+if(TOPOEXEC_BUILD_PYTHON_PREVIEW)
+  install(DIRECTORY python/topoexec_preview
+    DESTINATION share/topoexec/python
+    FILES_MATCHING PATTERN "*.py" PATTERN "py.typed"
+  )
+endif()
 
 set(CPACK_PACKAGE_NAME "topoexec")
 set(CPACK_PACKAGE_VENDOR "TopoExec")
@@ -405,6 +415,15 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     add_executable(test_c_api tests/test_c_api.cpp)
     target_link_libraries(test_c_api PRIVATE topoexec_c_api GTest::gtest_main)
     add_test(NAME test_c_api COMMAND test_c_api)
+  endif()
+
+  if(TOPOEXEC_BUILD_PYTHON_PREVIEW)
+    add_test(NAME python_preview_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/python/test_python_preview.py
+    )
+    set_tests_properties(python_preview_smoke PROPERTIES
+      ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/python;TOPOEXEC_PYTHON_PREVIEW_EXE=$<TARGET_FILE:topoexec_cli>;TOPOEXEC_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+    )
   endif()
 
   add_executable(topoexec_bench_task_executor benchmarks/task_executor.cpp)
@@ -676,6 +695,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
       -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/c_api_options_smoke.cmake
+  )
+  add_test(NAME cmake_python_preview_options_smoke
+    COMMAND ${CMAKE_COMMAND}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/python_preview_options_smoke.cmake
   )
   add_test(NAME cmake_cpack_smoke
     COMMAND ${CMAKE_COMMAND}

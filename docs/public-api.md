@@ -17,11 +17,14 @@ TopoExec is pre-1.0, but embedders should still know which headers are intended 
 
 Installed package config metadata exposes `TOPOEXEC_VERSION`,
 `TOPOEXEC_SCHEMA_VERSION`, `TOPOEXEC_SEMANTIC_CONTRACT_VERSION`,
-`TOPOEXEC_HAS_RUNTIME`, `TOPOEXEC_HAS_ADAPTER_SDK`, `TOPOEXEC_HAS_C_API`, `TOPOEXEC_HAS_YAML`,
+`TOPOEXEC_HAS_RUNTIME`, `TOPOEXEC_HAS_ADAPTER_SDK`, `TOPOEXEC_HAS_C_API`,
+`TOPOEXEC_HAS_PYTHON_PREVIEW`, `TOPOEXEC_HAS_YAML`,
 `TOPOEXEC_HAS_OTEL_ADAPTER`, `TOPOEXEC_HAS_PROMETHEUS_ADAPTER`,
 `TOPOEXEC_HAS_ROS2_ADAPTER`, `TOPOEXEC_HAS_CLI`, and
 `TOPOEXEC_HAS_EXAMPLES` so downstream projects can assert package capabilities
-at configure time.
+at configure time. The Python automation preview is not a C++ target or native
+extension; when enabled, it installs `topoexec_preview` for CLI-backed
+automation only.
 
 ## Stability markers
 

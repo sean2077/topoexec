@@ -163,7 +163,7 @@ not core schema and belongs in a ROS adapter config layer.
 | Prometheus | G59 preview renders existing metrics and custom histogram summaries as text exposition through `topoexec_adapters::prometheus`. | Core does not run HTTP servers or Prometheus registries; no unbounded labels. |
 | Perfetto | Convert trace events to richer Perfetto output. | Core keeps Chrome trace JSON as dependency-free output. |
 | ROS 2 | G60 preview maps topics/services/actions and adapter-side QoS through `topoexec_adapters::ros2` fake boundary bridges. | Core does not include ROS client libraries, ROS executors, or ROS QoS fields. |
-| Python | Configuration, tests, and scripting first. | Python is not the high-performance payload path. |
+| Python | G62 preview provides `topoexec_preview`, a stdlib-only CLI-backed automation package for validation, plan, run, metrics, and trace JSON. | Python is not a native component implementation or high-performance payload path. |
 | C API | G61 preview exposes `topoexec::c_api` opaque handles, create/run/destroy, error strings, and metric iteration. | ABI version remains `0`; no Python binding, dynamic plugin, or stable ABI promise. |
 | Plugin loader | Optional dynamic component discovery. | Current core uses explicit `ComponentRegistry` factories only. |
 
@@ -179,6 +179,8 @@ not core schema and belongs in a ROS adapter config layer.
   executor interaction, lifecycle, diagnostics, tracing, and package smoke.
 - [C API / FFI preview](c-api.md) documents the unstable G61 ABI-version-0
   target, opaque handles, ownership, error-string, and metric iteration rules.
+- [Python automation preview](python-preview.md) documents the G62 default-off
+  CLI-backed package, stdlib-only dependency model, and non-goals.
 
 ## Stub examples
 
@@ -190,9 +192,10 @@ not built and contain no external SDK includes. The runnable boundary pattern is
 
 `policy_no_core_adapter_deps` scans core/source/build files for accidental
 adapter SDK symbols such as ROS client-library includes, OpenTelemetry, Prometheus, Perfetto,
-`pybind11`, or `Python.h`; it also checks that `topoexec_runtime` does not link
-`topoexec_adapter_sdk`, that `topoexec_adapter_sdk` depends only on runtime, and
-that the optional OTel preview target depends outward through the adapter SDK.
-It also checks the optional Prometheus and ROS 2 preview targets. The policy intentionally
-ignores docs and preview stub notes where those names are discussed as deferred
-dependencies.
+`pybind11`, `Python.h`, or native Python bridge tokens in the preview package;
+it also checks that `topoexec_runtime` does not link `topoexec_adapter_sdk`,
+that `topoexec_adapter_sdk` depends only on runtime, and that optional preview
+targets depend outward through the adapter SDK or CLI-backed preview boundary.
+It also checks the optional Prometheus, ROS 2, C API, and Python preview
+option-smoke paths. The policy intentionally ignores docs and preview stub notes
+where those names are discussed as deferred dependencies.

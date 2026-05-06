@@ -12,9 +12,9 @@ hardware, package-registry, or 1.0 readiness claim.
 
 | Question | Verdict |
 | --- | --- |
-| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G61, G66-G67, and G69-G70 are complete; remaining G62-G65 and G68 are P2/P3 or community/ecosystem work and must stay explicit if not done before beta. |
+| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G62, G66-G67, and G69-G70 are complete; remaining G63-G65 and G68 are P2/P3 or community/ecosystem work and must stay explicit if not done before beta. |
 | Can TopoExec honestly prepare a core-runtime beta candidate? | Yes, if release notes keep the deferred features and alpha/experimental surfaces explicit and CI/release-prep evidence is attached for the exact candidate commit. |
-| Can TopoExec claim adapter/ecosystem beta readiness? | No. G58/G59 add dependency-free telemetry mapping/text previews and G60 adds only a dependency-free ROS 2 fake-boundary preview; concrete ROS 2 client-library packages, production OpenTelemetry/Prometheus, stable C ABI, Python, dynamic plugin, external Perfetto, and package-registry surfaces remain deferred or draft-only. |
+| Can TopoExec claim adapter/ecosystem beta readiness? | No. G58/G59 add dependency-free telemetry mapping/text previews and G60 adds only a dependency-free ROS 2 fake-boundary preview; concrete ROS 2 client-library packages, production OpenTelemetry/Prometheus, stable C ABI, native Python bindings, dynamic plugin, external Perfetto, and package-registry surfaces remain deferred or draft-only. |
 | Can TopoExec claim hard real-time or external scheduling guarantees? | No. Fixed-rate/thread-pool behavior is cooperative and observable; OS RT policy, CPU affinity guarantees, independent lane threads, hard preemption, and advanced starvation aging remain future work. |
 
 Recommended public line remains `v0.2.0-alpha.0` until a human explicitly opens a
@@ -43,7 +43,7 @@ adapter or ecosystem beta.
 | Diagnostics registry | `docs/diagnostics.md`, `include/topoexec/runtime/diagnostics.hpp`, `src/diagnostics.cpp`, graph tests, and CLI strict diagnostics smokes. | Covered |
 | Getting started / cookbook / API overview | `docs/getting-started.md`, `docs/cookbook.md`, `docs/api-overview.md`, and docs map smoke. | Covered |
 | Release notes and changelog | `CHANGELOG.md`, `docs/release-checklist.md`, `docs/release-runbook.md`, `docs/release-progression.md`, `scripts/release_prepare.sh`. | Covered |
-| Adapters preview-only unless tested | `docs/adapters.md`, `docs/adapters/otel.md`, `docs/adapters/prometheus.md`, `docs/adapters/ros2.md`, adapter SDK/telemetry preview headers, adapter package smokes, and architecture policy. | Covered; OTel/Prometheus/ROS 2 are dependency-free previews, concrete production adapters deferred |
+| Adapters preview-only unless tested | `docs/adapters.md`, `docs/adapters/otel.md`, `docs/adapters/prometheus.md`, `docs/adapters/ros2.md`, adapter SDK/telemetry preview headers, Python preview smokes, adapter package smokes, and architecture policy. | Covered; OTel/Prometheus/ROS 2/Python are dependency-free or CLI-backed previews, concrete production adapters/native bindings deferred |
 | No core dependency pollution | CMake target boundaries plus policy checks keep runtime free of YAML/CLI/adapter dependencies. | Covered |
 | Install smoke / package-manager drafts / artifact smoke | `./scripts/goal_check.sh package`, `packaging/vcpkg/*`, `packaging/conan/*`, CPack smoke, and release-prep artifact rehearsal. | Covered; package registries unpublished |
 | Benchmark output stable / no overclaims | `docs/performance-baselines.md`, `benchmarks/*.yaml`, `tests/bench/check_bench_contract.py`, and `./scripts/goal_check.sh bench`. | Covered; thresholds opt-in per machine |
@@ -66,6 +66,7 @@ cmake --build build --target topoexec_format_check
 ./scripts/goal_check.sh docs
 ./scripts/goal_check.sh package
 ./scripts/goal_check.sh policy
+./scripts/goal_check.sh python
 ./scripts/goal_check.sh fuzz
 ./scripts/goal_check.sh stress
 ./scripts/goal_check.sh bench
@@ -88,7 +89,7 @@ blocking for a beta tag, record that decision in release notes.
 - Production OpenTelemetry SDK/network exporter and Prometheus HTTP/scrape
   service. G58/G59 cover only dependency-free mapping/text previews.
 - Real ROS 2 client-library package beyond the G60 fake-boundary preview.
-- Stable C ABI beyond the G61 ABI-version-0 preview, Python binding, dynamic plugin loading, schema v2 exploration, and editor/LSP UX (G62-G65).
+- Stable C ABI beyond the G61 ABI-version-0 preview, native Python bindings beyond the G62 CLI-backed automation preview, dynamic plugin loading, schema v2 exploration, and editor/LSP UX (G63-G65).
 - Community/contribution readiness work (G68) if the beta is aimed at broad external contributors rather than core-runtime evaluators.
 
 ## Human release decision

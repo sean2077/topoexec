@@ -32,6 +32,13 @@ YAML_CLI_TOKENS = (
     "CLI11",
 )
 
+PYTHON_NATIVE_TOKENS = (
+    "ctypes",
+    "cffi",
+    "pybind11",
+    "Python.h",
+)
+
 SEMANTIC_BYPASS_HEADERS = (
     "topoexec/runtime/channel.hpp",
     "topoexec/runtime/event_runtime.hpp",
@@ -45,6 +52,7 @@ SEARCH_ROOTS = (
     "src",
     "tools",
     "cmake",
+    "python",
 )
 
 SKIP_SUFFIXES = (
@@ -135,6 +143,9 @@ def audit_files(root: Path) -> list[str]:
 
         if source.rel.startswith("tools/topoexec/"):
             add_token_violations(violations, source, SEMANTIC_BYPASS_HEADERS, "CLI semantic-bypass include")
+
+        if source.rel.startswith("python/"):
+            add_token_violations(violations, source, PYTHON_NATIVE_TOKENS, "native Python binding")
 
     return violations
 
@@ -264,6 +275,8 @@ def run_self_test() -> int:
         )
         (root / "src").mkdir()
         (root / "src/graph.cpp").write_text("// runtime source\n#include <yaml-cpp/yaml.h>\n", encoding="utf-8")
+        (root / "python/topoexec_preview").mkdir(parents=True)
+        (root / "python/topoexec_preview/bad.py").write_text("import ctypes\n", encoding="utf-8")
         (root / "cmake").mkdir()
         (root / "CMakeLists.txt").write_text(
             """
@@ -286,6 +299,7 @@ install(DIRECTORY include/ DESTINATION include)
             "runtime YAML/CLI dependency",
             "common-layer dependency",
             "CLI semantic-bypass include",
+            "native Python binding",
             "topoexec_runtime must not compile YAML graph_io.cpp",
             "topoexec_cli should consume topoexec_yaml",
         ]

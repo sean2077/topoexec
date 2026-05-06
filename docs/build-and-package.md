@@ -55,6 +55,8 @@ The installed package exports:
 - `topoexec::yaml`: optional YAML graph loader target when built.
 - `topoexec::topoexec_cli`: optional imported executable target when the CLI is
   built and installed.
+- `topoexec_preview`: optional installed Python automation preview under
+  `share/topoexec/python` when `TOPOEXEC_BUILD_PYTHON_PREVIEW=ON`.
 - `topoexec_adapters::otel`: optional dependency-free OTel exporter preview
   target when `TOPOEXEC_BUILD_OTEL_ADAPTER=ON`.
 - `topoexec_adapters::prometheus`: optional dependency-free Prometheus text
@@ -71,6 +73,7 @@ The installed config also exposes package metadata variables:
 - `TOPOEXEC_HAS_RUNTIME`
 - `TOPOEXEC_HAS_ADAPTER_SDK`
 - `TOPOEXEC_HAS_C_API`
+- `TOPOEXEC_HAS_PYTHON_PREVIEW`
 - `TOPOEXEC_HAS_OTEL_ADAPTER`
 - `TOPOEXEC_HAS_PROMETHEUS_ADAPTER`
 - `TOPOEXEC_HAS_ROS2_ADAPTER`
@@ -88,6 +91,7 @@ The installed config also exposes package metadata variables:
 | `TOPOEXEC_BUILD_TESTING` | `ON` | Build CTest suite; currently requires YAML, CLI, and examples. |
 | `TOPOEXEC_BUILD_FUZZERS` | `OFF` | Build optional graph-input fuzz targets; requires YAML. |
 | `TOPOEXEC_BUILD_C_API` | `OFF` | Build and export the optional unstable C API/FFI preview target. |
+| `TOPOEXEC_BUILD_PYTHON_PREVIEW` | `OFF` | Install and test the optional CLI-backed Python automation preview; requires the CLI when enabled. |
 | `TOPOEXEC_BUILD_OTEL_ADAPTER` | `OFF` | Build and export the optional dependency-free OTel exporter preview target. |
 | `TOPOEXEC_BUILD_PROMETHEUS_ADAPTER` | `OFF` | Build and export the optional dependency-free Prometheus text exporter preview target. |
 | `TOPOEXEC_BUILD_ROS2_ADAPTER` | `OFF` | Build and export the optional dependency-free ROS 2 fake-boundary preview target. |
@@ -131,6 +135,21 @@ target_link_libraries(my_c_embedder PRIVATE topoexec::c_api)
 This preview target exports `topoexec/c_api/topoexec.h`, opaque handles,
 create/run/destroy, error strings, and metric iteration. It is ABI version `0`,
 unstable, and covered by `cmake_c_api_options_smoke`.
+
+Optional Python automation preview:
+
+```bash
+cmake -S . -B build-python-preview -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DTOPOEXEC_BUILD_PYTHON_PREVIEW=ON
+cmake --build build-python-preview -j
+ctest --test-dir build-python-preview --output-on-failure -R python_preview_smoke
+```
+
+The preview installs `topoexec_preview` under `share/topoexec/python` and shells
+out to `bin/topoexec` for JSON validate/plan/run/metrics/trace automation. It is
+not a native extension, has no pybind11 dependency, and is covered by
+`cmake_python_preview_options_smoke`, which also proves a disabled runtime-only
+C++ build still has no Python requirement.
 
 Optional OTel preview target:
 

@@ -54,7 +54,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G59 | P2/P3 | complete | Prometheus Exporter Preview | Default-off `topoexec_adapters::prometheus` now renders descriptor-backed counters/gauges and custom histogram summaries as dependency-free text exposition with bounded labels only, no HTTP server, no Prometheus library, and package/policy smokes proving runtime remains exporter-free. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh adapters`; focused `ctest -R 'test_prometheus_adapter|cmake_prometheus_adapter_options_smoke|policy_.*'`; format |
 | G60 | P2/P3 | complete | ROS 2 Adapter Preview | Default-off `topoexec_adapters::ros2` now proves dependency-free topic/service/action endpoint mapping, adapter-side QoS config, fake boundary injection/publication, package metadata, and policy checks without a ROS package/client-library dependency or core schema fields. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh adapters`; focused `ctest -R 'test_ros2_adapter|cmake_ros2_adapter_options_smoke|policy_.*'`; format |
 | G61 | P2/P3 | complete | C API / FFI Design | Default-off `topoexec::c_api` now provides an unstable ABI-version-0 C API preview with opaque runtime/graph/result handles, create/run/destroy, error strings, metric iteration, C downstream smoke, and docs proving the FFI path before Python binding without freezing ABI. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh ffi`; `./scripts/goal_check.sh policy`; format |
-| G62 | P3 | pending | Python Binding Preview for Config/Test | 提供 Python 用于配置、测试、CLI-like automation，而不是高性能 payload path。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G62 | P3 | complete | Python Binding Preview for Config/Test | Default-off `topoexec_preview` now provides a stdlib-only CLI-backed Python automation package for graph load/validate/plan/bounded-run/metrics/trace workflows, with source/installed smokes and disabled runtime-only coverage proving Python is not a required runtime dependency. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh python`; `./scripts/goal_check.sh policy`; format |
 | G63 | P2/P3 | pending | Dynamic Plugin Loading Preview | 让应用可以动态注册 components，但在安全/ABI/版本策略清楚前不默认启用。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G64 | P2 | pending | Schema v2 Exploration | 判断哪些新增能力需要 schema v2，而不是继续往 strict schema v1 塞字段。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G65 | P3 | pending | Editor / LSP / JSON Schema UX | 提升 graph authoring 体验，但保持 runtime 优先。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -67,7 +67,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 ## Next goal
 
 All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals"
-objective, the next unfinished backlog goals are G62-G65 adapter/interface/ecosystem
+objective, the next unfinished backlog goals are G63-G65 adapter/interface/ecosystem
 preview work and G68 community readiness. Lower-priority design/adapter/ecosystem
 work remains pending and
 concrete adapter implementations remain deferred unless that scope is explicitly

@@ -20,6 +20,7 @@ REQUIRED_DOCS = [
     "api-overview.md",
     "public-api.md",
     "c-api.md",
+    "python-preview.md",
     "schema-v1.md",
     "hierarchical-graphs.md",
     "graph-templates.md",
@@ -71,6 +72,13 @@ REQUIRED_SECTIONS = {
         "## Non-goals",
         "## Validation",
     ],
+    "python-preview.md": [
+        "## Status",
+        "## Binding decision",
+        "## Supported scope",
+        "## Non-goals",
+        "## Validation",
+    ],
 }
 
 README_REQUIRED_LINKS = [
@@ -81,6 +89,7 @@ README_REQUIRED_LINKS = [
     "(api-overview.md)",
     "(public-api.md)",
     "(c-api.md)",
+    "(python-preview.md)",
     "(schema-v1.md)",
     "(hierarchical-graphs.md)",
     "(graph-templates.md)",

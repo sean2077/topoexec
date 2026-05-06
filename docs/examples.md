@@ -3,9 +3,9 @@
 TopoExec examples are intentionally small and dependency-free. They teach the
 core runtime contracts without implying that adapter packages, dynamic plugin
 loaders, production ROS 2 packages, production OpenTelemetry/Prometheus, or
-Python bindings are implemented. The G58/G59 telemetry targets, G60 ROS 2
-target, and G61 C API target are dependency-free or unstable previews,
-not example app dependencies.
+native Python bindings are implemented. The G58/G59 telemetry targets, G60
+ROS 2 target, G61 C API target, and G62 Python automation package are
+dependency-free or unstable previews, not example app dependencies.
 
 Use this page as the learning path after the README quickstart.
 
@@ -400,4 +400,4 @@ would translate external I/O into TopoExec payloads. The core runtime remains
 adapter-agnostic.
 
 Contrast invalid graph: ROS 2 QoS, Prometheus scraping, OpenTelemetry export,
-and Python bindings are not active dependencies or runtime features here.
+and native Python bindings are not active dependencies or runtime features here.

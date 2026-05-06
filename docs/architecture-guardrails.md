@@ -13,7 +13,7 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 | `include/topoexec/adapters`, `topoexec::adapter_sdk`, and optional `topoexec_adapters::*` targets | adapter SDK v0 plus dependency-free preview mappings over public runtime types | YAML, CLI, runtime reverse-dependency, external SDKs unless an explicit optional adapter goal adds and tests them |
 | `tools/topoexec` | CLI presentation and command wiring | new semantics duplicated outside runtime/compiler APIs; low-level channel/scheduler/trigger internals |
 | `examples` | runnable app patterns | production adapter dependencies |
-| `tests` | unit, semantic, golden, package, policy, and future fuzz/sanitizer checks | hidden production dependencies |
+| `tests` and `python/topoexec_preview` | tests plus optional stdlib-only CLI-backed Python automation preview | hidden production dependencies, native Python extension hooks, or core/runtime reverse dependencies |
 
 ## Enforced today
 
@@ -23,6 +23,10 @@ This document turns the plan's module-boundary rules into reviewable and testabl
   with `TOPOEXEC_BUILD_C_API=ON`, installs it, and proves downstream C source
   consumption of `topoexec::c_api` without YAML, CLI, adapters, Python, or
   dynamic plugins.
+- `tests/cmake/python_preview_options_smoke.cmake` proves the G62 Python
+  preview stays default-off: with it disabled, a runtime-only C++ build has no
+  Python/CLI/YAML requirement; with it enabled, source and installed
+  `topoexec_preview` drive the CLI for JSON automation.
 - `tests/cmake/otel_adapter_options_smoke.cmake` configures a runtime-only
   build with `TOPOEXEC_BUILD_OTEL_ADAPTER=ON`, installs it, and proves
   downstream `topoexec_adapters::otel` consumption without the CLI.
