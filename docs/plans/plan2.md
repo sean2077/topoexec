@@ -2284,6 +2284,20 @@ Priority: P0 before beta
 - Project can honestly publish a beta candidate.
 - Deferred features are explicit, not hidden.
 
+### Implementation note (2026-05-06)
+
+- Added `docs/beta-readiness-review.md` as the G70 audit artifact. It maps the
+  prompt checklist to current API, runtime, test, observability, docs, adapter,
+  packaging, performance, defensive-input, and goal-ledger evidence.
+- The review authorizes only a human-approved **core runtime beta candidate**
+  path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
+  scheduling claims, automatic tag/publish actions, package-registry publication,
+  and hidden deferral of G35, G41, G42, G45, G58-G65, or G68.
+- Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
+  runtime-invariant coverage rows for config transactions, observers, metric
+  schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
+  refreshed release/baseline/goal ledgers.
+
 ---
 
 # 5. Recommended Execution Order

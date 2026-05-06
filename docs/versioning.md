@@ -61,6 +61,29 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
 
 Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, schema fields, or CLI JSON surfaces.
 
+## Deprecation and Removal Policy
+
+Pre-1.0 releases may still break source or semantic compatibility, but not
+silently. Apply this policy before opening a beta candidate:
+
+- `stable-v0.2` C++ headers, stable schema v1 fields, semantic-contract claims,
+  metric/trace/diagnostic descriptor names, and stable CLI JSON fields should
+  move through a documented deprecation note before removal or rename when a
+  compatibility path is practical.
+- Deprecation notes belong in `CHANGELOG.md` and the owning reference page
+  (`public-api.md`, schema/CLI docs, metrics/trace/diagnostics docs, or release
+  notes). They should name the replacement and the earliest prerelease line where
+  removal is expected.
+- Experimental headers, adapter SDK v0 preview helpers, benchmark fields, direct
+  scheduler/channel internals, lifecycle/config transaction metadata, examples,
+  and human-readable CLI text may change faster, but changes still need a
+  changelog note when users could depend on them.
+- Security, correctness, or unsound-semantics fixes may remove or tighten a
+  surface immediately. The release note must call out why the ordinary
+  deprecation window was skipped.
+- Binary compatibility is not guaranteed before `1.0.0`; downstream embedders
+  should rebuild on every upgrade even when source compatibility is preserved.
+
 ## Schema Compatibility
 
 Schema v1 is strict and compatibility-preserving:
@@ -83,6 +106,8 @@ Do not tag a release until [release-checklist.md](release-checklist.md) is compl
 The current recommended next prerelease target is `v0.2.0-alpha.0`; prepare it
 with [release-runbook.md](release-runbook.md) and `scripts/release_prepare.sh`
 before any human-approved annotated tag is created.
+A beta tag must also include the [beta readiness review](beta-readiness-review.md)
+evidence and must keep deferred adapter/ecosystem surfaces explicit.
 
 ## Progression Notes
 

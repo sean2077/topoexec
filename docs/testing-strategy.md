@@ -95,13 +95,13 @@ portable performance guarantee.
 ## Docs smoke
 
 `docs_command_smoke` runs every `topoexec-doc-test` marker under `docs/` and
-verifies the G55/G69 docs map: getting-started, concepts, the robot-cell case
-study, runtime semantics, API reference, schema, cookbook, adapters,
-testing/release pages, architecture diagrams, why-not comparisons, and design
-principles. It also executes the G56 reference-app binaries and the G69 pilot app
-listed from `docs/examples.md`. Add a marker for commands that should remain
-executable, and update `tests/docs/check_docs.py` only when the documentation
-contract intentionally changes.
+verifies the G55/G69/G70 docs map: getting-started, concepts, the robot-cell
+case study, runtime semantics, API reference, schema, cookbook, adapters,
+testing/release pages, beta-readiness review, architecture diagrams, why-not
+comparisons, and design principles. It also executes the G56 reference-app
+binaries and the G69 pilot app listed from `docs/examples.md`. Add a marker for
+commands that should remain executable, and update `tests/docs/check_docs.py`
+only when the documentation contract intentionally changes.
 
 ## Release prep smoke
 

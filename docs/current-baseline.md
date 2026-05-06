@@ -168,6 +168,23 @@ TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./
 git diff --check passed.
 ```
 
+Observed G70 local result:
+
+```text
+./scripts/goal_check.sh docs passed: recursive docs command smoke including the beta-readiness review.
+./scripts/goal_check.sh policy passed: policy_no_core_adapter_deps and policy_architecture_self_test.
+./scripts/goal_check.sh quick passed: cli_golden_outputs and schema_v1_contract_smoke.
+./scripts/goal_check.sh release passed: release_prepare_smoke.
+./scripts/goal_check.sh fuzz passed: deterministic fuzz smoke and optional fuzzer-target corpus smoke.
+./scripts/goal_check.sh stress passed: test_stress plus generated stress graph smoke.
+./scripts/goal_check.sh bench passed: benchmark CTest smokes plus /tmp local baseline generation without thresholds.
+./scripts/goal_check.sh package passed: package/runtime-only/CPack/package-draft smokes.
+cmake --build build --target topoexec_format_check passed after robot-cell pilot formatting refresh.
+./scripts/agent_check.sh passed: 70/70 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 70/70 CTest tests in the ASAN+UBSAN Debug build.
+git diff --check passed.
+```
+
 Golden output surfaces protected after G26:
 
 - `tests/golden/plan_composite_loop.json` — graph plan JSON.
@@ -178,7 +195,7 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations after the plan2 G69 real-world pilot pass:
+Current branch limitations after the plan2 G70 beta-readiness review pass:
 
 - `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, cooperative cancellation/timeout-budget observation, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and hard timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
@@ -190,6 +207,9 @@ Current branch limitations after the plan2 G69 real-world pilot pass:
 - Benchmark schema v2 now covers graph hashes, compiler/build/CPU/commit metadata, expanded RuntimeRunner graph cases, and a non-installed task-executor benchmark. Local baseline files and threshold comparisons are opt-in per-machine evidence, not default CI gates or global performance claims.
 - Installed CMake package smoke now covers runtime-only, Adapter SDK, YAML, imported CLI, CPack TGZ, and package-manager draft surfaces. vcpkg/Conan files are still drafts pending external registry/clean-machine validation, and CPack archives are local release-candidate artifacts rather than signed release artifacts.
 - Release automation can prepare candidate notes, local artifacts, checksums, and a human-only annotated tag command, but it does not publish, upload signed release assets, create tags, retag, or replace human release approval.
+- The beta-readiness review supports only a possible human-approved core-runtime
+  beta candidate. It is not an adapter/ecosystem beta, package-registry
+  publication, signed-artifact release, or hard real-time scheduling claim.
 - Documentation now has an executable cookbook, architecture diagrams, why-not comparisons, and design principles with recursive docs smoke coverage. The docs still describe adapter/exporter surfaces as deferred unless future goals implement them.
 - Reference apps now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop solver convergence/budget overrun, BufferPool copy/shared/loaned metrics, and the G69 robot-cell pilot that composes multiple lanes, async overload, state/delay feedback, config snapshots, metrics/trace, and invalid-config rejection. They remain dependency-free in-process examples; hierarchical graph preview stays deferred until G41 and no external adapter stack is implemented by G69.
 - The robot-cell pilot is an embedded case study, not a hardware driver, robot controller, camera integration, ROS graph, exporter integration, or external scheduling guarantee.

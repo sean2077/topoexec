@@ -74,6 +74,7 @@ from docs that only describe boundaries.
 - [Release checklist](release-checklist.md)
 - [Release runbook](release-runbook.md)
 - [Release progression](release-progression.md)
+- [Beta readiness review](beta-readiness-review.md)
 - [Versioning](versioning.md)
 - [Current baseline](current-baseline.md)
 

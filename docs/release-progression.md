@@ -7,7 +7,7 @@ a tag announcement.
 ## Current candidate state
 
 The post-G25 baseline commit `b86a586d3a48d84bf4e03ccabde3d061e3073579`
-started the current release-candidate line. As of the plan2 line through G67,
+started the current release-candidate line. As of the plan2 line through G70,
 the repository has:
 
 - G0-G25 complete and archived as the previous plan sweep.
@@ -34,6 +34,10 @@ the repository has:
 - G69 adds a dependency-free robot-cell pilot case study that composes multiple
   lanes, async overload, state/delay feedback, BufferPool frames, config
   snapshots, metrics/trace, and invalid-config rejection without adapter claims.
+- G70 adds a beta-readiness review, beta-candidate gate checklist, pre-1.0
+  deprecation policy, and explicit deferred-scope ledger. It supports only a
+  human-approved core-runtime beta candidate review, not adapter/ecosystem beta
+  readiness.
 - G26 adds golden coverage for Chrome trace shape, schema dump JSON, and doctor
   JSON in addition to plan/metrics/trace/render outputs.
 
@@ -66,9 +70,9 @@ Rationale:
 | Stage | Status | Evidence | Remaining before tagging that stage |
 | --- | --- | --- | --- |
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
-| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, CPack smoke, G67 release-prep automation, and G69 pilot-app evidence. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
+| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, CPack smoke, G67 release-prep automation, G69 pilot-app evidence, and the G70 beta-readiness audit. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
 | `v0.3.0-alpha` | Preview-doc ready, partial observer API implemented | RuntimeObserver v1, adapter contracts, stub layout, and ROS 2 design are complete without core dependency pollution. | Add concrete exporter/adapter targets before claiming adapter implementation readiness. |
-| `v0.5.0-beta` | Not ready | ASAN+UBSAN, fuzz smoke, and bounded stress smoke exist; docs/examples are mature. | Blocking TSAN decision, longer fuzz/property/soak evidence, API/deprecation hardening, and external release artifact rehearsals. |
+| `v0.5.0-beta` | Conditional core-runtime review only; not automatically tag-ready | ASAN+UBSAN, fuzz smoke, bounded stress smoke, docs/examples, API/deprecation policy, G67 release prep, G69 pilot, and G70 audit exist. | Human release owner must accept deferrals, run gates on exact candidate commit, attach release-prep artifacts, decide TSAN/soak/fuzz scope, and avoid adapter/ecosystem beta claims. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
 
 ## Goal completion rollup
@@ -133,4 +137,6 @@ A release artifact rehearsal should produce:
 11. stress smoke summary, plus optional soak summary when run;
 12. benchmark output-contract summary and any optional local baseline comparison;
 13. CPack source/binary smoke summary and package-draft review status;
-14. known limitations copied into release notes.
+14. beta-readiness review and explicit deferred-scope acceptance when targeting a
+    beta stage;
+15. known limitations copied into release notes.

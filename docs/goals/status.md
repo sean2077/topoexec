@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, G57, G67, and G69 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P0/P1 goal in backlog order is G70 Beta Readiness Review. Lower-priority G35, G41, G42, G45, G58-G65, and G68 remain pending P2/P3 design/adapter/ecosystem/community work and are deferred by the active ordering rule unless the plan order is explicitly reopened; concrete adapter implementations remain deferred.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, G57, G67, G69, and G70 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" objective, the next unfinished backlog goal is G35 Trigger Engine v2. Lower-priority G41, G42, G45, G58-G65, and G68 remain pending P2/P3 design/adapter/ecosystem/community work; concrete adapter implementations remain deferred unless that scope is explicitly opened.
 
 ## Active / Recent Goals
 
@@ -50,12 +50,49 @@ The next unfinished P0/P1 goal in backlog order is G70 Beta Readiness Review. Lo
 | G57 | complete | `include/topoexec/adapters/sdk.hpp`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `tests/test_adapter_sdk.cpp`, `tests/cmake/adapter_sdk_smoke`, package/runtime-only smokes, architecture policy, adapter/API/guardrail docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Adapter SDK v0 now exports a dependency-free `topoexec::adapter_sdk` interface target over public runtime types, observer/result-sink aliases, bounded `BoundaryBridge` contracts, and explicit `ComponentFactoryProvider`; runtime does not link/include the SDK and no concrete adapter is implemented. |
 | G67 | complete | `scripts/release_prepare.sh`, `.github/workflows/release-dry-run.yml`, `tests/release/check_release_prepare.py`, `docs/release-runbook.md`, release/progression/versioning docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Release preparation is now reproducible from a clean candidate commit: the script checks tag/changelog/doc policy, runs gates unless skipped, drafts notes, generates source/CPack/schema artifacts plus checksums, writes a human-only annotated tag command, and never tags or publishes automatically. |
 | G69 | complete | `examples/apps/robot_cell_pilot`, `docs/case-study-robot-cell.md`, `docs/examples.md`, `examples/README.md`, README/docs index updates, `CMakeLists.txt`, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | The robot-cell pilot composes event-loop/thread-pool/fixed-rate lanes, async frame overload/drop, state and delay feedback, BufferPool `FrameView` payloads, config transaction/snapshot evidence, runtime metrics/trace/observer evidence, and invalid-config rejection while linking only `topoexec_runtime` and adding no adapter dependency. |
+| G70 | complete | `docs/beta-readiness-review.md`, `docs/public-api.md`, `docs/versioning.md`, `docs/runtime-invariants.md`, release docs, README/docs index updates, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | TopoExec can honestly enter a human-approved core-runtime beta candidate review after the required gates pass, but must not claim adapter/ecosystem beta readiness, signed/published package artifacts, hard real-time scheduling, or deferred G35/G41/G42/G45/G58-G65/G68 scope. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+./scripts/goal_check.sh docs
+# G70 passed: recursive docs command smoke includes the beta-readiness review.
+
+./scripts/goal_check.sh policy
+# G70 passed: architecture policy checks (2/2).
+
+./scripts/goal_check.sh quick
+# G70 passed: cli_golden_outputs and schema_v1_contract_smoke.
+
+./scripts/goal_check.sh release
+# G70 passed: release_prepare_smoke.
+
+./scripts/goal_check.sh fuzz
+# G70 passed: deterministic fuzz smoke plus optional fuzzer-target corpus smoke.
+
+./scripts/goal_check.sh stress
+# G70 passed: test_stress plus generated stress graph smoke.
+
+./scripts/goal_check.sh bench
+# G70 passed: benchmark CTest smokes plus /tmp local baseline generation without thresholds.
+
+./scripts/goal_check.sh package
+# G70 passed: installed package, runtime-only option, CPack, and package-draft smokes.
+
+cmake --build build --target topoexec_format_check
+# G70 passed after robot-cell pilot formatting refresh.
+
+./scripts/agent_check.sh
+# G70 passed: 70/70 CTest tests in the default RelWithDebInfo GCC build.
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G70 passed: 70/70 CTest tests in the ASAN+UBSAN Debug build.
+
+git diff --check
+# G70 passed.
+
 ctest --test-dir build --output-on-failure -R 'app_robot_cell_pilot_runs|docs_command_smoke'
 # G69 focused pass: robot-cell pilot smoke and docs command marker both passed.
 

@@ -101,6 +101,30 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 - Additive fields and metrics may appear in minor releases.
 - Experimental headers may change in minor releases, but changes should still be documented.
 
+## Deprecation policy
+
+Before `1.0.0`, TopoExec still optimizes for semantic clarity over permanent
+compatibility. The beta-readiness bar is therefore a visible deprecation path,
+not an ABI-freeze claim:
+
+- `stable-v0.2` headers and documented CLI JSON/schema fields should receive at
+  least one prerelease/minor-line deprecation note before removal or rename when
+  practical. Immediate removal is reserved for security, data-corruption,
+  unsound semantic, or build-breaking defects.
+- Deprecated stable APIs should name the replacement in `CHANGELOG.md` and this
+  API map or the relevant reference page. Keep source compatibility through the
+  next prerelease line when the compatibility shim is small and behaviorally
+  honest.
+- Mixed headers follow the stable policy for their stable subset; explicitly
+  experimental classes, fields, low-level scheduler/channel hooks, lifecycle
+  extensions, and adapter-preview helpers may change with a changelog note and
+  no long deprecation window.
+- CLI JSON and schema-compatible surfaces should prefer additive fields. Removing
+  or renaming stable fields requires a changelog and versioning note; schema
+  semantic changes require the schema/semantic-contract rules below.
+- Human-readable CLI output, examples, and docs may evolve more freely, but
+  changes that alter a documented behavior claim still need a release note.
+
 ## Schema and semantic compatibility
 
 Schema v1 is strict and compatibility-preserving:

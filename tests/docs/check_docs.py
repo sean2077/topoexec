@@ -25,6 +25,7 @@ REQUIRED_DOCS = [
     "testing-strategy.md",
     "release-checklist.md",
     "release-runbook.md",
+    "beta-readiness-review.md",
     "architecture-diagrams.md",
     "why-topoexec.md",
     "design-principles.md",
@@ -74,6 +75,7 @@ README_REQUIRED_LINKS = [
     "(testing-strategy.md)",
     "(release-checklist.md)",
     "(release-runbook.md)",
+    "(beta-readiness-review.md)",
 ]
 
 

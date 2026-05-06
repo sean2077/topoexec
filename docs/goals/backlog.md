@@ -62,11 +62,15 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G67 | P1 | complete | Release Automation and Artifact Reproducibility | `scripts/release_prepare.sh`, release dry-run workflow, release runbook, artifact/checksum generation, and `./scripts/goal_check.sh release` make prerelease preparation repeatable without automatic tag/publish authority. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh release`; `./scripts/goal_check.sh package`; `./scripts/goal_check.sh docs`; format; ASAN+UBSAN sanitizer |
 | G68 | P2 | pending | Community and Contribution Readiness | 让开源用户和贡献者可以参与，而不需要你解释所有上下文。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G69 | P1/P2 | complete | Real-World Pilot App | `examples/apps/robot_cell_pilot` and `docs/case-study-robot-cell.md` now prove a composed dependency-free C++ pilot with multiple lanes, async overload, state/delay feedback, BufferPool frames, config transaction/snapshot evidence, metrics/trace, and invalid-config rejection. | `./scripts/agent_check.sh`; `ctest -R 'app_robot_cell_pilot_runs|docs_command_smoke'`; `./scripts/goal_check.sh docs`; format; ASAN+UBSAN sanitizer |
-| G70 | P0 before beta | pending | Beta Readiness Review | 在进入 beta 前做一次系统审查。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G70 | P0 before beta | complete | Beta Readiness Review | `docs/beta-readiness-review.md` now maps API, runtime, test, observability, docs, adapter, packaging, performance, defensive-input, and goal-ledger evidence to an honest core-runtime beta candidate review while keeping deferred adapter/ecosystem scope explicit. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh docs`; `./scripts/goal_check.sh policy`; focused goal checks as applicable |
 
 ## Next goal
 
-G70 Beta Readiness Review is the next unfinished P0/P1 goal after G69; lower-priority G35, G41, G42, G45, G58-G65, and G68 remain pending design/adapter/ecosystem/community work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
+All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals"
+objective, the next unfinished backlog goal is G35 Trigger Engine v2; G41, G42,
+G45, G58-G65, and G68 remain pending lower-priority design/adapter/ecosystem
+work and concrete adapter implementations remain deferred unless that scope is
+explicitly opened.
 
 ## Blockers
 

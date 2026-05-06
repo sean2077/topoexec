@@ -41,6 +41,9 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added Adapter SDK v0 with `topoexec::adapter_sdk`, `topoexec/adapters/sdk.hpp`, observer/result-sink aliases, bounded `BoundaryBridge` contracts, explicit `ComponentFactoryProvider`, adapter package smoke tests, and architecture policy coverage that keeps runtime dependency-free.
 - Added release automation with `scripts/release_prepare.sh`, `./scripts/goal_check.sh release`, manual CI dry-run artifact upload, release notes draft generation, annotated-tag/no-retag guardrails, source/CPack/schema artifacts, and checksum output without publishing or tagging automatically.
 - Added the G69 robot-cell pilot app and case study, composing multiple lanes, async overload drops, state/delay feedback, BufferPool frames, config transactions/snapshots, metrics/trace evidence, and invalid-config rejection without adapter dependencies.
+- Added the G70 beta readiness review, beta-candidate gate checklist, explicit
+  deferred-scope ledger, and pre-1.0 deprecation policy for stable-v0.2,
+  experimental, schema, and CLI JSON surfaces.
 - Added `topoexec schema dump`, `topoexec schema check`, and `topoexec doctor` JSON/text tooling.
 - Added state/config, batch/time-sync, service-style async, and boundary-adapter-pattern YAML examples plus an examples catalog with CLI smokes.
 - Added a documentation index, tutorial/reference pages, and doc-command smoke coverage for the getting-started and CLI paths.
@@ -69,6 +72,9 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Runtime docs now distinguish async-edge admission from optional deterministic/threaded task executor helpers.
 - Runtime docs now describe bounded-cardinality correlation/causation metadata on invocations, channel messages, and trace events while keeping metrics labels stable by default.
 - Runtime docs now distinguish channel health counters from optional bounded health events and document that health events are observer-only unless future graph-boundary wiring is explicitly added.
+- Release docs now distinguish a conditional core-runtime beta candidate review
+  from adapter/ecosystem beta readiness, package-registry publication, signed
+  artifact release, or hard real-time guarantees.
 - Hardened multi-reader channel cursor/drop tests and shared/loaned/move payload lifetime/no-copy evidence while keeping deeper zero-copy pool-return APIs deferred.
 - Hardened BufferPool tests for bounded allocation, exhaustion, detach accounting, outstanding-loan detection, release-on-drop, and copy/no-copy payload policy evidence.
 - Current baseline and release checklist now record the post-alpha `main` commit, local CTest count, CI run, tag relationship, and remaining limitations.

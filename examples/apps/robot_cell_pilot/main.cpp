@@ -355,11 +355,13 @@ topoexec::ComponentRegistry registry() {
   registry.register_component({"topoexec.app.RobotCellCamera"}, []() { return std::make_unique<CameraComponent>(); });
   registry.register_component({"topoexec.app.RobotCellConfigTuner"},
                               []() { return std::make_unique<ConfigTunerComponent>(); });
-  registry.register_component({"topoexec.app.RobotCellDetector"}, []() { return std::make_unique<DetectorComponent>(); });
+  registry.register_component({"topoexec.app.RobotCellDetector"},
+                              []() { return std::make_unique<DetectorComponent>(); });
   registry.register_component({"topoexec.app.RobotCellPlanner"}, []() { return std::make_unique<PlannerComponent>(); });
   registry.register_component({"topoexec.app.RobotCellController"},
                               []() { return std::make_unique<ControllerComponent>(); });
-  registry.register_component({"topoexec.app.RobotCellActuator"}, []() { return std::make_unique<ActuatorComponent>(); });
+  registry.register_component({"topoexec.app.RobotCellActuator"},
+                              []() { return std::make_unique<ActuatorComponent>(); });
   return registry;
 }
 
@@ -504,7 +506,8 @@ std::string controller_snapshot_text(const topoexec::RuntimeRunnerResult& result
 }
 
 bool contains(const std::vector<std::string>& values, const std::string& needle) {
-  return std::any_of(values.begin(), values.end(), [&](const auto& value) { return value.find(needle) != std::string::npos; });
+  return std::any_of(values.begin(), values.end(),
+                     [&](const auto& value) { return value.find(needle) != std::string::npos; });
 }
 
 int run_happy_path(const topoexec::ComponentRegistry& components) {
@@ -554,7 +557,8 @@ int run_happy_path(const topoexec::ComponentRegistry& components) {
     std::cerr << "error: state/delay publication metrics were not emitted\n";
     return 7;
   }
-  if (result.runtime_metrics.empty() || result.trace.empty() || observer.metrics().empty() || observer.trace_events().empty()) {
+  if (result.runtime_metrics.empty() || result.trace.empty() || observer.metrics().empty() ||
+      observer.trace_events().empty()) {
     std::cerr << "error: metrics/trace observer evidence is missing\n";
     return 8;
   }

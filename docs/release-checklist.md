@@ -30,6 +30,8 @@ v0.2.0-alpha.0
 - [ ] `cmake_cpack_smoke` passes as part of package smoke.
 - [ ] `package_draft_smoke` passes as part of package smoke.
 - [ ] `docs/release-progression.md` names the intended stage and remaining limitations.
+- [ ] `docs/beta-readiness-review.md` is current if the intended stage is beta or
+  release notes use beta language.
 - [ ] `CHANGELOG.md` has the release section updated.
 - [ ] `docs/versioning.md` matches the intended tag.
 - [ ] `scripts/release_prepare.sh --version v0.2.0-alpha.0` completes on the
@@ -154,6 +156,10 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - G69 robot-cell pilot is a dependency-free in-process case study; it is not a
   hardware driver, ROS graph, camera SDK integration, exporter integration, or
   external scheduling guarantee.
+- G70 authorizes only a human-approved core-runtime beta candidate review.
+  Adapter/ecosystem beta readiness, hard real-time scheduling, signed release
+  uploads, and package-registry publication remain out of scope unless separately
+  implemented and verified.
 
 ## Tagging
 
