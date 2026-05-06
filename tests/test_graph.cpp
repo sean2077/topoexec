@@ -362,6 +362,22 @@ edges: []
   EXPECT_NE(plan_json.find("\"scheduler_contract_version\": \"0.2\""), std::string::npos);
 }
 
+TEST(Graph, PlanJsonIncludesEdgeReaderAndSlowReaderDropSummary) {
+  auto graph = minimal_graph();
+  graph.edges.front().policy.mode = "queue";
+  graph.edges.front().policy.capacity = 2;
+  graph.edges.front().policy.overflow = "drop_oldest";
+  graph.edges.front().policy.readers = "multi";
+
+  const auto result = topoexec::validate_graph_structure(graph);
+  ASSERT_TRUE(result.ok) << result.errors.front();
+  const auto plan_json = topoexec::graph_plan_json(graph, result.compiled_plan);
+  EXPECT_NE(plan_json.find("\"capacity\": 2"), std::string::npos);
+  EXPECT_NE(plan_json.find("\"overflow\": \"drop_oldest\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"readers\": \"multi\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"slow_reader_drop_risk\": true"), std::string::npos);
+}
+
 TEST(Graph, RejectsInvalidSchedulerLaneAdmissionFields) {
   auto graph = minimal_graph();
   graph.lanes.front().queue_capacity = -1;
@@ -481,6 +497,7 @@ TEST(Graph, MoveOnlyPolicyRequiresSingleReader) {
   const auto result = topoexec::validate_graph_structure(graph);
   EXPECT_FALSE(result.ok);
   EXPECT_TRUE(has_error_containing(result.errors, "move_only copy_policy requires readers: single"));
+  EXPECT_TRUE(has_diagnostic(result.diagnostics, "invalid_move_only_multireader", "error", "edges.e"));
 }
 
 TEST(Graph, MaxInflightPolicyAppliesOnlyToAsyncEdges) {

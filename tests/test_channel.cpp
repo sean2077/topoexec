@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -228,6 +229,57 @@ TEST(Channel, QueueMultiReaderMaintainsPerReaderCursor) {
   EXPECT_EQ(metrics.depth, 2u);
 }
 
+TEST(Channel, QueueMultiReaderSlowReaderMissesDroppedHistory) {
+  auto spec = edge("events", "queue", 2);
+  spec.policy.readers = "multi";
+  topoexec::RuntimeChannelBus bus({spec});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+
+  const auto fast_initial = bus.drain_for_reader("events", "fast");
+  ASSERT_EQ(fast_initial.size(), 2u);
+  EXPECT_EQ(*fast_initial[0].payload, "one");
+  EXPECT_EQ(*fast_initial[1].payload, "two");
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("three")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("four")).accepted);
+
+  const auto slow = bus.drain_for_reader("events", "slow");
+  ASSERT_EQ(slow.size(), 2u);
+  EXPECT_EQ(*slow[0].payload, "three");
+  EXPECT_EQ(*slow[1].payload, "four");
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.drop_count, 2u);
+  EXPECT_EQ(metrics.depth, 2u);
+}
+
+TEST(Channel, QueueMultiReaderCursorSurvivesOverflow) {
+  auto spec = edge("events", "queue", 2);
+  spec.policy.readers = "multi";
+  topoexec::RuntimeChannelBus bus({spec});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+
+  const auto first_a = bus.drain_for_reader("events", "reader_a");
+  ASSERT_EQ(first_a.size(), 2u);
+  EXPECT_EQ(*first_a[0].payload, "one");
+  EXPECT_EQ(*first_a[1].payload, "two");
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("three")).accepted);
+
+  const auto second_a = bus.drain_for_reader("events", "reader_a");
+  ASSERT_EQ(second_a.size(), 1u);
+  EXPECT_EQ(*second_a[0].payload, "three");
+
+  const auto reader_b = bus.drain_for_reader("events", "reader_b");
+  ASSERT_EQ(reader_b.size(), 2u);
+  EXPECT_EQ(*reader_b[0].payload, "two");
+  EXPECT_EQ(*reader_b[1].payload, "three");
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.drop_count, 1u);
+  EXPECT_EQ(metrics.delivered_count, 5u);
+}
+
 TEST(Channel, DeadlineMissIsMarkedOnLateConsume) {
   auto spec = edge("events", "queue", 2);
   spec.policy.deadline_ms = 1;
@@ -333,6 +385,28 @@ TEST(Channel, SharedAndLoanedViewDoNotCopyPayloads) {
   }
 }
 
+TEST(Channel, SharedViewKeepsPayloadAliveUntilRetainedMessageIsReleased) {
+  auto spec = edge("shared_events", "queue", 1);
+  spec.policy.copy_policy = "shared_view";
+  topoexec::RuntimeChannelBus bus({spec});
+  auto payload = topoexec::make_shared_payload(topoexec::make_text_payload("shared"));
+  std::weak_ptr<const topoexec::RuntimePayload> weak = payload;
+
+  ASSERT_TRUE(bus.publish_shared_from("producer.out", payload).accepted);
+  payload.reset();
+  EXPECT_FALSE(weak.expired());
+
+  auto messages = bus.consume_for_component("consumer");
+  ASSERT_EQ(messages.size(), 1u);
+  EXPECT_EQ(*messages.front().payload, "shared");
+  EXPECT_FALSE(weak.expired());
+
+  messages.clear();
+  EXPECT_FALSE(weak.expired());
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("replacement")).accepted);
+  EXPECT_TRUE(weak.expired());
+}
+
 TEST(Channel, LoanedViewPreservesLoanedFrameBufferWithoutCopying) {
   auto spec = edge("loaned_frames");
   spec.policy.copy_policy = "loaned_view";
@@ -355,7 +429,25 @@ TEST(Channel, LoanedViewPreservesLoanedFrameBufferWithoutCopying) {
   const auto stats = pool.stats();
   EXPECT_EQ(stats.alloc_count, 1u);
   EXPECT_EQ(stats.loan_count, 1u);
+  EXPECT_EQ(stats.release_count, 0u);
   EXPECT_EQ(stats.bytes_allocated, 32u);
+}
+
+TEST(Channel, MoveOnlySingleReaderAcceptsLargePayloadWithoutCopying) {
+  auto spec = edge("move_frames", "queue", 1);
+  spec.policy.copy_policy = "move_only";
+  spec.policy.readers = "single";
+  topoexec::RuntimeChannelBus bus({spec});
+  auto buffer = std::make_shared<const topoexec::SharedBuffer>(16);
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_binary_blob_payload(buffer, 0, 16, "bytes")).accepted);
+
+  const auto messages = bus.consume_for_component("consumer");
+  ASSERT_EQ(messages.size(), 1u);
+  EXPECT_TRUE(std::holds_alternative<topoexec::BinaryBlobPayload>(messages.front().payload->value));
+  const auto metrics = bus.metrics("move_frames");
+  EXPECT_EQ(metrics.payload_copy_count, 0u);
+  EXPECT_EQ(metrics.copy_fallback_count, 0u);
 }
 
 TEST(Channel, BufferPoolReusesReleasedFramesAndReportsMetrics) {

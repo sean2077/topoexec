@@ -240,6 +240,14 @@ bool is_allowed_readers(const std::string& readers) {
   return readers == "single" || readers == "multi" || readers == "multiple";
 }
 
+bool is_multi_reader_value(const std::string& readers) {
+  return readers == "multi" || readers == "multiple";
+}
+
+bool slow_reader_drop_risk(const EdgePolicySpec& policy) {
+  return is_multi_reader_value(policy.readers) && (policy.overflow == "drop_oldest" || policy.overflow == "overwrite");
+}
+
 bool is_allowed_event_source_type(const std::string& type) {
   return type == "message" || type == "timer" || type == "request" || type == "action_goal" ||
          type == "action_cancel" || type == "task_ready" || type == "future_ready" || type == "manual";
@@ -1054,6 +1062,12 @@ std::string graph_plan_text(const GraphSpec& graph, const GraphCompiledPlan& pla
       out << " loop_policy=" << region.loop_policy.type;
     }
     out << "\n";
+  }
+  out << "edge_policies:\n";
+  for (const auto& edge : graph.edges) {
+    out << "- edge " << edge.id << " readers=" << edge.policy.readers << " copy_policy=" << edge.policy.copy_policy
+        << " capacity=" << edge.policy.capacity << " overflow=" << edge.policy.overflow
+        << " slow_reader_drop_risk=" << (slow_reader_drop_risk(edge.policy) ? "true" : "false") << "\n";
   }
   return out.str();
 }

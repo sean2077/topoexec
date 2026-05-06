@@ -1,0 +1,29 @@
+schema_version: 1
+graph:
+  name: invalid_move_only_multireader
+  kind: internal_test
+lanes:
+  main:
+    type: event_loop
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - id: source_sink
+    kind: immediate
+    from: source.out
+    to: sink.in
+    policy:
+      mode: queue
+      capacity: 2
+      overflow: drop_oldest
+      copy_policy: move_only
+      readers: multi

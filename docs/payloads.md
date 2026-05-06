@@ -43,9 +43,9 @@ Batch triggers expose ordered `Invocation::batch_payloads`; use the same typed h
 Edge `policy.copy_policy` controls how published payloads enter runtime channels:
 
 - `copy`: copies text payloads. Large payloads are rejected instead of silently copied.
-- `shared_view`: stores the shared immutable payload pointer.
-- `loaned_view`: preserves loaned frame/buffer identity without copying.
-- `move_only`: allowed only with `readers: single`.
+- `shared_view`: stores the shared immutable `RuntimePayloadPtr`; use it for multi-reader immutable values.
+- `loaned_view`: preserves loaned frame/buffer identity without copying; use it for in-process frame/buffer handoff when all consumers treat the view as immutable.
+- `move_only`: avoids payload copies and is allowed only with `readers: single`.
 
 Copy metrics are exposed as `runtime.channel.payload_copy_count`. Large payload copy rejection records channel degradation details and returns a failed publication result. Buffer reuse metrics are available through `BufferPoolStats`; see [memory.md](memory.md).
 
@@ -57,3 +57,15 @@ Copy metrics are exposed as `runtime.channel.payload_copy_count`. Large payload 
 - Consumers should treat all payloads as read-only.
 - Multi-reader edges cannot use `move_only`.
 - `loaned_view` currently preserves in-process `FrameView` / `SharedBuffer` identity; it is not an external shared-memory middleware.
+- `LoanedFrame::detach()` transfers the frame view out of `BufferPool` automatic return accounting. A detached frame published through `loaned_view` keeps the buffer alive without a copy, but explicit release callbacks or zero-copy pool return from channel readers are deferred to the payload/memory v2 work.
+
+Ownership flow:
+
+```text
+copy         producer value -> runtime-owned copied text payload -> one or more readers
+shared_view  producer/runtime shared_ptr<const RuntimePayload> ---> retained channel view ---> readers
+loaned_view  detached FrameView/SharedBuffer --------------------> retained channel view ---> readers
+move_only    producer payload -----------------------------------> single-reader channel ---> one reader
+```
+
+Plan/explain output includes the selected copy policy and reader policy per edge. Lint flags large payloads with `copy` and invalid `move_only` multi-reader combinations so ownership mistakes are visible before runtime.

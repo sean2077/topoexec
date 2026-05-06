@@ -288,6 +288,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph lint ${CMAKE_CURRENT_SOURCE_DIR}/examples/large_payload_copy.yaml
   )
   set_tests_properties(cli_lint_large_payload_copy PROPERTIES PASS_REGULAR_EXPRESSION "large_payload_copy")
+  add_test(NAME cli_lint_reject_move_only_multireader
+    COMMAND ${Python3_EXECUTABLE} -c
+      "import subprocess, sys; p = subprocess.run([sys.argv[1], 'graph', 'lint', sys.argv[2]], text=True, capture_output=True); out = p.stdout + p.stderr; sys.stdout.write(out); sys.exit(0 if p.returncode != 0 and 'invalid_move_only_multireader' in out else 1)"
+      $<TARGET_FILE:topoexec_cli>
+      ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_move_only_multireader.yaml
+  )
   add_test(NAME cli_explain_minimal
     COMMAND topoexec graph explain ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml
   )

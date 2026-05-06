@@ -52,6 +52,8 @@ Runtime channel messages carry invocation metadata (`correlation_id`, `causation
 
 `move_only` payloads require `readers: single`; use `shared_view` or `copy` for multi-reader paths.
 
+`topoexec graph plan --format json` and `topoexec graph explain --format json` expose each edge's `readers`, `copy_policy`, `capacity`, `overflow`, and `slow_reader_drop_risk` fields. The risk flag is true for multi-reader edges whose overflow policy can evict older retained history (`drop_oldest` or `overwrite`). `topoexec graph lint` reports `slow_reader_drop_risk` for those valid-but-risky edges and reports `invalid_move_only_multireader` when `move_only` is combined with non-single readers.
+
 ## Lifespan and deadline
 
 - `lifespan_ms` drops stale messages before delivery or snapshot and increments `stale_drop_count` plus `health_event_count`.

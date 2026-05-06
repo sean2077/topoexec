@@ -74,39 +74,55 @@
   ],
   "edges": [
     {
+      "capacity": 1,
       "copy_policy": "shared_view",
       "from": "sensor.out",
       "id": "measurement",
       "kind": "immediate",
       "max_inflight": 0,
       "mode": "latest",
+      "overflow": "overwrite",
+      "readers": "single",
+      "slow_reader_drop_risk": false,
       "to": "estimator.measurement"
     },
     {
+      "capacity": 1,
       "copy_policy": "shared_view",
       "from": "estimator.state",
       "id": "state",
       "kind": "immediate",
       "max_inflight": 0,
       "mode": "latest",
+      "overflow": "overwrite",
+      "readers": "single",
+      "slow_reader_drop_risk": false,
       "to": "controller.state"
     },
     {
+      "capacity": 1,
       "copy_policy": "shared_view",
       "from": "controller.correction",
       "id": "correction",
       "kind": "immediate",
       "max_inflight": 0,
       "mode": "latest",
+      "overflow": "overwrite",
+      "readers": "single",
+      "slow_reader_drop_risk": false,
       "to": "estimator.correction"
     },
     {
+      "capacity": 2,
       "copy_policy": "shared_view",
       "from": "controller.command",
       "id": "command",
       "kind": "delay",
       "max_inflight": 0,
       "mode": "queue",
+      "overflow": "drop_oldest",
+      "readers": "single",
+      "slow_reader_drop_risk": false,
       "to": "actuator.command"
     }
   ],

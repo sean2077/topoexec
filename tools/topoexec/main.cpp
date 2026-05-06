@@ -225,6 +225,27 @@ bool is_large_payload_schema(const std::string& schema) {
   return schema == topoexec::kFrameViewPayloadSchema || schema == topoexec::kBinaryBlobPayloadSchema;
 }
 
+bool is_multi_reader_value(const std::string& readers) {
+  return readers == "multi" || readers == "multiple";
+}
+
+bool slow_reader_drop_risk(const topoexec::EdgePolicySpec& policy) {
+  return is_multi_reader_value(policy.readers) && (policy.overflow == "drop_oldest" || policy.overflow == "overwrite");
+}
+
+nlohmann::json edge_policy_json(const topoexec::EdgeSpec& edge) {
+  return {{"id", edge.id},
+          {"from", edge.from},
+          {"to", edge.to},
+          {"kind", topoexec::to_string(edge.kind)},
+          {"mode", edge.policy.mode},
+          {"capacity", edge.policy.capacity},
+          {"overflow", edge.policy.overflow},
+          {"copy_policy", edge.policy.copy_policy},
+          {"readers", edge.policy.readers},
+          {"slow_reader_drop_risk", slow_reader_drop_risk(edge.policy)}};
+}
+
 topoexec::RuntimeRunnerResult run_graph_file(const std::string& path, std::size_t steps, std::uint64_t duration_ms,
                                              bool until_idle = false) {
   const auto registry = demo_registry();
@@ -495,8 +516,18 @@ std::vector<LintFinding> lint_graph(const topoexec::GraphSpec& graph,
                                     const topoexec::ComponentRegistry* registry = nullptr) {
   std::vector<LintFinding> findings;
   const auto validation = topoexec::validate_graph_structure(graph);
-  for (const auto& error : validation.errors) {
-    findings.push_back({"error", "validation", error, graph.name});
+  if (!validation.diagnostics.empty()) {
+    for (const auto& diagnostic : validation.diagnostics) {
+      if (diagnostic.severity != "error") {
+        continue;
+      }
+      findings.push_back({diagnostic.severity, diagnostic.code, diagnostic.message,
+                          diagnostic.graph_path.empty() ? graph.name : diagnostic.graph_path});
+    }
+  } else {
+    for (const auto& error : validation.errors) {
+      findings.push_back({"error", "validation", error, graph.name});
+    }
   }
 
   std::map<std::string, std::string> component_lane;
@@ -545,6 +576,11 @@ std::vector<LintFinding> lint_graph(const topoexec::GraphSpec& graph,
     }
     if (edge.kind == topoexec::EdgeKind::kState) {
       ++state_writers[edge.to];
+    }
+    if (slow_reader_drop_risk(edge.policy)) {
+      findings.push_back({"info", "slow_reader_drop_risk",
+                          "multi-reader edge keeps only bounded history; slow readers can miss dropped messages",
+                          edge.id});
     }
     if (edge.policy.copy_policy == "copy") {
       const auto source_component = component_id_from_endpoint(edge.from);
@@ -616,6 +652,10 @@ int print_explain(const topoexec::GraphSpec& graph, const topoexec::GraphValidat
         {"state", "staged during the current epoch and committed at the next epoch boundary"},
         {"async", "deferred to a later epoch; no recursive downstream execution"},
     };
+    value["edge_policies"] = nlohmann::json::array();
+    for (const auto& edge : graph.edges) {
+      value["edge_policies"].push_back(edge_policy_json(edge));
+    }
     value["region_order"] = validation.compiled_plan.region_order;
     std::cout << value.dump(2) << "\n";
   } else {

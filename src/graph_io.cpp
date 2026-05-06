@@ -38,6 +38,14 @@ std::optional<EdgeKind> parse_edge_kind(const std::string& kind) {
   return std::nullopt;
 }
 
+bool is_multi_reader_value(const std::string& readers) {
+  return readers == "multi" || readers == "multiple";
+}
+
+bool slow_reader_drop_risk(const EdgePolicySpec& policy) {
+  return is_multi_reader_value(policy.readers) && (policy.overflow == "drop_oldest" || policy.overflow == "overwrite");
+}
+
 void enforce_limit(std::size_t value, std::size_t limit, const std::string& context) {
   if (value > limit) {
     throw std::invalid_argument(context + " exceeds limit " + std::to_string(limit));
@@ -539,8 +547,12 @@ std::string graph_plan_json(const GraphSpec& graph, const GraphCompiledPlan& pla
                              {"to", edge.to},
                              {"kind", to_string(edge.kind)},
                              {"mode", edge.policy.mode},
+                             {"capacity", edge.policy.capacity},
+                             {"overflow", edge.policy.overflow},
                              {"max_inflight", edge.policy.max_inflight},
-                             {"copy_policy", edge.policy.copy_policy}});
+                             {"copy_policy", edge.policy.copy_policy},
+                             {"readers", edge.policy.readers},
+                             {"slow_reader_drop_risk", slow_reader_drop_risk(edge.policy)}});
   }
   root["compiled_regions"] = nlohmann::json::array();
   for (const auto& region : plan.regions) {

@@ -58,6 +58,6 @@ runtime contract as `semantic_contract_version` alongside the graph
 1. `validate --schema-only` catches shape and unknown-field issues.
 2. `validate --semantic` adds compiler diagnostics and region order.
 3. `plan --format json` shows what will execute.
-4. `lint` flags risky-but-valid patterns such as large copies.
+4. `lint` flags risky or invalid edge policies such as large copies, slow-reader drop risk, and `move_only` multi-reader misuse.
 5. `run`, `metrics`, and `trace` confirm runtime behavior.
 6. `diff-plan` explains semantic drift between two graph revisions.

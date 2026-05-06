@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B has started with G29, G30, G31, G32, G33, G34, G36, and G37 complete.
-The next unfinished P1 goal is G38 Channel v2: Multi-Reader and Move-Only Hardening; G35 remains pending P2 and is deferred by the active ordering rule.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B has started with G29, G30, G31, G32, G33, G34, G36, G37, and G38 complete.
+The next unfinished P1 goal is G39 Payload and Memory v2; G35 remains pending P2 and is deferred by the active ordering rule.
 
 ## Active / Recent Goals
 
@@ -31,12 +31,31 @@ The next unfinished P1 goal is G38 Channel v2: Multi-Reader and Move-Only Harden
 | G34 | complete | `include/topoexec/runtime/task_executor.hpp`, `include/topoexec/runtime/component.hpp`, `src/task_executor.cpp`, `src/component.cpp`, `tests/test_runtime.cpp`, `docs/async-tasks.md`, public API/semantic/concurrency/baseline docs, goal ledgers, and `CHANGELOG.md`. | `TaskExecutor` remains the deterministic compatibility helper, `ITaskExecutor` is the attachable interface, and `ThreadedTaskExecutor` is an opt-in bounded worker preview with smoke, cancel-pending, shutdown-drain, failure, and exactly-once publication coverage. |
 | G36 | complete | `include/topoexec/runtime/component.hpp`, `include/topoexec/runtime/channel.hpp`, `src/component.cpp`, `src/channel.cpp`, `src/trigger_policy.cpp`, `src/event_runtime.cpp`, `tests/test_runtime.cpp`, updated trace/metrics goldens, runtime/trace/channel/trigger/API docs, goal ledgers, and `CHANGELOG.md`. | Correlation/causation metadata now flows through publication, channel messages, trigger-created invocations, task completions, and CompositeLoop external commits; trace events include metadata attributes while metrics avoid default high-cardinality labels. |
 | G37 | complete | `include/topoexec/runtime/health.hpp`, channel/event-runtime/runner/task-executor headers, `src/channel.cpp`, `src/event_runtime.cpp`, `src/runtime_runner.cpp`, `src/task_executor.cpp`, `tools/topoexec/main.cpp`, `tests/test_channel.cpp`, `tests/test_runtime.cpp`, updated metrics/doctor goldens, runtime/channel/metrics/trace/API docs, goal ledgers, and `CHANGELOG.md`. | Health is now observable through bounded observer-only events without recursive control flow; `emit_health_events` can disable event capture, `health_event_capacity` bounds retained records, high-watermark/overflow events are coalesced, and overflow events include edge id and policy. |
+| G38 | complete | `tests/test_channel.cpp`, `tests/test_graph.cpp`, `src/graph.cpp`, `src/graph_io.cpp`, `tools/topoexec/main.cpp`, `CMakeLists.txt`, `examples/invalid_move_only_multireader.yaml`, updated plan golden, channel/payload/CLI/diagnostics docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Multi-reader queues now have focused slow-reader/drop and overflow-cursor coverage; `move_only` multi-reader misuse is visible through validation diagnostics and lint; plan/explain output exposes `readers`, `copy_policy`, and `slow_reader_drop_risk`; shared/loaned/move paths have no-copy/lifetime evidence while deeper loan-return callbacks and zero-copy pools remain G39 scope. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+ctest --test-dir build --output-on-failure -R 'test_channel|test_graph|cli_lint_reject_move_only_multireader|cli_golden_outputs|schema_v1_contract_smoke'
+# G38 passed: multi-reader cursor/drop, move-only diagnostics, plan/golden/schema drift, and CLI lint coverage
+
+cmake --build build --target topoexec_format_check
+# G38 passed
+
+./scripts/goal_check.sh quick
+# G38 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+./scripts/agent_check.sh
+# G38 passed: 52/52 CTest tests after multi-reader/move-only hardening
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G38 passed: 52/52 CTest tests in the ASAN+UBSAN Debug build
+
+git diff --check
+# G38 passed
+
 ctest --test-dir build --output-on-failure -R 'test_channel|test_runtime|cli_golden_outputs|schema_v1_contract_smoke'
 # G37 passed: channel high-watermark/overflow/stale/deadline health events, bounded sink, runner config/capacity exposure, task/scheduler reject events, golden/schema drift checks
 

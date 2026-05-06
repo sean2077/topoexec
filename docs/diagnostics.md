@@ -30,7 +30,7 @@ Current stable codes:
 | `partial_composite_loop` | A CompositeLoop partially matches an immediate SCC. |
 | `decorative_composite_loop` | A CompositeLoop does not own an immediate cycle. |
 | `multi_state_writer` | Multiple state edges write the same target snapshot. |
-| `invalid_move_only_multireader` | `move_only` was combined with multi-reader delivery. |
+| `invalid_move_only_multireader` | `move_only` was combined with multi-reader delivery; validation diagnostics and lint both surface this as an error. |
 | `invalid_channel_policy` | Channel policy fields are unsupported or inconsistent. |
 | `unsupported_lane_type` | Scheduler lane type is unsupported. |
 | `trigger_missing_input` | Trigger input is missing or lacks an incoming edge. |

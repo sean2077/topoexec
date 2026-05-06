@@ -837,6 +837,11 @@ Priority: P1
 - Copy policy misuse produces diagnostic/lint warning.
 - No surprise accidental copies for loaned/move paths.
 
+### Implementation note
+
+- G38 hardens the current v0.2 channel contract with multi-reader overflow/cursor tests, shared/loaned/move no-copy evidence, `invalid_move_only_multireader` validation/lint surfacing, and plan/explain fields for `readers`, `copy_policy`, and `slow_reader_drop_risk`.
+- Deeper loan-return callbacks, zero-copy pool handoff, and richer payload policy APIs remain deferred to G39.
+
 ---
 
 ## G39. Payload and Memory v2
