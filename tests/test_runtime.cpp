@@ -60,6 +60,11 @@ std::vector<std::string>& config_observations() {
   return values;
 }
 
+std::vector<std::string>& config_apply_events() {
+  static std::vector<std::string> values;
+  return values;
+}
+
 std::mutex& runtime_records_mutex() {
   static std::mutex mutex;
   return mutex;
@@ -81,6 +86,7 @@ void reset_lifecycle_events() {
 
 void reset_config_observations() {
   config_observations().clear();
+  config_apply_events().clear();
 }
 
 void reset_publication_probe_state() {
@@ -795,20 +801,37 @@ public:
     return descriptor;
   }
 
-  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView& config) override {
+    target_id_ = config.values.contains("target") ? config.values.at("target") : "observer";
+    fixed_value_.reset();
+    if (const auto found = config.values.find("value"); found != config.values.end()) {
+      fixed_value_ = found->second;
+    }
+    value_prefix_ = config.values.contains("value_prefix") ? config.values.at("value_prefix") : "updated-";
+    publish_ = !config.values.contains("publish") || config.values.at("publish") != "false";
+  }
 
   void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
     topoexec::ConfigView update;
-    update.values["value"] = "updated-" + std::to_string(invocation.sequence);
-    const auto staged = context.config_store->stage_component_config_update("observer", update);
+    update.values["value"] = fixed_value_.value_or(value_prefix_ + std::to_string(invocation.sequence));
+    const auto staged = context.config_store->stage_component_config_update(target_id_, update);
     if (!staged.accepted) {
       throw std::runtime_error(staged.reason);
+    }
+    if (!publish_) {
+      return;
     }
     const auto result = context.publish("out", topoexec::make_text_payload("config-ready"));
     if (!result.accepted) {
       throw std::runtime_error(result.reason);
     }
   }
+
+private:
+  std::string target_id_{"observer"};
+  std::string value_prefix_{"updated-"};
+  std::optional<std::string> fixed_value_;
+  bool publish_{true};
 };
 
 class ConfigObserverComponent : public topoexec::Component {
@@ -822,6 +845,24 @@ public:
   }
 
   void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  topoexec::Status validate_config(const topoexec::ConfigView& config) const override {
+    const auto found = config.values.find("value");
+    if (found != config.values.end() && found->second == "invalid") {
+      return topoexec::Status::error("invalid config value");
+    }
+    return topoexec::Status::success();
+  }
+
+  topoexec::Status apply_config(topoexec::GraphContext& context, const topoexec::ConfigView& config) override {
+    const auto found = config.values.find("value");
+    const auto value = found == config.values.end() ? std::string{"<missing>"} : found->second;
+    config_apply_events().push_back(context.component_id + ".apply." + value);
+    if (value == "apply-fail") {
+      return topoexec::Status::error("apply config failed");
+    }
+    return topoexec::Status::success();
+  }
 
   void execute(const topoexec::Invocation&, topoexec::GraphContext& context) override {
     const auto config = context.config_store->component_config(context.component_id);
@@ -1228,6 +1269,66 @@ components:
     config: {value: initial}
 edges:
   - {id: updater_observer, kind: immediate, from: updater.out, to: observer.in, policy: {mode: latest, copy_policy: shared_view}}
+)");
+}
+
+topoexec::GraphSpec invalid_config_transaction_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph:
+  name: invalid_config_transaction
+  kind: internal_test
+lanes: {main: {type: event_loop}}
+components:
+  - id: updater
+    type: topoexec.test.ConfigUpdater
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+    config: {target: observer, value: invalid, publish: "false"}
+  - id: observer
+    type: topoexec.test.ConfigObserver
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+    config: {value: initial}
+edges: []
+)");
+}
+
+topoexec::GraphSpec apply_failure_config_transaction_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph:
+  name: apply_failure_config_transaction
+  kind: internal_test
+lanes: {main: {type: event_loop}}
+components:
+  - id: updater_a
+    type: topoexec.test.ConfigUpdater
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+    config: {target: observer_a, value: updated-a, publish: "false"}
+  - id: updater_b
+    type: topoexec.test.ConfigUpdater
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+    config: {target: observer_b, value: apply-fail, publish: "false"}
+  - id: observer_a
+    type: topoexec.test.ConfigObserver
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+    config: {value: initial-a}
+  - id: observer_b
+    type: topoexec.test.ConfigObserver
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+    config: {value: initial-b}
+edges: []
 )");
 }
 
@@ -2006,9 +2107,57 @@ TEST(Runtime, ComponentConfigUpdatesApplyOnEpochBoundary) {
   ASSERT_EQ(config_observations().size(), 2u);
   EXPECT_EQ(config_observations()[0], "initial");
   EXPECT_EQ(config_observations()[1], "updated-1");
+  EXPECT_EQ(config_apply_events(), std::vector<std::string>({"observer.apply.updated-1"}));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.config.version", 1.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.config.last_transaction_id", 1.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.config.staged_update_count", 2.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.config.committed_update_count", 1.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.config.snapshot_read_count", 2.0));
+}
+
+TEST(Runtime, InvalidComponentConfigTransactionIsRejectedBeforeApply) {
+  const auto reg = delay_registry();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_config_observations();
+  const auto result = runner.run(invalid_config_transaction_graph(), options);
+
+  ASSERT_FALSE(result.ok);
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_NE(result.errors.front().find("config transaction validation failed for component observer"),
+            std::string::npos);
+  EXPECT_EQ(config_observations(), std::vector<std::string>({"initial"}));
+  EXPECT_TRUE(config_apply_events().empty());
+  EXPECT_EQ(metric_value(result, "runtime.config.version").value_or(-1.0), 0.0);
+  EXPECT_EQ(metric_value(result, "runtime.config.committed_update_count").value_or(-1.0), 0.0);
+  EXPECT_EQ(metric_value(result, "runtime.config.rolled_back_update_count").value_or(-1.0), 1.0);
+  EXPECT_EQ(metric_value(result, "runtime.config.rejected_update_count").value_or(-1.0), 1.0);
+}
+
+TEST(Runtime, ComponentConfigApplyFailureRollsBackAppliedComponents) {
+  const auto reg = delay_registry();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_config_observations();
+  const auto result = runner.run(apply_failure_config_transaction_graph(), options);
+
+  ASSERT_FALSE(result.ok);
+  ASSERT_FALSE(result.errors.empty());
+  EXPECT_NE(result.errors.front().find("config transaction apply failed for component observer_b"), std::string::npos);
+  EXPECT_EQ(config_observations(), (std::vector<std::string>{"initial-a", "initial-b"}));
+  EXPECT_EQ(config_apply_events(),
+            (std::vector<std::string>{"observer_a.apply.updated-a", "observer_b.apply.apply-fail",
+                                      "observer_b.apply.initial-b", "observer_a.apply.initial-a"}));
+  EXPECT_EQ(metric_value(result, "runtime.config.version").value_or(-1.0), 0.0);
+  EXPECT_EQ(metric_value(result, "runtime.config.committed_update_count").value_or(-1.0), 0.0);
+  EXPECT_EQ(metric_value(result, "runtime.config.rolled_back_update_count").value_or(-1.0), 2.0);
+  EXPECT_EQ(metric_value(result, "runtime.config.rejected_update_count").value_or(-1.0), 2.0);
 }
 
 TEST(Runtime, TaskExecutorCompletesDeterministicTasksInOrder) {

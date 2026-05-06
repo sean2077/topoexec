@@ -180,27 +180,70 @@ ConfigSnapshotUpdateResult ConfigSnapshotStore::stage_component_config_update(co
     return {false, "component id must not be empty"};
   }
   if (apply_on_epoch_boundary) {
+    if (pending_transaction_id_ == 0u) {
+      pending_transaction_id_ = next_transaction_id_++;
+    }
     pending_component_configs_[component_id] = std::move(config);
     ++metrics_.staged_update_count;
-    return {true, {}};
+    return {true, {}, pending_transaction_id_};
   }
   component_configs_[component_id] = std::move(config);
   metrics_.component_config_count = component_configs_.size();
   ++metrics_.immediate_update_count;
-  return {true, {}};
+  ++metrics_.version;
+  last_transaction_.transaction_id = next_transaction_id_++;
+  last_transaction_.version = metrics_.version;
+  last_transaction_.epoch = metrics_.epoch;
+  last_transaction_.applied_at = std::chrono::system_clock::now();
+  last_transaction_.applied_components = {component_id};
+  metrics_.last_transaction_id = last_transaction_.transaction_id;
+  return {true, {}, last_transaction_.transaction_id};
+}
+
+std::map<std::string, ConfigView> ConfigSnapshotStore::pending_component_config_updates() const {
+  std::lock_guard lock(mutex_);
+  return pending_component_configs_;
+}
+
+std::size_t ConfigSnapshotStore::rollback_pending_updates() {
+  std::lock_guard lock(mutex_);
+  const auto rolled_back = pending_component_configs_.size();
+  pending_component_configs_.clear();
+  pending_transaction_id_ = 0;
+  metrics_.rolled_back_update_count += rolled_back;
+  metrics_.rejected_update_count += rolled_back;
+  return rolled_back;
 }
 
 std::size_t ConfigSnapshotStore::commit_epoch_boundary() {
   std::lock_guard lock(mutex_);
   const auto committed = pending_component_configs_.size();
+  std::vector<std::string> applied_components;
+  applied_components.reserve(committed);
   for (auto& [component_id, config] : pending_component_configs_) {
+    applied_components.push_back(component_id);
     component_configs_[component_id] = std::move(config);
   }
   pending_component_configs_.clear();
   ++metrics_.epoch;
   metrics_.committed_update_count += committed;
   metrics_.component_config_count = component_configs_.size();
+  if (committed != 0u) {
+    ++metrics_.version;
+    last_transaction_.transaction_id = pending_transaction_id_;
+    last_transaction_.version = metrics_.version;
+    last_transaction_.epoch = metrics_.epoch;
+    last_transaction_.applied_at = std::chrono::system_clock::now();
+    last_transaction_.applied_components = std::move(applied_components);
+    metrics_.last_transaction_id = last_transaction_.transaction_id;
+    pending_transaction_id_ = 0;
+  }
   return committed;
+}
+
+ConfigTransactionInfo ConfigSnapshotStore::last_transaction() const {
+  std::lock_guard lock(mutex_);
+  return last_transaction_;
 }
 
 ConfigSnapshotStoreMetrics ConfigSnapshotStore::metrics() const {

@@ -225,4 +225,12 @@ Status Component::restore_state(const ComponentStateSnapshot& snapshot) {
   return Status::error("component does not implement restore_state");
 }
 
+Status Component::validate_config(const ConfigView&) const {
+  return Status::success();
+}
+
+Status Component::apply_config(GraphContext& ctx, const ConfigView& config) {
+  return configure_status(ctx, config);
+}
+
 } // namespace topoexec

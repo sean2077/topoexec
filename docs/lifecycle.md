@@ -47,6 +47,23 @@ This is not a hot live-control API yet. Resets/restores are intentionally driven
 at run start or run end boundaries so they do not interleave with component
 execution or violate transaction visibility.
 
+## Config reload hooks
+
+G44 adds experimental config reload hooks on `Component`:
+
+- `validate_config(const ConfigView&)`: reject a pending component config before
+  any component in the transaction is changed.
+- `apply_config(GraphContext&, const ConfigView&)`: apply the new config at an
+  epoch boundary. The default delegates to `configure_status()` so existing
+  components keep their original behavior unless they opt into a live-reload
+  implementation.
+
+Runtime config reloads are transaction-scoped. `EventRuntime` validates all
+pending component configs, applies them before component execution for the next
+epoch, commits `ConfigSnapshotStore` only after every apply succeeds, and
+rolls back pending updates on validation/apply failure. The API intentionally
+does not mutate component config in the middle of an invocation.
+
 ## Error model
 
 `RuntimeRunnerResult::runtime_errors` records structured phase, component, code,

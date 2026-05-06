@@ -404,6 +404,94 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
   }
 
   std::map<std::string, std::size_t> component_in_flight;
+  auto component_for_id = [&](const std::string& component_id) -> EventRuntimeComponent* {
+    const auto found =
+        std::find_if(components_.begin(), components_.end(), [&](const auto& item) { return item.id == component_id; });
+    if (found == components_.end()) {
+      return nullptr;
+    }
+    return &*found;
+  };
+  auto apply_config_transaction = [&]() {
+    if (config_store_ == nullptr) {
+      return true;
+    }
+    const auto pending = config_store_->pending_component_config_updates();
+    if (pending.empty()) {
+      config_store_->commit_epoch_boundary();
+      return true;
+    }
+    std::map<std::string, ConfigView> previous_configs;
+    for (const auto& [component_id, config] : pending) {
+      auto* component = component_for_id(component_id);
+      if (component == nullptr || component->component == nullptr) {
+        config_store_->rollback_pending_updates();
+        result.ok = false;
+        result.stop_reason = SchedulerStopReason::kError;
+        result.errors.push_back("config transaction references missing component " + component_id);
+        record_trace_event(trace_, "config_transaction_rollback",
+                           {{"component_id", component_id}, {"reason", "missing_component"}});
+        return false;
+      }
+      const auto validation = component->component->validate_config(config);
+      record_trace_event(trace_, "config_transaction_validate",
+                         {{"component_id", component_id}, {"status", validation.ok() ? "ok" : "error"}});
+      if (!validation.ok()) {
+        config_store_->rollback_pending_updates();
+        result.ok = false;
+        result.stop_reason = SchedulerStopReason::kError;
+        result.errors.push_back("config transaction validation failed for component " + component_id + ": " +
+                                validation.message());
+        record_trace_event(trace_, "config_transaction_rollback",
+                           {{"component_id", component_id}, {"reason", "validation"}});
+        return false;
+      }
+      previous_configs[component_id] = config_store_->component_config(component_id);
+    }
+
+    std::vector<std::string> applied_components;
+    for (const auto& [component_id, config] : pending) {
+      auto* component = component_for_id(component_id);
+      const auto apply = component->component->apply_config(*component->context, config);
+      record_trace_event(trace_, "config_transaction_apply",
+                         {{"component_id", component_id}, {"status", apply.ok() ? "ok" : "error"}});
+      if (!apply.ok()) {
+        const auto restored_failed =
+            component->component->apply_config(*component->context, previous_configs[component_id]);
+        record_trace_event(
+            trace_, "config_transaction_rollback",
+            {{"component_id", component_id}, {"reason", "apply"}, {"status", restored_failed.ok() ? "ok" : "error"}});
+        if (!restored_failed.ok()) {
+          result.errors.push_back("config transaction rollback failed for component " + component_id + ": " +
+                                  restored_failed.message());
+        }
+        for (auto rollback = applied_components.rbegin(); rollback != applied_components.rend(); ++rollback) {
+          auto* applied = component_for_id(*rollback);
+          if (applied == nullptr || applied->component == nullptr) {
+            continue;
+          }
+          const auto restored = applied->component->apply_config(*applied->context, previous_configs[*rollback]);
+          record_trace_event(trace_, "config_transaction_rollback",
+                             {{"component_id", *rollback}, {"status", restored.ok() ? "ok" : "error"}});
+          if (!restored.ok()) {
+            result.errors.push_back("config transaction rollback failed for component " + *rollback + ": " +
+                                    restored.message());
+          }
+        }
+        config_store_->rollback_pending_updates();
+        result.ok = false;
+        result.stop_reason = SchedulerStopReason::kError;
+        result.errors.push_back("config transaction apply failed for component " + component_id + ": " +
+                                apply.message());
+        return false;
+      }
+      applied_components.push_back(component_id);
+    }
+
+    const auto committed = config_store_->commit_epoch_boundary();
+    record_trace_event(trace_, "config_transaction_commit", {{"applied_components", std::to_string(committed)}});
+    return true;
+  };
   for (std::size_t iteration = 0; iteration < iterations; ++iteration) {
     const auto tick_calls_before_iteration = result.tick_calls;
     if (options.stop_token.stop_requested() || runtime_cancel_token.requested()) {
@@ -449,8 +537,8 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
     if (state_store_ != nullptr) {
       state_store_->commit_epoch_boundary();
     }
-    if (config_store_ != nullptr) {
-      config_store_->commit_epoch_boundary();
+    if (!apply_config_transaction()) {
+      return result;
     }
     if (publications_ != nullptr) {
       const auto commit = publications_->begin_epoch();

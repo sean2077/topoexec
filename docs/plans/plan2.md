@@ -1109,6 +1109,15 @@ Priority: P1/P2
 - Config changes are transactional and observable.
 - No component observes half-applied config.
 
+Implementation note: G44 keeps config reload in the existing in-process
+runtime boundary rather than adding adapters or CLI commands. `Component` now
+has experimental `validate_config`/`apply_config` hooks; `ConfigSnapshotStore`
+tracks transaction id, version, epoch, timestamp, applied components, and
+rollback counts; `EventRuntime` validates and applies pending component config
+updates before the next epoch executes, then commits the store only after every
+apply succeeds. Validation/apply failures are fail-fast and leave the previous
+committed config active.
+
 ---
 
 ## G45. CompositeLoop v2: Solver-Style Policies

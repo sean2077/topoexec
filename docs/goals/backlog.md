@@ -36,7 +36,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G41 | P2 | pending | Hierarchical Graph / Subgraph Design | 支持复杂应用的层次化组织，但不要过早引入复杂 runtime nesting。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G42 | P2/P3 | pending | Graph Templates and Reusable Patterns | 为常见 patterns 提供可复用 graph snippets，而不是复制 YAML。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G43 | P1/P2 | complete | Component Lifecycle v2: Reset, Snapshot, Restore | Experimental component reset/snapshot/restore hooks, start-epoch restore/reset runner options, post-run snapshot capture, lifecycle metrics/trace, version validation, and cleanup-on-failure tests are complete while pause/resume runtime policy remains deferred. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
-| G44 | P1/P2 | pending | Config Hot Reload Transaction | 让 graph-level config 和 component config 支持安全热更新。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G44 | P1/P2 | complete | Config Hot Reload Transaction | Experimental component config transactions now stage updates, validate/apply at epoch boundaries, commit versioned transaction metadata only after all applies succeed, and rollback/fail-fast with the old committed config active on invalid or failed updates. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_state|test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G45 | P2 | pending | CompositeLoop v2: Solver-Style Policies | 将 CompositeLoop 从 fixed-point MVP 推进为可用于优化/迭代算法的 region runtime。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G46 | P0/P1 | pending | Runtime Observer API v1 | 在不引入 OTel/Prometheus/Perfetto 依赖的情况下，建立稳定 observer contract。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G47 | P1 | pending | Metrics v2: Cardinality and Schema Contract | 让 metrics 能服务真实应用和 future exporters，避免 label explosion。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G44 Config Hot Reload Transaction is the next unfinished mixed P1/P2 goal after G43; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
+G46 Runtime Observer API v1 is the next unfinished P0/P1 goal after G44; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Blockers
 

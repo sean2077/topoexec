@@ -52,7 +52,7 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, channel read APIs, and channel metrics. Prefer `RuntimeRunner`/`GraphContext` for ordinary embedding. |
 | `topoexec/runtime/event_runtime.hpp` | Lower-level event runtime surface used by tests and advanced embedders. |
 | `topoexec/runtime/health.hpp` | `HealthEvent` and bounded `HealthEventSink` observer helpers; event shape may evolve with the future observer API. |
-| `topoexec/runtime/state.hpp` | Namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits. |
+| `topoexec/runtime/state.hpp` | Namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits and experimental config transaction metadata. |
 | `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
 | `topoexec/common/metrics.hpp` | Small metrics registry/value helpers; exporter/cardinality/schema v2 contracts are not stable yet. |
@@ -65,7 +65,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 
 | Surface | Stability | Compatibility expectation |
 | --- | --- | --- |
-| `Component::configure/activate/execute/deactivate` plus status variants | stable-v0.2 | Existing hook meanings should not silently change. G43 reset/pause/resume/snapshot/restore hooks are additive and experimental until lifecycle policy is stable. |
+| `Component::configure/activate/execute/deactivate` plus status variants | stable-v0.2 | Existing hook meanings should not silently change. G43 reset/pause/resume/snapshot/restore hooks and G44 validate/apply config hooks are additive and experimental until lifecycle/config policy is stable. |
 | `GraphContext::publish()` and `publish_shared()` | stable-v0.2 | Publication remains staged/routed by runtime; no direct downstream calls. |
 | `Invocation`, `InvocationMetadata`, `InputView`, typed payload helpers | stable-v0.2 | Existing payload lookup and typed access behavior should remain source-compatible; metadata fields are additive trace/debug context and `Invocation::cancel_requested()` is cooperative. |
 | `CancellationToken` / `CancellationSource` | stable-v0.2 | Cancellation requests are observable by components, tasks, and loops; observation is metric/trace evidence, not forced termination. |
@@ -75,7 +75,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `RuntimeRunner::run()` and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, trace vectors, metric vectors, health event vectors, and error fields should keep meanings. |
 | `SchedulerStopSource`/`SchedulerStopToken` | stable-v0.2 through runner options | Direct scheduler registry/metrics internals remain experimental. |
 | `ComponentStateSnapshot`, reset/snapshot/restore runner options/results | experimental | Stateful lifecycle support is start/end-boundary only; pause/resume policy and hot live control may change before beta. |
-| `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | Snapshot/config transaction APIs may be reshaped by G44. |
+| `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | State snapshots and config transactions are epoch-boundary, observable APIs; transaction metadata and immediate-update escape hatches may be reshaped before beta. |
 | `ITaskExecutor`, `DeterministicTaskExecutor`, `TaskExecutor`, `ThreadedTaskExecutor` | experimental | The deterministic compatibility name remains available; threaded executor preview shutdown/admission details may change before beta. |
 | `RuntimeChannelBus`, `RuntimePublicationRouter`, `TriggerPolicyEngine`, `EventRuntime` | experimental | Advanced runtime internals may change as scheduler/channel/trigger v2 goals land. |
 

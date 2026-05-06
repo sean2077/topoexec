@@ -49,7 +49,20 @@ next.values["gain"] = "2";
 ctx.config_store->stage_component_config_update("controller", next);
 ```
 
-By default, staged config updates apply at the next epoch boundary. Components that read the config snapshot during the publishing epoch still see the previously committed values. This is a data snapshot API; it does not automatically call `Component::configure()` again.
+By default, staged config updates form one transaction and apply at the next
+epoch boundary. Components that read the config snapshot during the publishing
+epoch still see the previously committed values. At the boundary, `EventRuntime`
+validates every pending component config with `Component::validate_config()`,
+applies each one with `Component::apply_config()`, and only then commits the
+store version. If validation fails, or an apply hook fails and rollback is
+attempted, the pending transaction is discarded and the previous committed
+config remains active.
+
+`ConfigSnapshotStore::last_transaction()` records the applied transaction id,
+version, epoch, timestamp, and component ids. Explicit immediate updates are
+still exposed for setup/test code, but runtime hot-reload code should prefer the
+epoch-boundary path so component execution never observes a mid-iteration
+mutation.
 
 ## Metrics
 
@@ -57,5 +70,4 @@ State/config snapshot work is observable through:
 
 - `runtime.publication.state` and `runtime.publication.state_committed` for state-edge staging/commit;
 - `runtime.state.*` for blackboard staged/committed/rejected/snapshot-read counts;
-- `runtime.config.*` for config staged/committed/rejected/snapshot-read counts.
-
+- `runtime.config.*` for config version, transaction id, staged/committed/rolled-back/rejected/snapshot-read counts.

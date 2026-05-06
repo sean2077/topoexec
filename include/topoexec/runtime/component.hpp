@@ -293,6 +293,8 @@ public:
   virtual Status resume_status();
   virtual Result<ComponentStateSnapshot> snapshot_state() const;
   virtual Status restore_state(const ComponentStateSnapshot& snapshot);
+  virtual Status validate_config(const ConfigView& config) const;
+  virtual Status apply_config(GraphContext& ctx, const ConfigView& config);
 };
 
 struct TickContext {

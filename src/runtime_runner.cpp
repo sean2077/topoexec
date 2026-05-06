@@ -731,7 +731,11 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     const auto config_metrics = config_store.metrics();
     if (config_metrics.staged_update_count != 0u || config_metrics.committed_update_count != 0u ||
         config_metrics.immediate_update_count != 0u || config_metrics.rejected_update_count != 0u ||
-        config_metrics.snapshot_read_count != 0u) {
+        config_metrics.rolled_back_update_count != 0u || config_metrics.snapshot_read_count != 0u ||
+        config_metrics.version != 0u || config_metrics.last_transaction_id != 0u) {
+      append_runtime_metric(result, "runtime.config.version", static_cast<double>(config_metrics.version));
+      append_runtime_metric(result, "runtime.config.last_transaction_id",
+                            static_cast<double>(config_metrics.last_transaction_id));
       append_runtime_metric(result, "runtime.config.staged_update_count",
                             static_cast<double>(config_metrics.staged_update_count));
       append_runtime_metric(result, "runtime.config.committed_update_count",
@@ -740,6 +744,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                             static_cast<double>(config_metrics.immediate_update_count));
       append_runtime_metric(result, "runtime.config.rejected_update_count",
                             static_cast<double>(config_metrics.rejected_update_count));
+      append_runtime_metric(result, "runtime.config.rolled_back_update_count",
+                            static_cast<double>(config_metrics.rolled_back_update_count));
       append_runtime_metric(result, "runtime.config.snapshot_read_count",
                             static_cast<double>(config_metrics.snapshot_read_count));
     }

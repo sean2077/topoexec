@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+
 TEST(StateStore, StagedWritesBecomeVisibleOnlyAfterEpochBoundary) {
   topoexec::RuntimeStateStore store;
 
@@ -67,6 +69,8 @@ TEST(ConfigSnapshotStore, ComponentConfigUpdatesRespectEpochBoundary) {
   next.values["gain"] = "2";
   const auto update = store.stage_component_config_update("controller", next);
   ASSERT_TRUE(update.accepted) << update.reason;
+  EXPECT_NE(update.transaction_id, 0u);
+  ASSERT_EQ(store.pending_component_config_updates().size(), 1u);
 
   EXPECT_EQ(store.graph_config().values.at("profile"), "alpha");
   EXPECT_EQ(store.component_config("controller").values.at("gain"), "1");
@@ -74,9 +78,41 @@ TEST(ConfigSnapshotStore, ComponentConfigUpdatesRespectEpochBoundary) {
   EXPECT_EQ(store.commit_epoch_boundary(), 1u);
 
   EXPECT_EQ(store.component_config("controller").values.at("gain"), "2");
+  const auto transaction = store.last_transaction();
+  EXPECT_EQ(transaction.transaction_id, update.transaction_id);
+  EXPECT_EQ(transaction.version, 1u);
+  EXPECT_EQ(transaction.epoch, 1u);
+  EXPECT_EQ(transaction.applied_components, std::vector<std::string>({"controller"}));
   const auto metrics = store.metrics();
+  EXPECT_EQ(metrics.version, 1u);
+  EXPECT_EQ(metrics.last_transaction_id, update.transaction_id);
   EXPECT_EQ(metrics.staged_update_count, 1u);
   EXPECT_EQ(metrics.committed_update_count, 1u);
   EXPECT_EQ(metrics.component_config_count, 1u);
   EXPECT_EQ(metrics.snapshot_read_count, 3u);
+}
+
+TEST(ConfigSnapshotStore, PendingConfigUpdatesCanRollbackWithoutChangingActiveSnapshot) {
+  topoexec::ConfigSnapshotStore store;
+  topoexec::ConfigView initial;
+  initial.values["gain"] = "1";
+  store.set_component_config("controller", initial);
+
+  topoexec::ConfigView next;
+  next.values["gain"] = "2";
+  const auto update = store.stage_component_config_update("controller", next);
+  ASSERT_TRUE(update.accepted) << update.reason;
+
+  EXPECT_EQ(store.rollback_pending_updates(), 1u);
+  EXPECT_TRUE(store.pending_component_config_updates().empty());
+  EXPECT_EQ(store.component_config("controller").values.at("gain"), "1");
+  EXPECT_EQ(store.commit_epoch_boundary(), 0u);
+  EXPECT_EQ(store.component_config("controller").values.at("gain"), "1");
+
+  const auto metrics = store.metrics();
+  EXPECT_EQ(metrics.version, 0u);
+  EXPECT_EQ(metrics.last_transaction_id, 0u);
+  EXPECT_EQ(metrics.rolled_back_update_count, 1u);
+  EXPECT_EQ(metrics.rejected_update_count, 1u);
+  EXPECT_EQ(metrics.committed_update_count, 0u);
 }

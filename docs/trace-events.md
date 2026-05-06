@@ -68,6 +68,13 @@ Channels and publication:
 - `state_commit`
 - `async_admission`
 
+Config transactions:
+
+- `config_transaction_validate`
+- `config_transaction_apply`
+- `config_transaction_rollback`
+- `config_transaction_commit`
+
 Composite loops:
 
 - `loop_iteration`
@@ -88,6 +95,7 @@ The runtime includes identifiers where the event source has them:
 - Channel commit events include `channel_id` and `edge_kind`.
 - State commit events include `channel_id` and `edge_kind` when a `state` edge becomes visible at an epoch boundary.
 - Async admission events include `channel_id`, `accepted`, and `max_inflight`.
+- Config transaction events include `component_id`, `status`, `reason`, or applied component counts where applicable. They are emitted at epoch boundaries before component execution.
 - Health events appear as `health_event` trace entries with bounded observer attributes such as `kind`, `source`, `channel_id`/`edge_id`, `component_id`, `lane`, `policy`, `reason`, `depth`, `capacity`, and `occurrence_count`. They are emitted for channel overflow/stale/deadline/high-watermark, task reject, and scheduler reject paths when health events are enabled.
 - Loop events include `loop_id` and loop-local `iteration`.
 

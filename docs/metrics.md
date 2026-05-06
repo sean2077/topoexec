@@ -128,10 +128,13 @@ State/config snapshots:
 - `runtime.state.rejected_write_count`: blackboard writes rejected by empty namespace/key/writer, null payload, or single-writer policy.
 - `runtime.state.snapshot_read_count`: blackboard snapshots/read calls.
 - `runtime.state.current_value_count`: current committed blackboard values.
+- `runtime.config.version`: committed config transaction version. Initial graph/component config load starts at version 0.
+- `runtime.config.last_transaction_id`: most recently committed config transaction id.
 - `runtime.config.staged_update_count`: component config snapshots staged for an epoch-boundary update.
 - `runtime.config.committed_update_count`: component config snapshots applied at epoch boundaries.
 - `runtime.config.immediate_update_count`: explicitly immediate component config updates.
 - `runtime.config.rejected_update_count`: rejected config updates.
+- `runtime.config.rolled_back_update_count`: pending component config updates discarded by failed validation/apply rollback.
 - `runtime.config.snapshot_read_count`: graph/component config snapshot reads.
 
 Component lifecycle:

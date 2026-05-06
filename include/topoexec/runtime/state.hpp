@@ -5,6 +5,7 @@
 #include "topoexec/runtime/component.hpp"
 #include "topoexec/runtime/payload.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -12,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace topoexec {
 
@@ -70,15 +72,27 @@ private:
 struct ConfigSnapshotUpdateResult {
   bool accepted{false};
   std::string reason;
+  std::uint64_t transaction_id{0};
+};
+
+struct ConfigTransactionInfo {
+  std::uint64_t transaction_id{0};
+  std::uint64_t version{0};
+  std::uint64_t epoch{0};
+  std::chrono::system_clock::time_point applied_at;
+  std::vector<std::string> applied_components;
 };
 
 struct ConfigSnapshotStoreMetrics {
   std::uint64_t epoch{0};
+  std::uint64_t version{0};
+  std::uint64_t last_transaction_id{0};
   std::size_t component_config_count{0};
   std::size_t staged_update_count{0};
   std::size_t committed_update_count{0};
   std::size_t immediate_update_count{0};
   std::size_t rejected_update_count{0};
+  std::size_t rolled_back_update_count{0};
   std::size_t snapshot_read_count{0};
 };
 
@@ -92,7 +106,10 @@ public:
 
   ConfigSnapshotUpdateResult stage_component_config_update(const std::string& component_id, ConfigView config,
                                                            bool apply_on_epoch_boundary = true);
+  std::map<std::string, ConfigView> pending_component_config_updates() const;
+  std::size_t rollback_pending_updates();
   std::size_t commit_epoch_boundary();
+  ConfigTransactionInfo last_transaction() const;
   ConfigSnapshotStoreMetrics metrics() const;
 
 private:
@@ -100,6 +117,9 @@ private:
   ConfigView graph_config_;
   std::map<std::string, ConfigView> component_configs_;
   std::map<std::string, ConfigView> pending_component_configs_;
+  std::uint64_t next_transaction_id_{1};
+  std::uint64_t pending_transaction_id_{0};
+  ConfigTransactionInfo last_transaction_;
   mutable ConfigSnapshotStoreMetrics metrics_;
 };
 
