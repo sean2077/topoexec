@@ -26,7 +26,7 @@ Release decision note:
 
 ```text
 Recommended next prerelease: v0.2.0-alpha.0.
-Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while production exporter adapters, long fuzz/soak campaigns, and beta readiness remain explicit future work. RuntimeObserver v1, the dependency-free G58 OTel preview mapping, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
+Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while production exporter adapters, long fuzz/soak campaigns, and beta readiness remain explicit future work. RuntimeObserver v1, the dependency-free G58/G59 telemetry preview mappings, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
 Human release approval should still verify CI on the exact tag commit before creating the annotated tag.
 ```
 
@@ -152,6 +152,18 @@ cmake --build build --target topoexec_format_check passed.
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 73/73 CTest tests in the ASAN+UBSAN Debug build.
 ```
 
+Observed G59 local result:
+
+```text
+./scripts/goal_check.sh adapters passed: test_adapter_sdk, test_otel_adapter, test_prometheus_adapter, cmake_otel_adapter_options_smoke, cmake_prometheus_adapter_options_smoke, and policy smokes, 7/7.
+./scripts/goal_check.sh quick passed: cli_golden_outputs and schema_v1_contract_smoke.
+./scripts/goal_check.sh docs passed: recursive docs command smoke after adapter docs updates.
+cmake --build build --target topoexec_format_check passed after formatting the tracked OTel preview header and checking tracked C++ files.
+./scripts/goal_check.sh policy passed: policy_no_core_adapter_deps and policy_architecture_self_test.
+./scripts/agent_check.sh passed: 74/74 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 74/74 CTest tests in the ASAN+UBSAN Debug build.
+```
+
 Observed G67 local result:
 
 ```text
@@ -234,8 +246,8 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
   schema version 1, diagnostic schema version 1, invocation
   correlation/causation metadata, bounded observer-only health events,
   RuntimeObserver v1, Adapter SDK v0, and the dependency-free G58 OTel preview
-  mapping. Concrete production exporter adapters and a richer health-event v2
-  contract remain future work.
+  mapping plus G59 Prometheus text preview. Concrete production exporter
+  adapters and a richer health-event v2 contract remain future work.
 - Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, deterministic malformed-input fuzz smoke, and an optional `fuzz_graph_inputs` libFuzzer/standalone corpus target. Longer fuzz campaigns and broader target coverage remain future hardening work.
 - Hierarchical `subgraphs[]` are implemented as schema-v1 compile-time
   namespace expansion into flat components, edges, CompositeLoops, and
@@ -263,6 +275,6 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
 - ThreadSanitizer remains non-blocking.
 - ROS 2, production OpenTelemetry/Prometheus, Python, C API, dynamic plugin
   loading, and external Perfetto adapters remain deferred and must not be
-  claimed as implemented; G57 provides a dependency-free SDK boundary and G58
-  provides only a dependency-free OTel mapping preview.
+  claimed as implemented; G57 provides a dependency-free SDK boundary and
+  G58/G59 provide only dependency-free telemetry preview mappings.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

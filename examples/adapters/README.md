@@ -3,8 +3,8 @@
 This directory is a preview layout only. Files here are not built, do not include
 external SDK headers, and do not implement ROS, production OpenTelemetry,
 Prometheus, Perfetto, Python, C API, or dynamic plugin loading. The built G58
-OTel preview lives in `include/topoexec/adapters/otel.hpp` and remains a
-dependency-free in-memory mapping target, not a network exporter.
+OTel and G59 Prometheus previews live under `include/topoexec/adapters/` and
+remain dependency-free mapping targets, not network exporters or scrape servers.
 
 Use these notes to keep future adapter work outside `topoexec::runtime`.
 
@@ -33,7 +33,8 @@ class MyMetricsExporter {
 The exporter reads metrics/trace/errors from `RuntimeRunnerResult`. Export
 failure should be adapter health, not a runtime scheduling decision.
 For a compileable dependency-free version of this pattern, see
-`topoexec::adapters::otel::ExporterPreview`.
+`topoexec::adapters::otel::ExporterPreview` and
+`topoexec::adapters::prometheus::TextExporterPreview`.
 
 ## Plugin registry sketch
 

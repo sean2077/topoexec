@@ -60,6 +60,12 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
   mapping records over the observer API, installed package metadata, downstream
   CMake smoke coverage, and policy checks proving runtime has no telemetry SDK
   dependency.
+- Added the default-off `topoexec_adapters::prometheus` exporter preview with
+  `TOPOEXEC_BUILD_PROMETHEUS_ADAPTER`, dependency-free Prometheus text
+  exposition for descriptor-backed counters/gauges and custom histogram
+  summaries, installed package metadata, downstream CMake smoke coverage, and
+  policy checks proving runtime has no HTTP server or Prometheus library
+  dependency.
 - Added release automation with `scripts/release_prepare.sh`, `./scripts/goal_check.sh release`, manual CI dry-run artifact upload, release notes draft generation, annotated-tag/no-retag guardrails, source/CPack/schema artifacts, and checksum output without publishing or tagging automatically.
 - Added the G69 robot-cell pilot app and case study, composing multiple lanes, async overload drops, state/delay feedback, BufferPool frames, config transactions/snapshots, metrics/trace evidence, and invalid-config rejection without adapter dependencies.
 - Added the G70 beta readiness review, beta-candidate gate checklist, explicit

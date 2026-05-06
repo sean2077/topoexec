@@ -192,8 +192,7 @@ public:
 
   ExporterPreviewSnapshot snapshot() const {
     std::lock_guard lock(mutex_);
-    return ExporterPreviewSnapshot{metrics_, spans_, logs_,
-                                   dropped_event_count_.load(std::memory_order_relaxed),
+    return ExporterPreviewSnapshot{metrics_, spans_, logs_, dropped_event_count_.load(std::memory_order_relaxed),
                                    failure_count_.load(std::memory_order_relaxed)};
   }
 
@@ -277,8 +276,7 @@ private:
     }
   }
 
-  static void add_if_present(std::map<std::string, std::string>& attributes, std::string key,
-                             std::string_view value) {
+  static void add_if_present(std::map<std::string, std::string>& attributes, std::string key, std::string_view value) {
     if (!value.empty()) {
       attributes[std::move(key)] = std::string(value);
     }

@@ -155,8 +155,8 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - G42 graph templates are strict parameter-substitution snippets only; they do
   not implement arbitrary expressions, includes, conditionals, loops, or runtime
   template interpretation.
-- G57 Adapter SDK v0 is a dependency-free boundary and G58 OTel is only an
-  in-memory mapping preview; concrete ROS 2, production OTel/Prometheus,
+- G57 Adapter SDK v0 is a dependency-free boundary and G58/G59 telemetry targets
+  are only mapping/text previews; concrete ROS 2, production OTel/Prometheus,
   Python, Perfetto, C API, and plugin adapters remain deferred.
 - G69 robot-cell pilot is a dependency-free in-process case study; it is not a
   hardware driver, ROS graph, camera SDK integration, exporter integration, or

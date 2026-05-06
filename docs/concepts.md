@@ -3,7 +3,7 @@
 TopoExec is a C++20 in-process semantic execution graph runtime. It is not a
 distributed scheduler, ROS 2 adapter, Python runtime, GUI editor, or production
 metrics exporter. Adapter packages are deferred until the core runtime API is
-stable; G58 only adds a dependency-free OTel-shaped mapping preview.
+stable; G58/G59 only add dependency-free telemetry preview mappings.
 
 ## Runtime objects
 
@@ -53,5 +53,5 @@ is visible through `TextPayload`, `BinaryBlobPayload`, `FrameView`,
 
 Metrics, trace events, diagnostics, plan JSON, lint/explain output, and benchmark
 JSON are scriptable surfaces. They are designed for CI and debugging. The
-default-off OTel preview maps these observer/result records without adding a
-production exporter or telemetry SDK dependency.
+default-off OTel and Prometheus previews map these observer/result records
+without adding production exporters, HTTP servers, or telemetry SDK dependencies.

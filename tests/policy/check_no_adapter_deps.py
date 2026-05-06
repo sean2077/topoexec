@@ -96,8 +96,21 @@ def iter_files(root: Path) -> Iterable[SourceFile]:
 def add_token_violations(violations: list[str], source: SourceFile, tokens: Iterable[str], reason: str) -> None:
     lowered = source.text.lower()
     for token in tokens:
+        if is_allowed_optional_adapter_token(source, token):
+            continue
         if token.lower() in lowered:
             violations.append(f"{source.rel} contains {reason} token {token!r}")
+
+
+def is_allowed_optional_adapter_token(source: SourceFile, token: str) -> bool:
+    token = token.lower()
+    if token != "prometheus":
+        return False
+    return source.rel in {
+        "CMakeLists.txt",
+        "cmake/topoexecConfig.cmake.in",
+        "include/topoexec/adapters/prometheus.hpp",
+    }
 
 
 def audit_files(root: Path) -> list[str]:
@@ -176,6 +189,18 @@ def audit_cmake(root: Path) -> list[str]:
                 violations.append(f"topoexec_adapters_otel must not directly link {token}")
         if "install(EXPORT topoexecAdapterTargets" not in cmake:
             violations.append("topoexec_adapters_otel must export through topoexecAdapterTargets when enabled")
+
+    if "TOPOEXEC_BUILD_PROMETHEUS_ADAPTER" in cmake:
+        prometheus_links = cmake_call_body(cmake, "target_link_libraries(topoexec_adapters_prometheus")
+        if "topoexec_adapter_sdk" not in prometheus_links:
+            violations.append("topoexec_adapters_prometheus must consume topoexec_adapter_sdk")
+        for token in ("topoexec_runtime", "topoexec_yaml", "CLI11", "YAML_CPP", "nlohmann_json"):
+            if token in prometheus_links:
+                violations.append(f"topoexec_adapters_prometheus must not directly link {token}")
+        if "install(EXPORT topoexecAdapterTargets" not in cmake:
+            violations.append("topoexec_adapters_prometheus must export through topoexecAdapterTargets when enabled")
+        if "find_package(prometheus" in cmake.lower() or "prometheus-cpp" in cmake.lower():
+            violations.append("topoexec_adapters_prometheus preview must not find/link an external Prometheus SDK")
 
     yaml_links = cmake_call_body(cmake, "target_link_libraries(topoexec_yaml")
     if "topoexec_runtime" not in yaml_links:

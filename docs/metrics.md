@@ -59,6 +59,25 @@ Raw sample `tags` are not exported as labels. The preview records only
 non-schema tag use without creating high-cardinality time series. The preview
 does not require or link an external telemetry SDK.
 
+## Prometheus Preview Mapping
+
+The optional G59 `topoexec_adapters::prometheus` target renders runtime metrics
+as dependency-free text exposition:
+
+- descriptor `counter` -> sanitized metric name with `_total` and
+  `# TYPE ... counter`;
+- descriptor `gauge` -> sanitized metric name and `# TYPE ... gauge`;
+- custom `MetricRegistry::histogram(name)` summaries -> Prometheus summary text
+  from `<name>.count`, `<name>.avg`, `<name>.p50`, `<name>.p95`, and
+  `<name>.p99`, plus min/max/avg gauge helpers when those samples are present;
+- only descriptor-allowed bounded labels (`component_id`, `lane`, `channel_id`)
+  become text labels.
+
+Raw sample `tags` are ignored and unexpected descriptor labels are rejected, so
+correlation, causation, transaction, trace, or request ids cannot become default
+Prometheus labels. The preview does not start an HTTP server or link a
+Prometheus library; embedding applications own any scrape endpoint or transport.
+
 ## Stable Names
 
 Scheduler:

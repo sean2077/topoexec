@@ -83,10 +83,12 @@ case "$MODE" in
     ;;
   adapters)
     OTEL_BUILD_DIR="${BUILD_DIR}-otel"
-    cmake -S . -B "$OTEL_BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTOPOEXEC_BUILD_OTEL_ADAPTER=ON
+    cmake -S . -B "$OTEL_BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DTOPOEXEC_BUILD_OTEL_ADAPTER=ON \
+      -DTOPOEXEC_BUILD_PROMETHEUS_ADAPTER=ON
     cmake --build "$OTEL_BUILD_DIR" -j
     ctest --test-dir "$OTEL_BUILD_DIR" --output-on-failure \
-      -R 'test_adapter_sdk|test_otel_adapter|cmake_otel_adapter_options_smoke|policy_.*'
+      -R 'test_adapter_sdk|test_otel_adapter|test_prometheus_adapter|cmake_otel_adapter_options_smoke|cmake_prometheus_adapter_options_smoke|policy_.*'
     ;;
   release)
     configure_build

@@ -55,6 +55,8 @@ The installed package exports:
   built and installed.
 - `topoexec_adapters::otel`: optional dependency-free OTel exporter preview
   target when `TOPOEXEC_BUILD_OTEL_ADAPTER=ON`.
+- `topoexec_adapters::prometheus`: optional dependency-free Prometheus text
+  exporter preview target when `TOPOEXEC_BUILD_PROMETHEUS_ADAPTER=ON`.
 
 The CLI executable is installed as `bin/topoexec` when `TOPOEXEC_BUILD_CLI=ON`.
 The installed config also exposes package metadata variables:
@@ -65,6 +67,7 @@ The installed config also exposes package metadata variables:
 - `TOPOEXEC_HAS_RUNTIME`
 - `TOPOEXEC_HAS_ADAPTER_SDK`
 - `TOPOEXEC_HAS_OTEL_ADAPTER`
+- `TOPOEXEC_HAS_PROMETHEUS_ADAPTER`
 - `TOPOEXEC_HAS_YAML`
 - `TOPOEXEC_HAS_CLI`
 - `TOPOEXEC_HAS_EXAMPLES`
@@ -79,6 +82,7 @@ The installed config also exposes package metadata variables:
 | `TOPOEXEC_BUILD_TESTING` | `ON` | Build CTest suite; currently requires YAML, CLI, and examples. |
 | `TOPOEXEC_BUILD_FUZZERS` | `OFF` | Build optional graph-input fuzz targets; requires YAML. |
 | `TOPOEXEC_BUILD_OTEL_ADAPTER` | `OFF` | Build and export the optional dependency-free OTel exporter preview target. |
+| `TOPOEXEC_BUILD_PROMETHEUS_ADAPTER` | `OFF` | Build and export the optional dependency-free Prometheus text exporter preview target. |
 | `TOPOEXEC_FUZZER_ENGINE` | `AUTO` | Fuzzer engine when fuzzers are enabled: `AUTO`, `LIBFUZZER`, or `STANDALONE`. |
 | `TOPOEXEC_ENABLE_ASAN` | `OFF` | Add AddressSanitizer instrumentation for GCC/Clang builds. |
 | `TOPOEXEC_ENABLE_UBSAN` | `OFF` | Add UndefinedBehaviorSanitizer instrumentation for GCC/Clang builds. |
@@ -118,6 +122,27 @@ target_link_libraries(my_exporter PRIVATE topoexec_adapters::otel)
 This preview target maps existing runtime metrics, trace, health, and errors to
 in-memory OTel-shaped records. It does not link an external telemetry SDK and is
 covered by `cmake_otel_adapter_options_smoke`.
+
+Optional Prometheus preview target:
+
+```bash
+cmake -S . -B build-prometheus -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DTOPOEXEC_BUILD_PROMETHEUS_ADAPTER=ON
+cmake --build build-prometheus -j
+ctest --test-dir build-prometheus --output-on-failure -R test_prometheus_adapter
+```
+
+Installed consumers request the optional package component and link the adapter
+namespace target:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED COMPONENTS prometheus)
+target_link_libraries(my_exporter PRIVATE topoexec_adapters::prometheus)
+```
+
+This preview target renders runtime metric descriptors and custom histogram
+summaries as text exposition. It does not start an HTTP server or link a
+Prometheus library and is covered by `cmake_prometheus_adapter_options_smoke`.
 
 Optional fuzzer smoke:
 

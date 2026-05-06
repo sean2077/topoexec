@@ -1883,6 +1883,16 @@ Priority: P2/P3
 - Metrics v2 schema is validated by another adapter style.
 - No core HTTP server.
 
+Implementation note: G59 adds a default-off
+`topoexec_adapters::prometheus` preview target and
+`TOPOEXEC_BUILD_PROMETHEUS_ADAPTER` package option. The target depends only on
+`topoexec::adapter_sdk` and renders existing runtime metric descriptors plus
+custom histogram summaries into dependency-free Prometheus text exposition.
+Counters gain `_total`, gauges preserve bounded labels, custom histogram
+summaries expose count/sum/quantiles, and raw tags are not exported as labels.
+It does not start an HTTP server, link a Prometheus library, add schema fields,
+or make runtime depend on adapter headers.
+
 ---
 
 ## G60. ROS 2 Adapter Preview
@@ -2350,7 +2360,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G42, G59-G65, or G68.
+  and hidden deferral of G42, G60-G65, or G68.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2416,7 +2426,7 @@ Priority: P0 before beta
 
 35. G57 Adapter SDK v0
 36. G58 OpenTelemetry Exporter Preview（complete）
-37. G59 Prometheus Exporter Preview
+37. G59 Prometheus Exporter Preview（complete）
 38. G60 ROS 2 Adapter Preview
 39. G61 C API / FFI Design
 40. G62 Python Binding Preview
