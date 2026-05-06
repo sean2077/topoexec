@@ -2,10 +2,18 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLANG_FORMAT_BIN="${CLANG_FORMAT:-clang-format}"
+CLANG_FORMAT_BIN="${CLANG_FORMAT:-}"
+if [[ -z "$CLANG_FORMAT_BIN" ]]; then
+  for candidate in clang-format-22 clang-format; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      CLANG_FORMAT_BIN="$candidate"
+      break
+    fi
+  done
+fi
 
 if ! command -v "$CLANG_FORMAT_BIN" >/dev/null 2>&1; then
-  echo "clang-format not found; install clang-format or set CLANG_FORMAT" >&2
+  echo "clang-format not found; install clang-format-22 or set CLANG_FORMAT" >&2
   exit 127
 fi
 

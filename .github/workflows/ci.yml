@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  CLANG_FORMAT: clang-format-22
+  CLANG_TIDY: clang-tidy-22
+
 jobs:
   build-test:
     name: ${{ matrix.compiler }} / ${{ matrix.build_type }}
@@ -32,10 +36,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
+          sudo apt-get install -y ca-certificates gnupg wget
+          . /etc/os-release
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
+          echo "deb http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-22 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-22.list
+          sudo apt-get update
           sudo apt-get install -y \
             clang \
-            clang-format \
-            clang-tidy \
+            clang-format-22 \
+            clang-tidy-22 \
             cmake \
             g++ \
             libcli11-dev \
@@ -65,9 +74,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
+          sudo apt-get install -y ca-certificates gnupg wget
+          . /etc/os-release
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
+          echo "deb http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-22 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-22.list
+          sudo apt-get update
           sudo apt-get install -y \
-            clang-format \
-            clang-tidy \
+            clang-format-22 \
+            clang-tidy-22 \
             cmake \
             g++ \
             libcli11-dev \
@@ -92,10 +106,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
+          sudo apt-get install -y ca-certificates gnupg wget
+          . /etc/os-release
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
+          echo "deb http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-22 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-22.list
+          sudo apt-get update
           sudo apt-get install -y \
             clang \
-            clang-format \
-            clang-tidy \
+            clang-format-22 \
+            clang-tidy-22 \
             cmake \
             libcli11-dev \
             libyaml-cpp-dev \
@@ -121,10 +140,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
+          sudo apt-get install -y ca-certificates gnupg wget
+          . /etc/os-release
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
+          echo "deb http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-22 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-22.list
+          sudo apt-get update
           sudo apt-get install -y \
             clang \
-            clang-format \
-            clang-tidy \
+            clang-format-22 \
+            clang-tidy-22 \
             cmake \
             libcli11-dev \
             libyaml-cpp-dev \
@@ -151,10 +175,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
+          sudo apt-get install -y ca-certificates gnupg wget
+          . /etc/os-release
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
+          echo "deb http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-22 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-22.list
+          sudo apt-get update
           sudo apt-get install -y \
             clang \
-            clang-format \
-            clang-tidy \
+            clang-format-22 \
+            clang-tidy-22 \
             cmake \
             libcli11-dev \
             libyaml-cpp-dev \

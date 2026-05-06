@@ -39,7 +39,7 @@ if(Git_FOUND)
   endif()
 endif()
 
-find_program(CLANG_FORMAT_EXE NAMES clang-format)
+find_program(CLANG_FORMAT_EXE NAMES clang-format-22 clang-format)
 if(CLANG_FORMAT_EXE)
   set(TOPOEXEC_CLANG_FORMAT_ENV CLANG_FORMAT=${CLANG_FORMAT_EXE})
 endif()
@@ -50,7 +50,7 @@ add_custom_target(topoexec_format_check
   COMMENT "Checking C++ formatting with clang-format"
 )
 
-find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+find_program(CLANG_TIDY_EXE NAMES clang-tidy-22 clang-tidy)
 if(CLANG_TIDY_EXE)
   set(TOPOEXEC_CLANG_TIDY_ENV CLANG_TIDY=${CLANG_TIDY_EXE})
 endif()

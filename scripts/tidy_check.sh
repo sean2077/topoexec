@@ -4,13 +4,22 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${TOPOEXEC_BUILD_DIR:-"$ROOT_DIR/build"}"
 BUILD_TYPE="${TOPOEXEC_BUILD_TYPE:-RelWithDebInfo}"
-CLANG_TIDY_BIN="${CLANG_TIDY:-clang-tidy}"
+CLANG_TIDY_BIN="${CLANG_TIDY:-}"
 TIMEOUT_BIN="${TIMEOUT:-timeout}"
 TIMEOUT_SECONDS="${TOPOEXEC_TIDY_TIMEOUT_SECONDS:-240}"
 JOBS="${TOPOEXEC_TIDY_JOBS:-4}"
 
+if [[ -z "$CLANG_TIDY_BIN" ]]; then
+  for candidate in clang-tidy-22 clang-tidy; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      CLANG_TIDY_BIN="$candidate"
+      break
+    fi
+  done
+fi
+
 if ! command -v "$CLANG_TIDY_BIN" >/dev/null 2>&1; then
-  echo "clang-tidy not found; install clang-tidy or set CLANG_TIDY" >&2
+  echo "clang-tidy not found; install clang-tidy-22 or set CLANG_TIDY" >&2
   exit 127
 fi
 if ! command -v "$TIMEOUT_BIN" >/dev/null 2>&1; then
