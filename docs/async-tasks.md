@@ -7,7 +7,7 @@ Async edges and async task execution are separate concepts in TopoExec.
 - `TaskExecutor` remains a source-compatible alias for the deterministic executor path; `DeterministicTaskExecutor` is the explicit deterministic implementation.
 - `ThreadedTaskExecutor` is an opt-in preview for bounded worker-backed task execution. It is not used unless an embedder attaches it to `GraphContext::task_executor`.
 
-The core runtime does not require a task executor. Applications can attach any `ITaskExecutor` implementation to `GraphContext::task_executor` and call `GraphContext::submit_task(port, work)` from a component. The completion callback publishes the returned payload to `component_id.port`, so normal async-edge routing can carry the completion to downstream `task_ready` / `future_ready` triggers. Completion callbacks route through the runtime publisher or channel bus; they do not call downstream components directly.
+The core runtime does not require a task executor. Applications can attach any `ITaskExecutor` implementation to `GraphContext::task_executor` and call `GraphContext::submit_task(port, work)` from a component. The completion callback publishes the returned payload to `component_id.port`, so normal async-edge routing can carry the completion to downstream `task_ready` / `future_ready` triggers. Completion callbacks route through the runtime publisher or channel bus; they do not call downstream components directly. Task completions inherit the submitting invocation metadata so downstream `task_ready` / `future_ready` invocations keep the original correlation id and receive a new channel-message causation id.
 
 ## Bounded admission
 

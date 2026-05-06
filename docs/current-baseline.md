@@ -78,7 +78,7 @@ Current branch limitations after the plan2 G33 cooperative-cancellation pass:
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
 - Async `policy.max_inflight` controls async edge admission; it is separate from optional task executors.
 - `TaskExecutor` remains deterministic by default with cooperative pending-task cancellation and post-return task-budget metrics; `ThreadedTaskExecutor` is now an opt-in bounded preview, not a default scheduler lane.
-- Metrics/trace/diagnostics exist, but observer/exporter APIs and metric/trace v2 contracts are not stable yet.
+- Metrics/trace/diagnostics exist, including invocation correlation/causation metadata on trace events, but observer/exporter APIs and metric/trace v2 contracts are not stable yet.
 - Deterministic fuzz smoke exists; coverage-guided fuzzing remains future work.
 - ThreadSanitizer remains non-blocking.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external Perfetto adapters remain deferred and must not be claimed as implemented.

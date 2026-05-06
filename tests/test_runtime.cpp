@@ -24,6 +24,12 @@ struct RuntimeRecord {
   topoexec::EventKind event{topoexec::EventKind::kManual};
   topoexec::TriggerKind trigger{topoexec::TriggerKind::kManual};
   std::string correlation_id;
+  std::string causation_id;
+  std::uint64_t epoch_id{0};
+  std::string transaction_id;
+  std::string source_component;
+  std::string source_port;
+  std::string trigger_kind;
   std::vector<std::string> ready_inputs;
   std::map<std::string, std::string> payloads_by_port;
   std::vector<std::string> batch_payloads;
@@ -151,6 +157,12 @@ void record_invocation(const topoexec::Invocation& invocation, const topoexec::G
   record.event = invocation.event;
   record.trigger = invocation.trigger;
   record.correlation_id = invocation.correlation_id;
+  record.causation_id = invocation.metadata.causation_id;
+  record.epoch_id = invocation.metadata.epoch_id;
+  record.transaction_id = invocation.metadata.transaction_id;
+  record.source_component = invocation.metadata.source_component;
+  record.source_port = invocation.metadata.source_port;
+  record.trigger_kind = invocation.metadata.trigger_kind;
   record.ready_inputs = invocation.ready_inputs;
   for (const auto& [port, payload] : invocation.payloads_by_port) {
     if (payload != nullptr) {
@@ -270,6 +282,21 @@ bool has_trace_event_attribute_key(const topoexec::RuntimeRunnerResult& result, 
   });
 }
 
+std::optional<RuntimeRecord> find_record_snapshot(std::uint64_t sequence, const std::string& component_id,
+                                                  const std::string& ready_input = {}) {
+  std::lock_guard lock(runtime_records_mutex());
+  for (const auto& record : runtime_records()) {
+    if ((sequence != 0u && record.sequence != sequence) || record.component_id != component_id) {
+      continue;
+    }
+    if (!ready_input.empty() &&
+        std::find(record.ready_inputs.begin(), record.ready_inputs.end(), ready_input) == record.ready_inputs.end()) {
+      continue;
+    }
+    return record;
+  }
+  return std::nullopt;
+}
 bool has_correlation_record(std::uint64_t sequence, const std::string& component_id,
                             const std::string& correlation_id) {
   return std::any_of(runtime_records().begin(), runtime_records().end(), [&](const RuntimeRecord& record) {
@@ -1571,6 +1598,42 @@ TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {
             result.ticked_components.end());
 }
 
+TEST(Runtime, CorrelationMetadataStaysStableThroughImmediateChain) {
+  const auto reg = delay_registry();
+  const auto spec = delay_visibility_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto publisher = find_record_snapshot(1, "publisher", "in");
+  const auto gate = find_record_snapshot(1, "gate", "in");
+  const auto target = find_record_snapshot(1, "target", "main");
+  ASSERT_TRUE(publisher.has_value());
+  ASSERT_TRUE(gate.has_value());
+  ASSERT_TRUE(target.has_value());
+
+  EXPECT_FALSE(publisher->correlation_id.empty());
+  EXPECT_EQ(publisher->correlation_id, gate->correlation_id);
+  EXPECT_EQ(publisher->correlation_id, target->correlation_id);
+  EXPECT_EQ(publisher->transaction_id, publisher->correlation_id);
+  EXPECT_EQ(publisher->causation_id, "source_publisher#1");
+  EXPECT_EQ(publisher->source_component, "source");
+  EXPECT_EQ(publisher->source_port, "out");
+  EXPECT_EQ(gate->causation_id, "publisher_gate#1");
+  EXPECT_EQ(gate->source_component, "publisher");
+  EXPECT_EQ(gate->source_port, "out");
+  EXPECT_EQ(target->causation_id, "gate_target#1");
+  EXPECT_EQ(target->source_component, "gate");
+  EXPECT_EQ(target->source_port, "out");
+  EXPECT_EQ(target->trigger_kind, "any_input");
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_execute", "correlation_id", publisher->correlation_id));
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_execute", "causation_id", "source_publisher#1"));
+}
+
 TEST(Runtime, PublishStagesWithoutRecursiveDownstreamExecute) {
   const auto reg = publication_probe_registry();
   const auto spec = publication_probe_graph();
@@ -1652,6 +1715,26 @@ TEST(Runtime, DelayEdgeCommitsAtNextEpochBoundary) {
   EXPECT_EQ(result.staged_publication_count, 8u);
   EXPECT_EQ(result.delayed_publication_count, 2u);
   EXPECT_EQ(result.committed_publication_count, 7u);
+}
+
+TEST(Runtime, DelayEdgeCarriesCausationAcrossEpoch) {
+  const auto reg = delay_registry();
+  const auto spec = delay_visibility_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto delayed = find_record_snapshot(2, "target", "delayed");
+  ASSERT_TRUE(delayed.has_value());
+  EXPECT_EQ(delayed->causation_id, "publisher_target_delay#1");
+  EXPECT_EQ(delayed->source_component, "publisher");
+  EXPECT_EQ(delayed->source_port, "out");
+  EXPECT_EQ(delayed->epoch_id, 2u);
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_execute", "causation_id", "publisher_target_delay#1"));
 }
 
 TEST(Runtime, StateAndAsyncEdgesCommitAfterCurrentEpoch) {
@@ -1990,6 +2073,28 @@ TEST(Runtime, AsyncTaskReadyTriggersDownstreamOnLaterEpoch) {
   EXPECT_TRUE(has_record(2, "join", "ready", "tick-1"));
   EXPECT_TRUE(has_trigger_record(2, "join", topoexec::EventKind::kTaskReady, topoexec::TriggerKind::kTaskReady));
   EXPECT_EQ(result.async_publication_count, 2u);
+}
+
+TEST(Runtime, AsyncCompletionMaintainsOriginalRequestCorrelation) {
+  const auto reg = delay_registry();
+  const auto spec = task_ready_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto worker = find_record_snapshot(1, "worker", "in");
+  const auto join = find_record_snapshot(2, "join", "ready");
+  ASSERT_TRUE(worker.has_value());
+  ASSERT_TRUE(join.has_value());
+  EXPECT_EQ(join->correlation_id, worker->correlation_id);
+  EXPECT_EQ(join->causation_id, "worker_join_async#1");
+  EXPECT_EQ(join->source_component, "worker");
+  EXPECT_EQ(join->source_port, "out");
+  EXPECT_EQ(join->trigger_kind, "task_ready");
 }
 
 TEST(Runtime, FutureReadyEventSourceUsesFutureReadyEventKind) {
@@ -2438,6 +2543,25 @@ TEST(Runtime, CompositeLoopRegionOwnsInternalFixedPointIterations) {
   EXPECT_TRUE(has_metric(result, "runtime.loop.max_iterations_hit"));
   EXPECT_TRUE(has_trace_event(result, "loop_iteration_begin"));
   EXPECT_TRUE(has_trace_event(result, "loop_iteration_end"));
+}
+
+TEST(Runtime, CompositeLoopExternalOutputKeepsCausationMetadata) {
+  const auto reg = delay_registry();
+  const auto spec = composite_loop_runtime_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto sink = find_record_snapshot(1, "sink", "in");
+  ASSERT_TRUE(sink.has_value());
+  EXPECT_EQ(sink->causation_id, "controller_sink#1");
+  EXPECT_EQ(sink->source_component, "controller");
+  EXPECT_EQ(sink->source_port, "command");
+  EXPECT_TRUE(has_trace_event_attribute(result, "component_execute", "causation_id", "controller_sink#1"));
 }
 
 TEST(Runtime, CompositeLoopConvergenceStopsBeforeMaxIterations) {

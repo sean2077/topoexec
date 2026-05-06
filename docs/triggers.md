@@ -28,11 +28,13 @@ Timeouts are cooperative and deterministic; they do not interrupt component code
 Every message-driven invocation carries:
 
 - `channel_id`: the channel that supplied the first payload;
-- `correlation_id`: a stable local correlation string of the form `<channel_id>#<message_sequence>`;
+- `correlation_id`: a stable chain-level id, initially derived from the root channel message when no upstream correlation exists;
+- `causation_id`: the direct channel message id (`<channel_id>#<message_sequence>`) that caused this invocation;
+- `epoch_id`, `transaction_id`, source component/port, and trigger kind;
 - `received_at` / `published_at` timestamps;
 - `deadline_missed` and optional event timestamp metadata from the source message.
 
-The correlation id is local to one runtime channel and intended for logs, diagnostics, and response routing plans. A full service/future response API remains deferred; the task-executor preview only routes completed task payloads back through normal graph edges.
+The correlation and causation ids are intended for trace/log diagnostics and response-routing plans, not default metric labels. A full service/future response API remains deferred; the task-executor preview only routes completed task payloads back through normal graph edges.
 
 ## Metrics
 

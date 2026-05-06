@@ -78,14 +78,31 @@ std::vector<RuntimePayloadPtr> InputView::drain(const std::string& port, std::si
   return payloads;
 }
 
+namespace {
+
+InvocationMetadata publication_metadata_for(const GraphContext& context, const std::string& port) {
+  auto metadata = context.invocation_metadata;
+  metadata.source_component = context.component_id;
+  metadata.source_port = port;
+  if (metadata.transaction_id.empty()) {
+    metadata.transaction_id = metadata.correlation_id;
+  }
+  return metadata;
+}
+
+} // namespace
+
 RuntimeChannelPublishResult GraphContext::publish(const std::string& port, RuntimePayload payload,
                                                   std::optional<EventTimestamp> event_timestamp) const {
   const auto endpoint = component_id + "." + port;
+  auto metadata = publication_metadata_for(*this, port);
   if (publisher != nullptr) {
-    return publisher->publish_from(endpoint, std::move(payload), std::move(event_timestamp));
+    return publisher->publish_from_with_metadata(endpoint, std::move(payload), std::move(metadata),
+                                                 std::move(event_timestamp));
   }
   if (channels != nullptr) {
-    return channels->publish_from(endpoint, std::move(payload), std::move(event_timestamp));
+    return channels->publish_from_with_metadata(endpoint, std::move(payload), std::move(metadata),
+                                                std::move(event_timestamp));
   }
   return {false, "graph context has no publisher"};
 }
@@ -93,11 +110,14 @@ RuntimeChannelPublishResult GraphContext::publish(const std::string& port, Runti
 RuntimeChannelPublishResult GraphContext::publish_shared(const std::string& port, RuntimePayloadPtr payload,
                                                          std::optional<EventTimestamp> event_timestamp) const {
   const auto endpoint = component_id + "." + port;
+  auto metadata = publication_metadata_for(*this, port);
   if (publisher != nullptr) {
-    return publisher->publish_shared_from(endpoint, std::move(payload), std::move(event_timestamp));
+    return publisher->publish_shared_from_with_metadata(endpoint, std::move(payload), std::move(metadata),
+                                                        std::move(event_timestamp));
   }
   if (channels != nullptr) {
-    return channels->publish_shared_from(endpoint, std::move(payload), std::move(event_timestamp));
+    return channels->publish_shared_from_with_metadata(endpoint, std::move(payload), std::move(metadata),
+                                                       std::move(event_timestamp));
   }
   return {false, "graph context has no publisher"};
 }
@@ -107,12 +127,13 @@ TaskSubmissionResult GraphContext::submit_task(const std::string& completion_por
     return {false, 0u, "graph context has no task executor"};
   }
   const auto endpoint = component_id + "." + completion_port;
+  auto metadata = publication_metadata_for(*this, completion_port);
   auto* output = publisher != nullptr ? publisher : channels;
-  return task_executor->submit(std::move(work), [output, endpoint](const TaskCompletion& completion) {
+  return task_executor->submit(std::move(work), [output, endpoint, metadata](const TaskCompletion& completion) {
     if (output == nullptr || !completion.ok || completion.payload == nullptr) {
       return;
     }
-    (void)output->publish_shared_from(endpoint, completion.payload);
+    (void)output->publish_shared_from_with_metadata(endpoint, completion.payload, metadata);
   });
 }
 

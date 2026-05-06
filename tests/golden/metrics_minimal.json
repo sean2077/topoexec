@@ -858,7 +858,9 @@
     {
       "attributes": {
         "component_id": "source",
-        "lane": "main"
+        "epoch_id": "1",
+        "lane": "main",
+        "trigger_kind": "manual"
       },
       "duration_ns": 0,
       "name": "component_execute_begin",
@@ -869,8 +871,11 @@
       "attributes": {
         "channel_id": "source_to_transform",
         "edge_kind": "immediate",
+        "epoch_id": "1",
         "source_component": "source",
-        "target_component": "transform"
+        "source_port": "out",
+        "target_component": "transform",
+        "trigger_kind": "manual"
       },
       "duration_ns": 0,
       "name": "channel_publish",
@@ -880,8 +885,10 @@
     {
       "attributes": {
         "component_id": "source",
+        "epoch_id": "1",
         "lane": "main",
-        "trigger": "8"
+        "trigger": "8",
+        "trigger_kind": "manual"
       },
       "duration_ns": 0,
       "name": "component_execute",
@@ -891,7 +898,9 @@
     {
       "attributes": {
         "component_id": "source",
-        "lane": "main"
+        "epoch_id": "1",
+        "lane": "main",
+        "trigger_kind": "manual"
       },
       "duration_ns": 0,
       "name": "component_execute_end",
@@ -901,7 +910,11 @@
     {
       "attributes": {
         "channel_id": "source_to_transform",
-        "edge_kind": "immediate"
+        "edge_kind": "immediate",
+        "epoch_id": "1",
+        "source_component": "source",
+        "source_port": "out",
+        "trigger_kind": "manual"
       },
       "duration_ns": 0,
       "name": "channel_commit",
@@ -910,8 +923,15 @@
     },
     {
       "attributes": {
+        "causation_id": "source_to_transform#1",
         "component_id": "transform",
-        "lane": "main"
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
+        "lane": "main",
+        "source_component": "source",
+        "source_port": "out",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "duration_ns": 0,
       "name": "component_execute_begin",
@@ -920,10 +940,16 @@
     },
     {
       "attributes": {
+        "causation_id": "source_to_transform#1",
         "channel_id": "transform_to_sink",
+        "correlation_id": "source_to_transform#1",
         "edge_kind": "immediate",
+        "epoch_id": "1",
         "source_component": "transform",
-        "target_component": "sink"
+        "source_port": "out",
+        "target_component": "sink",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "duration_ns": 0,
       "name": "channel_publish",
@@ -932,9 +958,16 @@
     },
     {
       "attributes": {
+        "causation_id": "source_to_transform#1",
         "component_id": "transform",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
         "lane": "main",
-        "trigger": "3"
+        "source_component": "source",
+        "source_port": "out",
+        "transaction_id": "source_to_transform#1",
+        "trigger": "3",
+        "trigger_kind": "any_input"
       },
       "duration_ns": 0,
       "name": "component_execute",
@@ -943,8 +976,15 @@
     },
     {
       "attributes": {
+        "causation_id": "source_to_transform#1",
         "component_id": "transform",
-        "lane": "main"
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
+        "lane": "main",
+        "source_component": "source",
+        "source_port": "out",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "duration_ns": 0,
       "name": "component_execute_end",
@@ -953,8 +993,15 @@
     },
     {
       "attributes": {
+        "causation_id": "source_to_transform#1",
         "channel_id": "transform_to_sink",
-        "edge_kind": "immediate"
+        "correlation_id": "source_to_transform#1",
+        "edge_kind": "immediate",
+        "epoch_id": "1",
+        "source_component": "transform",
+        "source_port": "out",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "duration_ns": 0,
       "name": "channel_commit",
@@ -963,8 +1010,15 @@
     },
     {
       "attributes": {
+        "causation_id": "transform_to_sink#1",
         "component_id": "sink",
-        "lane": "main"
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
+        "lane": "main",
+        "source_component": "transform",
+        "source_port": "out",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "duration_ns": 0,
       "name": "component_execute_begin",
@@ -973,9 +1027,16 @@
     },
     {
       "attributes": {
+        "causation_id": "transform_to_sink#1",
         "component_id": "sink",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
         "lane": "main",
-        "trigger": "3"
+        "source_component": "transform",
+        "source_port": "out",
+        "transaction_id": "source_to_transform#1",
+        "trigger": "3",
+        "trigger_kind": "any_input"
       },
       "duration_ns": 0,
       "name": "component_execute",
@@ -984,8 +1045,15 @@
     },
     {
       "attributes": {
+        "causation_id": "transform_to_sink#1",
         "component_id": "sink",
-        "lane": "main"
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
+        "lane": "main",
+        "source_component": "transform",
+        "source_port": "out",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "duration_ns": 0,
       "name": "component_execute_end",

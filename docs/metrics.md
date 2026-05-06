@@ -156,7 +156,7 @@ The top-level JSON result also carries aggregate counters for common dashboards:
 - `loop_cancellation_requested_count`
 - `loop_cancellation_observed_count`
 
-These fields summarize the sample array for quick CLI and test assertions; the sample array remains the extensible product surface.
+These fields summarize the sample array for quick CLI and test assertions; the sample array remains the extensible product surface. Correlation and causation metadata are emitted on trace events and invocation/channel records, but they are not default metric labels to avoid cardinality explosion.
 
 
 ## Channel health metrics

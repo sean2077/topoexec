@@ -31,7 +31,7 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/clock.hpp` | `TimestampDomain`, `EventTimestamp` | Stable timestamp value types for event-time payloads and policies. |
 | `topoexec/runtime/payload.hpp` | Built-in payload variants, schema constants, typed access helpers | Custom `OpaquePayload`/`make_custom_payload` are stable enough for in-process embedding; external shared-memory zero-copy remains out of scope. |
 | `topoexec/runtime/cancellation.hpp` | `CancellationToken`, `CancellationSource` | Stable cooperative cancellation value types; they report requests and observations without hard preemption. |
-| `topoexec/runtime/component.hpp` | `Component`, `ComponentDescriptor`, `GraphContext`, `Invocation`, `InputView`, `ConfigView`, publication result | `GraphContext::publish()` stages through the runtime publisher and never calls downstream components directly. |
+| `topoexec/runtime/component.hpp` | `Component`, `ComponentDescriptor`, `GraphContext`, `Invocation`, `InvocationMetadata`, `InputView`, `ConfigView`, publication result | `GraphContext::publish()` stages through the runtime publisher and never calls downstream components directly. |
 | `topoexec/runtime/component_registry.hpp` | `ComponentRegistry`, `ComponentRegistration`, `ComponentFactory` | Stable registry entry point for embedders and examples. |
 | `topoexec/runtime/diagnostics.hpp` | `GraphDiagnosticDescriptor`, `graph_diagnostic_registry()` | Stable diagnostic code descriptors for editor/tooling integrations. |
 | `topoexec/runtime/graph.hpp` | `GraphSpec`, edge/channel/trigger policy specs, validation and compile result structs, runtime metric samples | The C++ graph model is stable; YAML loader declarations in this header require linking `topoexec::yaml` when called. |
@@ -66,7 +66,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | --- | --- | --- |
 | `Component::configure/activate/execute/deactivate` plus status variants | stable-v0.2 | New hooks may be added, but existing hook meanings should not silently change. |
 | `GraphContext::publish()` and `publish_shared()` | stable-v0.2 | Publication remains staged/routed by runtime; no direct downstream calls. |
-| `Invocation`, `InputView`, typed payload helpers | stable-v0.2 | Existing payload lookup and typed access behavior should remain source-compatible; `Invocation::cancel_requested()` is cooperative and never preempts component code. |
+| `Invocation`, `InvocationMetadata`, `InputView`, typed payload helpers | stable-v0.2 | Existing payload lookup and typed access behavior should remain source-compatible; metadata fields are additive trace/debug context and `Invocation::cancel_requested()` is cooperative. |
 | `CancellationToken` / `CancellationSource` | stable-v0.2 | Cancellation requests are observable by components, tasks, and loops; observation is metric/trace evidence, not forced termination. |
 | `ComponentRegistry::register_component/create/metadata/types` | stable-v0.2 | Registration metadata can gain additive fields. |
 | `GraphSpec`, `LaneSpec`, `EdgeSpec`, `TriggerPolicySpec`, `CompositeLoopSpec` | stable-v0.2 for current fields | Additive fields are allowed only when schema/runtime meaning stays compatible. |

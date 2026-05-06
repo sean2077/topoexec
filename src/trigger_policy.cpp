@@ -107,6 +107,30 @@ TriggerKind trigger_kind_for_policy(const TriggerPolicySpec& policy, EventKind e
 
 namespace {
 
+std::string trigger_kind_name(TriggerKind trigger) {
+  switch (trigger) {
+  case TriggerKind::kOnMessage:
+    return "on_message";
+  case TriggerKind::kOnTick:
+    return "on_tick";
+  case TriggerKind::kAllInputs:
+    return "all_inputs";
+  case TriggerKind::kAnyInput:
+    return "any_input";
+  case TriggerKind::kTimeSync:
+    return "time_sync";
+  case TriggerKind::kBatch:
+    return "batch";
+  case TriggerKind::kRequest:
+    return "request";
+  case TriggerKind::kTaskReady:
+    return "task_ready";
+  case TriggerKind::kManual:
+    return "manual";
+  }
+  return "unknown";
+}
+
 using PendingMessageQueues = std::map<std::string, std::deque<RuntimeChannelMessage>>;
 
 bool messages_have_comparable_timestamps(const std::vector<std::pair<std::string, RuntimeChannelMessage>>& messages) {
@@ -180,6 +204,8 @@ Invocation TriggerPolicyEngine::timer_invocation_for(const TickContext& context,
   invocation.scheduled_at = context.scheduled_at;
   invocation.started_at = context.started_at;
   invocation.sequence = context.sequence;
+  invocation.metadata.epoch_id = context.sequence;
+  invocation.metadata.trigger_kind = trigger_kind_name(invocation.trigger);
   invocation.cancel_token = context.cancel_token;
   invocation.stop_requested = context.stop_requested;
   invocation.budget = std::chrono::milliseconds(component.execution.budget_ms);
@@ -197,6 +223,8 @@ Invocation TriggerPolicyEngine::event_invocation_for(EventKind event, const Tick
   invocation.scheduled_at = context.scheduled_at;
   invocation.started_at = context.started_at;
   invocation.sequence = context.sequence;
+  invocation.metadata.epoch_id = context.sequence;
+  invocation.metadata.trigger_kind = trigger_kind_name(invocation.trigger);
   invocation.cancel_token = context.cancel_token;
   invocation.stop_requested = context.stop_requested;
   invocation.budget = std::chrono::milliseconds(component.execution.budget_ms);
@@ -318,11 +346,24 @@ Invocation TriggerPolicyEngine::invocation_from_messages(
     const std::vector<std::pair<std::string, RuntimeChannelMessage>>& messages) const {
   auto invocation = event_invocation_for(event, context, component, lane);
   invocation.trigger = trigger;
+  invocation.metadata.trigger_kind = trigger_kind_name(trigger);
   for (const auto& [port, message] : messages) {
     if (invocation.payload == nullptr) {
       invocation.port = port;
       invocation.channel_id = message.channel_id;
-      invocation.correlation_id = message.channel_id + "#" + std::to_string(message.sequence);
+      invocation.metadata = message.metadata;
+      invocation.metadata.epoch_id = context.sequence;
+      invocation.metadata.trigger_kind = trigger_kind_name(trigger);
+      if (invocation.metadata.correlation_id.empty()) {
+        invocation.metadata.correlation_id = message.channel_id + "#" + std::to_string(message.sequence);
+      }
+      if (invocation.metadata.causation_id.empty()) {
+        invocation.metadata.causation_id = message.channel_id + "#" + std::to_string(message.sequence);
+      }
+      if (invocation.metadata.transaction_id.empty()) {
+        invocation.metadata.transaction_id = invocation.metadata.correlation_id;
+      }
+      invocation.correlation_id = invocation.metadata.correlation_id;
       invocation.payload = message.payload;
       invocation.received_at = message.received_at;
       invocation.published_at = message.published_at;

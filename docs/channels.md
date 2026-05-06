@@ -44,6 +44,8 @@ Low-level readers expose the same semantics used by the runtime trigger engine:
 - `consume_for_component()` drains all visible inputs for the component.
 - `drain_for_reader(channel_id, reader_id, max_batch)` is the explicit per-reader queue API.
 
+Runtime channel messages carry invocation metadata (`correlation_id`, `causation_id`, `epoch_id`, `transaction_id`, source endpoint, and trigger kind) alongside payload and timing fields. This metadata flows through immediate, delay/state/async, task-completion, and CompositeLoop external commits; metrics avoid using it as default labels.
+
 `readers: single` is the default. Queue-style single-reader drains remove delivered messages from the channel. `readers: multi` / `readers: multiple` keeps bounded queue storage and tracks a per-reader sequence cursor so each explicit reader can observe each retained queued message once. Because retained history is still bounded by channel `capacity`, a slow reader can miss messages dropped by overflow.
 
 `move_only` payloads require `readers: single`; use `shared_view` or `copy` for multi-reader paths.

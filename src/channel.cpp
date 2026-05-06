@@ -26,6 +26,59 @@ std::string port_name_from_endpoint(const std::string& endpoint) {
   return endpoint.substr(dot + 1);
 }
 
+std::string metadata_id(const std::string& channel_id, std::uint64_t sequence) {
+  return channel_id + "#" + std::to_string(sequence);
+}
+
+InvocationMetadata metadata_for_source_endpoint(InvocationMetadata metadata, const std::string& source_endpoint) {
+  if (metadata.source_component.empty()) {
+    metadata.source_component = component_id_from_endpoint(source_endpoint);
+  }
+  if (metadata.source_port.empty()) {
+    metadata.source_port = port_name_from_endpoint(source_endpoint);
+  }
+  return metadata;
+}
+
+void finalize_message_metadata(InvocationMetadata& metadata, const std::string& channel_id, std::uint64_t sequence,
+                               const std::string& source_endpoint) {
+  metadata = metadata_for_source_endpoint(std::move(metadata), source_endpoint);
+  const auto id = metadata_id(channel_id, sequence);
+  if (metadata.correlation_id.empty()) {
+    metadata.correlation_id = id;
+  }
+  metadata.causation_id = id;
+  if (metadata.transaction_id.empty()) {
+    metadata.transaction_id = metadata.correlation_id;
+  }
+}
+
+std::map<std::string, std::string> metadata_trace_attributes(std::map<std::string, std::string> attributes,
+                                                             const InvocationMetadata& metadata) {
+  if (!metadata.correlation_id.empty()) {
+    attributes["correlation_id"] = metadata.correlation_id;
+  }
+  if (!metadata.causation_id.empty()) {
+    attributes["causation_id"] = metadata.causation_id;
+  }
+  if (metadata.epoch_id != 0u) {
+    attributes["epoch_id"] = std::to_string(metadata.epoch_id);
+  }
+  if (!metadata.transaction_id.empty()) {
+    attributes["transaction_id"] = metadata.transaction_id;
+  }
+  if (!metadata.source_component.empty()) {
+    attributes["source_component"] = metadata.source_component;
+  }
+  if (!metadata.source_port.empty()) {
+    attributes["source_port"] = metadata.source_port;
+  }
+  if (!metadata.trigger_kind.empty()) {
+    attributes["trigger_kind"] = metadata.trigger_kind;
+  }
+  return attributes;
+}
+
 ChannelType channel_type_from_policy(const EdgePolicySpec& policy) {
   if (policy.mode == "latest") {
     return ChannelType::kLatestOnly;
@@ -156,11 +209,26 @@ bool RuntimeChannelBus::has_channel(const std::string& channel_id) const {
 
 RuntimeChannelPublishResult RuntimeChannelBus::publish(const std::string& channel_id, RuntimePayload payload,
                                                        std::optional<EventTimestamp> event_timestamp) {
-  return publish_shared(channel_id, make_shared_payload(std::move(payload)), std::move(event_timestamp));
+  return publish_with_metadata(channel_id, std::move(payload), {}, std::move(event_timestamp));
+}
+
+RuntimeChannelPublishResult RuntimeChannelBus::publish_with_metadata(const std::string& channel_id,
+                                                                     RuntimePayload payload,
+                                                                     InvocationMetadata metadata,
+                                                                     std::optional<EventTimestamp> event_timestamp) {
+  return publish_shared_with_metadata(channel_id, make_shared_payload(std::move(payload)), std::move(metadata),
+                                      std::move(event_timestamp));
 }
 
 RuntimeChannelPublishResult RuntimeChannelBus::publish_shared(const std::string& channel_id, RuntimePayloadPtr payload,
                                                               std::optional<EventTimestamp> event_timestamp) {
+  return publish_shared_with_metadata(channel_id, std::move(payload), {}, std::move(event_timestamp));
+}
+
+RuntimeChannelPublishResult
+RuntimeChannelBus::publish_shared_with_metadata(const std::string& channel_id, RuntimePayloadPtr payload,
+                                                InvocationMetadata metadata,
+                                                std::optional<EventTimestamp> event_timestamp) {
   if (payload == nullptr) {
     return {false, "payload must not be null"};
   }
@@ -175,17 +243,33 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_shared(const std::string&
   if (!prepared.accepted) {
     return prepared;
   }
-  return publish_to_state(found->second, std::move(payload_for_channel), std::move(event_timestamp), copied);
+  return publish_to_state(found->second, std::move(payload_for_channel), std::move(event_timestamp), copied,
+                          std::move(metadata));
 }
 
 RuntimeChannelPublishResult RuntimeChannelBus::publish_from(const std::string& source_endpoint, RuntimePayload payload,
                                                             std::optional<EventTimestamp> event_timestamp) {
-  return publish_shared_from(source_endpoint, make_shared_payload(std::move(payload)), std::move(event_timestamp));
+  return publish_from_with_metadata(source_endpoint, std::move(payload), {}, std::move(event_timestamp));
+}
+
+RuntimeChannelPublishResult
+RuntimeChannelBus::publish_from_with_metadata(const std::string& source_endpoint, RuntimePayload payload,
+                                              InvocationMetadata metadata,
+                                              std::optional<EventTimestamp> event_timestamp) {
+  return publish_shared_from_with_metadata(source_endpoint, make_shared_payload(std::move(payload)),
+                                           std::move(metadata), std::move(event_timestamp));
 }
 
 RuntimeChannelPublishResult RuntimeChannelBus::publish_shared_from(const std::string& source_endpoint,
                                                                    RuntimePayloadPtr payload,
                                                                    std::optional<EventTimestamp> event_timestamp) {
+  return publish_shared_from_with_metadata(source_endpoint, std::move(payload), {}, std::move(event_timestamp));
+}
+
+RuntimeChannelPublishResult
+RuntimeChannelBus::publish_shared_from_with_metadata(const std::string& source_endpoint, RuntimePayloadPtr payload,
+                                                     InvocationMetadata metadata,
+                                                     std::optional<EventTimestamp> event_timestamp) {
   if (payload == nullptr) {
     return {false, "payload must not be null"};
   }
@@ -203,7 +287,8 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_shared_from(const std::st
     if (!prepared.accepted) {
       return prepared;
     }
-    last = publish_to_state(state, std::move(payload_for_channel), event_timestamp, copied);
+    last = publish_to_state(state, std::move(payload_for_channel), event_timestamp, copied,
+                            metadata_for_source_endpoint(metadata, source_endpoint));
     if (!last.accepted) {
       return last;
     }
@@ -216,9 +301,11 @@ RuntimeChannelBus::publish_batch(const std::vector<RuntimeChannelPublication>& p
   for (const auto& publication : publications) {
     RuntimeChannelPublishResult result;
     if (publication.target == RuntimeChannelPublishTarget::kChannel) {
-      result = publish_shared(publication.id, publication.payload, publication.event_timestamp);
+      result = publish_shared_with_metadata(publication.id, publication.payload, publication.metadata,
+                                            publication.event_timestamp);
     } else {
-      result = publish_shared_from(publication.id, publication.payload, publication.event_timestamp);
+      result = publish_shared_from_with_metadata(publication.id, publication.payload, publication.metadata,
+                                                 publication.event_timestamp);
     }
     if (!result.accepted) {
       return result;
@@ -441,7 +528,7 @@ RuntimeChannelPublishResult RuntimeChannelBus::prepare_payload_for_state(Channel
 
 RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& state, RuntimePayloadPtr payload,
                                                                 std::optional<EventTimestamp> event_timestamp,
-                                                                bool payload_was_copied) {
+                                                                bool payload_was_copied, InvocationMetadata metadata) {
   const auto now = std::chrono::steady_clock::now();
   RuntimeChannelMessage message;
   message.channel_id = state.config.id;
@@ -450,6 +537,8 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
   message.received_at = now;
   message.sequence = state.next_sequence++;
   message.event_timestamp = std::move(event_timestamp);
+  finalize_message_metadata(metadata, state.config.id, message.sequence, state.from);
+  message.metadata = std::move(metadata);
 
   if (payload_was_copied) {
     ++state.metrics.payload_copy_count;
@@ -771,12 +860,27 @@ RuntimeChannelPublishResult RuntimePublicationRouter::commit_composite_region_ou
 RuntimeChannelPublishResult RuntimePublicationRouter::publish_from(const std::string& source_endpoint,
                                                                    RuntimePayload payload,
                                                                    std::optional<EventTimestamp> event_timestamp) {
-  return publish_shared_from(source_endpoint, make_shared_payload(std::move(payload)), std::move(event_timestamp));
+  return publish_from_with_metadata(source_endpoint, std::move(payload), {}, std::move(event_timestamp));
+}
+
+RuntimeChannelPublishResult
+RuntimePublicationRouter::publish_from_with_metadata(const std::string& source_endpoint, RuntimePayload payload,
+                                                     InvocationMetadata metadata,
+                                                     std::optional<EventTimestamp> event_timestamp) {
+  return publish_shared_from_with_metadata(source_endpoint, make_shared_payload(std::move(payload)),
+                                           std::move(metadata), std::move(event_timestamp));
 }
 
 RuntimeChannelPublishResult
 RuntimePublicationRouter::publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
                                               std::optional<EventTimestamp> event_timestamp) {
+  return publish_shared_from_with_metadata(source_endpoint, std::move(payload), {}, std::move(event_timestamp));
+}
+
+RuntimeChannelPublishResult
+RuntimePublicationRouter::publish_shared_from_with_metadata(const std::string& source_endpoint,
+                                                            RuntimePayloadPtr payload, InvocationMetadata metadata,
+                                                            std::optional<EventTimestamp> event_timestamp) {
   if (payload == nullptr) {
     return {false, "payload must not be null"};
   }
@@ -786,23 +890,30 @@ RuntimePublicationRouter::publish_shared_from(const std::string& source_endpoint
     return {false, "unknown source endpoint: " + source_endpoint};
   }
   for (const auto& edge : found->second) {
+    auto edge_metadata = metadata_for_source_endpoint(metadata, source_endpoint);
+    edge_metadata.source_component = edge.source_component;
+    edge_metadata.source_port = port_name_from_endpoint(source_endpoint);
     record_trace_event(trace_, "channel_publish",
-                       {{"channel_id", edge.channel_id},
-                        {"source_component", edge.source_component},
-                        {"target_component", edge.target_component},
-                        {"edge_kind", to_string(edge.kind)}});
+                       metadata_trace_attributes({{"channel_id", edge.channel_id},
+                                                  {"source_component", edge.source_component},
+                                                  {"source_port", edge_metadata.source_port},
+                                                  {"target_component", edge.target_component},
+                                                  {"edge_kind", to_string(edge.kind)}},
+                                                 edge_metadata));
     RuntimeChannelPublication publication;
     publication.target = RuntimeChannelPublishTarget::kChannel;
     publication.id = edge.channel_id;
     publication.payload = payload;
     publication.kind = edge.kind;
     publication.event_timestamp = event_timestamp;
+    publication.metadata = edge_metadata;
     if (edge.kind == EdgeKind::kAsync) {
       const auto admission = admit_async_locked(edge);
       record_trace_event(trace_, "async_admission",
-                         {{"channel_id", edge.channel_id},
-                          {"accepted", admission.accepted ? "true" : "false"},
-                          {"max_inflight", std::to_string(edge.max_inflight)}});
+                         metadata_trace_attributes({{"channel_id", edge.channel_id},
+                                                    {"accepted", admission.accepted ? "true" : "false"},
+                                                    {"max_inflight", std::to_string(edge.max_inflight)}},
+                                                   edge_metadata));
       if (!admission.accepted) {
         return admission;
       }
@@ -898,12 +1009,15 @@ RuntimePublicationRouter::commit_batch(std::vector<RuntimeChannelPublication> pu
     for (std::size_t index = 0; index < publications.size(); ++index) {
       if (publications[index].kind == EdgeKind::kState) {
         ++metrics_.state_commit_count;
-        record_trace_event(
-            trace_, "state_commit",
-            {{"channel_id", publications[index].id}, {"edge_kind", to_string(publications[index].kind)}});
+        record_trace_event(trace_, "state_commit",
+                           metadata_trace_attributes({{"channel_id", publications[index].id},
+                                                      {"edge_kind", to_string(publications[index].kind)}},
+                                                     publications[index].metadata));
       }
       record_trace_event(trace_, "channel_commit",
-                         {{"channel_id", publications[index].id}, {"edge_kind", to_string(publications[index].kind)}});
+                         metadata_trace_attributes({{"channel_id", publications[index].id},
+                                                    {"edge_kind", to_string(publications[index].kind)}},
+                                                   publications[index].metadata));
     }
   } else {
     ++metrics_.failed_commit_count;

@@ -28,7 +28,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G33 | P1 | complete | Cooperative Cancellation and Timeout Semantics | `CancellationToken`/`CancellationSource`, `Invocation::cancel_requested()`, `GraphContext::cancel_requested()`, component/loop/task cancellation and timeout metrics, trace events, docs, and runtime/task coverage now provide honest cooperative semantics without hard preemption. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
 | G34 | P1/P2 | complete | TaskExecutor v2: Threaded Executor Preview | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in bounded `ThreadedTaskExecutor` preview now cover threaded smoke, cancellation, shutdown drain, failure completion, and exactly-once completion publication while preserving deterministic defaults. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
 | G35 | P2 | pending | Trigger Engine v2: Watermark and Condition Triggers | 扩展 trigger policy，但不破坏现有 v1 trigger semantics。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
-| G36 | P1 | pending | Correlation, Causality, and Invocation Metadata | 让 runtime trace/metrics 能从输入事件追踪到下游 outputs，支持调试复杂 graph。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G36 | P1 | complete | Correlation, Causality, and Invocation Metadata | `InvocationMetadata` now propagates correlation, causation, epoch, transaction, source endpoint, and trigger-kind metadata through publish/channel/trigger/invocation/task/composite-loop paths, with trace attributes, docs, goldens, and runtime coverage while keeping metrics labels bounded. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
 | G37 | P1 | pending | Channel v2: Explicit Backpressure Events | 将 backpressure 从 metrics-only 提升为 optional runtime health event，不改变执行控制流。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G38 | P1 | pending | Channel v2: Multi-Reader and Move-Only Hardening | 加强 multi-reader、single-reader、move-only、shared/loaned view 的 correctness 和 explainability。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G39 | P1/P2 | pending | Payload and Memory v2 | 将 payload system 从 useful helper 推进为可嵌入应用的内存策略层。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G36 Correlation, Causality, and Invocation Metadata is the next unfinished P1 goal after G34; G35 remains pending P2 and is intentionally deferred by the P0/P1 ordering rule.
+G37 Channel v2: Explicit Backpressure Events is the next unfinished P1 goal after G36; G35 remains pending P2 and is intentionally deferred by the P0/P1 ordering rule.
 
 ## Blockers
 

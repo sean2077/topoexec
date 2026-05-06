@@ -83,7 +83,7 @@ The runtime includes identifiers where the event source has them:
 
 - Scheduler events include `iteration`; `thread_pool_batch` spans include `component_id`, `lane`, `batch_size`, `worker_count`, `queue_capacity`, and `worker_ids`.
 - Fixed-rate tick events include `lane`, `iteration`, `wall_clock_enabled`, and `overrun_policy`; overrun/skipped events add lateness or skipped-tick details.
-- Component events include `component_id` and `lane`; `thread_pool` component events also include `worker_id`. Timeout-budget events add `budget_ms` and `duration_ns`.
+- Component events include `component_id` and `lane`; `thread_pool` component events also include `worker_id`. Timeout-budget events add `budget_ms` and `duration_ns`. When available, component/channel events also include bounded metadata attributes: `correlation_id`, `causation_id`, `epoch_id`, `transaction_id`, `source_component`, `source_port`, and `trigger_kind`.
 - Channel publish events include `channel_id`, `source_component`, `target_component`, and `edge_kind`.
 - Channel commit events include `channel_id` and `edge_kind`.
 - State commit events include `channel_id` and `edge_kind` when a `state` edge becomes visible at an epoch boundary.

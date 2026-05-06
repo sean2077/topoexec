@@ -8,10 +8,10 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-1. G36 Correlation, Causality, and Invocation Metadata
-2. G37 Channel v2: Explicit Backpressure Events
-3. G38 Channel v2: Multi-Reader and Move-Only Hardening
-4. G39 Payload and Memory v2
+1. G37 Channel v2: Explicit Backpressure Events
+2. G38 Channel v2: Multi-Reader and Move-Only Hardening
+3. G39 Payload and Memory v2
+4. G40 Graph Compiler v2: Typed Ports and Constraints
 
 G35 remains pending P2 and should be deferred until the active P0/P1 queue allows it.
 

@@ -54,6 +54,33 @@ void record_trace_span(TraceCollector* trace, const std::string& name, std::chro
   trace->add(SpanRecord{TraceId::generate(), name, started_at, finished_at, std::move(attributes)});
 }
 
+std::map<std::string, std::string> with_invocation_metadata(std::map<std::string, std::string> attributes,
+                                                            const Invocation& invocation) {
+  const auto& metadata = invocation.metadata;
+  if (!metadata.correlation_id.empty()) {
+    attributes["correlation_id"] = metadata.correlation_id;
+  }
+  if (!metadata.causation_id.empty()) {
+    attributes["causation_id"] = metadata.causation_id;
+  }
+  if (metadata.epoch_id != 0u) {
+    attributes["epoch_id"] = std::to_string(metadata.epoch_id);
+  }
+  if (!metadata.transaction_id.empty()) {
+    attributes["transaction_id"] = metadata.transaction_id;
+  }
+  if (!metadata.source_component.empty()) {
+    attributes["source_component"] = metadata.source_component;
+  }
+  if (!metadata.source_port.empty()) {
+    attributes["source_port"] = metadata.source_port;
+  }
+  if (!metadata.trigger_kind.empty()) {
+    attributes["trigger_kind"] = metadata.trigger_kind;
+  }
+  return attributes;
+}
+
 std::uint64_t non_negative_duration_ns(std::chrono::steady_clock::duration duration) {
   const auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
   return count < 0 ? 0u : static_cast<std::uint64_t>(count);
@@ -458,12 +485,12 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
             trigger_metrics.coalesced_count += invocations.size();
           }
         }
-        auto invocation_trace_attributes = [&](std::optional<std::size_t> worker_id) {
+        auto invocation_trace_attributes = [&](const Invocation& invocation, std::optional<std::size_t> worker_id) {
           std::map<std::string, std::string> attributes{{"component_id", found->id}, {"lane", found->lane.id}};
           if (worker_id.has_value()) {
             attributes["worker_id"] = std::to_string(*worker_id);
           }
-          return attributes;
+          return with_invocation_metadata(std::move(attributes), invocation);
         };
 
         auto run_invocation = [&](const Invocation& invocation, std::optional<std::size_t> worker_id = std::nullopt) {
@@ -476,11 +503,13 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           };
           auto invocation_context = *found->context;
           invocation_context.cancel_token = invocation_cancel_token;
+          invocation_context.invocation_metadata = invocation_for_execute.metadata;
 
           ComponentInvocationOutcome outcome;
           outcome.cancellation_observed_before = invocation_cancel_token.observed_count();
           outcome.started_at = std::chrono::steady_clock::now();
-          record_trace_event(trace_, "component_execute_begin", invocation_trace_attributes(worker_id));
+          record_trace_event(trace_, "component_execute_begin",
+                             invocation_trace_attributes(invocation_for_execute, worker_id));
           try {
             outcome.status = found->component->execute_status(invocation_for_execute, invocation_context);
           } catch (const std::exception& error) {
@@ -489,11 +518,12 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           outcome.finished_at = std::chrono::steady_clock::now();
           outcome.cancellation_observed_after = invocation_cancel_token.observed_count();
           outcome.cancellation_requested_after = invocation_cancel_token.requested();
-          auto span_attributes = invocation_trace_attributes(worker_id);
+          auto span_attributes = invocation_trace_attributes(invocation_for_execute, worker_id);
           span_attributes["trigger"] = std::to_string(static_cast<int>(invocation.trigger));
           record_trace_span(trace_, "component_execute", outcome.started_at, outcome.finished_at,
                             std::move(span_attributes));
-          record_trace_event(trace_, "component_execute_end", invocation_trace_attributes(worker_id));
+          record_trace_event(trace_, "component_execute_end",
+                             invocation_trace_attributes(invocation_for_execute, worker_id));
           return outcome;
         };
 
@@ -508,20 +538,23 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
             ++component_metrics.budget_overrun_count;
             ++component_metrics.timeout_budget_exceeded_count;
             record_trace_event(trace_, "component_timeout_budget_exceeded",
-                               {{"component_id", found->id},
-                                {"lane", found->lane.id},
-                                {"budget_ms", std::to_string(invocation.budget.count())},
-                                {"duration_ns", std::to_string(duration_ns)}});
+                               with_invocation_metadata({{"component_id", found->id},
+                                                         {"lane", found->lane.id},
+                                                         {"budget_ms", std::to_string(invocation.budget.count())},
+                                                         {"duration_ns", std::to_string(duration_ns)}},
+                                                        invocation));
           }
           if (outcome.cancellation_requested_after) {
             ++component_metrics.cancellation_requested_count;
-            record_trace_event(trace_, "component_cancellation_requested",
-                               {{"component_id", found->id}, {"lane", found->lane.id}});
+            record_trace_event(
+                trace_, "component_cancellation_requested",
+                with_invocation_metadata({{"component_id", found->id}, {"lane", found->lane.id}}, invocation));
           }
           if (outcome.cancellation_observed_after > outcome.cancellation_observed_before) {
             ++component_metrics.cancellation_observed_count;
-            record_trace_event(trace_, "component_cancellation_observed",
-                               {{"component_id", found->id}, {"lane", found->lane.id}});
+            record_trace_event(
+                trace_, "component_cancellation_observed",
+                with_invocation_metadata({{"component_id", found->id}, {"lane", found->lane.id}}, invocation));
           }
           if (!outcome.status.ok()) {
             ++component_metrics.error_count;

@@ -33,6 +33,16 @@ struct RuntimeChannelPublishResult {
   std::string reason;
 };
 
+struct InvocationMetadata {
+  std::string correlation_id;
+  std::string causation_id;
+  std::uint64_t epoch_id{0};
+  std::string transaction_id;
+  std::string source_component;
+  std::string source_port;
+  std::string trigger_kind;
+};
+
 class GraphOutputPublisher {
 public:
   virtual ~GraphOutputPublisher() = default;
@@ -41,6 +51,19 @@ public:
   virtual RuntimeChannelPublishResult
   publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
                       std::optional<EventTimestamp> event_timestamp = std::nullopt) = 0;
+  virtual RuntimeChannelPublishResult
+  publish_from_with_metadata(const std::string& source_endpoint, RuntimePayload payload, InvocationMetadata metadata,
+                             std::optional<EventTimestamp> event_timestamp = std::nullopt) {
+    (void)metadata;
+    return publish_from(source_endpoint, std::move(payload), std::move(event_timestamp));
+  }
+  virtual RuntimeChannelPublishResult
+  publish_shared_from_with_metadata(const std::string& source_endpoint, RuntimePayloadPtr payload,
+                                    InvocationMetadata metadata,
+                                    std::optional<EventTimestamp> event_timestamp = std::nullopt) {
+    (void)metadata;
+    return publish_shared_from(source_endpoint, std::move(payload), std::move(event_timestamp));
+  }
 };
 
 struct ConfigView {
@@ -142,6 +165,7 @@ struct GraphContext {
   RuntimeStateStore* state_store{nullptr};
   ConfigSnapshotStore* config_store{nullptr};
   CancellationToken cancel_token;
+  InvocationMetadata invocation_metadata;
   std::string graph_name;
   std::string component_id;
 
@@ -190,6 +214,7 @@ struct Invocation {
   std::string port;
   std::string channel_id;
   std::string correlation_id;
+  InvocationMetadata metadata;
   RuntimePayloadPtr payload;
   std::vector<std::string> ready_inputs;
   std::map<std::string, RuntimePayloadPtr> payloads_by_port;

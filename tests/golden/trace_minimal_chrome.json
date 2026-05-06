@@ -17,8 +17,10 @@
     {
       "args": {
         "component_id": "source",
+        "epoch_id": "1",
         "lane": "main",
-        "trace_id": "<volatile>"
+        "trace_id": "<volatile>",
+        "trigger_kind": "manual"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -32,9 +34,12 @@
       "args": {
         "channel_id": "source_to_transform",
         "edge_kind": "immediate",
+        "epoch_id": "1",
         "source_component": "source",
+        "source_port": "out",
         "target_component": "transform",
-        "trace_id": "<volatile>"
+        "trace_id": "<volatile>",
+        "trigger_kind": "manual"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -47,9 +52,11 @@
     {
       "args": {
         "component_id": "source",
+        "epoch_id": "1",
         "lane": "main",
         "trace_id": "<volatile>",
-        "trigger": "8"
+        "trigger": "8",
+        "trigger_kind": "manual"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -62,8 +69,10 @@
     {
       "args": {
         "component_id": "source",
+        "epoch_id": "1",
         "lane": "main",
-        "trace_id": "<volatile>"
+        "trace_id": "<volatile>",
+        "trigger_kind": "manual"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -77,7 +86,11 @@
       "args": {
         "channel_id": "source_to_transform",
         "edge_kind": "immediate",
-        "trace_id": "<volatile>"
+        "epoch_id": "1",
+        "source_component": "source",
+        "source_port": "out",
+        "trace_id": "<volatile>",
+        "trigger_kind": "manual"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -89,9 +102,16 @@
     },
     {
       "args": {
+        "causation_id": "source_to_transform#1",
         "component_id": "transform",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
         "lane": "main",
-        "trace_id": "<volatile>"
+        "source_component": "source",
+        "source_port": "out",
+        "trace_id": "<volatile>",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -103,11 +123,17 @@
     },
     {
       "args": {
+        "causation_id": "source_to_transform#1",
         "channel_id": "transform_to_sink",
+        "correlation_id": "source_to_transform#1",
         "edge_kind": "immediate",
+        "epoch_id": "1",
         "source_component": "transform",
+        "source_port": "out",
         "target_component": "sink",
-        "trace_id": "<volatile>"
+        "trace_id": "<volatile>",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -119,10 +145,17 @@
     },
     {
       "args": {
+        "causation_id": "source_to_transform#1",
         "component_id": "transform",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
         "lane": "main",
+        "source_component": "source",
+        "source_port": "out",
         "trace_id": "<volatile>",
-        "trigger": "3"
+        "transaction_id": "source_to_transform#1",
+        "trigger": "3",
+        "trigger_kind": "any_input"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -134,9 +167,16 @@
     },
     {
       "args": {
+        "causation_id": "source_to_transform#1",
         "component_id": "transform",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
         "lane": "main",
-        "trace_id": "<volatile>"
+        "source_component": "source",
+        "source_port": "out",
+        "trace_id": "<volatile>",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -148,9 +188,16 @@
     },
     {
       "args": {
+        "causation_id": "source_to_transform#1",
         "channel_id": "transform_to_sink",
+        "correlation_id": "source_to_transform#1",
         "edge_kind": "immediate",
-        "trace_id": "<volatile>"
+        "epoch_id": "1",
+        "source_component": "transform",
+        "source_port": "out",
+        "trace_id": "<volatile>",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -162,9 +209,16 @@
     },
     {
       "args": {
+        "causation_id": "transform_to_sink#1",
         "component_id": "sink",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
         "lane": "main",
-        "trace_id": "<volatile>"
+        "source_component": "transform",
+        "source_port": "out",
+        "trace_id": "<volatile>",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -176,10 +230,17 @@
     },
     {
       "args": {
+        "causation_id": "transform_to_sink#1",
         "component_id": "sink",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
         "lane": "main",
+        "source_component": "transform",
+        "source_port": "out",
         "trace_id": "<volatile>",
-        "trigger": "3"
+        "transaction_id": "source_to_transform#1",
+        "trigger": "3",
+        "trigger_kind": "any_input"
       },
       "cat": "topoexec",
       "dur": 0,
@@ -191,9 +252,16 @@
     },
     {
       "args": {
+        "causation_id": "transform_to_sink#1",
         "component_id": "sink",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
         "lane": "main",
-        "trace_id": "<volatile>"
+        "source_component": "transform",
+        "source_port": "out",
+        "trace_id": "<volatile>",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
       },
       "cat": "topoexec",
       "dur": 0,

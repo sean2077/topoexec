@@ -35,6 +35,7 @@ struct RuntimeChannelPublication {
   RuntimePayloadPtr payload;
   EdgeKind kind{EdgeKind::kImmediate};
   std::optional<EventTimestamp> event_timestamp;
+  InvocationMetadata metadata;
 };
 
 class RuntimeChannelPublicationStage {
@@ -90,6 +91,7 @@ struct RuntimeChannelMessage {
   std::uint64_t sequence{0};
   bool deadline_missed{false};
   std::optional<EventTimestamp> event_timestamp;
+  InvocationMetadata metadata;
 };
 
 struct RuntimeChannelMetrics {
@@ -145,13 +147,26 @@ public:
 
   RuntimeChannelPublishResult publish(const std::string& channel_id, RuntimePayload payload,
                                       std::optional<EventTimestamp> event_timestamp = std::nullopt);
+  RuntimeChannelPublishResult publish_with_metadata(const std::string& channel_id, RuntimePayload payload,
+                                                    InvocationMetadata metadata,
+                                                    std::optional<EventTimestamp> event_timestamp = std::nullopt);
   RuntimeChannelPublishResult publish_shared(const std::string& channel_id, RuntimePayloadPtr payload,
                                              std::optional<EventTimestamp> event_timestamp = std::nullopt);
+  RuntimeChannelPublishResult
+  publish_shared_with_metadata(const std::string& channel_id, RuntimePayloadPtr payload, InvocationMetadata metadata,
+                               std::optional<EventTimestamp> event_timestamp = std::nullopt);
   RuntimeChannelPublishResult publish_from(const std::string& source_endpoint, RuntimePayload payload,
                                            std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
   RuntimeChannelPublishResult
+  publish_from_with_metadata(const std::string& source_endpoint, RuntimePayload payload, InvocationMetadata metadata,
+                             std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+  RuntimeChannelPublishResult
   publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
                       std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+  RuntimeChannelPublishResult
+  publish_shared_from_with_metadata(const std::string& source_endpoint, RuntimePayloadPtr payload,
+                                    InvocationMetadata metadata,
+                                    std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
   RuntimeChannelPublishResult publish_batch(const std::vector<RuntimeChannelPublication>& publications);
   void advance_epoch();
 
@@ -191,7 +206,8 @@ private:
   RuntimeChannelPublishResult prepare_payload_for_state(ChannelState& state, RuntimePayloadPtr source,
                                                         RuntimePayloadPtr& payload_for_channel, bool& copied);
   RuntimeChannelPublishResult publish_to_state(ChannelState& state, RuntimePayloadPtr payload,
-                                               std::optional<EventTimestamp> event_timestamp, bool payload_was_copied);
+                                               std::optional<EventTimestamp> event_timestamp, bool payload_was_copied,
+                                               InvocationMetadata metadata);
   std::optional<RuntimeChannelMessage> consume_latest_from_state(ChannelState& state, const std::string& reader_id);
   std::vector<RuntimeChannelMessage> consume_from_state(ChannelState& state, const std::string& reader_id,
                                                         std::size_t max_batch = 0);
@@ -223,8 +239,15 @@ public:
   RuntimeChannelPublishResult publish_from(const std::string& source_endpoint, RuntimePayload payload,
                                            std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
   RuntimeChannelPublishResult
+  publish_from_with_metadata(const std::string& source_endpoint, RuntimePayload payload, InvocationMetadata metadata,
+                             std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+  RuntimeChannelPublishResult
   publish_shared_from(const std::string& source_endpoint, RuntimePayloadPtr payload,
                       std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
+  RuntimeChannelPublishResult
+  publish_shared_from_with_metadata(const std::string& source_endpoint, RuntimePayloadPtr payload,
+                                    InvocationMetadata metadata,
+                                    std::optional<EventTimestamp> event_timestamp = std::nullopt) override;
 
   RuntimeChannelPublishResult begin_epoch();
   RuntimeChannelPublishResult commit_immediate();
