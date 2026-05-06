@@ -110,7 +110,7 @@ if ! grep -q '^## Unreleased' CHANGELOG.md; then
   echo "CHANGELOG.md must contain a ## Unreleased section" >&2
   exit 1
 fi
-for release_doc in docs/release-checklist.md docs/versioning.md docs/release-progression.md; do
+for release_doc in docs/43-ci-build-release-tools/release-checklist.md docs/43-ci-build-release-tools/versioning.md docs/43-ci-build-release-tools/release-progression.md; do
   if ! grep -Fq "$VERSION" "$release_doc"; then
     echo "${release_doc} must mention intended version ${VERSION}" >&2
     exit 1
@@ -157,7 +157,7 @@ notes = [
     "- [ ] CI is green for the exact candidate commit.",
     "- [ ] Required local release gates are attached to the release issue/PR.",
     "- [ ] Artifacts and SHA256SUMS were generated from the exact commit.",
-    "- [ ] Known limitations were copied from docs/release-checklist.md.",
+    "- [ ] Known limitations were copied from docs/43-ci-build-release-tools/release-checklist.md.",
     "- [ ] Annotated tag is created only after approval; no retagging.",
     "",
 ]

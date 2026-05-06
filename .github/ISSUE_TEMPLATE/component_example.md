@@ -23,4 +23,4 @@ source -> transform -> sink
 
 - [ ] App or CLI smoke
 - [ ] Example README
-- [ ] `docs/examples.md` / `examples/README.md` update
+- [ ] `docs/11-user-guide/examples.md` / `examples/README.md` update

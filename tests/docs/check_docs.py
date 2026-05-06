@@ -13,33 +13,40 @@ from pathlib import Path
 MARKER = re.compile(r"<!--\s*topoexec-doc-test:\s*(.*?)\s*-->")
 
 REQUIRED_DOCS = [
-    "getting-started.md",
-    "concepts.md",
-    "case-study-robot-cell.md",
-    "runtime-semantics.md",
-    "api-overview.md",
-    "public-api.md",
-    "c-api.md",
-    "python-preview.md",
-    "plugin-loader.md",
-    "schema-v1.md",
-    "schema-v2-notes.md",
-    "editor-schema.md",
-    "hierarchical-graphs.md",
-    "graph-templates.md",
-    "cookbook.md",
-    "adapters.md",
-    "testing-strategy.md",
-    "release-checklist.md",
-    "release-runbook.md",
-    "beta-readiness-review.md",
-    "architecture-diagrams.md",
-    "why-topoexec.md",
-    "design-principles.md",
+    "00-start-here/project-map.md",
+    "01-quickstart/getting-started.md",
+    "10-user-overview/concepts.md",
+    "10-user-overview/why-topoexec.md",
+    "11-user-guide/case-study-robot-cell.md",
+    "11-user-guide/cookbook.md",
+    "11-user-guide/graph-templates.md",
+    "11-user-guide/hierarchical-graphs.md",
+    "12-integrations/adapter-boundaries.md",
+    "12-integrations/plugin-loader.md",
+    "12-integrations/python-preview.md",
+    "20-development-overview/maintainer-map.md",
+    "21-architecture/architecture-diagrams.md",
+    "21-architecture/design-principles.md",
+    "21-architecture/runtime-architecture.md",
+    "21-architecture/runtime-semantics.md",
+    "22-codebase/codebase-map.md",
+    "24-testing/testing-strategy.md",
+    "33-specs-rfcs/schema-v1.md",
+    "33-specs-rfcs/schema-v2-notes.md",
+    "41-development-tools/editor-schema.md",
+    "43-ci-build-release-tools/beta-readiness-review.md",
+    "43-ci-build-release-tools/release-checklist.md",
+    "43-ci-build-release-tools/release-runbook.md",
+    "45-doc-standards/documentation-system.md",
+    "61-api/api-overview.md",
+    "61-api/c-api.md",
+    "61-api/public-api.md",
+    "94-doc-migrations/2026-05-doc-reorganization.md",
+    "94-doc-migrations/2026-05-process-ledger-cleanup.md",
 ]
 
 REQUIRED_SECTIONS = {
-    "cookbook.md": [
+    "11-user-guide/cookbook.md": [
         "## Low-latency latest pipeline",
         "## Bounded queue command stream",
         "## Delay feedback control",
@@ -48,41 +55,41 @@ REQUIRED_SECTIONS = {
         "## State/config snapshot",
         "## Large payload ownership",
     ],
-    "architecture-diagrams.md": [
+    "21-architecture/architecture-diagrams.md": [
         "## Runtime flow",
         "## Publication routing",
         "## Scheduler lanes",
         "## Channel lifecycle",
         "```mermaid",
     ],
-    "why-topoexec.md": [
+    "10-user-overview/why-topoexec.md": [
         "## oneTBB",
         "## Dora",
         "## GStreamer",
         "## ROS 2",
         "## Workflow engines",
     ],
-    "design-principles.md": [
+    "21-architecture/design-principles.md": [
         "## Bounded everything",
         "## Explicit feedback",
         "## No hidden recursion",
         "## Observation is not control",
     ],
-    "c-api.md": [
+    "61-api/c-api.md": [
         "## Status",
         "## Design decisions",
         "## Ownership rules",
         "## Non-goals",
         "## Validation",
     ],
-    "python-preview.md": [
+    "12-integrations/python-preview.md": [
         "## Status",
         "## Binding decision",
         "## Supported scope",
         "## Non-goals",
         "## Validation",
     ],
-    "plugin-loader.md": [
+    "12-integrations/plugin-loader.md": [
         "## Status",
         "## Manifest and exports",
         "## Security model",
@@ -90,7 +97,7 @@ REQUIRED_SECTIONS = {
         "## Non-goals",
         "## Validation",
     ],
-    "schema-v2-notes.md": [
+    "33-specs-rfcs/schema-v2-notes.md": [
         "## Status",
         "## Decision rules",
         "## Candidate feature classification",
@@ -99,7 +106,7 @@ REQUIRED_SECTIONS = {
         "## Non-goals",
         "## Validation",
     ],
-    "editor-schema.md": [
+    "41-development-tools/editor-schema.md": [
         "## Status",
         "## Schema discovery",
         "## VS Code workspace settings",
@@ -111,26 +118,25 @@ REQUIRED_SECTIONS = {
 }
 
 README_REQUIRED_LINKS = [
-    "(getting-started.md)",
-    "(concepts.md)",
-    "(case-study-robot-cell.md)",
-    "(runtime-semantics.md)",
-    "(api-overview.md)",
-    "(public-api.md)",
-    "(c-api.md)",
-    "(python-preview.md)",
-    "(plugin-loader.md)",
-    "(schema-v1.md)",
-    "(schema-v2-notes.md)",
-    "(editor-schema.md)",
-    "(hierarchical-graphs.md)",
-    "(graph-templates.md)",
-    "(cookbook.md)",
-    "(adapters.md)",
-    "(testing-strategy.md)",
-    "(release-checklist.md)",
-    "(release-runbook.md)",
-    "(beta-readiness-review.md)",
+    "(00-start-here/project-map.md)",
+    "(01-quickstart/getting-started.md)",
+    "(10-user-overview/concepts.md)",
+    "(11-user-guide/cookbook.md)",
+    "(12-integrations/adapter-boundaries.md)",
+    "(20-development-overview/maintainer-map.md)",
+    "(21-architecture/runtime-architecture.md)",
+    "(22-codebase/codebase-map.md)",
+    "(24-testing/testing-strategy.md)",
+    "(31-planning-roadmap/goals/backlog.md)",
+    "(33-specs-rfcs/schema-v1.md)",
+    "(41-development-tools/cli.md)",
+    "(43-ci-build-release-tools/build-and-package.md)",
+    "(44-coding-standards/contributing.md)",
+    "(45-doc-standards/documentation-system.md)",
+    "(61-api/api-overview.md)",
+    "(62-schemas-protocols/metrics.md)",
+    "(94-doc-migrations/2026-05-doc-reorganization.md)",
+    "(94-doc-migrations/2026-05-process-ledger-cleanup.md)",
 ]
 
 

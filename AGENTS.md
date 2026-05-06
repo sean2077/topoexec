@@ -12,10 +12,10 @@ Work in this repository should keep TopoExec small, embeddable, C++20-first, sem
 - Do not add ROS, Python, OpenTelemetry, or Prometheus adapters before the core/runtime/API boundary is stable.
 - Do not add new runtime dependencies without a documented reason.
 - Prefer tests over new features.
-- When implementing plan work from `docs/plans/plan2.md`, `docs/plans/plan.md`, or `docs/topoexec_plan.md`, start with the earliest unfinished P0/P1 goal in `docs/goals/backlog.md` unless the user narrows scope.
-- Treat `docs/goals/status.md` as the current goal ledger. Update it when a goal starts, completes, is blocked, or is intentionally deferred.
+- When implementing roadmap work, start with the earliest unfinished P0/P1 goal in `docs/31-planning-roadmap/goals/backlog.md` unless the user narrows scope.
+- Treat `docs/31-planning-roadmap/goals/status.md` as the current goal ledger. Update it when a goal starts, completes, is blocked, or is intentionally deferred.
 - Each goal must have scope, allowed files, acceptance criteria, validation, and blocker handling before edits spread beyond documentation.
-- If a goal needs a product/API decision, write a blocker note under `docs/goals/blockers/`, recommend one option, and continue only with a safe independent goal.
+- If a goal needs a product/API decision, write a blocker note under `docs/31-planning-roadmap/goals/blockers/`, recommend one option, and continue only with a safe independent goal.
 - Do not add adapters or new major CLI commands before the core/API/concurrency P0 goals are complete.
 - For commits, use English Conventional Commit subjects and the Lore commit protocol required by the active agent instructions.
 

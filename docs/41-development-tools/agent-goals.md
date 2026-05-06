@@ -1,0 +1,57 @@
+# Agent Goals
+
+This file is the human-readable entry point for continuing roadmap-goal work.
+
+## Current queue
+
+Use `docs/31-planning-roadmap/goals/backlog.md` as the ordered source of truth and `docs/31-planning-roadmap/goals/status.md` as the current ledger.
+
+No active implementation queue remains: G0-G70 are complete. New work should
+open a concise goal entry instead of adding another generated long-form plan.
+Keep schema v2 implementation, migration tooling, full editor/LSP extension
+scope, package publication, and concrete production adapters deferred unless
+explicitly opened.
+
+## Goal handoff template
+
+```md
+Goal ID:
+Title:
+
+Plan source:
+- docs/31-planning-roadmap/goals/backlog.md
+- docs/31-planning-roadmap/goals/status.md
+
+Scope:
+- Allowed files:
+- Do not modify:
+
+Acceptance criteria:
+- ...
+
+Validation:
+- ./scripts/agent_check.sh
+- optional focused check: ./scripts/goal_check.sh <mode>
+
+Blocker protocol:
+- If a product/API decision is required, write docs/31-planning-roadmap/goals/blockers/<goal-id>.md with options, recommendation, and safe next task.
+```
+
+## Validation shortcuts
+
+- `./scripts/goal_check.sh quick` — fast build plus golden/schema drift checks.
+- `./scripts/goal_check.sh golden` — normalized CLI plan/metrics/trace/Chrome-trace/render/schema/doctor golden checks.
+- `./scripts/goal_check.sh schema` — schema v1 contract and CLI schema/semantic validation split.
+- `./scripts/goal_check.sh package` — install/export downstream runtime-only smoke plus runtime-only option smoke.
+- `./scripts/goal_check.sh docs` — executable docs command smoke.
+- `./scripts/goal_check.sh fuzz` — deterministic parser/compiler fuzz smoke.
+- `./scripts/goal_check.sh policy` — architecture/dependency policy smokes.
+- `./scripts/goal_check.sh adapters` — optional adapter-preview target/package smokes.
+- `./scripts/goal_check.sh ffi` — optional C API/FFI preview target/package smokes.
+- `./scripts/goal_check.sh python` — optional CLI-backed Python automation preview smokes.
+- `./scripts/goal_check.sh plugins` — optional trusted-native dynamic plugin loader preview smokes.
+- `./scripts/goal_check.sh sanitizer` — ASAN+UBSAN Debug build plus full CTest.
+- `./scripts/goal_check.sh format` — clang-format target.
+- `./scripts/goal_check.sh debug` — local Debug GCC build and CTest.
+
+Always run `./scripts/agent_check.sh` before declaring repository changes complete. Use focused goal checks as additional evidence, not as a replacement for the full gate unless a blocker is documented.

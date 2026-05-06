@@ -1,109 +1,48 @@
 # TopoExec Documentation
 
-This directory is organized as a learning and maintenance map. Start with the
-learning path when onboarding, then use reference and project paths when changing
-runtime semantics or release surfaces.
+This directory is the canonical documentation root. The project is complex enough to use numbered zones: first contact and user learning paths come first, developer and architecture material live in `2x`, planning and decision history in `3x`, tools and standards in `4x`, reference material in `6x`, and documentation-system records in `9x`.
 
-## Getting started
+## Reader Paths
 
-1. [Getting started](getting-started.md): build, run, inspect, and debug a graph.
-2. [Concepts](concepts.md): components, edges, triggers, lanes, and observability.
-3. [Cookbook](cookbook.md): executable recipes for common graph patterns.
-4. [Examples](examples.md): concrete examples for each core semantic.
-5. [Robot cell case study](case-study-robot-cell.md): composed real-world pilot
-   app without adapter dependencies.
+- New user: [project map](00-start-here/project-map.md) -> [getting started](01-quickstart/getting-started.md) -> [concepts](10-user-overview/concepts.md) -> [cookbook](11-user-guide/cookbook.md).
+- Embedder: [API overview](61-api/api-overview.md) -> [public API stability](61-api/public-api.md) -> [runtime architecture](21-architecture/runtime-architecture.md).
+- Maintainer: [maintainer map](20-development-overview/maintainer-map.md) -> [codebase map](22-codebase/codebase-map.md) -> [testing strategy](24-testing/testing-strategy.md).
+- Planner or release owner: [goal backlog](31-planning-roadmap/goals/backlog.md) -> [goal status](31-planning-roadmap/goals/status.md) -> [release runbook](43-ci-build-release-tools/release-runbook.md) -> [beta readiness review](43-ci-build-release-tools/beta-readiness-review.md).
 
-A new user should be able to build the repository, run the C++ builder app, and
-inspect a YAML graph in less than 30 minutes by following this path.
+## Zones
 
-## Concepts and runtime semantics
+| Zone | Purpose | Start here |
+| --- | --- | --- |
+| `00-start-here` | First-contact map and orientation. | [Project map](00-start-here/project-map.md) |
+| `01-quickstart` | Fastest safe local build and first execution. | [Getting started](01-quickstart/getting-started.md) |
+| `10-user-overview` | Product vocabulary, FAQ, and comparison context. | [Concepts](10-user-overview/concepts.md) |
+| `11-user-guide` | Stable usage guides for graph authors and example readers. | [Cookbook](11-user-guide/cookbook.md) |
+| `12-integrations` | Adapter, FFI, Python, and plugin preview boundaries. | [Adapter boundaries](12-integrations/adapter-boundaries.md) |
+| `20-development-overview` | Maintainer entry point and development map. | [Maintainer map](20-development-overview/maintainer-map.md) |
+| `21-architecture` | Stable architecture, runtime semantics, and boundaries. | [Runtime architecture](21-architecture/runtime-architecture.md) |
+| `22-codebase` | Source tree and ownership map. | [Codebase map](22-codebase/codebase-map.md) |
+| `24-testing` | Test strategy, fuzz/stress/bench evidence, and defensive input checks. | [Testing strategy](24-testing/testing-strategy.md) |
+| `31-planning-roadmap` | Current backlog, goal status, active blockers, and roadmap records. | [Goal backlog](31-planning-roadmap/goals/backlog.md) |
+| `33-specs-rfcs` | Schema and proposal-like design notes. | [Schema v1](33-specs-rfcs/schema-v1.md) |
+| `41-development-tools` | CLI, editor/schema tooling, and agent workflow helpers. | [CLI](41-development-tools/cli.md) |
+| `43-ci-build-release-tools` | Build, package, release, versioning, and baseline evidence. | [Build and package](43-ci-build-release-tools/build-and-package.md) |
+| `44-coding-standards` | Contribution and coding process standards. | [Contributing](44-coding-standards/contributing.md) |
+| `45-doc-standards` | Documentation conventions and maintenance rules. | [Documentation system](45-doc-standards/documentation-system.md) |
+| `61-api` | Public C++/C API and compatibility reference. | [API overview](61-api/api-overview.md) |
+| `62-schemas-protocols` | Metrics, trace, and diagnostic output schemas. | [Metrics](62-schemas-protocols/metrics.md) |
+| `94-doc-migrations` | Documentation migration records, deletion evidence, and old-to-new maps. | [2026 process-ledger cleanup](94-doc-migrations/2026-05-process-ledger-cleanup.md) |
 
-- [Robot cell pilot case study](case-study-robot-cell.md)
-- [Runtime semantics](runtime-semantics.md)
-- [Runtime semantic contract](semantic-contract.md)
-- [Runtime invariant coverage](runtime-invariants.md)
-- [Design principles](design-principles.md)
-- [Architecture diagrams](architecture-diagrams.md)
-- [Why not ...?](why-topoexec.md)
+## Stability Notes
 
-## API reference
+Stable guidance describes current runtime, API, schema, test, and release behavior. Planning docs under `31-planning-roadmap` are compact status surfaces and should not duplicate implementation docs, CI logs, or release artifacts.
 
-- [API overview](api-overview.md)
-- [Public API stability](public-api.md)
-- [C API / FFI preview](c-api.md)
-- [Python automation preview](python-preview.md)
-- [Dynamic plugin loader preview](plugin-loader.md)
-- [API change checklist](api-change-checklist.md)
-- [Components](components.md)
-- [Payloads and ownership](payloads.md)
-- [Memory and buffer pools](memory.md)
-- [Async tasks](async-tasks.md)
-- [State and config snapshots](state.md)
+Adapter, C API, Python, editor, and plugin docs are explicit preview or boundary surfaces unless their page says otherwise. Do not infer production ROS 2, production OpenTelemetry/Prometheus, native Python bindings, stable ABI, schema v2 implementation, migration CLI, or sandbox support from preview docs.
 
-## Graph schema and runtime features
+## Docs Validation
 
-- [Graph spec](graph-spec.md)
-- [Schema v1](schema-v1.md)
-- [Schema v2 notes](schema-v2-notes.md)
-- [Editor and schema UX](editor-schema.md)
-- [Hierarchical graphs](hierarchical-graphs.md)
-- [Graph templates](graph-templates.md)
-- [Channels and backpressure](channels.md)
-- [Triggers](triggers.md)
-- [Scheduler](scheduler.md)
-- [Concurrency](concurrency.md)
-- [CompositeLoop regions](composite-loops.md)
+The `docs_command_smoke` CTest runs selected commands embedded as `topoexec-doc-test` markers across this tree. It also checks that required navigation pages and section contracts remain present after moves.
 
-## Observability and diagnostics
+## Migration Records
 
-- [Metrics](metrics.md)
-- [Trace events](trace-events.md)
-- [Diagnostics](diagnostics.md)
-- [Defensive input handling](defensive-input.md)
-- [CLI](cli.md)
-
-## Adapters
-
-- [Adapter boundaries](adapters.md)
-- [OTel exporter preview](adapters/otel.md)
-- [Prometheus exporter preview](adapters/prometheus.md)
-- [ROS 2 adapter preview](adapters/ros2.md)
-
-Adapters remain deferred/preview unless a later goal explicitly implements them.
-Do not infer production ROS 2, production OpenTelemetry/Prometheus, Python,
-stable ABI, production plugin ecosystem, schema v2 implementation, migration CLI,
-or sandbox support from docs that only describe boundaries or design notes. The G58 OTel, G59 Prometheus, G60 ROS 2, G61 C API, G62
-Python, and G63 plugin-loader targets are dependency-free/unstable/default-off
-previews, not production telemetry SDK/server/client, native binding, stable ABI,
-sandboxed plugin, or package-discovery integrations.
-
-## Testing and release
-
-- [Testing strategy](testing-strategy.md)
-- [Coverage-guided fuzzing](fuzzing.md)
-- [Stress and soak testing](stress-testing.md)
-- [Performance baselines](performance-baselines.md)
-- [Build and package](build-and-package.md)
-- [Release checklist](release-checklist.md)
-- [Release runbook](release-runbook.md)
-- [Release progression](release-progression.md)
-- [Beta readiness review](beta-readiness-review.md)
-- [Versioning](versioning.md)
-- [Current baseline](current-baseline.md)
-
-## Project maintenance
-
-- [Architecture guardrails](architecture-guardrails.md)
-- [Contributing](contributing.md)
-- [Code of Conduct](../CODE_OF_CONDUCT.md)
-- [Agent goals](agent-goals.md)
-- [FAQ](faq.md)
-
-## Docs validation
-
-The `docs_command_smoke` CTest runs selected commands embedded as
-`topoexec-doc-test` markers across the docs tree. It also checks that the G55
-learning map, cookbook, diagrams, comparisons, design-principle pages, G64
-schema-v2 decision note, and G65 editor-schema guide keep required sections
-present. Package, C++ app, benchmark, fuzz, and stress smokes
-cover compileable/runtime snippets outside docs.
+- [2026 documentation reorganization](94-doc-migrations/2026-05-doc-reorganization.md)
+- [2026 process-ledger cleanup](94-doc-migrations/2026-05-process-ledger-cleanup.md)

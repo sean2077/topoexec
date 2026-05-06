@@ -1,15 +1,15 @@
 # Changelog
 
-TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.md).
+TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versioning.md](docs/43-ci-build-release-tools/versioning.md).
 
 ## Unreleased
 
 ### Added
 
-- Added the post-G25 `docs/plans/plan2.md` goal board and G26 release-candidate baseline docs for the next architecture-stabilization stage.
+- Added the post-G25 architecture-stabilization goal board and G26 release-candidate baseline docs for the next architecture-stabilization stage; completed goal-board details are now summarized under `docs/31-planning-roadmap/goals/`.
 - Added normalized golden coverage for Chrome trace shape, schema dump JSON, and doctor JSON.
 - Added explicit stable-v0.2/mixed/experimental public API markers, an API change checklist, and stronger runtime-only downstream smoke coverage for result metrics/trace consumption.
-- Added `docs/semantic-contract.md` and exposed `semantic_contract_version` through doctor/schema dump outputs.
+- Added `docs/21-architecture/semantic-contract.md` and exposed `semantic_contract_version` through doctor/schema dump outputs.
 - Added architecture policy checks for installed-header markers, runtime/YAML/CLI target boundaries, private include leaks, semantic-bypass CLI includes, and planted-violation self-tests.
 - Added scheduler v2 capability summaries in plan JSON and advisory diagnostics for parsed-but-not-enforced lane/execution fields.
 - Added persistent `thread_pool` worker-pool v1 with bounded queue admission, worker-id trace attributes, and stop/drain coverage for queued work.
@@ -91,11 +91,11 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added the G70 beta readiness review, beta-candidate gate checklist, explicit
   deferred-scope ledger, and pre-1.0 deprecation policy for stable-v0.2,
   experimental, schema, and CLI JSON surfaces.
-- Added `docs/schema-v2-notes.md` as the G64 schema-v2 decision boundary, with
+- Added `docs/33-specs-rfcs/schema-v2-notes.md` as the G64 schema-v2 decision boundary, with
   candidate feature classification, additive-v1 vs breaking-v2 rules, migration
   guidance, docs-map coverage, and schema-contract coverage proving v1 remains
   strict and v2 sketches are not accepted by the v1 checker.
-- Added `docs/editor-schema.md` as the G65 editor/schema UX guide, including
+- Added `docs/41-development-tools/editor-schema.md` as the G65 editor/schema UX guide, including
   schema discovery, VS Code/YAML Language Server association examples, inline
   modeline guidance, editor diagnostic JSON expectations, installed-schema
   package smoke coverage, and `editor_schema_ux_smoke` without adding a runtime
@@ -125,6 +125,8 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 ### Changed
 
+- Reorganized documentation into numbered `docs/` zones, added architecture/codebase maps, and moved old flat docs paths into a recorded migration map.
+- Cleaned up completed planning and process-ledger docs by deleting obsolete long-form plan files, compressing goal/release ledgers, and recording deletion evidence under `docs/94-doc-migrations/`.
 - Runtime docs now describe `thread_pool` and async max-inflight as implemented MVP behavior instead of alpha limitations.
 - Runtime docs now describe `thread_pool` as an experimental persistent worker-pool v1 while keeping OS priority/affinity/RT policy and hard timeout preemption deferred.
 - Runtime docs now distinguish deterministic fixed-rate stepping from opt-in cooperative wall-clock cadence without claiming hard real-time scheduling or independent lane threads.

@@ -2,7 +2,7 @@
 
 This directory contains dependency-free YAML graphs and C++ applications that
 teach the core TopoExec runtime contracts. See the full walkthrough in
-[`docs/examples.md`](../docs/examples.md).
+[`docs/11-user-guide/examples.md`](../docs/11-user-guide/examples.md).
 
 ## Quick smoke
 

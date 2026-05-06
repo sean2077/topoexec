@@ -12,7 +12,7 @@ labels: schema
 - [ ] Schema v2 candidate
 - [ ] Unsure; needs design review
 
-Reference `docs/schema-v2-notes.md` decision rule:
+Reference `docs/33-specs-rfcs/schema-v2-notes.md` decision rule:
 
 ## Existing graph compatibility
 

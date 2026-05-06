@@ -1,7 +1,7 @@
 ## Goal
 
 - Goal ID / issue:
-- Plan source: `docs/plans/plan2.md` / `docs/goals/backlog.md` / other:
+- Plan source: `docs/31-planning-roadmap/goals/backlog.md` / `docs/31-planning-roadmap/goals/status.md` / other:
 - User-facing intent:
 
 ## Scope matrix
@@ -33,8 +33,8 @@
 
 ## Review checklist
 
-- [ ] Public API changes used `docs/api-change-checklist.md`.
-- [ ] Schema changes were classified in `docs/schema-v2-notes.md`.
+- [ ] Public API changes used `docs/61-api/api-change-checklist.md`.
+- [ ] Schema changes were classified in `docs/33-specs-rfcs/schema-v2-notes.md`.
 - [ ] Runtime semantic changes updated semantic docs and tests.
 - [ ] Metrics/trace/diagnostic changes updated descriptors/docs/goldens.
 - [ ] Adapter/editor/plugin-like changes stayed outside `topoexec::runtime`.

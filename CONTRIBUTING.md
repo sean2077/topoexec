@@ -1,6 +1,6 @@
 # Contributing to TopoExec
 
-Start with the full contributor guide in [`docs/contributing.md`](docs/contributing.md).
+Start with the full contributor guide in [`docs/44-coding-standards/contributing.md`](docs/44-coding-standards/contributing.md).
 This root file exists so GitHub can surface the same rules for human and
 agent-generated pull requests.
 
