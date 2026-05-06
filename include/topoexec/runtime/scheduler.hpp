@@ -29,6 +29,7 @@ struct SchedulerGroupConfig {
   bool wall_clock_enabled{false};
   std::chrono::milliseconds period{0};
   std::chrono::milliseconds tick_budget{0};
+  std::string overrun_policy{"drop_tick"};
   std::string thread_name;
   std::vector<int> cpu_affinity;
   int nice_priority{0};
@@ -38,9 +39,11 @@ struct SchedulerGroupConfig {
 };
 
 struct SchedulerMetrics {
+  std::size_t tick_count{0};
   double tick_jitter_ms{0.0};
   std::size_t tick_overrun_count{0};
   std::size_t skipped_tick_count{0};
+  double max_lateness_ms{0.0};
   double last_callback_duration_ms{0.0};
   double blocked_duration_ms{0.0};
   std::size_t queue_depth{0};

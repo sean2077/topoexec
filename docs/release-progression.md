@@ -36,10 +36,10 @@ Rationale:
   scheduler, async admission, channel/backpressure, trigger, payload, loop,
   state/config, observability, benchmark, packaging, and defensive-input work.
 - The new G26 baseline protects that state before deeper plan2 runtime/API work.
-- The tag must still be an alpha because wall-clock fixed-rate lane v1,
-  observer/exporter APIs, coverage-guided fuzzing, and beta readiness remain
-  incomplete. Persistent worker-pool v1 is implemented in the plan2 line but is
-  still an experimental alpha scheduler surface.
+- The tag must still be an alpha because observer/exporter APIs,
+  coverage-guided fuzzing, and beta readiness remain incomplete. Persistent
+  worker-pool v1 and fixed-rate wall-clock cadence v1 are implemented in the
+  plan2 line but are still experimental alpha scheduler surfaces.
 
 ## Version ladder
 
@@ -64,8 +64,9 @@ Deferred capabilities remain documented as limitations rather than hidden TODOs:
   loaders, and package-manager publication are preview/deferred surfaces.
 - TSAN remains non-blocking until concurrency signal is stable.
 - Coverage-guided fuzzing and stress/soak expansion remain beta hardening work.
-- Scheduler priority/admission ordering, affinity/RT policy, wall-clock
-  fixed-rate scheduling, and hard timeout preemption remain future work.
+- Scheduler priority/admission ordering, affinity/RT policy, independent
+  fixed-rate lane threads, OS jitter control, and hard timeout preemption remain
+  future work.
 
 ## Required release evidence for next tag
 

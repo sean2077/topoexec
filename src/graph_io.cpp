@@ -369,8 +369,8 @@ GraphSpec load_graph_node(const YAML::Node& root) {
     require_map(item.second, "lanes." + lane.id);
     reject_unknown_fields(item.second, "lanes." + lane.id,
                           {"type", "hz", "priority", "max_callback_ms", "max_threads", "queue_capacity", "overflow",
-                           "wall_clock_enabled", "period_ms", "tick_budget_ms", "thread_name", "cpu_affinity",
-                           "nice_priority", "rt_policy", "rt_priority", "isolation_intent"});
+                           "wall_clock_enabled", "period_ms", "tick_budget_ms", "overrun_policy", "thread_name",
+                           "cpu_affinity", "nice_priority", "rt_policy", "rt_priority", "isolation_intent"});
     lane.type = require_string(item.second, "type", "lanes." + lane.id);
     lane.hz = optional_double(item.second, "hz");
     lane.priority = optional_string(item.second, "priority");
@@ -381,6 +381,7 @@ GraphSpec load_graph_node(const YAML::Node& root) {
     lane.wall_clock_enabled = optional_bool(item.second, "wall_clock_enabled", lane.wall_clock_enabled);
     lane.period_ms = optional_int(item.second, "period_ms");
     lane.tick_budget_ms = optional_int(item.second, "tick_budget_ms");
+    lane.overrun_policy = optional_string(item.second, "overrun_policy", lane.overrun_policy);
     lane.thread_name = optional_string(item.second, "thread_name");
     lane.cpu_affinity = optional_int_vector(item.second, "cpu_affinity", "lanes." + lane.id);
     lane.nice_priority = optional_int(item.second, "nice_priority");
@@ -480,9 +481,9 @@ nlohmann::json lane_capability_summary(const LaneSpec& lane) {
                               "runtime_owned_publication_commit"};
     summary["future_extensions"] = {"manual_step_lane"};
   } else if (lane.type == "fixed_rate") {
-    summary["implemented"] = {"bounded_simulated_ticks", "overrun_metrics", "jitter_metrics"};
-    summary["advisory_fields"].push_back("wall_clock_enabled");
-    summary["future_extensions"] = {"wall_clock_sleep_cadence", "overrun_policy"};
+    summary["implemented"] = {"bounded_simulated_ticks", "opt_in_wall_clock_cadence", "overrun_metrics",
+                              "jitter_metrics",          "max_lateness_metrics",      "overrun_policy"};
+    summary["future_extensions"] = {"independent_lane_threads", "hard_realtime_jitter_control"};
   } else if (lane.type == "thread_pool") {
     summary["implemented"] = {
         "persistent_worker_lifecycle", "bounded_fifo_queue", "queue_admission",  "overflow_policy",
@@ -495,6 +496,9 @@ nlohmann::json lane_capability_summary(const LaneSpec& lane) {
   summary["max_threads"] = lane.max_threads;
   summary["queue_capacity"] = lane.queue_capacity;
   summary["overflow"] = lane.overflow;
+  if (lane.type == "fixed_rate") {
+    summary["overrun_policy"] = lane.overrun_policy;
+  }
   return summary;
 }
 

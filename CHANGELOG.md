@@ -13,6 +13,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added architecture policy checks for installed-header markers, runtime/YAML/CLI target boundaries, private include leaks, semantic-bypass CLI includes, and planted-violation self-tests.
 - Added scheduler v2 capability summaries in plan JSON and advisory diagnostics for parsed-but-not-enforced lane/execution fields.
 - Added persistent `thread_pool` worker-pool v1 with bounded FIFO queue admission, worker-id trace attributes, and stop/drain coverage for queued work.
+- Added opt-in `fixed_rate` wall-clock cadence v1 with `overrun_policy`, tick/skipped/max-lateness metrics, and fixed-rate trace events while keeping deterministic stepping as the default.
 - Added `OpaquePayload`/`make_custom_payload` and BufferPool loan/release/byte metrics with memory docs.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
@@ -40,6 +41,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 
 - Runtime docs now describe `thread_pool` and async max-inflight as implemented MVP behavior instead of alpha limitations.
 - Runtime docs now describe `thread_pool` as an experimental persistent worker-pool v1 while keeping OS priority/affinity/RT policy, priority queues, and timeout preemption deferred.
+- Runtime docs now distinguish deterministic fixed-rate stepping from opt-in cooperative wall-clock cadence without claiming hard real-time scheduling or independent lane threads.
 - Current baseline and release checklist now record the post-alpha `main` commit, local CTest count, CI run, tag relationship, and remaining limitations.
 - Added an optional CMake `topoexec_format_check` target for local clang-format validation.
 - Expanded the public API map with stable, mixed, experimental, internal, schema, and CLI JSON compatibility boundaries.

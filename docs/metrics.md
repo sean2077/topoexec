@@ -27,12 +27,16 @@ Metric names are part of the public observability contract. Prefer adding new na
 
 Scheduler:
 
+- `runtime.scheduler.tick_count`: fixed-rate ticks executed by the lane. Non-`fixed_rate` lanes report `0`.
 - `runtime.scheduler.completed_count`: completed component invocations for a lane.
 - `runtime.scheduler.tick_overrun_count`: lane tick overruns observed by the scheduler.
+- `runtime.scheduler.skipped_tick_count`: fixed-rate ticks intentionally skipped by an overrun policy. This remains `0` for deterministic stepping unless a wall-clock overrun policy skips ticks.
+- `runtime.scheduler.max_lateness_ms`: maximum observed fixed-rate lateness or simulated overrun amount.
 - `runtime.scheduler.queue_depth`: maximum queued scheduler tasks observed for a lane. This is `0` for the single-thread event loop.
 - `runtime.scheduler.queue_capacity`: configured/effective pending queue capacity for the lane.
 - `runtime.scheduler.worker_count`: configured/effective worker count for the lane; for `thread_pool`, this is the persistent worker count.
 - `runtime.scheduler.last_callback_duration_ms`: latest scheduler iteration duration observed for the lane.
+- `runtime.scheduler.blocked_duration_ms`: maximum wall-clock wait duration inserted before a fixed-rate tick.
 - `runtime.scheduler.tick_jitter_ms`: positive simulated overrun amount above the fixed-rate period or tick budget.
 - `runtime.scheduler.active_count`: maximum active workers observed for a lane. This is `0` for the single-thread event loop.
 - `runtime.scheduler.in_flight_count`: maximum in-flight scheduler tasks observed for a lane. This is `0` for the single-thread event loop.

@@ -28,6 +28,7 @@ struct LaneSpec {
   bool wall_clock_enabled{false};
   int period_ms{0};
   int tick_budget_ms{0};
+  std::string overrun_policy{"drop_tick"};
   std::string thread_name;
   std::vector<int> cpu_affinity;
   int nice_priority{0};

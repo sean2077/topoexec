@@ -165,7 +165,7 @@ Acceptance:
 
 ### Gap 5: Scheduler lanes need bounded runtime support
 
-Post-alpha status: persistent `thread_pool` worker-pool v1 and async edge `policy.max_inflight` admission now exist with tests. Remaining work is OS-level scheduling policy, priority/admission ordering, timeout preemption, and TSAN CI.
+Post-alpha status: persistent `thread_pool` worker-pool v1, opt-in `fixed_rate` wall-clock cadence v1, and async edge `policy.max_inflight` admission now exist with tests. Remaining work is OS-level scheduling policy, priority/admission ordering, timeout preemption, and TSAN CI.
 
 This remains the largest runtime maturity area.
 

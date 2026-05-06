@@ -280,6 +280,7 @@ lanes:
     wall_clock_enabled: false
     period_ms: 10
     tick_budget_ms: 8
+    overrun_policy: catch_up_once
 components:
   - id: a
     type: topoexec.test.Source
@@ -296,6 +297,7 @@ edges: []
   EXPECT_FALSE(graph.lanes.front().wall_clock_enabled);
   EXPECT_EQ(graph.lanes.front().period_ms, 10);
   EXPECT_EQ(graph.lanes.front().tick_budget_ms, 8);
+  EXPECT_EQ(graph.lanes.front().overrun_policy, "catch_up_once");
   const auto result = topoexec::validate_graph_structure(graph);
   ASSERT_TRUE(result.ok) << result.errors.front();
 }
@@ -332,6 +334,11 @@ lanes:
     max_threads: 2
     queue_capacity: 4
     overflow: reject_new
+  clock:
+    type: fixed_rate
+    period_ms: 10
+    wall_clock_enabled: true
+    overrun_policy: skip_next
 components:
   - id: a
     type: topoexec.test.Source
@@ -350,6 +357,8 @@ edges: []
   EXPECT_NE(plan_json.find("\"bounded_fifo_queue\""), std::string::npos);
   EXPECT_NE(plan_json.find("\"worker_id_trace\""), std::string::npos);
   EXPECT_NE(plan_json.find("\"priority_queue\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"opt_in_wall_clock_cadence\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"overrun_policy\": \"skip_next\""), std::string::npos);
   EXPECT_NE(plan_json.find("\"scheduler_contract_version\": \"0.2\""), std::string::npos);
 }
 
@@ -357,12 +366,14 @@ TEST(Graph, RejectsInvalidSchedulerLaneAdmissionFields) {
   auto graph = minimal_graph();
   graph.lanes.front().queue_capacity = -1;
   graph.lanes.front().overflow = "mystery";
+  graph.lanes.front().overrun_policy = "mystery";
 
   const auto result = topoexec::validate_graph_structure(graph);
 
   EXPECT_FALSE(result.ok);
   EXPECT_TRUE(has_error_containing(result.errors, "lane main queue_capacity must be non-negative"));
   EXPECT_TRUE(has_error_containing(result.errors, "lane main has unsupported overflow mystery"));
+  EXPECT_TRUE(has_error_containing(result.errors, "lane main has unsupported overrun_policy mystery"));
 }
 
 TEST(Graph, NonFailFastExecutionPolicyIsParsedButRejected) {

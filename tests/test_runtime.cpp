@@ -1276,6 +1276,27 @@ edges: []
 )");
 }
 
+topoexec::GraphSpec fixed_rate_wall_clock_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: fixed_rate_wall_clock, kind: runnable}
+lanes:
+  main:
+    type: fixed_rate
+    wall_clock_enabled: true
+    period_ms: 10
+    overrun_policy: drop_tick
+components:
+  - id: slow
+    type: topoexec.test.SlowManual
+    boundary: {role: input_output, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+edges: []
+)");
+}
+
 topoexec::GraphSpec lifecycle_graph(std::vector<std::pair<std::string, std::string>> components) {
   topoexec::GraphSpec graph;
   graph.schema_version = 1;
@@ -1947,6 +1968,36 @@ TEST(Runtime, FixedRateSimulatedLaneReportsOverrunMetric) {
   EXPECT_TRUE(std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(), [](const auto& metric) {
     return metric.name == "runtime.scheduler.tick_overrun_count" && metric.lane == "main" && metric.value >= 1.0;
   }));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.tick_count", 1.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.max_lateness_ms", 1.0));
+  EXPECT_TRUE(has_trace_event(result, "fixed_rate_tick_begin"));
+  EXPECT_TRUE(has_trace_event(result, "fixed_rate_tick_end"));
+  EXPECT_TRUE(has_trace_event(result, "fixed_rate_overrun"));
+}
+
+TEST(Runtime, FixedRateWallClockModeSleepsBetweenTicksWhenOptedIn) {
+  const auto reg = delay_registry();
+  const auto spec = fixed_rate_wall_clock_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 3;
+
+  reset_runtime_records();
+  const auto started_at = std::chrono::steady_clock::now();
+  const auto result = runner.run(spec, options);
+  const auto elapsed = std::chrono::steady_clock::now() - started_at;
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.tick_calls, 3u);
+  EXPECT_TRUE(has_component_record(1, "slow"));
+  EXPECT_TRUE(has_component_record(2, "slow"));
+  EXPECT_TRUE(has_component_record(3, "slow"));
+  EXPECT_GE(elapsed, std::chrono::milliseconds(8));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.tick_count", 3.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.blocked_duration_ms", 1.0));
+  EXPECT_TRUE(has_trace_event(result, "fixed_rate_tick_begin"));
+  EXPECT_TRUE(has_trace_event(result, "fixed_rate_tick_end"));
 }
 
 TEST(Runtime, CoalesceMergesMultiplePendingUpdatesIntoOneInvocation) {

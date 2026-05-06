@@ -28,6 +28,7 @@ SchedulerGroupConfig lane_config_from_spec(const LaneSpec& lane) {
   config.wall_clock_enabled = lane.wall_clock_enabled;
   config.period = std::chrono::milliseconds(lane.period_ms);
   config.tick_budget = std::chrono::milliseconds(lane.tick_budget_ms);
+  config.overrun_policy = lane.overrun_policy;
   config.thread_name = lane.thread_name;
   config.cpu_affinity = lane.cpu_affinity;
   config.nice_priority = lane.nice_priority;
@@ -264,10 +265,15 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                            error);
     }
     for (const auto& [lane_id, metrics] : run_result.group_metrics) {
+      append_runtime_metric(result, "runtime.scheduler.tick_count", static_cast<double>(metrics.tick_count), {},
+                            lane_id);
       append_runtime_metric(result, "runtime.scheduler.completed_count", static_cast<double>(metrics.completed_count),
                             {}, lane_id);
       append_runtime_metric(result, "runtime.scheduler.tick_overrun_count",
                             static_cast<double>(metrics.tick_overrun_count), {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.skipped_tick_count",
+                            static_cast<double>(metrics.skipped_tick_count), {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.max_lateness_ms", metrics.max_lateness_ms, {}, lane_id);
       append_runtime_metric(result, "runtime.scheduler.queue_depth", static_cast<double>(metrics.queue_depth), {},
                             lane_id);
       append_runtime_metric(result, "runtime.scheduler.queue_capacity", static_cast<double>(metrics.queue_capacity), {},
@@ -276,6 +282,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                             lane_id);
       append_runtime_metric(result, "runtime.scheduler.last_callback_duration_ms", metrics.last_callback_duration_ms,
                             {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.blocked_duration_ms", metrics.blocked_duration_ms, {}, lane_id);
       append_runtime_metric(result, "runtime.scheduler.tick_jitter_ms", metrics.tick_jitter_ms, {}, lane_id);
       append_runtime_metric(result, "runtime.scheduler.active_count", static_cast<double>(metrics.active_count), {},
                             lane_id);

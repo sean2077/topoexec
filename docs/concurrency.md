@@ -52,7 +52,13 @@ apply today.
 
 ## Fixed Rate Lane
 
-`fixed_rate` is accepted by schema v1 and current execution is still bounded by runner ticks. It reports simulated overrun and positive jitter when an iteration exceeds `hz`, `period_ms`, or `tick_budget_ms`; it does not yet sleep to maintain wall-clock cadence or guarantee OS jitter bounds.
+`fixed_rate` is accepted by schema v1 and defaults to deterministic runner ticks.
+It reports simulated overrun and positive jitter when an iteration exceeds `hz`,
+`period_ms`, or `tick_budget_ms`. When `wall_clock_enabled: true`, the runtime
+inserts cooperative sleeps before later ticks according to `period_ms` or `hz`
+and records skipped/max-lateness metrics according to `overrun_policy`. This is
+an opt-in wall-clock cadence smoke, not hard real-time scheduling or independent
+per-lane threading.
 
 ## Async Admission
 
@@ -85,8 +91,8 @@ Async admission metrics use the `runtime.async.*` namespace; channel metrics rep
 ## What Is Still Deferred
 
 - Threaded async task/future executor surface; deterministic `TaskExecutor` helper exists for bounded submission and tests.
-- Wall-clock fixed-rate sleep cadence.
 - OS priority, affinity, and hard real-time policy enforcement.
+- Independent fixed-rate lane threads and OS jitter control.
 - Runtime-level priority/admission ordering for worker queues.
 - Timeout preemption for long-running component code.
 - Blocking overflow behavior on the default non-blocking runtime path.

@@ -50,6 +50,14 @@ Component execution:
 - `component_execute_end`
 - `thread_pool_batch`
 
+Fixed-rate scheduler:
+
+- `fixed_rate_tick_begin`
+- `fixed_rate_tick`
+- `fixed_rate_tick_end`
+- `fixed_rate_overrun`
+- `fixed_rate_skipped_tick`
+
 Channels and publication:
 
 - `channel_publish`
@@ -69,6 +77,7 @@ Composite loops:
 The runtime includes identifiers where the event source has them:
 
 - Scheduler events include `iteration`; `thread_pool_batch` spans include `component_id`, `lane`, `batch_size`, `worker_count`, `queue_capacity`, and `worker_ids`.
+- Fixed-rate tick events include `lane`, `iteration`, `wall_clock_enabled`, and `overrun_policy`; overrun/skipped events add lateness or skipped-tick details.
 - Component events include `component_id` and `lane`; `thread_pool` component events also include `worker_id`.
 - Channel publish events include `channel_id`, `source_component`, `target_component`, and `edge_kind`.
 - Channel commit events include `channel_id` and `edge_kind`.

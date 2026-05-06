@@ -170,6 +170,10 @@ bool is_allowed_lane_overflow(const std::string& policy) {
   return is_allowed_drop_policy(policy) || policy == "reject_new";
 }
 
+bool is_allowed_overrun_policy(const std::string& policy) {
+  return policy == "drop_tick" || policy == "skip_next" || policy == "catch_up_once";
+}
+
 bool is_non_default_advisory_lane_field(const LaneSpec& lane, const std::string& field) {
   if (field == "priority") {
     return !lane.priority.empty();
@@ -198,6 +202,9 @@ bool is_non_default_advisory_lane_field(const LaneSpec& lane, const std::string&
     return !lane.isolation_intent.empty() && lane.isolation_intent != "none";
   }
   if (field == "wall_clock_enabled") {
+    if (lane.type == "fixed_rate") {
+      return false;
+    }
     return lane.wall_clock_enabled;
   }
   return false;
@@ -668,6 +675,9 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     }
     if (!is_allowed_lane_overflow(lane.overflow)) {
       add_error(result, "lane " + lane.id + " has unsupported overflow " + lane.overflow);
+    }
+    if (!is_allowed_overrun_policy(lane.overrun_policy)) {
+      add_error(result, "lane " + lane.id + " has unsupported overrun_policy " + lane.overrun_policy);
     }
     for (const auto& field : {"priority", "thread_name", "cpu_affinity", "nice_priority", "rt_policy", "rt_priority",
                               "isolation_intent", "wall_clock_enabled"}) {

@@ -62,9 +62,10 @@ Fields:
 - `max_threads` optional integer, default `0`; must be non-negative. For `thread_pool`, this is the persistent worker count and active worker width (`0` means one worker).
 - `queue_capacity` optional integer, default `0`; must be non-negative. For `thread_pool`, positive values bound pending ready invocations after active workers; `0` admits only the active worker width.
 - `overflow` optional string, default `reject`; allowed values are `overwrite`, `drop_oldest`, `drop_newest`, `reject`, `reject_new`, `fail_fast`, and `block`. For `thread_pool`, `drop_oldest`/`overwrite` discard oldest ready invocations before execution, `drop_newest`/`reject`/`reject_new`/`block` skip newest ready invocations in the non-blocking runtime, and `fail_fast` stops the run.
-- `wall_clock_enabled` optional boolean, default `false`; parsed for future wall-clock fixed-rate mode and currently advisory.
-- `period_ms` optional integer, default `0`; fixed-rate period override for simulated overrun accounting.
-- `tick_budget_ms` optional integer, default `0`; explicit per-iteration budget for simulated overrun accounting.
+- `wall_clock_enabled` optional boolean, default `false`; opt-in wall-clock cadence for `fixed_rate`.
+- `period_ms` optional integer, default `0`; fixed-rate period override for cadence and overrun accounting.
+- `tick_budget_ms` optional integer, default `0`; explicit per-iteration budget for overrun accounting without changing cadence.
+- `overrun_policy` optional string, default `drop_tick`; allowed values are `drop_tick`, `skip_next`, and `catch_up_once`. This affects the next scheduled wall-clock tick after lateness; it is not hard preemption.
 - `thread_name` optional string.
 - `cpu_affinity` optional integer array.
 - `nice_priority` optional integer, default `0`.
@@ -72,7 +73,7 @@ Fields:
 - `rt_priority` optional integer, default `0`.
 - `isolation_intent` optional string, default `none`.
 
-Runtime support note: `event_loop` is the deterministic default. `fixed_rate` is simulated by bounded runtime ticks and reports overrun/jitter metrics from `hz`, `period_ms`, or `tick_budget_ms`; real sleeping cadence is still deferred. `thread_pool` uses run-scoped persistent workers plus bounded FIFO queue admission for ready invocations with explicit queue/worker metrics; see [scheduler.md](scheduler.md) and [concurrency.md](concurrency.md).
+Runtime support note: `event_loop` is the deterministic default. `fixed_rate` is simulated by bounded runtime ticks unless `wall_clock_enabled` opts into cooperative sleeping cadence; it reports tick/overrun/jitter/skipped/max-lateness metrics from `hz`, `period_ms`, `tick_budget_ms`, and `overrun_policy`. `thread_pool` uses run-scoped persistent workers plus bounded FIFO queue admission for ready invocations with explicit queue/worker metrics; see [scheduler.md](scheduler.md) and [concurrency.md](concurrency.md).
 
 ## components
 

@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B has started with G29 and G30 complete.
-The next unfinished P1 goal is G31 Fixed-Rate Lane v1.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B has started with G29, G30, and G31 complete.
+The next unfinished P1 goal is G32 Scheduler Priority and Admission Policy v1.
 
 ## Active / Recent Goals
 
@@ -25,6 +25,7 @@ The next unfinished P1 goal is G31 Fixed-Rate Lane v1.
 | G66 | complete | `tests/policy/check_no_adapter_deps.py`, `CMakeLists.txt`, `scripts/goal_check.sh`, `docs/architecture-guardrails.md`, `docs/goals/backlog.md`, `docs/goals/status.md`, and `CHANGELOG.md`. | Architecture policy now audits installed-header markers, common/runtime/YAML/CLI boundaries, private include leaks, adapter tokens, CMake target links, CLI semantic-bypass includes, and planted fake dependency violations. |
 | G29 | complete | `docs/scheduler.md`, `docs/concurrency.md`, `docs/diagnostics.md`, `src/graph.cpp`, `src/graph_io.cpp`, `src/diagnostics.cpp`, `tests/test_graph.cpp`, `tests/golden/plan_composite_loop.json`, `docs/goals/backlog.md`, `docs/goals/status.md`, and `CHANGELOG.md`. | Scheduler plan JSON now exposes lane capability summaries; validation emits advisory diagnostics for parsed-but-not-enforced lane/execution fields without failing valid graphs. |
 | G30 | complete | `src/event_runtime.cpp`, `src/graph.cpp`, `src/graph_io.cpp`, `tests/test_runtime.cpp`, `tests/test_graph.cpp`, `docs/scheduler.md`, `docs/concurrency.md`, `docs/schema-v1.md`, `docs/semantic-contract.md`, `docs/trace-events.md`, release docs, goal ledgers, and `CHANGELOG.md`. | `thread_pool` now uses run-scoped persistent worker pools with bounded FIFO admission, stop/drain behavior, worker-id trace attributes, updated lane capability summaries, and focused runtime/graph coverage. |
+| G31 | complete | `include/topoexec/runtime/graph.hpp`, `include/topoexec/runtime/scheduler.hpp`, `schema/topoexec.schema.v1.json`, `src/event_runtime.cpp`, `src/graph.cpp`, `src/graph_io.cpp`, `src/runtime_runner.cpp`, `tests/test_runtime.cpp`, `tests/test_graph.cpp`, updated goldens, scheduler/concurrency/schema/trace docs, release docs, and `CHANGELOG.md`. | `fixed_rate` now keeps deterministic stepping by default and supports opt-in cooperative wall-clock cadence v1 with `overrun_policy`, tick/skipped/max-lateness/blocked metrics, and fixed-rate trace events without hard real-time claims. |
 
 ## Validation Evidence
 
@@ -102,6 +103,21 @@ ctest --test-dir build --output-on-failure -R 'test_runtime|test_graph|cli_golde
 
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
 # G30 passed: 51/51 CTest tests in the ASAN+UBSAN Debug build
+
+ctest --test-dir build --output-on-failure -R 'test_runtime|test_graph|cli_golden_outputs|schema_v1_contract_smoke'
+# G31 passed: fixed-rate runtime coverage, overrun policy parsing, schema/golden drift checks
+
+./scripts/goal_check.sh quick
+# G31 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+cmake --build build --target topoexec_format_check
+# G31 passed
+
+./scripts/agent_check.sh
+# G31 passed: 51/51 CTest tests after fixed-rate wall-clock updates
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G31 passed: 51/51 CTest tests in the ASAN+UBSAN Debug build
 
 grep -RInE '#include .*(yaml|rclcpp|opentelemetry|prometheus|Python|perfetto|tools/topoexec|src/)' include || true
 # G27 passed: no YAML/CLI/adapter/private includes in installed headers

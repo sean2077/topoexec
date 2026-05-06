@@ -19,6 +19,14 @@
       "channel_id": "",
       "component_id": "",
       "lane": "main",
+      "name": "runtime.scheduler.tick_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
       "name": "runtime.scheduler.completed_count",
       "tags": [],
       "value": 3.0
@@ -28,6 +36,22 @@
       "component_id": "",
       "lane": "main",
       "name": "runtime.scheduler.tick_overrun_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.skipped_tick_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.max_lateness_ms",
       "tags": [],
       "value": 0.0
     },
@@ -60,6 +84,14 @@
       "component_id": "",
       "lane": "main",
       "name": "runtime.scheduler.last_callback_duration_ms",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "main",
+      "name": "runtime.scheduler.blocked_duration_ms",
       "tags": [],
       "value": 0.0
     },

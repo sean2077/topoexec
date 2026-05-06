@@ -381,6 +381,15 @@
           ],
           "type": "string"
         },
+        "overrun_policy": {
+          "default": "drop_tick",
+          "enum": [
+            "drop_tick",
+            "skip_next",
+            "catch_up_once"
+          ],
+          "type": "string"
+        },
         "period_ms": {
           "default": 0,
           "minimum": 0,

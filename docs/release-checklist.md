@@ -95,8 +95,8 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 ## Known limitations for release notes
 
 - Scheduler priority/admission ordering, affinity, RT policy, portable hard worker
-  naming guarantees, wall-clock fixed-rate scheduling, and timeout preemption are
-  still not implemented.
+  naming guarantees, independent fixed-rate lane threads, OS jitter control, and
+  timeout preemption are still not implemented.
 - ThreadSanitizer is non-blocking.
 - Deterministic fuzz smoke exists, but coverage-guided fuzzing is future beta work.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and

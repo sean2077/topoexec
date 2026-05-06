@@ -84,6 +84,37 @@ bool lane_overflow_fails_fast(const std::string& overflow) {
   return overflow == "fail_fast";
 }
 
+std::chrono::steady_clock::duration fixed_rate_period_for_lane(const SchedulerGroupConfig& lane) {
+  if (lane.period.count() > 0) {
+    return lane.period;
+  }
+  if (lane.hz > 0.0) {
+    return std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+        std::chrono::duration<double>(1.0 / lane.hz));
+  }
+  return std::chrono::steady_clock::duration::zero();
+}
+
+std::chrono::steady_clock::duration fixed_rate_budget_for_lane(const SchedulerGroupConfig& lane) {
+  if (lane.tick_budget.count() > 0) {
+    return lane.tick_budget;
+  }
+  return fixed_rate_period_for_lane(lane);
+}
+
+std::size_t missed_periods(std::chrono::steady_clock::duration lateness, std::chrono::steady_clock::duration period) {
+  if (lateness <= std::chrono::steady_clock::duration::zero() ||
+      period <= std::chrono::steady_clock::duration::zero()) {
+    return 0u;
+  }
+  const auto late_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(lateness).count();
+  const auto period_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(period).count();
+  if (late_ns <= 0 || period_ns <= 0) {
+    return 0u;
+  }
+  return static_cast<std::size_t>(late_ns / period_ns);
+}
+
 struct ComponentInvocationOutcome {
   Status status;
   std::chrono::steady_clock::time_point started_at;
@@ -252,6 +283,13 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
   TriggerPolicyEngine trigger(channels_);
   const auto started_at = std::chrono::steady_clock::now();
   const auto lanes = lane_map(components_);
+  std::map<std::string, std::chrono::steady_clock::time_point> next_wall_clock_ticks;
+  std::map<std::string, std::chrono::steady_clock::time_point> current_wall_clock_ticks;
+  for (const auto& [lane_id, lane] : lanes) {
+    if (lane.type == "fixed_rate" && lane.wall_clock_enabled && fixed_rate_period_for_lane(lane).count() > 0) {
+      next_wall_clock_ticks[lane_id] = started_at;
+    }
+  }
   std::map<std::string, std::unique_ptr<PersistentWorkerPool>> worker_pools;
   for (const auto& [lane_id, lane] : lanes) {
     if (lane.type == "thread_pool") {
@@ -294,8 +332,37 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       result.stop_reason = SchedulerStopReason::kDurationBound;
       break;
     }
+    current_wall_clock_ticks.clear();
+    for (auto& [lane_id, scheduled_tick] : next_wall_clock_ticks) {
+      auto& metrics = result.group_metrics[lane_id];
+      auto now = std::chrono::steady_clock::now();
+      if (iteration > 0u && now < scheduled_tick) {
+        const auto wait_started_at = now;
+        std::this_thread::sleep_until(scheduled_tick);
+        now = std::chrono::steady_clock::now();
+        metrics.blocked_duration_ms = std::max(
+            metrics.blocked_duration_ms, std::chrono::duration<double, std::milli>(now - wait_started_at).count());
+      }
+      current_wall_clock_ticks[lane_id] = scheduled_tick;
+    }
     const auto iteration_started_at = std::chrono::steady_clock::now();
     record_trace_event(trace_, "scheduler_iteration_begin", {{"iteration", std::to_string(iteration + 1u)}});
+    std::map<std::string, std::chrono::steady_clock::time_point> fixed_rate_tick_starts;
+    for (const auto& [lane_id, lane] : lanes) {
+      if (lane.type != "fixed_rate") {
+        continue;
+      }
+      fixed_rate_tick_starts[lane_id] = iteration_started_at;
+      auto attributes =
+          std::map<std::string, std::string>{{"lane", lane_id},
+                                             {"iteration", std::to_string(iteration + 1u)},
+                                             {"wall_clock_enabled", lane.wall_clock_enabled ? "true" : "false"},
+                                             {"overrun_policy", lane.overrun_policy}};
+      if (auto scheduled = current_wall_clock_ticks.find(lane_id); scheduled != current_wall_clock_ticks.end()) {
+        attributes["wall_clock_scheduled"] = "true";
+      }
+      record_trace_event(trace_, "fixed_rate_tick_begin", std::move(attributes));
+    }
     if (state_store_ != nullptr) {
       state_store_->commit_epoch_boundary();
     }
@@ -608,19 +675,53 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       if (lane.type != "fixed_rate") {
         continue;
       }
-      auto period = std::chrono::steady_clock::duration::zero();
-      if (lane.period.count() > 0) {
-        period = lane.period;
-      } else if (lane.hz > 0.0) {
-        period = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
-            std::chrono::duration<double>(1.0 / lane.hz));
-      }
-      if (lane.tick_budget.count() > 0) {
-        period = lane.tick_budget;
-      }
-      if (period.count() > 0 && iteration_duration > period) {
+      ++metrics.tick_count;
+      const auto period = fixed_rate_period_for_lane(lane);
+      const auto budget = fixed_rate_budget_for_lane(lane);
+      auto tick_attributes =
+          std::map<std::string, std::string>{{"lane", lane_id},
+                                             {"iteration", std::to_string(iteration + 1u)},
+                                             {"wall_clock_enabled", lane.wall_clock_enabled ? "true" : "false"},
+                                             {"overrun_policy", lane.overrun_policy}};
+      if (budget.count() > 0 && iteration_duration > budget) {
+        const auto jitter = iteration_duration - budget;
         ++metrics.tick_overrun_count;
-        metrics.tick_jitter_ms = std::chrono::duration<double, std::milli>(iteration_duration - period).count();
+        metrics.tick_jitter_ms = std::chrono::duration<double, std::milli>(jitter).count();
+        metrics.max_lateness_ms = std::max(metrics.max_lateness_ms, metrics.tick_jitter_ms);
+        auto overrun_attributes = tick_attributes;
+        overrun_attributes["lateness_ms"] = std::to_string(metrics.tick_jitter_ms);
+        record_trace_event(trace_, "fixed_rate_overrun", std::move(overrun_attributes));
+      }
+      auto scheduled = current_wall_clock_ticks.find(lane_id);
+      if (scheduled != current_wall_clock_ticks.end() && period.count() > 0) {
+        const auto next_nominal_tick = scheduled->second + period;
+        const auto wall_clock_lateness = iteration_finished_at > next_nominal_tick
+                                             ? iteration_finished_at - next_nominal_tick
+                                             : std::chrono::steady_clock::duration::zero();
+        metrics.max_lateness_ms =
+            std::max(metrics.max_lateness_ms, std::chrono::duration<double, std::milli>(wall_clock_lateness).count());
+        auto skipped_ticks = missed_periods(wall_clock_lateness, period);
+        if (lane.overrun_policy == "skip_next" && wall_clock_lateness.count() > 0) {
+          ++skipped_ticks;
+          next_wall_clock_ticks[lane_id] = next_nominal_tick + period;
+        } else if (lane.overrun_policy == "catch_up_once" && wall_clock_lateness.count() > 0) {
+          next_wall_clock_ticks[lane_id] = iteration_finished_at;
+        } else if (wall_clock_lateness.count() > 0) {
+          next_wall_clock_ticks[lane_id] = iteration_finished_at + period;
+        } else {
+          next_wall_clock_ticks[lane_id] = next_nominal_tick;
+        }
+        if (skipped_ticks > 0u) {
+          metrics.skipped_tick_count += skipped_ticks;
+          auto skipped_attributes = tick_attributes;
+          skipped_attributes["skipped_ticks"] = std::to_string(skipped_ticks);
+          record_trace_event(trace_, "fixed_rate_skipped_tick", std::move(skipped_attributes));
+        }
+      }
+      auto tick_started_at = fixed_rate_tick_starts.find(lane_id);
+      if (tick_started_at != fixed_rate_tick_starts.end()) {
+        record_trace_span(trace_, "fixed_rate_tick", tick_started_at->second, iteration_finished_at, tick_attributes);
+        record_trace_event(trace_, "fixed_rate_tick_end", std::move(tick_attributes));
       }
     }
     record_trace_span(trace_, "scheduler_iteration", iteration_started_at, iteration_finished_at,

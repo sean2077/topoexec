@@ -22,7 +22,7 @@ epoch
 | Lane type | Runtime behavior | Enforced today | Not enforced today |
 | --- | --- | --- | --- |
 | `event_loop` | Deterministic in-process execution in compiled region order. | Region order, trigger readiness, edge commit boundaries, stop-token checks before iterations. | Wall-clock rate, OS priority/affinity/RT policy. |
-| `fixed_rate` | Accepted by schema and executed through bounded simulated ticks. | Bounded tick count, component budget metric checks, simulated overrun count, last callback duration, and positive jitter when iteration duration exceeds `hz`, `period_ms`, or `tick_budget_ms`. | Real wall-clock sleep cadence and OS jitter control. |
+| `fixed_rate` | Deterministic simulated ticks by default, with opt-in wall-clock cadence v1. | Bounded tick count, component budget metric checks, simulated overrun count, opt-in `wall_clock_enabled` sleeps between ticks, `overrun_policy`, tick/skipped/max-lateness metrics, and trace events. | Independent per-lane threads, hard real-time cadence, and OS jitter control. |
 | `thread_pool` | Persistent worker-pool execution for ready invocations. | `max_threads` persistent lane workers, bounded FIFO queue admission, optional `queue_capacity`, overflow admission, non-reentrant serialization, reentrant overlap within the lane bound, worker-id trace attributes, region barrier before downstream work. | Priority queue/admission ordering, OS priority/affinity/RT policy, hard thread-name guarantee, timeout preemption. |
 | future `isolated_thread` | Dedicated thread per lane or component. | Not supported by schema v1/runtime. | All behavior future. |
 | future `manual_step` | Host application manually advances a lane. | Not supported by schema v1/runtime. | All behavior future. |
@@ -30,6 +30,47 @@ epoch
 `topoexec graph plan --format json` includes a `lane_capabilities[]` summary so
 tooling can see what each lane type actually implements, which fields are
 advisory, and which capabilities remain future extensions.
+
+## Fixed Rate v1
+
+`fixed_rate` defaults to deterministic stepping: each runner iteration is one
+tick and no sleeping is inserted. This keeps normal tests reproducible and avoids
+wall-clock thresholds unless a graph explicitly opts in.
+
+```yaml
+lanes:
+  control:
+    type: fixed_rate
+    period_ms: 10
+    wall_clock_enabled: true
+    overrun_policy: drop_tick
+```
+
+Runtime rules:
+
+- `period_ms` sets the cadence when positive; otherwise `hz` derives the period.
+- `tick_budget_ms` overrides the overrun accounting budget without changing the cadence.
+- `wall_clock_enabled: false` keeps deterministic simulated ticks.
+- `wall_clock_enabled: true` sleeps before later ticks when the next scheduled tick is in the future.
+- `overrun_policy` accepts `drop_tick`, `skip_next`, or `catch_up_once`; it is an alpha policy for how the next scheduled wall-clock tick is chosen after lateness, not a hard real-time guarantee.
+- The v1 wall-clock scheduler remains single-runtime and cooperative; it does not create independent lane threads.
+
+Trace events:
+
+- `fixed_rate_tick_begin`
+- `fixed_rate_tick`
+- `fixed_rate_tick_end`
+- `fixed_rate_overrun`
+- `fixed_rate_skipped_tick`
+
+Metrics:
+
+- `runtime.scheduler.tick_count`
+- `runtime.scheduler.tick_overrun_count`
+- `runtime.scheduler.skipped_tick_count`
+- `runtime.scheduler.tick_jitter_ms`
+- `runtime.scheduler.max_lateness_ms`
+- `runtime.scheduler.blocked_duration_ms`
 
 ## Persistent Thread Pool v1
 
@@ -87,12 +128,16 @@ Component errors stop the runtime with `SchedulerStopReason::kError`; already-st
 
 Scheduler metrics are emitted through `RuntimeRunnerResult::runtime_metrics`:
 
+- `runtime.scheduler.tick_count`
 - `runtime.scheduler.completed_count`
 - `runtime.scheduler.tick_overrun_count`
+- `runtime.scheduler.skipped_tick_count`
+- `runtime.scheduler.max_lateness_ms`
 - `runtime.scheduler.queue_depth`
 - `runtime.scheduler.queue_capacity`
 - `runtime.scheduler.worker_count`
 - `runtime.scheduler.last_callback_duration_ms`
+- `runtime.scheduler.blocked_duration_ms`
 - `runtime.scheduler.tick_jitter_ms`
 - `runtime.scheduler.active_count`
 - `runtime.scheduler.in_flight_count`
@@ -109,6 +154,11 @@ Trace events around scheduler and component execution include:
 - `component_execute`
 - `component_execute_end`
 - `thread_pool_batch`
+- `fixed_rate_tick_begin`
+- `fixed_rate_tick`
+- `fixed_rate_tick_end`
+- `fixed_rate_overrun`
+- `fixed_rate_skipped_tick`
 
 `component_execute*` events/spans on a `thread_pool` lane include `worker_id`.
 `thread_pool_batch` spans include `worker_ids` for the workers that executed the
@@ -144,7 +194,7 @@ prevent schema fields from looking implemented merely because they parse.
 
 ## Remaining Work
 
-- Wall-clock fixed-rate sleep cadence and OS jitter controls.
+- Independent fixed-rate lane threads and OS jitter controls.
 - Priority queue/admission ordering for worker queues.
 - Timeout preemption or explicit cancellation policy.
 - Platform-specific priority, affinity, and RT helpers.

@@ -33,7 +33,8 @@ const std::vector<GraphDiagnosticDescriptor>& graph_diagnostic_registry() {
       {"unsupported_error_policy", "error", "A non-fail-fast execution error policy was requested.",
        "Use fail_fast until continue/isolate policies are implemented."},
       {"advisory_lane_field_ignored", "advisory",
-       "A scheduler lane field is parsed and preserved but not enforced by the current runtime.",
+       "A scheduler lane field is parsed and preserved but not enforced, or only applied best-effort, by the current "
+       "runtime.",
        "Treat the field as documentation only until the matching scheduler capability is implemented."},
       {"advisory_execution_field_ignored", "advisory",
        "A component execution field is parsed and preserved but not enforced by the current runtime.",
