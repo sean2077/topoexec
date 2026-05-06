@@ -95,6 +95,7 @@ sandboxed plugin, or package-discovery integrations.
 
 - [Architecture guardrails](architecture-guardrails.md)
 - [Contributing](contributing.md)
+- [Code of Conduct](../CODE_OF_CONDUCT.md)
 - [Agent goals](agent-goals.md)
 - [FAQ](faq.md)
 

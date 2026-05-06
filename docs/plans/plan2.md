@@ -2305,6 +2305,19 @@ Priority: P2
 - Contributors know how to avoid unsafe runtime changes.
 - Agent-generated PRs have the same structure as human PRs.
 
+### Implementation note (2026-05-06)
+
+- Added root `CONTRIBUTING.md` and expanded `docs/contributing.md` with project
+  philosophy, non-goals, contribution lanes, semantic-change proposal flow,
+  component/example guidance, metric guidance, schema-field guidance, release
+  cadence, API review policy, and adapter acceptance policy.
+- Updated issue/PR templates for design proposals, schema fields,
+  component/example proposals, metric/diagnostic changes, and agent-generated PR
+  evidence; human and agent PRs now share the same scope/validation structure.
+- Added root `CODE_OF_CONDUCT.md` and `community_readiness_smoke` to keep the
+  contributor guide, templates, and code-of-conduct surface present. No runtime
+  API, schema, adapter, or release behavior changed.
+
 ---
 
 ## G69. Real-World Pilot App
@@ -2437,7 +2450,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G68, actual schema v2 implementation/migration scope, or full editor/LSP implementation.
+  actual schema v2 implementation/migration scope, full editor/LSP implementation, and any remaining production adapter/ecosystem deferrals.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2513,7 +2526,8 @@ Priority: P0 before beta
 
 ## Phase H：Beta
 
-44. G70 Beta Readiness Review
+44. G68 Community and Contribution Readiness（complete）
+45. G70 Beta Readiness Review（complete）
 
 ---
 

@@ -83,17 +83,17 @@ Rationale:
 | Stage | Status | Evidence | Remaining before tagging that stage |
 | --- | --- | --- | --- |
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
-| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, OTel/Prometheus preview mappings, C API preview, Python automation preview, trusted-native plugin-loader preview, schema-v2 decision notes, editor/schema UX docs and smokes, CPack smoke, G67 release-prep automation, G69 pilot-app evidence, and the G70 beta-readiness audit. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
+| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, OTel/Prometheus preview mappings, C API preview, Python automation preview, trusted-native plugin-loader preview, schema-v2 decision notes, editor/schema UX docs and smokes, CPack smoke, G67 release-prep automation, G68 contribution/community readiness docs/templates, G69 pilot-app evidence, and the G70 beta-readiness audit. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
 | `v0.3.0-alpha` | Preview-doc ready, partial observer/exporter API implemented | RuntimeObserver v1, adapter contracts, OTel/Prometheus preview targets, ROS 2 fake-boundary preview, C API/FFI preview, Python automation preview, trusted-native plugin-loader preview, and stub layout are complete without core dependency pollution. | Add concrete production exporter/adapter targets before claiming adapter implementation readiness. |
-| `v0.5.0-beta` | Conditional core-runtime review only; not automatically tag-ready | ASAN+UBSAN, fuzz smoke, bounded stress smoke, docs/examples, API/deprecation policy, G64 schema-v2 boundary, G65 editor/schema UX guide, G67 release prep, G69 pilot, and G70 audit exist. | Human release owner must accept deferrals, run gates on exact candidate commit, attach release-prep artifacts, decide TSAN/soak/fuzz scope, and avoid adapter/ecosystem beta claims. |
+| `v0.5.0-beta` | Conditional core-runtime review only; not automatically tag-ready | ASAN+UBSAN, fuzz smoke, bounded stress smoke, docs/examples, API/deprecation policy, G64 schema-v2 boundary, G65 editor/schema UX guide, G67 release prep, G68 community readiness, G69 pilot, and G70 audit exist. | Human release owner must accept deferrals, run gates on exact candidate commit, attach release-prep artifacts, decide TSAN/soak/fuzz scope, and avoid adapter/ecosystem beta claims. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
 
 ## Goal completion rollup
 
 - `docs/plans/plan.md` G0-G25: complete and archived.
 - `docs/plans/plan2.md` G26: release-candidate baseline protection.
-- `docs/plans/plan2.md` G27+ remain active future work unless marked complete in
-  `docs/goals/status.md`.
+- `docs/plans/plan2.md` G26-G70 are complete for the current plan2 line. New
+  work should open a new plan or goal source rather than silently extending plan2.
 
 Deferred capabilities remain documented as limitations rather than hidden TODOs:
 

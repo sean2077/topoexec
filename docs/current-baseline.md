@@ -356,7 +356,7 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
 - The beta-readiness review supports only a possible human-approved core-runtime
   beta candidate. It is not an adapter/ecosystem beta, package-registry
   publication, signed-artifact release, or hard real-time scheduling claim.
-- Documentation now has an executable cookbook, architecture diagrams, why-not comparisons, design principles, the G64 schema-v2 decision boundary, and the G65 editor/schema UX guide with recursive docs smoke coverage. The docs still describe adapter/exporter/editor-extension surfaces as deferred unless future goals implement them.
+- Documentation now has an executable cookbook, architecture diagrams, why-not comparisons, design principles, the G64 schema-v2 decision boundary, the G65 editor/schema UX guide, and G68 contribution/community guidance with recursive docs and community-readiness smoke coverage. The docs still describe adapter/exporter/editor-extension surfaces as deferred unless future goals implement them.
 - Reference apps and tests now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop fixed-point and solver-style convergence/budget/partial-output behavior, BufferPool copy/shared/loaned metrics, a template-expanded source-transform-sink YAML, and the G69 robot-cell pilot that composes multiple lanes, async overload, state/delay feedback, config snapshots, metrics/trace, and invalid-config rejection. They remain dependency-free in-process examples; hierarchy/templates are compile-time expansion features, and no external adapter stack is implemented by G69/G41/G42/G45.
 - The robot-cell pilot is an embedded case study, not a hardware driver, robot controller, camera integration, ROS graph, exporter integration, or external scheduling guarantee.
 - ThreadSanitizer remains non-blocking.
@@ -369,5 +369,5 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
   provides only a dependency-free ROS 2 fake-boundary preview, G61 provides only
   an unstable ABI-version-0 C API/FFI preview, G62 provides only a CLI-backed
   Python automation preview, and G63 provides only a trusted-native plugin-loader
-  preview; G64 provides only schema-v2 notes and no v2 loader or migration CLI; G65 provides only schema/editor setup docs and smokes, not an editor extension or LSP server.
+  preview; G64 provides only schema-v2 notes and no v2 loader or migration CLI; G65 provides only schema/editor setup docs and smokes, not an editor extension or LSP server; G68 provides contribution docs/templates/checks, not a maintainer SLA or external support channel.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

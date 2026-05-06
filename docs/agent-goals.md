@@ -6,15 +6,10 @@ This file is the human-readable entry point for continuing `docs/plans/plan2.md`
 
 Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/status.md` as the current ledger.
 
-Current safe order after the completed P0/P1 queue plus G35/G41/G42/G45/G58/G59/G60/G61/G62/G63/G64/G65:
-
-1. G68 Community and Contribution Readiness.
-
-Keep schema v2 implementation, migration tooling, and full editor/LSP extension
-scope deferred unless explicitly opened.
-
-Continue by backlog order in `docs/goals/backlog.md`, keeping concrete adapter
-implementations deferred unless the user explicitly opens that scope.
+No active `docs/plans/plan2.md` queue remains: G26-G70 are complete. New work
+should open a new goal or plan source instead of silently extending plan2. Keep
+schema v2 implementation, migration tooling, full editor/LSP extension scope,
+and concrete adapters deferred unless explicitly opened.
 
 ## Goal handoff template
 

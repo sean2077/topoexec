@@ -98,6 +98,19 @@ ctest --test-dir build --output-on-failure -R 'editor_schema_ux_smoke|cli_schema
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 79/79 ASAN+UBSAN CTest tests.
 ```
 
+Current local evidence after G68 community readiness:
+
+```text
+python3 -m py_compile tests/docs/check_community_readiness.py: passed.
+ctest --test-dir build --output-on-failure -R 'community_readiness_smoke|docs_command_smoke': passed contributor/template smoke and docs smoke, 2/2.
+./scripts/goal_check.sh docs: passed docs command smoke.
+./scripts/goal_check.sh quick: passed golden/schema smokes.
+./scripts/goal_check.sh policy: passed architecture policy smokes.
+cmake --build build --target topoexec_format_check: passed.
+./scripts/agent_check.sh: passed, 80/80 CTest tests.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 80/80 ASAN+UBSAN CTest tests.
+```
+
 ## Golden drift surfaces
 
 The release candidate must preserve or intentionally update these goldens:
@@ -216,6 +229,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - G65 is an editor/schema setup guide and diagnostic/schema smoke only. It does
   not implement a VS Code extension, language server, file watcher, or runtime
   editor dependency.
+- G68 adds contribution guides, issue/PR templates, and a code-of-conduct
+  surface. It does not create a maintainer SLA, private vulnerability-reporting
+  process, external community forum, or new adapter implementation.
 
 ## Tagging
 

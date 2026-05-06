@@ -41,6 +41,7 @@ This document maps the invariants from `docs/plans/plan.md` G3 to concrete CI te
 | 34 | Dynamic plugin loading is optional, explicit, trusted-native only, and does not become a runtime/core dependency. | `test_plugin_loader`; `cmake_plugin_loader_options_smoke`; `policy_no_core_adapter_deps`; `policy_architecture_self_test`. |
 | 35 | Schema v2 remains a design boundary until a reviewed v2 loader exists; schema v1 stays strict and rejects `schema_version: 2`. | `schema_v1_contract_smoke`; `docs_command_smoke`; `docs/schema-v2-notes.md`. |
 | 36 | Editor/schema UX uses installed schema discovery and diagnostic JSON without adding a runtime editor/LSP dependency. | `editor_schema_ux_smoke`; `cmake_package_runtime_smoke`; `docs_command_smoke`; `docs/editor-schema.md`. |
+| 37 | Community contribution surfaces keep unsafe semantic/API/schema/adapter changes behind explicit proposal, review, and validation lanes. | `community_readiness_smoke`; `docs/contributing.md`; `.github/PULL_REQUEST_TEMPLATE.md`; `.github/ISSUE_TEMPLATE/*`. |
 
 ## Maintenance rule
 

@@ -635,6 +635,11 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       --build-dir ${CMAKE_CURRENT_BINARY_DIR}
       --topoexec $<TARGET_FILE:topoexec_cli>
   )
+  add_test(NAME community_readiness_smoke
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/docs/check_community_readiness.py
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+  )
   add_test(NAME fuzz_graph_input_smoke
     COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/fuzz_graph_inputs.py

@@ -100,6 +100,11 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
   modeline guidance, editor diagnostic JSON expectations, installed-schema
   package smoke coverage, and `editor_schema_ux_smoke` without adding a runtime
   dependency or LSP implementation.
+- Added G68 community readiness surfaces: root `CONTRIBUTING.md`, expanded
+  contributor/governance guidance, root `CODE_OF_CONDUCT.md`, richer issue and
+  PR templates for semantic/API/schema/component/metric changes, and
+  `community_readiness_smoke` so human and agent-generated PRs share the same
+  structure.
 - Added `topoexec schema dump`, `topoexec schema check`, and `topoexec doctor` JSON/text tooling.
 - Added state/config, batch/time-sync, service-style async, and boundary-adapter-pattern YAML examples plus an examples catalog with CLI smokes.
 - Added a documentation index, tutorial/reference pages, and doc-command smoke coverage for the getting-started and CLI paths.

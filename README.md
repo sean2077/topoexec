@@ -126,6 +126,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [Beta readiness review](docs/beta-readiness-review.md)
 - [FAQ](docs/faq.md)
 - [Adapter boundaries](docs/adapters.md)
+- [Contributing](CONTRIBUTING.md)
 
 Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), [docs/release-checklist.md](docs/release-checklist.md), [docs/release-runbook.md](docs/release-runbook.md), and the [beta readiness review](docs/beta-readiness-review.md). `scripts/release_prepare.sh` prepares local release-candidate notes, artifacts, checksums, and a human-only tag command; it does not publish or tag automatically. The latest published tag is `v0.1.0-alpha`; current `main` carries post-alpha runtime, packaging, adapter-SDK, docs, example, release-automation, pilot-app, and core-runtime beta-readiness review work.
 Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and [docs/goals/status.md](docs/goals/status.md).
