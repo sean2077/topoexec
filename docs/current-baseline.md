@@ -155,6 +155,19 @@ TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./
 git diff --check passed.
 ```
 
+Observed G69 local result:
+
+```text
+ctest --test-dir build --output-on-failure -R 'app_robot_cell_pilot_runs|docs_command_smoke' passed: robot-cell pilot smoke and docs command marker.
+./build/topoexec_app_robot_cell_pilot passed: multiple lanes, async overload/drop, state/delay feedback, BufferPool frame identity, config apply/snapshot, metrics/trace, observer evidence, and invalid-config rejection self-checks.
+./scripts/goal_check.sh docs passed: recursive docs command smoke including the robot-cell case-study marker.
+./scripts/goal_check.sh quick passed.
+cmake --build build --target topoexec_format_check passed.
+./scripts/agent_check.sh passed: 70/70 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 70/70 CTest tests in the ASAN+UBSAN Debug build.
+git diff --check passed.
+```
+
 Golden output surfaces protected after G26:
 
 - `tests/golden/plan_composite_loop.json` — graph plan JSON.
@@ -165,7 +178,7 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations after the plan2 G67 release-automation pass:
+Current branch limitations after the plan2 G69 real-world pilot pass:
 
 - `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, cooperative cancellation/timeout-budget observation, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and hard timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
@@ -178,7 +191,8 @@ Current branch limitations after the plan2 G67 release-automation pass:
 - Installed CMake package smoke now covers runtime-only, Adapter SDK, YAML, imported CLI, CPack TGZ, and package-manager draft surfaces. vcpkg/Conan files are still drafts pending external registry/clean-machine validation, and CPack archives are local release-candidate artifacts rather than signed release artifacts.
 - Release automation can prepare candidate notes, local artifacts, checksums, and a human-only annotated tag command, but it does not publish, upload signed release assets, create tags, retag, or replace human release approval.
 - Documentation now has an executable cookbook, architecture diagrams, why-not comparisons, and design principles with recursive docs smoke coverage. The docs still describe adapter/exporter surfaces as deferred unless future goals implement them.
-- Reference apps now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop solver convergence/budget overrun, and BufferPool copy/shared/loaned metrics. They remain dependency-free in-process examples; hierarchical graph preview stays deferred until G41 and no external adapter stack is implemented by G56.
+- Reference apps now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop solver convergence/budget overrun, BufferPool copy/shared/loaned metrics, and the G69 robot-cell pilot that composes multiple lanes, async overload, state/delay feedback, config snapshots, metrics/trace, and invalid-config rejection. They remain dependency-free in-process examples; hierarchical graph preview stays deferred until G41 and no external adapter stack is implemented by G69.
+- The robot-cell pilot is an embedded case study, not a hardware driver, robot controller, camera integration, ROS graph, exporter integration, or external scheduling guarantee.
 - ThreadSanitizer remains non-blocking.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external Perfetto adapters remain deferred and must not be claimed as implemented; G57 provides only a dependency-free SDK boundary.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

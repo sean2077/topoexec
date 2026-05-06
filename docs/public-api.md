@@ -169,6 +169,9 @@ Ordinary embedding examples should include only stable headers:
 - `examples/apps/cpp_builder_minimal`
 
 `examples/apps/overload_latest_vs_queue` is intentionally marked as an advanced low-level channel-policy tutorial because it uses `topoexec/runtime/channel.hpp` directly.
+`examples/apps/robot_cell_pilot` is an advanced pilot case study: it still links
+only `topoexec::runtime`, but it intentionally composes stable, mixed, and
+experimental runtime surfaces such as `BufferPool` and config/state snapshots.
 
 ## Component failure model
 

@@ -85,6 +85,7 @@ The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, run
 - `examples/apps/async_request_response`: request boundary, validator, task executor, and response boundary.
 - `examples/apps/composite_solver`: CompositeLoop convergence and budget-overrun evidence.
 - `examples/apps/payload_pool_pipeline`: BufferPool copy/shared/loaned payload metrics.
+- `examples/apps/robot_cell_pilot`: composed robotics-like pilot with multiple lanes, async/drop overload, state/delay feedback, BufferPool frames, config snapshots, metrics/trace, and invalid-config rejection.
 - YAML examples in `examples/` also cover state/config snapshots, batch/time-sync, service-style async flow, large-payload linting, and app-owned boundary adapter patterns.
 
 Each app directory includes a README with graph shape, run command, expected output, semantic lesson, and contrast case. The full example catalog is in [docs/examples.md](docs/examples.md) and [examples/README.md](examples/README.md).
@@ -94,6 +95,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [Documentation index](docs/README.md)
 - [Getting started](docs/getting-started.md)
 - [Concepts](docs/concepts.md)
+- [Robot cell pilot case study](docs/case-study-robot-cell.md)
 - [Graph spec](docs/graph-spec.md)
 - [Components](docs/components.md)
 - [Component lifecycle](docs/lifecycle.md)
@@ -117,7 +119,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [FAQ](docs/faq.md)
 - [Adapter boundaries](docs/adapters.md)
 
-Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), [docs/release-checklist.md](docs/release-checklist.md), and [docs/release-runbook.md](docs/release-runbook.md). `scripts/release_prepare.sh` prepares local release-candidate notes, artifacts, checksums, and a human-only tag command; it does not publish or tag automatically. The latest published tag is `v0.1.0-alpha`; current `main` carries post-alpha runtime, packaging, adapter-SDK, docs, example, and release-automation work.
+Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), [docs/release-checklist.md](docs/release-checklist.md), and [docs/release-runbook.md](docs/release-runbook.md). `scripts/release_prepare.sh` prepares local release-candidate notes, artifacts, checksums, and a human-only tag command; it does not publish or tag automatically. The latest published tag is `v0.1.0-alpha`; current `main` carries post-alpha runtime, packaging, adapter-SDK, docs, example, release-automation, and pilot-app work.
 Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and [docs/goals/status.md](docs/goals/status.md).
 
 ## Known Limitations

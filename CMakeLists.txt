@@ -202,6 +202,8 @@ if(TOPOEXEC_BUILD_EXAMPLES)
 
   add_executable(topoexec_app_payload_pool_pipeline examples/apps/payload_pool_pipeline/main.cpp)
   target_link_libraries(topoexec_app_payload_pool_pipeline PRIVATE topoexec_runtime)
+  add_executable(topoexec_app_robot_cell_pilot examples/apps/robot_cell_pilot/main.cpp)
+  target_link_libraries(topoexec_app_robot_cell_pilot PRIVATE topoexec_runtime)
 endif()
 
 if(TOPOEXEC_BUILD_FUZZERS)
@@ -618,4 +620,9 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec_app_payload_pool_pipeline
   )
   set_tests_properties(app_payload_pool_pipeline_runs PROPERTIES PASS_REGULAR_EXPRESSION "loaned_address_preserved=true")
+  add_test(NAME app_robot_cell_pilot_runs
+    COMMAND topoexec_app_robot_cell_pilot
+  )
+  set_tests_properties(app_robot_cell_pilot_runs PROPERTIES
+    PASS_REGULAR_EXPRESSION "pilot_value=explicit_feedback_bounded_observable_cpp")
 endif()

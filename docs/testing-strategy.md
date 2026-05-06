@@ -18,7 +18,7 @@ This configures, builds, and runs all default CTest tests.
 | Golden CLI | normalized plan, metrics, trace, and render outputs | `./scripts/goal_check.sh golden` |
 | Schema | strict schema contract plus schema/semantic CLI split | `./scripts/goal_check.sh schema` |
 | Docs | recursive `topoexec-doc-test` markers plus docs learning-map/section contract | `./scripts/goal_check.sh docs` |
-| Example apps | dependency-free reference apps for latest/drop, fixed-rate state feedback, task completion, CompositeLoop, and payload ownership | `ctest --test-dir build --output-on-failure -R 'app_'` |
+| Example apps | dependency-free reference apps plus the G69 robot-cell pilot covering latest/drop, fixed-rate state feedback, task completion, CompositeLoop, payload ownership, multi-lane feedback, config snapshots, metrics/trace, and invalid-config rejection | `ctest --test-dir build --output-on-failure -R 'app_'` |
 | Fuzz smoke | deterministic malformed, invalid-UTF-8, oversized, parser-limit corpus plus optional fuzzer target corpus replay | `./scripts/goal_check.sh fuzz` |
 | Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
 | Benchmark smoke | RuntimeRunner benchmark cases, task-executor benchmark output, schema v2 metadata, and optional local baseline generation | `./scripts/goal_check.sh bench` |
@@ -95,12 +95,13 @@ portable performance guarantee.
 ## Docs smoke
 
 `docs_command_smoke` runs every `topoexec-doc-test` marker under `docs/` and
-verifies the G55 docs map: getting-started, concepts, runtime semantics, API
-reference, schema, cookbook, adapters, testing/release pages, architecture
-diagrams, why-not comparisons, and design principles. It also executes the G56
-reference-app binaries listed from `docs/examples.md`. Add a marker for commands
-that should remain executable, and update `tests/docs/check_docs.py` only when
-the documentation contract intentionally changes.
+verifies the G55/G69 docs map: getting-started, concepts, the robot-cell case
+study, runtime semantics, API reference, schema, cookbook, adapters,
+testing/release pages, architecture diagrams, why-not comparisons, and design
+principles. It also executes the G56 reference-app binaries and the G69 pilot app
+listed from `docs/examples.md`. Add a marker for commands that should remain
+executable, and update `tests/docs/check_docs.py` only when the documentation
+contract intentionally changes.
 
 ## Release prep smoke
 

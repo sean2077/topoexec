@@ -15,6 +15,7 @@ MARKER = re.compile(r"<!--\s*topoexec-doc-test:\s*(.*?)\s*-->")
 REQUIRED_DOCS = [
     "getting-started.md",
     "concepts.md",
+    "case-study-robot-cell.md",
     "runtime-semantics.md",
     "api-overview.md",
     "public-api.md",
@@ -64,6 +65,7 @@ REQUIRED_SECTIONS = {
 README_REQUIRED_LINKS = [
     "(getting-started.md)",
     "(concepts.md)",
+    "(case-study-robot-cell.md)",
     "(runtime-semantics.md)",
     "(api-overview.md)",
     "(schema-v1.md)",

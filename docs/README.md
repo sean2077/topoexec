@@ -10,12 +10,15 @@ runtime semantics or release surfaces.
 2. [Concepts](concepts.md): components, edges, triggers, lanes, and observability.
 3. [Cookbook](cookbook.md): executable recipes for common graph patterns.
 4. [Examples](examples.md): concrete examples for each core semantic.
+5. [Robot cell case study](case-study-robot-cell.md): composed real-world pilot
+   app without adapter dependencies.
 
 A new user should be able to build the repository, run the C++ builder app, and
 inspect a YAML graph in less than 30 minutes by following this path.
 
 ## Concepts and runtime semantics
 
+- [Robot cell pilot case study](case-study-robot-cell.md)
 - [Runtime semantics](runtime-semantics.md)
 - [Runtime semantic contract](semantic-contract.md)
 - [Runtime invariant coverage](runtime-invariants.md)

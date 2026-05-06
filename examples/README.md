@@ -40,6 +40,9 @@ ctest --test-dir build --output-on-failure -R 'app_|cli_run_|cli_validate_'
 - `apps/async_request_response`: request, validator, task-executor, and response boundary path.
 - `apps/composite_solver`: CompositeLoop convergence and budget-overrun evidence.
 - `apps/payload_pool_pipeline`: BufferPool copy/shared/loaned payload metrics.
+- `apps/robot_cell_pilot`: composed robotics-like pilot with multiple lanes,
+  async/drop overload, state/delay feedback, BufferPool frames, config snapshot,
+  metrics/trace evidence, and invalid-config rejection.
 
 These examples do not implement ROS 2, OpenTelemetry, Prometheus, Python, or
 external Perfetto adapters. Boundary examples show where such adapters can attach

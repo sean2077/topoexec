@@ -31,6 +31,9 @@ the repository has:
 - Release automation prepares a candidate without publishing: `scripts/release_prepare.sh`
   can run gates, draft notes, generate source/CPack/schema artifacts, write
   checksums, and print a human-only annotated tag command.
+- G69 adds a dependency-free robot-cell pilot case study that composes multiple
+  lanes, async overload, state/delay feedback, BufferPool frames, config
+  snapshots, metrics/trace, and invalid-config rejection without adapter claims.
 - G26 adds golden coverage for Chrome trace shape, schema dump JSON, and doctor
   JSON in addition to plan/metrics/trace/render outputs.
 
@@ -63,7 +66,7 @@ Rationale:
 | Stage | Status | Evidence | Remaining before tagging that stage |
 | --- | --- | --- | --- |
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
-| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, CPack smoke, and G67 release-prep automation evidence. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
+| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, CPack smoke, G67 release-prep automation, and G69 pilot-app evidence. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
 | `v0.3.0-alpha` | Preview-doc ready, partial observer API implemented | RuntimeObserver v1, adapter contracts, stub layout, and ROS 2 design are complete without core dependency pollution. | Add concrete exporter/adapter targets before claiming adapter implementation readiness. |
 | `v0.5.0-beta` | Not ready | ASAN+UBSAN, fuzz smoke, and bounded stress smoke exist; docs/examples are mature. | Blocking TSAN decision, longer fuzz/property/soak evidence, API/deprecation hardening, and external release artifact rehearsals. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |

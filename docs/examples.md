@@ -50,6 +50,7 @@ component factories through `topoexec::ComponentRegistry`.
 | Reference app v2 | `examples/apps/async_request_response` | Request boundary, validator, deterministic task executor, and response boundary without service adapters. | `app_async_request_response_runs` |
 | Reference app v2 | `examples/apps/composite_solver` | CompositeLoop convergence and loop-budget overrun evidence. | `app_composite_solver_runs` |
 | Reference app v2 | `examples/apps/payload_pool_pipeline` | BufferPool, copy/shared/loaned payload metrics, and in-process frame identity. | `app_payload_pool_pipeline_runs` |
+| Real-world pilot | `examples/apps/robot_cell_pilot` | Composes multiple lanes, async overload, state/delay feedback, BufferPool frames, config transactions, metrics/trace, and invalid-config rejection without adapters. | `app_robot_cell_pilot_runs` |
 
 ## Reference applications v2
 
@@ -61,7 +62,7 @@ implemented.
 Run the focused smoke set:
 
 ```bash
-ctest --test-dir build --output-on-failure -R 'app_(low_latency_sensor_pipeline|control_loop_with_state|async_request_response|composite_solver|payload_pool_pipeline)_runs'
+ctest --test-dir build --output-on-failure -R 'app_(low_latency_sensor_pipeline|control_loop_with_state|async_request_response|composite_solver|payload_pool_pipeline|robot_cell_pilot)_runs'
 ```
 
 Command markers keep the standalone binaries executable in docs smoke:
@@ -71,6 +72,7 @@ Command markers keep the standalone binaries executable in docs smoke:
 <!-- topoexec-doc-test: ${BUILD_DIR}/topoexec_app_async_request_response -->
 <!-- topoexec-doc-test: ${BUILD_DIR}/topoexec_app_composite_solver -->
 <!-- topoexec-doc-test: ${BUILD_DIR}/topoexec_app_payload_pool_pipeline -->
+<!-- topoexec-doc-test: ${BUILD_DIR}/topoexec_app_robot_cell_pilot -->
 
 Stable outputs:
 
@@ -80,11 +82,22 @@ state_snapshot_epoch=2
 response_payload=accepted:req-1
 budget_overrun_count=1
 loaned_address_preserved=true
+pilot_value=explicit_feedback_bounded_observable_cpp
 ```
 
 The planned `hierarchical_graph_preview` reference app is intentionally deferred
 until G41 defines the hierarchy/subgraph contract; this pass does not fake that
 runtime capability.
+
+## Real-world pilot: robot cell
+
+G69 adds `examples/apps/robot_cell_pilot` as the first composed pilot. Unlike the
+single-contract reference apps, it combines event-loop, thread-pool, and
+fixed-rate lanes with async frame delivery, bounded overload drops, state/delay
+feedback, pool-backed `FrameView` payloads, config transaction/snapshot evidence,
+runtime metrics, trace events, and an invalid-config error path. See
+[Case Study: Dependency-Free Robot Cell Pilot](case-study-robot-cell.md) for the
+architecture and boundaries.
 
 ## Walkthroughs
 

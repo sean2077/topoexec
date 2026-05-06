@@ -2209,6 +2209,22 @@ Priority: P1/P2
   - C++ embedding
 - No adapter dependency required.
 
+### Implementation note (2026-05-06)
+
+- Chose an in-process robotics-like inspection/control cell without ROS, camera
+  SDKs, Python, OpenTelemetry, Prometheus, dynamic plugins, or external shared
+  memory.
+- Implemented `examples/apps/robot_cell_pilot` as a pure C++ `GraphBuilder`
+  app linked only to `topoexec_runtime`. The graph declares acquisition,
+  perception, control, and supervision lanes; uses async, state, delay, and
+  immediate edges; loans `FrameView` payloads from `BufferPool`; stages/applies a
+  controller config transaction; captures controller state; asserts metrics,
+  trace, observer evidence, and payload address preservation; and verifies an
+  invalid-config rejection path.
+- Added `app_robot_cell_pilot_runs`, an app README, executable docs markers, and
+  `docs/case-study-robot-cell.md` to make the pilot a maintained case study
+  rather than a loose demo.
+
 ---
 
 ## G70. Beta Readiness Review
