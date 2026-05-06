@@ -1,0 +1,16 @@
+site_name: TopoExec Docs
+site_description: Small embeddable C++20 semantic runtime
+repo_url: https://github.com/sean2077/topoexec
+docs_dir: docs
+site_dir: site
+theme:
+  name: readthedocs
+use_directory_urls: true
+strict: true
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - tables
+  - fenced_code
+  - codehilite

@@ -27,8 +27,8 @@ This directory is the canonical documentation root. The project is complex enoug
 | `41-development-tools` | CLI, quality gates, editor/schema tooling, and agent workflow helpers. | [Quality gates](41-development-tools/quality-gates.md) / [CLI](41-development-tools/cli.md) |
 | `43-ci-build-release-tools` | Build, package, release, versioning, and baseline evidence. | [Build and package](43-ci-build-release-tools/build-and-package.md) |
 | `44-coding-standards` | Contribution and coding process standards. | [Contributing](44-coding-standards/contributing.md) |
-| `45-doc-standards` | Documentation conventions and maintenance rules. | [Documentation system](45-doc-standards/documentation-system.md) |
-| `61-api` | Public C++/C API and compatibility reference. | [API overview](61-api/api-overview.md) |
+| `45-doc-standards` | Documentation conventions, Pages publishing, and maintenance rules. | [Documentation system](45-doc-standards/documentation-system.md) / [GitHub Pages](45-doc-standards/github-pages.md) |
+| `61-api` | Public C++/C API, compatibility, and generated reference entry points. | [API overview](61-api/api-overview.md) / [Doxygen](61-api/doxygen.md) |
 | `62-schemas-protocols` | Metrics, trace, and diagnostic output schemas. | [Metrics](62-schemas-protocols/metrics.md) |
 | `94-doc-migrations` | Documentation migration records, deletion evidence, and old-to-new maps. | [2026 process-ledger cleanup](94-doc-migrations/2026-05-process-ledger-cleanup.md) |
 
@@ -41,6 +41,11 @@ Adapter, C API, Python, editor, and plugin docs are explicit preview or boundary
 ## Docs Validation
 
 The `docs_command_smoke` CTest runs selected commands embedded as `topoexec-doc-test` markers across this tree. It also checks that required navigation pages and section contracts remain present after moves.
+
+The optional Pages build uses MkDocs plus Doxygen through
+`scripts/docs_build_site.sh`. It publishes the Markdown site and copies
+generated API HTML under `/api/`; normal runtime builds do not require docs
+tooling.
 
 ## Migration Records
 

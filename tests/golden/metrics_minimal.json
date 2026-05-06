@@ -459,6 +459,14 @@
       "channel_id": "",
       "component_id": "sink",
       "lane": "",
+      "name": "runtime.trigger.pending_drop_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
       "name": "runtime.trigger.condition_suppressed_count",
       "tags": [],
       "value": 0.0
@@ -531,6 +539,14 @@
       "channel_id": "",
       "component_id": "source",
       "lane": "",
+      "name": "runtime.trigger.pending_drop_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
       "name": "runtime.trigger.condition_suppressed_count",
       "tags": [],
       "value": 0.0
@@ -596,6 +612,14 @@
       "component_id": "transform",
       "lane": "",
       "name": "runtime.trigger.late_drop_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.trigger.pending_drop_count",
       "tags": [],
       "value": 0.0
     },

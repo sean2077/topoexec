@@ -125,6 +125,9 @@ Triggers:
 - `runtime.trigger.time_sync_drop_count`: oldest out-of-slop samples dropped by `time_sync`.
 - `runtime.trigger.late_drop_count`: timestamped samples dropped by `watermark`
   because they arrived behind the accepted lateness window.
+- `runtime.trigger.pending_drop_count`: pending trigger messages dropped to keep
+  suppressed `rate_limit`, `debounce`, `coalesce`, or `condition` queues within
+  the derived per-input bound.
 - `runtime.trigger.condition_suppressed_count`: `condition` checks that did not
   admit an invocation because the declarative predicate was not satisfied.
 - `runtime.trigger.rate_limit_suppressed_count`: ready checks suppressed by

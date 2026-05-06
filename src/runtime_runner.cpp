@@ -535,6 +535,15 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   std::vector<Instance> instances;
   instances.reserve(graph.components.size());
   try {
+    std::map<std::string, std::size_t> instance_indexes;
+    std::map<std::string, const ComponentNodeSpec*> specs_by_id;
+    for (const auto& spec : graph.components) {
+      specs_by_id.emplace(spec.id, &spec);
+    }
+    auto remember_instance = [&](Instance instance) {
+      instances.push_back(std::move(instance));
+      instance_indexes[instances.back().id] = instances.size() - 1u;
+    };
     auto deactivate_started_components = [&]() {
       for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
         if (!it->started) {
@@ -549,20 +558,18 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       }
     };
     auto instance_for_id = [&](const std::string& component_id) -> Instance* {
-      auto found =
-          std::find_if(instances.begin(), instances.end(), [&](const auto& item) { return item.id == component_id; });
-      if (found == instances.end()) {
+      const auto found = instance_indexes.find(component_id);
+      if (found == instance_indexes.end()) {
         return nullptr;
       }
-      return &*found;
+      return &instances[found->second];
     };
     auto spec_for_id = [&](const std::string& component_id) -> const ComponentNodeSpec* {
-      const auto found = std::find_if(graph.components.begin(), graph.components.end(),
-                                      [&](const auto& item) { return item.id == component_id; });
-      if (found == graph.components.end()) {
+      const auto found = specs_by_id.find(component_id);
+      if (found == specs_by_id.end()) {
         return nullptr;
       }
-      return &*found;
+      return found->second;
     };
     auto finish_early_after_lifecycle_error = [&]() {
       deactivate_started_components();
@@ -596,7 +603,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
         result.scheduler_stop_reason = SchedulerStopReason::kError;
         append_runtime_error(result, make_runtime_error("configure", spec.id, spec.execution.lane, configure.message(),
                                                         "component_configure"));
-        instances.push_back(std::move(instance));
+        remember_instance(std::move(instance));
         break;
       }
       instance.configured = true;
@@ -606,11 +613,11 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
         result.scheduler_stop_reason = SchedulerStopReason::kError;
         append_runtime_error(result, make_runtime_error("activate", spec.id, spec.execution.lane, activate.message(),
                                                         "component_activate"));
-        instances.push_back(std::move(instance));
+        remember_instance(std::move(instance));
         break;
       }
       instance.started = true;
-      instances.push_back(std::move(instance));
+      remember_instance(std::move(instance));
     }
     result.instantiated_components = instances.size();
     result.configured_components = static_cast<std::size_t>(
@@ -702,8 +709,10 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     runtime.set_state_store(&state_store);
     runtime.set_config_store(&config_store);
     for (const auto& spec : graph.components) {
-      auto instance =
-          std::find_if(instances.begin(), instances.end(), [&spec](const auto& item) { return item.id == spec.id; });
+      auto* instance = instance_for_id(spec.id);
+      if (instance == nullptr) {
+        continue;
+      }
       runtime.add_component(EventRuntimeComponent{spec.id, instance->component.get(), &instance->context, spec,
                                                   lanes.at(spec.execution.lane)});
     }
@@ -802,6 +811,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                             static_cast<double>(metrics.time_sync_drop_count), component_id);
       append_runtime_metric(result, "runtime.trigger.late_drop_count", static_cast<double>(metrics.late_drop_count),
                             component_id);
+      append_runtime_metric(result, "runtime.trigger.pending_drop_count",
+                            static_cast<double>(metrics.pending_drop_count), component_id);
       append_runtime_metric(result, "runtime.trigger.condition_suppressed_count",
                             static_cast<double>(metrics.condition_suppressed_count), component_id);
       append_runtime_metric(result, "runtime.trigger.rate_limit_suppressed_count",

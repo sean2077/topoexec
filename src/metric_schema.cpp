@@ -90,7 +90,8 @@ const std::vector<RuntimeMetricDescriptor>& runtime_metric_descriptors() {
          {"runtime.trigger.ready_count", "runtime.trigger.suppressed_count", "runtime.trigger.coalesced_count",
           "runtime.trigger.timeout_drop_count", "runtime.trigger.batch_flush_count",
           "runtime.trigger.time_sync_drop_count", "runtime.trigger.late_drop_count",
-          "runtime.trigger.condition_suppressed_count", "runtime.trigger.rate_limit_suppressed_count"}) {
+          "runtime.trigger.pending_drop_count", "runtime.trigger.condition_suppressed_count",
+          "runtime.trigger.rate_limit_suppressed_count"}) {
       add_descriptor(values, name, "counter", "count", component, "bounded: graph component id");
     }
 

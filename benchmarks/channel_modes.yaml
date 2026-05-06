@@ -1,0 +1,40 @@
+schema_version: 1
+graph: {name: bench_channel_modes, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: latest_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: queue_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: latched_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: previous_tick_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: barrier_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: latest_edge, kind: immediate, from: source.out, to: latest_sink.in, policy: {mode: latest, capacity: 1, overflow: overwrite, copy_policy: shared_view}}
+  - {id: queue_edge, kind: immediate, from: source.out, to: queue_sink.in, policy: {mode: queue, capacity: 16, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: latched_edge, kind: immediate, from: source.out, to: latched_sink.in, policy: {mode: latched, capacity: 1, overflow: overwrite, copy_policy: shared_view}}
+  - {id: previous_tick_edge, kind: delay, from: source.out, to: previous_tick_sink.in, policy: {mode: previous_tick, capacity: 1, overflow: overwrite, copy_policy: shared_view}}
+  - {id: barrier_edge, kind: immediate, from: source.out, to: barrier_sink.in, policy: {mode: barrier, capacity: 2, overflow: drop_oldest, copy_policy: shared_view}}

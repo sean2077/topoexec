@@ -209,6 +209,8 @@ void consume_front_messages(const std::vector<std::string>& inputs, PendingMessa
   }
 }
 
+constexpr std::size_t kTriggerPendingCapacityCushion = 1;
+
 } // namespace
 
 TriggerPolicyEngine::TriggerPolicyEngine(RuntimeChannelBus* channels) : channels_(channels) {}
@@ -276,6 +278,7 @@ std::vector<Invocation> TriggerPolicyEngine::collect_ready_invocations(const Tic
   stats = TriggerRuntimeMetrics{};
   drain_inputs(component, pending);
   stats.timeout_drop_count += prune_timed_out_messages(component, pending, context.started_at);
+  stats.pending_drop_count += enforce_pending_bounds(component, pending);
   if (rate_limited(component, context.started_at)) {
     ++stats.rate_limit_suppressed_count;
     return {};
@@ -373,6 +376,29 @@ std::size_t TriggerPolicyEngine::prune_timed_out_messages(const ComponentNodeSpe
   return dropped;
 }
 
+std::size_t TriggerPolicyEngine::enforce_pending_bounds(const ComponentNodeSpec& component, PendingMessages& pending) {
+  std::size_t dropped = 0;
+  for (auto& [port, queue] : pending) {
+    std::size_t limit = 1u;
+    if (channels_ != nullptr) {
+      limit = std::max<std::size_t>(1u, channels_->configured_capacity_for_component_port(component.id, port));
+    }
+    if (component.trigger_policy.batch_size > 0) {
+      limit = std::max<std::size_t>(limit, static_cast<std::size_t>(component.trigger_policy.batch_size));
+    }
+    if (component.trigger_policy.type == "debounce" || component.trigger_policy.coalesce) {
+      limit = 1u;
+    } else {
+      limit += kTriggerPendingCapacityCushion;
+    }
+    while (queue.size() > limit) {
+      queue.pop_front();
+      ++dropped;
+    }
+  }
+  return dropped;
+}
+
 bool TriggerPolicyEngine::rate_limited(const ComponentNodeSpec& component,
                                        std::chrono::steady_clock::time_point now) const {
   if (component.trigger_policy.min_interval_ms <= 0) {
@@ -435,7 +461,7 @@ std::vector<Invocation> TriggerPolicyEngine::collect_any_input(const TickContext
   const bool single_invocation = component.trigger_policy.min_interval_ms > 0;
   for (auto& [port, queue] : pending) {
     while (!queue.empty()) {
-      auto message = queue.front();
+      auto message = std::move(queue.front());
       queue.pop_front();
       const auto event = event_kind_for_component(component);
       invocations.push_back(invocation_from_messages(event, trigger_kind_for_policy(component.trigger_policy, event),
@@ -457,7 +483,7 @@ std::vector<Invocation> TriggerPolicyEngine::collect_coalesced_any_input(const T
     if (queue.empty()) {
       continue;
     }
-    messages.emplace_back(port, queue.back());
+    messages.emplace_back(port, std::move(queue.back()));
     queue.clear();
   }
   if (messages.empty()) {
@@ -579,16 +605,28 @@ std::vector<Invocation> TriggerPolicyEngine::collect_condition(const TickContext
       ++stats.condition_suppressed_count;
       return {};
     }
-    auto messages = front_messages_for_inputs(inputs, pending);
-    if (!messages.has_value() || !std::all_of(messages->begin(), messages->end(), [](const auto& item) {
-          return item.second.event_timestamp.has_value();
-        })) {
-      ++stats.condition_suppressed_count;
-      return {};
+    while (true) {
+      auto messages = front_messages_for_inputs(inputs, pending);
+      if (!messages.has_value()) {
+        ++stats.condition_suppressed_count;
+        return {};
+      }
+      std::vector<std::string> inputs_missing_timestamps;
+      for (const auto& item : *messages) {
+        if (!item.second.event_timestamp.has_value()) {
+          inputs_missing_timestamps.push_back(item.first);
+        }
+      }
+      if (inputs_missing_timestamps.empty()) {
+        consume_front_messages(inputs, pending);
+        return {invocation_from_messages(EventKind::kMessage, TriggerKind::kCondition, context, component, lane,
+                                         *messages)};
+      }
+      for (const auto& input : inputs_missing_timestamps) {
+        pending[input].pop_front();
+        ++stats.pending_drop_count;
+      }
     }
-    consume_front_messages(inputs, pending);
-    return {
-        invocation_from_messages(EventKind::kMessage, TriggerKind::kCondition, context, component, lane, *messages)};
   }
   ++stats.condition_suppressed_count;
   return {};
@@ -626,7 +664,7 @@ std::vector<Invocation> TriggerPolicyEngine::collect_batch(const TickContext& co
   for (const auto& input : inputs) {
     auto& queue = pending[input];
     while (!queue.empty() && messages.size() < target_count) {
-      messages.emplace_back(input, queue.front());
+      messages.emplace_back(input, std::move(queue.front()));
       queue.pop_front();
     }
   }

@@ -10,7 +10,13 @@ TopoExec's public C++ surface is split into runtime/YAML targets, with optional 
 
 Use `topoexec::runtime` when an application builds `GraphSpec` directly in C++ and does not need YAML parsing.
 
-For stability categories and lifecycle failure behavior, see [public-api.md](public-api.md). For the C API/FFI preview, see [c-api.md](c-api.md). For the Python automation preview, see [python-preview.md](../12-integrations/python-preview.md). For the dynamic plugin loader preview, see [plugin-loader.md](../12-integrations/plugin-loader.md). For payload ownership and typed access helpers, see [payloads.md](../21-architecture/payloads.md).
+For stability categories and lifecycle failure behavior, see
+[public-api.md](public-api.md). For generated public-header lookup, see
+[doxygen.md](doxygen.md); Doxygen is optional API reference, not the semantic
+source of truth. For the C API/FFI preview, see [c-api.md](c-api.md). For the
+Python automation preview, see [python-preview.md](../12-integrations/python-preview.md).
+For the dynamic plugin loader preview, see [plugin-loader.md](../12-integrations/plugin-loader.md).
+For payload ownership and typed access helpers, see [payloads.md](../21-architecture/payloads.md).
 
 ## Minimal Runtime Shape
 

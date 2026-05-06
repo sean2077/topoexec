@@ -30,6 +30,11 @@ trusted-native-code only and does not promise sandboxing or ABI stability.
 
 ## Stability markers
 
+Generated Doxygen output is an optional lookup view over these same installed
+headers; it does not change the stability class of any API. See
+[doxygen.md](doxygen.md) for the local build target and the Pages `/api/`
+publication boundary.
+
 Each installed public header now starts with one of these markers:
 
 - `API stability: stable-v0.2` — intended embedder API for the next `v0.2.0-alpha.0` line. Source compatibility is best-effort through `0.x`; breaking changes need a changelog and versioning note.

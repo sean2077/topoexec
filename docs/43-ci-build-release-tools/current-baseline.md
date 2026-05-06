@@ -69,7 +69,20 @@ Use focused checks as needed for touched areas:
 ./scripts/goal_check.sh stress
 ./scripts/goal_check.sh bench
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+cmake -S . -B build-docs -DCMAKE_BUILD_TYPE=Release -DTOPOEXEC_BUILD_DOCS=ON
+cmake --build build-docs --target topoexec_doxygen
+./scripts/docs_build_site.sh
 ```
+
+## G71 Post-alpha Evidence
+
+The 2026-05-06 G71 local sweep records post-alpha semantic and documentation
+hardening: previous-tick visibility wake behavior, alpha `overflow: block`
+would-block semantics, bounded trigger pending queues, condition timestamp
+head-item handling, async/CompositeLoop output accounting, expanded benchmark
+coverage, optional Doxygen API docs, and Pages site wiring. Keep generated
+benchmark and docs-site artifacts out of git unless a release owner explicitly
+publishes them.
 
 ## Baseline Maintenance Rule
 

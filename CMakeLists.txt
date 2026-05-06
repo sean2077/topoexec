@@ -16,6 +16,7 @@ option(TOPOEXEC_BUILD_PLUGIN_LOADER "Build optional trusted-native dynamic plugi
 option(TOPOEXEC_BUILD_OTEL_ADAPTER "Build optional OTel exporter preview target" OFF)
 option(TOPOEXEC_BUILD_PROMETHEUS_ADAPTER "Build optional Prometheus text exporter preview target" OFF)
 option(TOPOEXEC_BUILD_ROS2_ADAPTER "Build optional dependency-free ROS 2 adapter preview target" OFF)
+option(TOPOEXEC_BUILD_DOCS "Build optional generated documentation targets" OFF)
 set(TOPOEXEC_FUZZER_ENGINE "AUTO" CACHE STRING "Fuzzer engine: AUTO, LIBFUZZER, or STANDALONE")
 set_property(CACHE TOPOEXEC_FUZZER_ENGINE PROPERTY STRINGS AUTO LIBFUZZER STANDALONE)
 option(TOPOEXEC_ENABLE_ASAN "Build TopoExec with AddressSanitizer instrumentation" OFF)
@@ -108,6 +109,25 @@ if(TOPOEXEC_BUILD_FUZZERS AND NOT TOPOEXEC_BUILD_YAML)
   message(FATAL_ERROR "TOPOEXEC_BUILD_FUZZERS=ON requires TOPOEXEC_BUILD_YAML=ON")
 endif()
 include(CMakePackageConfigHelpers)
+
+if(TOPOEXEC_BUILD_DOCS)
+  find_package(Doxygen QUIET)
+  if(DOXYGEN_FOUND)
+    configure_file(
+      ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in
+      ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile
+      @ONLY
+    )
+    add_custom_target(topoexec_doxygen
+      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMENT "Generating TopoExec public API reference with Doxygen"
+      VERBATIM
+    )
+  else()
+    message(STATUS "TOPOEXEC_BUILD_DOCS=ON but Doxygen was not found; topoexec_doxygen target is unavailable")
+  endif()
+endif()
 
 add_library(topoexec_core INTERFACE)
 set_target_properties(topoexec_core PROPERTIES EXPORT_NAME core)

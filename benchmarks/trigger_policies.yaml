@@ -1,0 +1,77 @@
+schema_version: 1
+graph: {name: bench_trigger_policies, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: left_source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: right_source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: any_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: all_join
+    type: topoexec.transforms.Join
+    event_sources: [{type: message, inputs: [left, right]}]
+    trigger_policy: {type: all_inputs, inputs: [left, right]}
+    execution: {lane: main}
+  - id: time_sync_join
+    type: topoexec.transforms.Join
+    event_sources: [{type: message, inputs: [left, right]}]
+    trigger_policy: {type: time_sync, inputs: [left, right], sync_slop_ms: 5}
+    execution: {lane: main}
+  - id: batch_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: batch, inputs: [in], batch_size: 2}
+    execution: {lane: main}
+  - id: watermark_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: watermark, inputs: [in], watermark_lateness_ms: 5}
+    execution: {lane: main}
+  - id: condition_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: condition, inputs: [in], condition: event_timestamp_present}
+    execution: {lane: main}
+  - id: debounce_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: debounce, inputs: [in], debounce_window_ms: 0}
+    execution: {lane: main}
+  - id: rate_limit_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: rate_limit, inputs: [in], min_interval_ms: 1}
+    execution: {lane: main}
+  - id: all_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: time_sync_sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: left_any, kind: immediate, from: left_source.out, to: any_sink.in, policy: {mode: queue, capacity: 16, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: left_all, kind: immediate, from: left_source.out, to: all_join.left, policy: {mode: queue, capacity: 16, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: right_all, kind: immediate, from: right_source.out, to: all_join.right, policy: {mode: queue, capacity: 16, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: left_time_sync, kind: immediate, from: left_source.out, to: time_sync_join.left, policy: {mode: queue, capacity: 16, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: right_time_sync, kind: immediate, from: right_source.out, to: time_sync_join.right, policy: {mode: queue, capacity: 16, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: left_batch, kind: immediate, from: left_source.out, to: batch_sink.in, policy: {mode: queue, capacity: 16, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: left_watermark, kind: immediate, from: left_source.out, to: watermark_sink.in, policy: {mode: queue, capacity: 16, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: left_condition, kind: immediate, from: left_source.out, to: condition_sink.in, policy: {mode: queue, capacity: 16, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: left_debounce, kind: immediate, from: left_source.out, to: debounce_sink.in, policy: {mode: queue, capacity: 16, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: left_rate_limit, kind: immediate, from: left_source.out, to: rate_limit_sink.in, policy: {mode: queue, capacity: 16, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: all_join_sink, kind: immediate, from: all_join.out, to: all_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: time_sync_join_sink, kind: immediate, from: time_sync_join.out, to: time_sync_sink.in, policy: {mode: latest, copy_policy: shared_view}}

@@ -84,6 +84,23 @@ prepares artifacts and uploads them as workflow artifacts. By default it uses
 
 The workflow still does not create or push tags.
 
+## Documentation artifacts
+
+When a release advertises generated docs or a Pages update, build those
+artifacts from the exact candidate commit:
+
+```bash
+cmake -S . -B build-docs -DCMAKE_BUILD_TYPE=Release -DTOPOEXEC_BUILD_DOCS=ON
+cmake --build build-docs --target topoexec_doxygen
+./scripts/docs_build_site.sh
+```
+
+The Doxygen HTML lives under `build-docs/docs/doxygen/html/`; the assembled
+Pages payload lives under `site/` with API reference files copied to `site/api/`.
+Do not add a public Pages URL to release notes or README until the Pages
+workflow has deployed successfully with GitHub Actions as the repository Pages
+source.
+
 ## Human tag step
 
 After local evidence and CI are attached to the release issue/PR and approved:

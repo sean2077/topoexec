@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <stdexcept>
@@ -334,6 +335,31 @@ TEST(Channel, PreviousTickExposesPayloadOnlyAfterEpochAdvance) {
   ASSERT_TRUE(after.ok);
   ASSERT_TRUE(after.message.has_value());
   EXPECT_EQ(*after.message->payload, "one");
+}
+
+TEST(Channel, PreviousTickNotifiesWaitersExactlyOnceWhenPendingValueBecomesVisible) {
+  topoexec::RuntimeChannelBus bus({edge("previous", "previous_tick", 1)});
+  const auto initial_sequence = bus.update_sequence();
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  EXPECT_EQ(bus.update_sequence(), initial_sequence);
+  EXPECT_FALSE(bus.wait_for_update(initial_sequence, std::chrono::milliseconds(2), {}));
+
+  std::atomic_bool waiter_done{false};
+  bool waiter_result = false;
+  std::thread waiter([&]() {
+    waiter_result = bus.wait_for_update(initial_sequence, std::chrono::milliseconds(200), {});
+    waiter_done.store(true);
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  EXPECT_FALSE(waiter_done.load());
+  bus.advance_epoch();
+  waiter.join();
+
+  EXPECT_TRUE(waiter_result);
+  EXPECT_TRUE(waiter_done.load());
+  EXPECT_EQ(bus.update_sequence(), initial_sequence + 1u);
+  EXPECT_FALSE(bus.wait_for_update(initial_sequence + 1u, std::chrono::milliseconds(2), {}));
 }
 
 TEST(Channel, LatchedSnapshotIsAvailableToLateReader) {

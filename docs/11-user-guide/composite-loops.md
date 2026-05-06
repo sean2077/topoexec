@@ -31,7 +31,7 @@ typed report API is in-process component code.
 
 ## Transaction and visibility
 
-Publications inside the loop still go through `GraphContext::publish()` and the runtime publication router. Outputs from loop-owned components to components outside the loop are staged as CompositeLoop external outputs and committed only after the loop finishes successfully, or after an explicit `partial_success: commit_outputs` policy allows a non-converged solver stop to publish them.
+Publications inside the loop still go through `GraphContext::publish()` and the runtime publication router. Outputs from loop-owned components to components outside the loop are staged as CompositeLoop external outputs and committed only after the loop finishes successfully, or after an explicit `partial_success: commit_outputs` policy allows a non-converged solver stop to publish them. If a staged external output is an async completion and the loop later discards it, async in-flight accounting is released and the discard is observable through CompositeLoop/publication metrics.
 
 If an internal component fails, the loop stops with `SchedulerStopReason::kError`, records `runtime.loop.error`, emits a `loop_error` trace event, and does not commit staged external loop outputs. This prevents downstream components from observing half-updated loop state.
 

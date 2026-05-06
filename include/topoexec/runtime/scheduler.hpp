@@ -73,6 +73,8 @@ struct ComponentExecutionMetrics {
   std::size_t max_in_flight_count{0};
 };
 
+/// @brief Per-component trigger readiness and suppression counters surfaced by RuntimeRunner metrics.
+/// @ingroup topoexec_trigger_api
 struct TriggerRuntimeMetrics {
   std::size_t ready_count{0};
   std::size_t suppressed_count{0};
@@ -81,6 +83,8 @@ struct TriggerRuntimeMetrics {
   std::size_t batch_flush_count{0};
   std::size_t time_sync_drop_count{0};
   std::size_t late_drop_count{0};
+  /// Messages dropped from bounded internal trigger pending queues.
+  std::size_t pending_drop_count{0};
   std::size_t condition_suppressed_count{0};
   std::size_t rate_limit_suppressed_count{0};
 };

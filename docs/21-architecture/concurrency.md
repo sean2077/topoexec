@@ -88,6 +88,11 @@ Overflow behavior:
 - `reject`, `fail_fast`, and `block` reject the new completion in the current non-blocking runtime.
 
 Async admission metrics use the `runtime.async.*` namespace; channel metrics report only completions that were actually committed to the runtime channel.
+`runtime.async.in_flight_count` is the number of deferred completions still
+pending at the end of the run; it can be non-zero if a bounded run stops before
+the next epoch commits accepted async completions. It must not exceed
+`policy.max_inflight` for the edge, and discarded CompositeLoop-staged async
+outputs release that count.
 
 ## What Is Still Deferred
 

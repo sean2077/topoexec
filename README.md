@@ -55,6 +55,7 @@ Use `GraphSpec` directly or the convenience builder in `topoexec/runtime/graph_b
 - Understand semantics: [Runtime semantics](docs/21-architecture/runtime-semantics.md), [Runtime semantic contract](docs/21-architecture/semantic-contract.md), [Schema v1](docs/33-specs-rfcs/schema-v1.md).
 - Embed or extend: [API overview](docs/61-api/api-overview.md), [Public API stability](docs/61-api/public-api.md), [Adapter boundaries](docs/12-integrations/adapter-boundaries.md).
 - Maintain the project: [Maintainer map](docs/20-development-overview/maintainer-map.md), [Testing strategy](docs/24-testing/testing-strategy.md), [Build and package](docs/43-ci-build-release-tools/build-and-package.md), [Contributing](docs/44-coding-standards/contributing.md).
+- Generated docs: the repository now includes optional Doxygen API-reference and GitHub Pages site wiring, documented in [Doxygen](docs/61-api/doxygen.md) and [GitHub Pages](docs/45-doc-standards/github-pages.md). A public Pages URL is intentionally omitted until the workflow deploys successfully.
 
 Release planning and goal history live under [planning and roadmap](docs/31-planning-roadmap/goals/backlog.md). The latest published tag is `v0.1.0-alpha`; current `main` carries post-alpha runtime, packaging, adapter-SDK, docs, example, release-automation, pilot-app, and core-runtime beta-readiness review work.
 

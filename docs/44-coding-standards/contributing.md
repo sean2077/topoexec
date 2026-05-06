@@ -192,7 +192,7 @@ Use the templates under `.github/ISSUE_TEMPLATE/` for bug reports, semantic
 mismatches, adapter requests, performance issues, component/example proposals,
 metric changes, schema changes, and broader design proposals.
 
-All participation is covered by the root [Code of Conduct](../../CODE_OF_CONDUCT.md).
+All participation is covered by the root `CODE_OF_CONDUCT.md`.
 
 Every PR should include:
 

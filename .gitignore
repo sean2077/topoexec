@@ -1,6 +1,7 @@
 build/
 build-*/
 dist/
+site/
 compile_commands.json
 benchmarks/local-baseline*.json
 *.swp

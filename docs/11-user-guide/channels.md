@@ -9,7 +9,7 @@ TopoExec channels are bounded runtime contracts for every edge. They define what
 | `latest` | Keeps only the newest message. A newer publication overwrites the prior value and increments drop/overwrite health metrics. | Low-latency sensor/frame path where stale work is worse than lost work. |
 | `queue` / `ring_buffer` | Keeps messages in FIFO order up to `capacity`; `drop_oldest`/`overwrite` discard oldest work when full. | Commands or event streams that should preserve order within a bound. |
 | `latched` | Keeps the last message and lets late readers see it once. | Configuration or snapshot-like boundary value. |
-| `previous_tick` | Publishes into a pending slot and exposes it only after `advance_epoch()`. | Feedback that must be delayed by one epoch. |
+| `previous_tick` | Publishes into a pending slot and exposes it only after `advance_epoch()`. Waiters are notified when the pending value becomes visible, not when it is first staged. | Feedback that must be delayed by one epoch. |
 | `barrier` | Delivers only after `capacity` messages are queued. | Small synchronization batches. |
 
 All modes have finite `capacity`. `capacity <= 0` is invalid.

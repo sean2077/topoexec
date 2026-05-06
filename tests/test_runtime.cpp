@@ -3221,6 +3221,32 @@ TEST(Runtime, RateLimitTriggerSuppressesRepeatedReadyChecksWithReasonMetric) {
   EXPECT_TRUE(has_component_metric_at_least(result, "runtime.trigger.rate_limit_suppressed_count", "target", 1.0));
 }
 
+TEST(Runtime, RateLimitTriggerBoundsSuppressedPendingMessages) {
+  const auto reg = delay_registry();
+  auto spec = min_interval_graph();
+  spec.name = "rate_limit_pending_bound";
+  spec.edges.front().policy.capacity = 2;
+  spec.components.back().trigger_policy.type = "rate_limit";
+  spec.components.back().trigger_policy.min_interval_ms = 1000;
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 4;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_record(1, "target", "in", "burst-1-2"));
+  EXPECT_FALSE(has_component_record(2, "target"));
+  EXPECT_FALSE(has_component_record(3, "target"));
+  EXPECT_FALSE(has_component_record(4, "target"));
+  const auto pending_drops = component_metric_value(result, "runtime.trigger.pending_drop_count", "target");
+  ASSERT_TRUE(pending_drops.has_value());
+  EXPECT_EQ(*pending_drops, 4.0);
+  EXPECT_TRUE(has_component_metric_at_least(result, "runtime.trigger.rate_limit_suppressed_count", "target", 1.0));
+}
+
 TEST(Runtime, WatermarkTriggerDropsLateSamplesAndReportsMetrics) {
   reset_runtime_records();
   topoexec::RuntimeChannelBus channels({runtime_edge("source_target", "source.out", "target.in")});
@@ -3318,6 +3344,50 @@ TEST(Runtime, ConditionTriggerWaitsForDeclarativeReadinessWithoutScripting) {
   EXPECT_TRUE(has_trigger_record(2, "join", topoexec::EventKind::kMessage, topoexec::TriggerKind::kCondition));
   ASSERT_NE(result.trigger_metrics.find("join"), result.trigger_metrics.end());
   EXPECT_EQ(result.trigger_metrics.at("join").condition_suppressed_count, 1u);
+}
+
+TEST(Runtime, ConditionTimestampTriggerDropsMissingTimestampHeadItem) {
+  reset_runtime_records();
+  topoexec::RuntimeChannelBus channels({runtime_edge("source_target", "source.out", "target.in")});
+  ASSERT_TRUE(channels.publish_from("source.out", topoexec::make_text_payload("missing-ts")).accepted);
+  ASSERT_TRUE(channels
+                  .publish_from("source.out", topoexec::make_text_payload("timestamped"),
+                                topoexec::make_event_timestamp(topoexec::TimestampDomain::kSteady, 42))
+                  .accepted);
+
+  topoexec::GraphContext context;
+  context.channels = &channels;
+  context.component_id = "target";
+  BatchTargetComponent target;
+
+  topoexec::ComponentNodeSpec target_spec;
+  target_spec.id = "target";
+  target_spec.type = "topoexec.test.BatchTarget";
+  target_spec.event_sources = {topoexec::EventSourceSpec{}};
+  target_spec.event_sources.front().type = "message";
+  target_spec.event_sources.front().inputs = {"in"};
+  target_spec.trigger_policy.type = "condition";
+  target_spec.trigger_policy.inputs = {"in"};
+  target_spec.trigger_policy.condition = "event_timestamp_present";
+  target_spec.execution.lane = "main";
+
+  topoexec::SchedulerGroupConfig lane;
+  lane.id = "main";
+  lane.type = "event_loop";
+  topoexec::EventRuntime runtime(&channels);
+  runtime.add_component({"target", &target, &context, target_spec, lane});
+
+  topoexec::SchedulerRunOptions options;
+  options.tick_iterations = 1;
+  const auto result = runtime.run(options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_FALSE(has_record(1, "target", "in", "missing-ts"));
+  EXPECT_TRUE(has_record(1, "target", "in", "timestamped"));
+  EXPECT_TRUE(has_trigger_record(1, "target", topoexec::EventKind::kMessage, topoexec::TriggerKind::kCondition));
+  ASSERT_NE(result.trigger_metrics.find("target"), result.trigger_metrics.end());
+  EXPECT_EQ(result.trigger_metrics.at("target").pending_drop_count, 1u);
+  EXPECT_EQ(result.trigger_metrics.at("target").condition_suppressed_count, 0u);
 }
 
 TEST(Runtime, CompositeLoopRegionOwnsInternalFixedPointIterations) {
@@ -3455,6 +3525,31 @@ TEST(Runtime, CompositeLoopSolverIterationDiscardsPartialOutputsByDefault) {
   EXPECT_TRUE(has_trace_event(result, "loop_output_discarded"));
 }
 
+TEST(Runtime, CompositeLoopSolverIterationCanCommitPartialOutputsWhenPolicyAllows) {
+  const auto reg = delay_registry();
+  auto spec = solver_iteration_composite_loop_runtime_graph(false);
+  spec.composite_loops.front().loop_policy.max_iterations = 2;
+  spec.composite_loops.front().loop_policy.residual_threshold = 0.01;
+  spec.composite_loops.front().loop_policy.partial_success = "commit_outputs";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.loop_iteration_count, 2u);
+  EXPECT_EQ(result.loop_converged_count, 0u);
+  EXPECT_EQ(result.loop_max_iteration_hit_count, 1u);
+  EXPECT_EQ(result.loop_output_discarded_count, 0u);
+  ASSERT_TRUE(result.loop_stop_reason.contains("estimator_controller_loop"));
+  EXPECT_EQ(result.loop_stop_reason.at("estimator_controller_loop"), "max_iterations");
+  EXPECT_TRUE(has_component_record(1, "sink"));
+  EXPECT_FALSE(has_trace_event(result, "loop_output_discarded"));
+}
+
 TEST(Runtime, CompositeLoopSolverIterationCanFailOnPartialSuccessPolicy) {
   const auto reg = delay_registry();
   auto spec = solver_iteration_composite_loop_runtime_graph(false);
@@ -3475,6 +3570,38 @@ TEST(Runtime, CompositeLoopSolverIterationCanFailOnPartialSuccessPolicy) {
   EXPECT_NE(result.errors.front().find("stopped without convergence"), std::string::npos);
   EXPECT_EQ(result.loop_output_discarded_count, 1u);
   EXPECT_FALSE(has_component_record(1, "sink"));
+}
+
+TEST(Runtime, CompositeLoopDiscardedAsyncOutputsReleaseInflightAccounting) {
+  const auto reg = delay_registry();
+  auto spec = solver_iteration_composite_loop_runtime_graph(false);
+  spec.composite_loops.front().loop_policy.max_iterations = 2;
+  spec.composite_loops.front().loop_policy.residual_threshold = 0.01;
+  for (auto& edge : spec.edges) {
+    if (edge.id == "controller_sink") {
+      edge.kind = topoexec::EdgeKind::kAsync;
+      edge.policy.max_inflight = 1;
+      edge.policy.overflow = "overwrite";
+      edge.policy.mode = "queue";
+      edge.policy.capacity = 4;
+    }
+  }
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.loop_output_discarded_count, 2u);
+  EXPECT_FALSE(has_component_record(1, "sink"));
+  EXPECT_FALSE(has_component_record(2, "sink"));
+  EXPECT_EQ(*metric_value(result, "runtime.async.max_in_flight_count"), 1.0);
+  EXPECT_EQ(*metric_value(result, "runtime.async.in_flight_count"), 0.0);
+  EXPECT_EQ(*metric_value(result, "runtime.async.cancelled_count"), 2.0);
+  EXPECT_TRUE(has_metric(result, "runtime.publication.composite_discarded"));
 }
 
 TEST(Runtime, CompositeLoopBudgetOverrunStopsLoopAndReportsMetric) {
@@ -4077,6 +4204,7 @@ TEST(Runtime, AsyncMaxInflightDropsOldestBeforeChannelCapacity) {
   EXPECT_TRUE(has_metric_at_least(result, "runtime.async.dropped_count", 2.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.async.completed_count", 2.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.async.max_in_flight_count", 2.0));
+  EXPECT_LE(*metric_value(result, "runtime.async.in_flight_count"), 2.0);
   EXPECT_TRUE(has_trace_event(result, "async_admission"));
 }
 
@@ -4102,6 +4230,7 @@ TEST(Runtime, AsyncMaxInflightAcceptsWithinLimitBeforeChannelCapacity) {
   EXPECT_EQ(*metric_value(result, "runtime.async.dropped_count"), 0.0);
   EXPECT_EQ(*metric_value(result, "runtime.async.completed_count"), 3.0);
   EXPECT_EQ(*metric_value(result, "runtime.async.max_in_flight_count"), 3.0);
+  EXPECT_LE(*metric_value(result, "runtime.async.in_flight_count"), 3.0);
 }
 
 TEST(Runtime, AsyncMaxInflightRejectPoliciesDoNotCommitRejectedCompletions) {
@@ -4127,6 +4256,7 @@ TEST(Runtime, AsyncMaxInflightRejectPoliciesDoNotCommitRejectedCompletions) {
     EXPECT_EQ(*metric_value(result, "runtime.async.rejected_count"), 2.0);
     EXPECT_EQ(*metric_value(result, "runtime.async.completed_count"), 2.0);
     EXPECT_EQ(*metric_value(result, "runtime.async.max_in_flight_count"), 2.0);
+    EXPECT_LE(*metric_value(result, "runtime.async.in_flight_count"), 2.0);
     if (std::string(overflow) == "drop_newest") {
       EXPECT_EQ(*metric_value(result, "runtime.async.dropped_count"), 2.0);
     } else {

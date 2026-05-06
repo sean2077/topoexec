@@ -28,6 +28,8 @@ double event_task_hz_for(const ComponentNodeSpec& component);
 std::vector<std::string> trigger_policy_inputs_for(const ComponentNodeSpec& component);
 TriggerKind trigger_kind_for_policy(const TriggerPolicySpec& policy, EventKind event);
 
+/// @brief Runtime-owned trigger readiness engine for declarative manual/timer/message/trigger-v2 policies.
+/// @ingroup topoexec_trigger_api
 class TriggerPolicyEngine {
 public:
   explicit TriggerPolicyEngine(RuntimeChannelBus* channels);
@@ -46,6 +48,7 @@ private:
   void drain_inputs(const ComponentNodeSpec& component, PendingMessages& pending);
   std::size_t prune_timed_out_messages(const ComponentNodeSpec& component, PendingMessages& pending,
                                        std::chrono::steady_clock::time_point now);
+  std::size_t enforce_pending_bounds(const ComponentNodeSpec& component, PendingMessages& pending);
   bool rate_limited(const ComponentNodeSpec& component, std::chrono::steady_clock::time_point now) const;
   void record_invocation(const ComponentNodeSpec& component, std::chrono::steady_clock::time_point now);
   Invocation invocation_from_messages(EventKind event, TriggerKind trigger, const TickContext& context,

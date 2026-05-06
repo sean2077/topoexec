@@ -22,6 +22,7 @@ plan boards with a compact status-oriented backlog.
 | --- | --- | --- |
 | G0-G25 | complete | Git history through the post-G25 baseline commit, release docs, runtime/API docs, and current tests. |
 | G26-G70 | complete | Current architecture, API, testing, release, and integration docs plus `docs/31-planning-roadmap/goals/status.md`. |
+| G71 | complete | Post-alpha runtime semantic hardening, benchmark expansion, optional Doxygen API docs, Pages workflow, release docs, and final local validation in `docs/31-planning-roadmap/goals/status.md`. |
 
 The old detailed plan files were deleted as completed process artifacts during
 the 2026-05 documentation cleanup. See
@@ -30,7 +31,9 @@ for deletion evidence and replacement surfaces.
 
 ## Active Backlog
 
-No active implementation goal is open.
+| ID | Priority | Status | Scope | Acceptance | Validation | Blocker handling |
+| --- | --- | --- | --- | --- | --- | --- |
+| G71-post-alpha-hardening-docs-pages | P0/P1 mixed | complete | `src/channel.cpp`, `src/trigger_policy.cpp`, `src/event_runtime.cpp`, related runtime headers/tests/docs, `CMakeLists.txt`, docs-site/Doxygen/Pages files, release and goal ledgers. | Baseline evidence recorded; P0 runtime semantic regressions covered; intentional alpha limitations documented; benchmark baseline evidence captured; optional Doxygen target added; Pages docs workflow added; README/CHANGELOG/release docs aligned. | `./scripts/agent_check.sh`, sanitizer/stress/fuzz/bench/docs-site/Doxygen checks passed locally on 2026-05-06; see `status.md`. | No product/API blockers. Repository owner still must enable GitHub Pages source as GitHub Actions before a public URL is advertised. |
 
 ## Deferred Backlog
 

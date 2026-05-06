@@ -51,6 +51,36 @@ jobs:
           TOPOEXEC_BUILD_TYPE: ${{ matrix.build_type }}
         run: ./scripts/agent_check.sh
 
+  preview-options:
+    name: Preview option smoke / ${{ matrix.mode }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [adapters, ffi, python, plugins]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang-format \
+            clang-tidy \
+            cmake \
+            g++ \
+            libcli11-dev \
+            libyaml-cpp-dev \
+            ninja-build \
+            nlohmann-json3-dev \
+            pkg-config
+
+      - name: Build and smoke selected preview surface
+        env:
+          TOPOEXEC_BUILD_DIR: build-preview-${{ matrix.mode }}
+        run: ./scripts/goal_check.sh ${{ matrix.mode }}
+
   thread-sanitizer:
     name: clang / Debug / TSAN
     runs-on: ubuntu-latest

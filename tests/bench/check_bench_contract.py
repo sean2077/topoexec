@@ -20,6 +20,8 @@ BENCHMARK_CASES = [
     "thread_pool.yaml",
     "composite_loop_iterations.yaml",
     "payload_policies.yaml",
+    "channel_modes.yaml",
+    "trigger_policies.yaml",
 ]
 
 ENVIRONMENT_KEYS = {

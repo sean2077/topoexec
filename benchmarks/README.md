@@ -32,6 +32,8 @@ by git. Set `TOPOEXEC_BENCH_BASELINE_OUTPUT` to write elsewhere.
 | `thread_pool.yaml` | bounded `thread_pool` lane execution path |
 | `composite_loop_iterations.yaml` | fixed-point CompositeLoop iteration region path |
 | `payload_policies.yaml` | text payload copy/shared/loaned policy branches without external zero-copy claims |
+| `channel_modes.yaml` | latest, queue, latched, previous-tick, and barrier channel modes in one run |
+| `trigger_policies.yaml` | any/all/time-sync/batch/watermark/condition/debounce/rate-limit trigger paths |
 
 ## Task executor case
 

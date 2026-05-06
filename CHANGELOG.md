@@ -6,6 +6,20 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Added
 
+- Added G71 post-alpha hardening evidence covering previous-tick wake behavior,
+  bounded trigger pending queues, condition timestamp head handling, async
+  in-flight accounting, CompositeLoop output visibility, benchmark expansion,
+  optional Doxygen API reference generation, and GitHub Pages site wiring.
+- Added `runtime.trigger.pending_drop_count` to expose drops from bounded
+  internal trigger pending queues.
+- Added benchmark cases for combined channel modes and trigger-v2 policies, and
+  expanded the benchmark contract/baseline scripts to include them.
+- Added optional `TOPOEXEC_BUILD_DOCS` / `topoexec_doxygen` CMake support,
+  `docs/61-api/doxygen.md`, `mkdocs.yml`, `scripts/docs_build_site.sh`, and a
+  GitHub Pages workflow that publishes Markdown docs plus Doxygen HTML under
+  `/api/`.
+- Added CI preview-option smoke coverage for adapter, FFI, Python preview, and
+  plugin-loader surfaces without making them runtime dependencies.
 - Added the post-G25 architecture-stabilization goal board and G26 release-candidate baseline docs for the next architecture-stabilization stage; completed goal-board details are now summarized under `docs/31-planning-roadmap/goals/`.
 - Added normalized golden coverage for Chrome trace shape, schema dump JSON, and doctor JSON.
 - Added explicit stable-v0.2/mixed/experimental public API markers, an API change checklist, and stronger runtime-only downstream smoke coverage for result metrics/trace consumption.
@@ -126,6 +140,16 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Changed
 
+- Clarified `overflow: block` as alpha would-block rejection rather than true
+  producer blocking; true blocking remains deferred until cancellation/deadline
+  semantics are designed.
+- Clarified trigger-v2 `rate_limit`, `debounce`, and `condition` suppression as
+  bounded and metric-visible; `condition: event_timestamp_present` drops
+  missing-timestamp head items so later timestamped inputs are not permanently
+  blocked.
+- Optimized EventRuntime/RuntimeRunner hot paths by reusing run-scoped component,
+  instance, spec, and region indexes instead of repeated vector scans while
+  preserving deterministic output order.
 - Reorganized documentation into numbered `docs/` zones, added architecture/codebase maps, and moved old flat docs paths into a recorded migration map.
 - Cleaned up completed planning and process-ledger docs by deleting obsolete long-form plan files, compressing goal/release ledgers, and recording deletion evidence under `docs/94-doc-migrations/`.
 - Runtime docs now describe `thread_pool` and async max-inflight as implemented MVP behavior instead of alpha limitations.

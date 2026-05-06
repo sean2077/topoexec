@@ -140,6 +140,8 @@ struct RuntimeChannelReadResult {
   std::string reason;
 };
 
+/// @brief Low-level bounded channel bus used by EventRuntime and tests.
+/// @ingroup topoexec_channel_api
 class RuntimeChannelBus : public GraphOutputPublisher {
 public:
   RuntimeChannelBus() = default;
@@ -188,6 +190,10 @@ public:
 
   RuntimeChannelMetrics metrics(const std::string& channel_id) const;
   std::vector<RuntimeChannelMetrics> metrics_snapshot() const;
+  /// @brief Return the configured capacity for the first channel feeding a component input port.
+  /// @ingroup topoexec_channel_api
+  std::size_t configured_capacity_for_component_port(const std::string& component_id,
+                                                     const std::string& port_name) const;
   void set_health_event_sink(HealthEventSink* sink);
   std::uint64_t update_sequence() const;
   bool wait_for_update(std::uint64_t last_seen, std::chrono::milliseconds timeout,
@@ -239,6 +245,8 @@ private:
   HealthEventSink* health_events_{nullptr};
 };
 
+/// @brief Routes GraphContext publications across immediate, deferred, async, and CompositeLoop visibility boundaries.
+/// @ingroup topoexec_channel_api
 class RuntimePublicationRouter : public GraphOutputPublisher {
 public:
   RuntimePublicationRouter(RuntimeChannelBus* channels, const std::vector<EdgeSpec>& specs);

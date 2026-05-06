@@ -24,10 +24,18 @@ Trigger readiness is owned by the runtime. Components receive `Invocation` objec
 - `coalesce: true` keeps only the latest pending message per input for one invocation.
 - `min_interval_ms` suppresses repeated invocations inside the interval.
 - `max_latency_ms` is the current timeout guard for pending input messages: messages older than this limit are dropped by the trigger engine before readiness is evaluated.
+- Suppressed trigger queues remain bounded. The runtime derives a per-input
+  pending limit from the input channel capacity plus a small cushion; `batch`
+  preserves enough entries to reach `batch_size`, while `debounce` and
+  `coalesce` keep only the newest pending message per input. Drops caused by
+  this bound increment `runtime.trigger.pending_drop_count`.
 - `watermark_lateness_ms` controls how far behind the observed watermark a
   timestamped message may arrive before `watermark` drops it as late.
 - `condition` is an enum, not a script. Use `all_inputs_ready`,
-  `any_input_ready`, or `event_timestamp_present`.
+  `any_input_ready`, or `event_timestamp_present`. For
+  `event_timestamp_present`, a front message without an event timestamp is
+  dropped and counted instead of permanently blocking a later timestamped
+  message.
 
 Timeouts are cooperative and deterministic; they do not interrupt component code that is already executing.
 
@@ -55,6 +63,7 @@ Trigger metrics are exported with component ids:
 - `runtime.trigger.batch_flush_count`
 - `runtime.trigger.time_sync_drop_count`
 - `runtime.trigger.late_drop_count`
+- `runtime.trigger.pending_drop_count`
 - `runtime.trigger.condition_suppressed_count`
 - `runtime.trigger.rate_limit_suppressed_count`
 

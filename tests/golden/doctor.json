@@ -8,7 +8,9 @@
     "benchmarks/deferred_edges.yaml",
     "benchmarks/thread_pool.yaml",
     "benchmarks/composite_loop_iterations.yaml",
-    "benchmarks/payload_policies.yaml"
+    "benchmarks/payload_policies.yaml",
+    "benchmarks/channel_modes.yaml",
+    "benchmarks/trigger_policies.yaml"
   ],
   "cxx_standard": 202002,
   "examples": [

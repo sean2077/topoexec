@@ -274,6 +274,20 @@ temporary baseline without thresholds. The baseline script can generate a local
 ignored baseline file and optionally compare against a user-selected per-machine
 threshold.
 
+Optional documentation site/API reference:
+
+```bash
+cmake -S . -B build-docs -DCMAKE_BUILD_TYPE=Release -DTOPOEXEC_BUILD_DOCS=ON
+cmake --build build-docs --target topoexec_doxygen
+python -m pip install mkdocs
+./scripts/docs_build_site.sh
+```
+
+`TOPOEXEC_BUILD_DOCS` is default-off and only creates `topoexec_doxygen` when
+Doxygen is found. The docs-site script uses MkDocs as docs-only tooling and
+copies generated Doxygen HTML under `site/api/`; neither tool is a runtime
+dependency.
+
 Packaging smoke:
 
 ```bash
@@ -297,6 +311,8 @@ generation, and package-manager draft files.
   runtime dependency.
 - Benchmark scripts use the built CLI, a non-installed test benchmark binary,
   and Python only; timing thresholds are never mandatory in CI.
+- Doxygen and MkDocs are docs-only tools for generated API/site artifacts and
+  are not required for normal runtime, YAML, CLI, package, or preview builds.
 - Tests require GTest; if unavailable, the test build fetches it through CMake
   `FetchContent`.
 - The plugin loader preview uses POSIX dynamic-loading APIs in its optional

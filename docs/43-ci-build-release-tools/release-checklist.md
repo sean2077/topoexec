@@ -25,6 +25,9 @@ v0.2.0-alpha.0
 - [ ] `./scripts/goal_check.sh golden` passes.
 - [ ] `./scripts/goal_check.sh policy` passes.
 - [ ] `./scripts/goal_check.sh release` passes.
+- [ ] `cmake -S . -B build-docs -DCMAKE_BUILD_TYPE=Release -DTOPOEXEC_BUILD_DOCS=ON` configures when docs artifacts are part of the release.
+- [ ] `cmake --build build-docs --target topoexec_doxygen` generates the C++ API reference when docs artifacts are part of the release.
+- [ ] `./scripts/docs_build_site.sh` builds the Pages site locally when docs artifacts are part of the release.
 - [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer` passes.
 - [ ] `docs/43-ci-build-release-tools/release-progression.md` names the intended stage and remaining limitations.
 - [ ] `docs/43-ci-build-release-tools/beta-readiness-review.md` is current if the intended stage is beta or release notes use beta language.
@@ -41,6 +44,7 @@ Add focused checks when the release claim depends on the relevant surface:
 - [ ] `./scripts/goal_check.sh fuzz`
 - [ ] `./scripts/goal_check.sh stress`
 - [ ] `./scripts/goal_check.sh bench`
+- [ ] GitHub Pages repository settings use **GitHub Actions** as the Pages source before a public docs URL is advertised.
 
 ## Golden Drift Surfaces
 

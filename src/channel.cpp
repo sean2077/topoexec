@@ -512,6 +512,18 @@ std::vector<RuntimeChannelMetrics> RuntimeChannelBus::metrics_snapshot() const {
   return values;
 }
 
+std::size_t RuntimeChannelBus::configured_capacity_for_component_port(const std::string& component_id,
+                                                                      const std::string& port_name) const {
+  std::lock_guard lock(mutex_);
+  std::size_t capacity = 0;
+  const auto ids = channel_ids_for_component_port(component_id, port_name);
+  for (const auto& channel_id : ids) {
+    const auto& state = channels_.at(channel_id);
+    capacity += std::max<std::size_t>(1u, state.config.capacity);
+  }
+  return capacity;
+}
+
 void RuntimeChannelBus::set_health_event_sink(HealthEventSink* sink) {
   std::lock_guard lock(mutex_);
   health_events_ = sink;
@@ -934,9 +946,16 @@ RuntimeChannelPublishResult RuntimePublicationRouter::commit_composite_region_ou
 
 void RuntimePublicationRouter::discard_composite_region_outputs() {
   std::lock_guard lock(mutex_);
+  const auto discarded_async =
+      static_cast<std::size_t>(std::count_if(composite_external_stage_.begin(), composite_external_stage_.end(),
+                                             [](const auto& staged) { return staged.kind == EdgeKind::kAsync; }));
   metrics_.composite_discarded_count += composite_external_stage_.size();
   composite_external_stage_.clear();
   active_composite_components_.clear();
+  if (discarded_async > 0u) {
+    metrics_.async_cancelled_count += discarded_async;
+    metrics_.async_in_flight_count = pending_async_count_locked();
+  }
 }
 
 RuntimeChannelPublishResult RuntimePublicationRouter::publish_from(const std::string& source_endpoint,

@@ -458,11 +458,15 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
 
   std::vector<CompiledGraphRegion> order;
   if (!compiled_plan_.region_order.empty()) {
+    std::map<std::string, const CompiledGraphRegion*> regions_by_id;
+    for (const auto& region : compiled_plan_.regions) {
+      regions_by_id.emplace(region.id, &region);
+    }
+    order.reserve(compiled_plan_.region_order.size());
     for (const auto& region_id : compiled_plan_.region_order) {
-      const auto found = std::find_if(compiled_plan_.regions.begin(), compiled_plan_.regions.end(),
-                                      [&region_id](const auto& region) { return region.id == region_id; });
-      if (found != compiled_plan_.regions.end()) {
-        order.push_back(*found);
+      const auto found = regions_by_id.find(region_id);
+      if (found != regions_by_id.end()) {
+        order.push_back(*found->second);
       }
     }
   }
@@ -476,13 +480,16 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
   }
 
   std::map<std::string, std::size_t> component_in_flight;
+  std::map<std::string, std::size_t> component_indexes;
+  for (std::size_t index = 0; index < components_.size(); ++index) {
+    component_indexes.emplace(components_[index].id, index);
+  }
   auto component_for_id = [&](const std::string& component_id) -> EventRuntimeComponent* {
-    const auto found =
-        std::find_if(components_.begin(), components_.end(), [&](const auto& item) { return item.id == component_id; });
-    if (found == components_.end()) {
+    const auto found = component_indexes.find(component_id);
+    if (found == component_indexes.end()) {
       return nullptr;
     }
-    return &*found;
+    return &components_[found->second];
   };
   auto apply_config_transaction = [&]() {
     if (config_store_ == nullptr) {
@@ -624,9 +631,8 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
     LoopConvergenceState* active_loop_convergence = nullptr;
     LoopIterationContext active_loop_iteration;
     auto execute_component = [&](const std::string& component_id) {
-      auto found = std::find_if(components_.begin(), components_.end(),
-                                [&component_id](const auto& item) { return item.id == component_id; });
-      if (found == components_.end()) {
+      auto* found = component_for_id(component_id);
+      if (found == nullptr) {
         return true;
       }
       const auto now = std::chrono::steady_clock::now();
@@ -644,6 +650,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
         trigger_metrics.batch_flush_count += trigger_stats.batch_flush_count;
         trigger_metrics.time_sync_drop_count += trigger_stats.time_sync_drop_count;
         trigger_metrics.late_drop_count += trigger_stats.late_drop_count;
+        trigger_metrics.pending_drop_count += trigger_stats.pending_drop_count;
         trigger_metrics.condition_suppressed_count += trigger_stats.condition_suppressed_count;
         trigger_metrics.rate_limit_suppressed_count += trigger_stats.rate_limit_suppressed_count;
         if (invocations.empty() && has_message_event_source(found->spec)) {

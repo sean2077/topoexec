@@ -572,6 +572,8 @@ std::vector<std::string> existing_yaml_files(const std::string& directory) {
       directory + "/thread_pool.yaml",
       directory + "/composite_loop_iterations.yaml",
       directory + "/payload_policies.yaml",
+      directory + "/channel_modes.yaml",
+      directory + "/trigger_policies.yaml",
   };
   for (const auto& name : names) {
     std::ifstream input(name);

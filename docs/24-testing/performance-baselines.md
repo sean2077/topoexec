@@ -79,6 +79,8 @@ The deterministic graph cases live in [`benchmarks/`](../../benchmarks/):
 | `thread_pool.yaml` | bounded `thread_pool` lane execution path |
 | `composite_loop_iterations.yaml` | fixed-point CompositeLoop iteration region path |
 | `payload_policies.yaml` | text payload copy/shared/loaned branches; no external zero-copy claim |
+| `channel_modes.yaml` | latest, queue, latched, previous-tick, and barrier channel modes |
+| `trigger_policies.yaml` | any/all/time-sync/batch/watermark/condition/debounce/rate-limit trigger paths |
 
 The task-executor benchmark is a separate non-installed CTest binary rather than
 a new public CLI command:
@@ -89,6 +91,12 @@ a new public CLI command:
 
 It reports deterministic and threaded task-executor completion counts and p50/p95
 run summaries.
+
+CLI path coverage remains command-smoke based rather than timing-threshold based:
+`ctest` and `./scripts/goal_check.sh bench` cover `graph bench`, while the
+ordinary CLI smokes cover validate, plan, run, metrics, and trace on
+representative examples. Treat these as output-contract baselines, not public
+latency guarantees.
 
 ## Local baseline workflow
 
