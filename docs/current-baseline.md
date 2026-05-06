@@ -26,7 +26,7 @@ Release decision note:
 
 ```text
 Recommended next prerelease: v0.2.0-alpha.0.
-Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while exporter adapters, long fuzz/soak campaigns, and beta readiness remain explicit future work. RuntimeObserver v1, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
+Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while production exporter adapters, long fuzz/soak campaigns, and beta readiness remain explicit future work. RuntimeObserver v1, the dependency-free G58 OTel preview mapping, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
 Human release approval should still verify CI on the exact tag commit before creating the annotated tag.
 ```
 
@@ -140,6 +140,18 @@ TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./
 ./scripts/goal_check.sh docs and git diff --check passed after adapter docs/ledger updates.
 ```
 
+Observed G58 local result:
+
+```text
+./scripts/goal_check.sh adapters passed: test_adapter_sdk, test_otel_adapter, cmake_otel_adapter_options_smoke, and policy smokes, 5/5.
+./scripts/goal_check.sh quick passed: cli_golden_outputs and schema_v1_contract_smoke.
+./scripts/goal_check.sh docs passed: recursive docs command smoke after adapter docs updates.
+cmake --build build --target topoexec_format_check passed.
+./scripts/goal_check.sh policy passed: policy_no_core_adapter_deps and policy_architecture_self_test.
+./scripts/agent_check.sh passed: 73/73 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 73/73 CTest tests in the ASAN+UBSAN Debug build.
+```
+
 Observed G67 local result:
 
 ```text
@@ -218,7 +230,12 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
   arbitrary scripting, wall-clock debounce sleeping, external watermark
   coordination, or a broader schema-v2 trigger expression language.
 - `TaskExecutor` remains deterministic by default with cooperative pending-task cancellation and post-return task-budget metrics; `ThreadedTaskExecutor` is now an opt-in bounded preview, not a default scheduler lane.
-- Metrics/trace/diagnostics exist, including metric schema version 1, trace schema version 1, diagnostic schema version 1, invocation correlation/causation metadata, bounded observer-only health events, RuntimeObserver v1, and Adapter SDK v0. Concrete exporter adapters and a richer health-event v2 contract remain future work.
+- Metrics/trace/diagnostics exist, including metric schema version 1, trace
+  schema version 1, diagnostic schema version 1, invocation
+  correlation/causation metadata, bounded observer-only health events,
+  RuntimeObserver v1, Adapter SDK v0, and the dependency-free G58 OTel preview
+  mapping. Concrete production exporter adapters and a richer health-event v2
+  contract remain future work.
 - Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, deterministic malformed-input fuzz smoke, and an optional `fuzz_graph_inputs` libFuzzer/standalone corpus target. Longer fuzz campaigns and broader target coverage remain future hardening work.
 - Hierarchical `subgraphs[]` are implemented as schema-v1 compile-time
   namespace expansion into flat components, edges, CompositeLoops, and
@@ -244,5 +261,8 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
 - Reference apps and tests now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop fixed-point and solver-style convergence/budget/partial-output behavior, BufferPool copy/shared/loaned metrics, a template-expanded source-transform-sink YAML, and the G69 robot-cell pilot that composes multiple lanes, async overload, state/delay feedback, config snapshots, metrics/trace, and invalid-config rejection. They remain dependency-free in-process examples; hierarchy/templates are compile-time expansion features, and no external adapter stack is implemented by G69/G41/G42/G45.
 - The robot-cell pilot is an embedded case study, not a hardware driver, robot controller, camera integration, ROS graph, exporter integration, or external scheduling guarantee.
 - ThreadSanitizer remains non-blocking.
-- ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external Perfetto adapters remain deferred and must not be claimed as implemented; G57 provides only a dependency-free SDK boundary.
+- ROS 2, production OpenTelemetry/Prometheus, Python, C API, dynamic plugin
+  loading, and external Perfetto adapters remain deferred and must not be
+  claimed as implemented; G57 provides a dependency-free SDK boundary and G58
+  provides only a dependency-free OTel mapping preview.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

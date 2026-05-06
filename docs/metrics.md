@@ -41,6 +41,24 @@ log records to avoid label explosion.
 
 `MetricRegistry::histogram(name)` exports lightweight in-process histogram summaries without external dependencies. Snapshot suffixes are `name.count`, `name.min`, `name.max`, `name.avg`, `name.p50`, `name.p95`, and `name.p99`; percentile values use deterministic linear interpolation over the observed sample set.
 
+## OTel Preview Mapping
+
+The optional G58 `topoexec_adapters::otel` target maps runtime metric samples
+through `runtime_metric_descriptors()` before producing exporter-preview records:
+
+- descriptor `counter` -> OTel counter-shaped record;
+- descriptor `gauge` -> observable-gauge-shaped record;
+- descriptor `histogram` -> histogram-shaped record;
+- descriptor `unit`, `stability`, and schema version are preserved as record
+  metadata;
+- only descriptor-allowed bounded labels (`component_id`, `lane`, `channel_id`)
+  become metric attributes.
+
+Raw sample `tags` are not exported as labels. The preview records only
+`topoexec.ignored_tag_count` when tags are present so adapter authors can spot
+non-schema tag use without creating high-cardinality time series. The preview
+does not require or link an external telemetry SDK.
+
 ## Stable Names
 
 Scheduler:

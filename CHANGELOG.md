@@ -55,6 +55,11 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added documentation system v2 with a reorganized docs map, executable cookbook recipes, architecture diagrams, why-not comparisons, design principles, and recursive docs smoke coverage for required pages/sections.
 - Added example applications v2 with dependency-free reference apps for low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop solver convergence/budget overrun, and BufferPool copy/shared/loaned payload metrics.
 - Added Adapter SDK v0 with `topoexec::adapter_sdk`, `topoexec/adapters/sdk.hpp`, observer/result-sink aliases, bounded `BoundaryBridge` contracts, explicit `ComponentFactoryProvider`, adapter package smoke tests, and architecture policy coverage that keeps runtime dependency-free.
+- Added the default-off `topoexec_adapters::otel` exporter preview with
+  `TOPOEXEC_BUILD_OTEL_ADAPTER`, dependency-free metric/trace/health/error
+  mapping records over the observer API, installed package metadata, downstream
+  CMake smoke coverage, and policy checks proving runtime has no telemetry SDK
+  dependency.
 - Added release automation with `scripts/release_prepare.sh`, `./scripts/goal_check.sh release`, manual CI dry-run artifact upload, release notes draft generation, annotated-tag/no-retag guardrails, source/CPack/schema artifacts, and checksum output without publishing or tagging automatically.
 - Added the G69 robot-cell pilot app and case study, composing multiple lanes, async overload drops, state/delay feedback, BufferPool frames, config transactions/snapshots, metrics/trace evidence, and invalid-config rejection without adapter dependencies.
 - Added the G70 beta readiness review, beta-candidate gate checklist, explicit

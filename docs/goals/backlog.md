@@ -50,7 +50,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G55 | P1/P2 | complete | Documentation System v2 | Docs are reorganized into learning/reference/release paths with executable cookbook recipes, architecture diagrams, why-not comparisons, design principles, and a recursive docs map/command smoke contract. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh docs`; format; ASAN+UBSAN sanitizer |
 | G56 | P1/P2 | complete | Example Applications v2 | Dependency-free reference apps now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop convergence/budget overrun, and BufferPool copy/shared/loaned metrics; hierarchy is covered by G41 parser/runtime tests instead of a separate runtime-nesting app. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh docs`; `ctest -R app_`; format; ASAN+UBSAN sanitizer |
 | G57 | P1/P2 | complete | Adapter SDK v0 | Dependency-free `topoexec::adapter_sdk` now exports `topoexec/adapters/sdk.hpp` with observer aliases, bounded boundary bridge types, and explicit component-factory provider contracts without concrete adapter implementations. | `./scripts/agent_check.sh`; `ctest -R test_adapter_sdk`; `./scripts/goal_check.sh package`; `./scripts/goal_check.sh policy`; format; ASAN+UBSAN sanitizer |
-| G58 | P2/P3 | pending | OpenTelemetry Exporter Preview | 实现第一个 optional exporter preview，验证 observer API，但不让 core 依赖 OTel。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G58 | P2/P3 | complete | OpenTelemetry Exporter Preview | Default-off `topoexec_adapters::otel` now maps runtime metric descriptors, trace events, health events, runtime errors, and result summaries into dependency-free in-memory OTel-shaped records, with package/export and policy smokes proving `topoexec::runtime` has no adapter or telemetry SDK dependency. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh adapters`; focused `ctest -R 'test_otel_adapter|cmake_otel_adapter_options_smoke|policy_.*'`; format |
 | G59 | P2/P3 | pending | Prometheus Exporter Preview | 通过 scrape/exporter 证明 metrics schema 可被外部系统消费。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G60 | P2/P3 | pending | ROS 2 Adapter Preview | 验证 TopoExec 在 ROS 2 系统中作为 in-process semantic runtime 的 adapter，但不让 core 变成 ROS package。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G61 | P2/P3 | pending | C API / FFI Design | 规划 C API，为 Python/Rust/C plugins 或 external embedding 提供未来路径，但不急于冻结 ABI。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -67,7 +67,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 ## Next goal
 
 All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals"
-objective, the next unfinished backlog goals are G58-G65 adapter/interface/ecosystem
+objective, the next unfinished backlog goals are G59-G65 adapter/interface/ecosystem
 preview work and G68 community readiness. Lower-priority design/adapter/ecosystem
 work remains pending and
 concrete adapter implementations remain deferred unless that scope is explicitly

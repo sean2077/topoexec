@@ -69,7 +69,9 @@
 - invocation metadata 已能携带 correlation/causation/epoch/source/trigger 信息进入 trace；metrics 默认仍避免高基数字段。
 - deterministic fuzz smoke 已有，但 coverage-guided fuzzing 仍未完成。
 - TSAN 仍可保持 non-blocking，beta 前需要更强并发信心。
-- ROS 2、OpenTelemetry、Prometheus、Python、C API、dynamic plugin loading、external Perfetto adapter 仍 deferred。
+- ROS 2、production OpenTelemetry/Prometheus、Python、C API、dynamic plugin
+  loading、external Perfetto adapter 仍 deferred；G58 只完成 dependency-free
+  OTel mapping preview。
 - package-manager recipes 仍是 draft，不应宣称生态包已成熟。
 - API 仍处于 pre-1.0，可继续调整，但必须通过版本策略和 changelog 记录。
 - 当前工具和文档已较丰富，下一阶段不应优先继续堆 CLI 命令，而应强化 runtime、API、concurrency、adapter-ready boundary 和真实应用信心。
@@ -1254,8 +1256,8 @@ health-event, and structured-error records after run assembly. Callback
 failures are recorded as non-fatal observer diagnostics and
 `runtime.observer.*` metrics; `NoopRuntimeObserver` and bounded
 `InMemoryRuntimeObserver` provide the default/no-op and test/embedder paths.
-Concrete OpenTelemetry/Prometheus/Perfetto adapters remain future optional
-targets.
+Concrete production OpenTelemetry/Prometheus/Perfetto adapters remain future
+optional targets; G58 later adds only a dependency-free OTel mapping preview.
 
 ---
 
@@ -1840,6 +1842,15 @@ Priority: P2/P3
 - Adapter boundary proven with one external exporter.
 - Core remains dependency-free.
 
+Implementation note: G58 adds a default-off `topoexec_adapters::otel` preview
+target and `TOPOEXEC_BUILD_OTEL_ADAPTER` package option. The target depends only
+on `topoexec::adapter_sdk` and maps existing `RuntimeObserver` /
+`RuntimeRunnerResult` data into dependency-free in-memory OTel-shaped records:
+metric descriptors choose instrument kind/unit/bounded labels, trace schema v1
+events become spans, and runtime errors/health events become logs. It does not
+link an external telemetry SDK, add schema fields, start network exporters, or
+make runtime depend on adapter headers.
+
 ---
 
 ## G59. Prometheus Exporter Preview
@@ -2339,7 +2350,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G42, G58-G65, or G68.
+  and hidden deferral of G42, G59-G65, or G68.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2404,7 +2415,7 @@ Priority: P0 before beta
 ## Phase G：Adapter 与未来接口
 
 35. G57 Adapter SDK v0
-36. G58 OpenTelemetry Exporter Preview
+36. G58 OpenTelemetry Exporter Preview（complete）
 37. G59 Prometheus Exporter Preview
 38. G60 ROS 2 Adapter Preview
 39. G61 C API / FFI Design

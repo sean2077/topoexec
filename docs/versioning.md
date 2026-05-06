@@ -68,6 +68,7 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
 - Trigger v2 preview fields beyond the current declarative
   `watermark`/`condition`/`debounce`/`rate_limit` behavior.
 - CompositeLoop solver-style residual reporting and partial-success policy.
+- OTel exporter preview target, in-memory record structs, and mapping options.
 - Experimental headers listed in [public-api.md](public-api.md).
 
 Use [api-change-checklist.md](api-change-checklist.md) before modifying installed headers, schema fields, or CLI JSON surfaces.
@@ -86,8 +87,9 @@ silently. Apply this policy before opening a beta candidate:
   notes). They should name the replacement and the earliest prerelease line where
   removal is expected.
 - Experimental headers, adapter SDK v0 preview helpers, benchmark fields, direct
-  scheduler/channel internals, lifecycle/config transaction metadata, examples,
-  and human-readable CLI text may change faster, but changes still need a
+  scheduler/channel internals, lifecycle/config transaction metadata, OTel
+  preview record structs/options, examples, and human-readable CLI text may
+  change faster, but changes still need a
   changelog note when users could depend on them.
 - Security, correctness, or unsound-semantics fixes may remove or tighten a
   surface immediately. The release note must call out why the ordinary
@@ -126,5 +128,6 @@ Use [release-progression.md](release-progression.md) to decide whether the next
 tag is a `v0.1.x` stabilization alpha, `v0.2.0-alpha` runtime-completeness alpha,
 or a later preview. Release stage names must reflect implemented behavior, not
 only design docs. Adapter implementation tags should not be claimed while ROS 2,
-OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external
-Perfetto integrations remain docs-only/deferred.
+production OpenTelemetry/Prometheus, Python, C API, dynamic plugin loading, and
+external Perfetto integrations remain docs-only/deferred. G58's OTel target is
+only a dependency-free mapping preview.

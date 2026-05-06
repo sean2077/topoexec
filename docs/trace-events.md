@@ -116,8 +116,18 @@ The runtime includes identifiers where the event source has them:
 - Health events appear as `health_event` trace entries with bounded observer attributes such as `kind`, `source`, `channel_id`/`edge_id`, `component_id`, `lane`, `policy`, `reason`, `depth`, `capacity`, and `occurrence_count`. They are emitted for channel overflow/stale/deadline/high-watermark, task reject, and scheduler reject paths when health events are enabled.
 - Loop events include `loop_id` and loop-local `iteration`.
 
-Chrome trace export groups events onto stable tracks by phase plus lane/component/channel identity. Future adapters may add OpenTelemetry, Prometheus, or richer Perfetto metadata, but those adapters are separate from the core runtime contract and should map from trace schema version `1` instead of depending on private runtime internals.
+Chrome trace export groups events onto stable tracks by phase plus
+lane/component/channel identity. The optional G58 OTel preview maps
+`RuntimeTraceEvent` values to in-memory span records with the same schema version,
+phase, identifiers, monotonic offsets, duration, and bounded attributes. Future
+production exporters or richer Perfetto metadata remain separate from the core
+runtime contract and should map from trace schema version `1` instead of
+depending on private runtime internals.
 
 ## Error fields
 
-Trace JSON remains event-oriented. Runtime errors are exported through runner/metrics JSON as `runtime_errors[]`, with structured phase/component/code fields that can be correlated with component trace events by component id, trace id, or correlation id when present.
+Trace JSON remains event-oriented. Runtime errors are exported through
+runner/metrics JSON as `runtime_errors[]`, with structured phase/component/code
+fields that can be correlated with component trace events by component id, trace
+id, or correlation id when present. The OTel preview maps these runtime errors
+to bounded log records; it does not turn errors into scheduler control flow.

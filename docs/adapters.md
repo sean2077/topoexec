@@ -1,9 +1,11 @@
 # Adapter Boundaries
 
-Concrete adapters are intentionally deferred until the core runtime and API stabilize.
-G57 adds a dependency-free Adapter SDK v0 boundary so future adapter packages can
-consume stable runtime surfaces without leaking adapter assumptions into
-`topoexec::runtime`.
+Concrete production adapters are intentionally deferred until the core runtime
+and API stabilize. G57 adds a dependency-free Adapter SDK v0 boundary so future
+adapter packages can consume stable runtime surfaces without leaking adapter
+assumptions into `topoexec::runtime`. G58 adds the first optional exporter
+preview target, `topoexec_adapters::otel`, as a dependency-free OTel-shaped
+mapping over the observer API; it is not a production SDK integration.
 
 ## Core boundary
 
@@ -22,10 +24,10 @@ loader frameworks.
 
 ## Future namespace and targets
 
-Future adapter code should live outside core under a namespace such as:
+Adapter code lives outside core under namespaces such as:
 
 ```text
-topoexec_adapters::otel
+topoexec_adapters::otel       # optional dependency-free preview target
 topoexec_adapters::prometheus
 topoexec_adapters::perfetto
 topoexec_adapters::ros2
@@ -34,13 +36,13 @@ topoexec_adapters::c_api
 topoexec_adapters::plugins
 ```
 
-CMake shape after G57:
+CMake shape after G58:
 
 ```text
 topoexec::runtime          # no adapter dependencies
 topoexec::adapter_sdk      # header-only SDK v0, depends on runtime
 topoexec::yaml             # optional graph loading
-topoexec_adapters::otel    # future optional exporter target
+topoexec_adapters::otel    # optional OTel-shaped preview, default OFF
 topoexec_adapters::ros2    # future optional package, built separately
 topoexec_adapters::plugins # future optional dynamic loading package
 ```
@@ -92,7 +94,10 @@ diagnostics, and `runtime.observer.*` metrics; it does not change graph runtime
 semantics.
 
 Metrics exporters should also read `runtime_metric_descriptors()` and verify
-`metric_schema_version` before mapping names, units, and bounded labels.
+`metric_schema_version` before mapping names, units, and bounded labels. The
+G58 `topoexec/adapters/otel.hpp` preview demonstrates this rule by translating
+metric descriptors, trace events, health events, and runtime errors into
+bounded in-memory records without linking a telemetry SDK.
 
 ### Boundary bridge
 
@@ -142,7 +147,7 @@ not core schema and belongs in a ROS adapter config layer.
 
 | Adapter | Contract | Explicit non-goal for core |
 | --- | --- | --- |
-| OpenTelemetry | Export existing metrics/trace/error data from `RuntimeRunnerResult` or observer events. | No OTel SDK dependency in core; no OTel-specific schema fields. |
+| OpenTelemetry | G58 preview maps existing metrics/trace/error/health data from `RuntimeRunnerResult` or observer events through `topoexec_adapters::otel`. | No OTel SDK dependency in core/runtime; no OTel-specific schema fields; no network exporter. |
 | Prometheus | Expose existing metrics through a scrape endpoint owned by the adapter. | Core does not run HTTP servers or Prometheus registries. |
 | Perfetto | Convert trace events to richer Perfetto output. | Core keeps Chrome trace JSON as dependency-free output. |
 | ROS 2 | Translate topics/services/actions at boundary components. | Core does not include `rclcpp`, ROS executors, or ROS QoS fields. |
@@ -152,6 +157,8 @@ not core schema and belongs in a ROS adapter config layer.
 
 ## Detailed adapter plans
 
+- [OTel exporter preview](adapters/otel.md) documents the dependency-free G58
+  mapping target, build option, package metadata, and cardinality rules.
 - [ROS 2 adapter plan](adapters/ros2.md) documents boundary mapping, QoS separation,
   executor interaction, threading, lifecycle, parameters, diagnostics, tracing,
   and fake-boundary-first tests without adding ROS dependencies.
@@ -164,9 +171,10 @@ not built and contain no external SDK includes. The runnable boundary pattern is
 
 ## Policy checks
 
-`policy_no_core_adapter_deps` scans core/source/build files for accidental adapter
-SDK symbols such as `rclcpp`, OpenTelemetry, Prometheus, Perfetto, `pybind11`, or
-`Python.h`; it also checks that `topoexec_runtime` does not link
-`topoexec_adapter_sdk` and that `topoexec_adapter_sdk` depends only on runtime. It
-intentionally ignores docs and preview stub notes where those names are discussed
-as deferred dependencies.
+`policy_no_core_adapter_deps` scans core/source/build files for accidental
+adapter SDK symbols such as `rclcpp`, OpenTelemetry, Prometheus, Perfetto,
+`pybind11`, or `Python.h`; it also checks that `topoexec_runtime` does not link
+`topoexec_adapter_sdk`, that `topoexec_adapter_sdk` depends only on runtime, and
+that the optional OTel preview target depends outward through the adapter SDK.
+It intentionally ignores docs and preview stub notes where those names are
+discussed as deferred dependencies.

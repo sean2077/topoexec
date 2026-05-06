@@ -23,6 +23,7 @@ This configures, builds, and runs all default CTest tests.
 | Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
 | Benchmark smoke | RuntimeRunner benchmark cases, task-executor benchmark output, schema v2 metadata, and optional local baseline generation | `./scripts/goal_check.sh bench` |
 | Package | install/export/downstream `find_package(topoexec)` runtime-only, adapter SDK, YAML, and CLI smokes | `./scripts/goal_check.sh package` |
+| Adapter previews | optional adapter targets, package exports, and dependency-boundary policy | `./scripts/goal_check.sh adapters` |
 | Release prep | non-publishing release_prepare dry run, release notes draft, and human-only tag-command contract | `./scripts/goal_check.sh release` |
 | Sanitizers | ASAN+UBSAN full CTest; TSAN non-blocking CI | `./scripts/goal_check.sh sanitizer` |
 

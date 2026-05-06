@@ -167,6 +167,16 @@ def audit_cmake(root: Path) -> list[str]:
         if token in adapter_links:
             violations.append(f"topoexec_adapter_sdk must not link {token}")
 
+    if "TOPOEXEC_BUILD_OTEL_ADAPTER" in cmake:
+        otel_links = cmake_call_body(cmake, "target_link_libraries(topoexec_adapters_otel")
+        if "topoexec_adapter_sdk" not in otel_links:
+            violations.append("topoexec_adapters_otel must consume topoexec_adapter_sdk")
+        for token in ("topoexec_runtime", "topoexec_yaml", "CLI11", "YAML_CPP", "nlohmann_json"):
+            if token in otel_links:
+                violations.append(f"topoexec_adapters_otel must not directly link {token}")
+        if "install(EXPORT topoexecAdapterTargets" not in cmake:
+            violations.append("topoexec_adapters_otel must export through topoexecAdapterTargets when enabled")
+
     yaml_links = cmake_call_body(cmake, "target_link_libraries(topoexec_yaml")
     if "topoexec_runtime" not in yaml_links:
         violations.append("topoexec_yaml must link topoexec_runtime")

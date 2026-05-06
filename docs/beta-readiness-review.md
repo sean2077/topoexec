@@ -12,9 +12,9 @@ hardware, package-registry, or 1.0 readiness claim.
 
 | Question | Verdict |
 | --- | --- |
-| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G57, G66-G67, and G69-G70 are complete; remaining G58-G65 and G68 are P2/P3 or community/ecosystem work and must stay explicit if not done before beta. |
+| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G58, G66-G67, and G69-G70 are complete; remaining G59-G65 and G68 are P2/P3 or community/ecosystem work and must stay explicit if not done before beta. |
 | Can TopoExec honestly prepare a core-runtime beta candidate? | Yes, if release notes keep the deferred features and alpha/experimental surfaces explicit and CI/release-prep evidence is attached for the exact candidate commit. |
-| Can TopoExec claim adapter/ecosystem beta readiness? | No. Concrete ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin, external Perfetto, and package-registry surfaces remain deferred or draft-only. |
+| Can TopoExec claim adapter/ecosystem beta readiness? | No. G58 adds only a dependency-free OTel mapping preview; concrete ROS 2, production OpenTelemetry/Prometheus, Python, C API, dynamic plugin, external Perfetto, and package-registry surfaces remain deferred or draft-only. |
 | Can TopoExec claim hard real-time or external scheduling guarantees? | No. Fixed-rate/thread-pool behavior is cooperative and observable; OS RT policy, CPU affinity guarantees, independent lane threads, hard preemption, and advanced starvation aging remain future work. |
 
 Recommended public line remains `v0.2.0-alpha.0` until a human explicitly opens a
@@ -43,7 +43,7 @@ adapter or ecosystem beta.
 | Diagnostics registry | `docs/diagnostics.md`, `include/topoexec/runtime/diagnostics.hpp`, `src/diagnostics.cpp`, graph tests, and CLI strict diagnostics smokes. | Covered |
 | Getting started / cookbook / API overview | `docs/getting-started.md`, `docs/cookbook.md`, `docs/api-overview.md`, and docs map smoke. | Covered |
 | Release notes and changelog | `CHANGELOG.md`, `docs/release-checklist.md`, `docs/release-runbook.md`, `docs/release-progression.md`, `scripts/release_prepare.sh`. | Covered |
-| Adapters preview-only unless tested | `docs/adapters.md`, `docs/adapters/ros2.md`, `include/topoexec/adapters/sdk.hpp`, adapter SDK package smoke, and architecture policy. | Covered; concrete adapters deferred |
+| Adapters preview-only unless tested | `docs/adapters.md`, `docs/adapters/otel.md`, `docs/adapters/ros2.md`, adapter SDK/OTel preview headers, adapter package smokes, and architecture policy. | Covered; OTel is an in-memory preview, concrete production adapters deferred |
 | No core dependency pollution | CMake target boundaries plus policy checks keep runtime free of YAML/CLI/adapter dependencies. | Covered |
 | Install smoke / package-manager drafts / artifact smoke | `./scripts/goal_check.sh package`, `packaging/vcpkg/*`, `packaging/conan/*`, CPack smoke, and release-prep artifact rehearsal. | Covered; package registries unpublished |
 | Benchmark output stable / no overclaims | `docs/performance-baselines.md`, `benchmarks/*.yaml`, `tests/bench/check_bench_contract.py`, and `./scripts/goal_check.sh bench`. | Covered; thresholds opt-in per machine |
@@ -85,7 +85,9 @@ blocking for a beta tag, record that decision in release notes.
 
 ## Explicitly deferred from beta scope unless completed first
 
-- OpenTelemetry and Prometheus exporters (G58/G59).
+- Production OpenTelemetry SDK/network exporter and Prometheus exporter (G59 and
+  future production adapter scope). G58 covers only a dependency-free OTel-shaped
+  mapping preview.
 - ROS 2 adapter preview (G60).
 - C API/FFI, Python binding, dynamic plugin loading, schema v2 exploration, and editor/LSP UX (G61-G65).
 - Community/contribution readiness work (G68) if the beta is aimed at broad external contributors rather than core-runtime evaluators.

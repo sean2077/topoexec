@@ -15,9 +15,9 @@ plus the later G35 trigger-v2 preview, the repository has:
 - ASAN+UBSAN Debug CTest passing in the previous baseline evidence.
 - Runtime-only configure/build/install smoke coverage with YAML, CLI, examples,
   and tests disabled.
-- Dependency-free Adapter SDK v0 for future adapters; no concrete ROS 2,
-  OpenTelemetry, Prometheus, Python, C API, dynamic plugin, or external Perfetto
-  adapter is implemented.
+- Dependency-free Adapter SDK v0 plus the G58 dependency-free OTel mapping
+  preview; no concrete ROS 2, production OpenTelemetry/Prometheus, Python, C
+  API, dynamic plugin, or external Perfetto adapter is implemented.
 - Defensive parser limits plus deterministic fuzz smoke.
 - Bounded stress smoke for generated scheduler/channel workloads, thread-pool
   overload, and task-executor overload.
@@ -61,20 +61,20 @@ Rationale:
   scheduler, async admission, channel/backpressure, trigger, payload, loop,
   state/config, observability, benchmark, packaging, and defensive-input work.
 - The new G26 baseline protects that state before deeper plan2 runtime/API work.
-- The tag must still be an alpha because exporter adapters, long fuzz/soak
-  campaigns, and beta readiness remain incomplete. RuntimeObserver v1 is now
-  available for in-process adapters. Persistent worker-pool v1, fixed-rate
-  wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke
-  are implemented in the plan2 line, while scheduler concurrency surfaces remain
-  experimental alpha surfaces.
+- The tag must still be an alpha because production exporter adapters, long
+  fuzz/soak campaigns, and beta readiness remain incomplete. RuntimeObserver v1
+  and the G58 OTel preview mapping are now available for in-process adapters.
+  Persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided
+  fuzz smoke, and bounded stress smoke are implemented in the plan2 line, while
+  scheduler concurrency surfaces remain experimental alpha surfaces.
 
 ## Version ladder
 
 | Stage | Status | Evidence | Remaining before tagging that stage |
 | --- | --- | --- | --- |
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
-| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, CPack smoke, G67 release-prep automation, G69 pilot-app evidence, and the G70 beta-readiness audit. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
-| `v0.3.0-alpha` | Preview-doc ready, partial observer API implemented | RuntimeObserver v1, adapter contracts, stub layout, and ROS 2 design are complete without core dependency pollution. | Add concrete exporter/adapter targets before claiming adapter implementation readiness. |
+| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, OTel preview mapping, CPack smoke, G67 release-prep automation, G69 pilot-app evidence, and the G70 beta-readiness audit. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
+| `v0.3.0-alpha` | Preview-doc ready, partial observer/exporter API implemented | RuntimeObserver v1, adapter contracts, OTel preview target, stub layout, and ROS 2 design are complete without core dependency pollution. | Add concrete production exporter/adapter targets before claiming adapter implementation readiness. |
 | `v0.5.0-beta` | Conditional core-runtime review only; not automatically tag-ready | ASAN+UBSAN, fuzz smoke, bounded stress smoke, docs/examples, API/deprecation policy, G67 release prep, G69 pilot, and G70 audit exist. | Human release owner must accept deferrals, run gates on exact candidate commit, attach release-prep artifacts, decide TSAN/soak/fuzz scope, and avoid adapter/ecosystem beta claims. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
 
@@ -87,7 +87,7 @@ Rationale:
 
 Deferred capabilities remain documented as limitations rather than hidden TODOs:
 
-- ROS 2, OpenTelemetry, Prometheus, Python, Perfetto, C API, dynamic plugin
+- ROS 2, production OpenTelemetry/Prometheus, Python, Perfetto, C API, dynamic plugin
   loaders, and package-manager publication are preview/deferred surfaces.
 - TSAN remains non-blocking until concurrency signal is stable.
 - Coverage-guided fuzzing, bounded stress smoke, and benchmark schema v2 baseline
@@ -109,6 +109,7 @@ cmake --build build --target topoexec_format_check
 ./scripts/goal_check.sh package
 ./scripts/goal_check.sh golden
 ./scripts/goal_check.sh docs
+./scripts/goal_check.sh adapters
 ./scripts/goal_check.sh release
 ./scripts/goal_check.sh stress
 ./scripts/goal_check.sh bench

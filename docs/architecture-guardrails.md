@@ -10,7 +10,7 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 | `include/topoexec/runtime` | components, graph model/builder, payloads, channels, scheduler, trigger, runner | YAML parser, CLI implementation, adapter SDKs, private `src/` or `tools/` headers |
 | `src` runtime files | implementation for `topoexec::runtime` | YAML parser, CLI presentation, adapter SDKs |
 | `src/graph_io.cpp` and `topoexec::yaml` | YAML/schema loading and optional graph I/O | CLI command behavior, adapter SDKs |
-| `include/topoexec/adapters` and `topoexec::adapter_sdk` | header-only adapter SDK v0 over public runtime types | YAML, CLI, concrete adapter SDKs, runtime reverse-dependency |
+| `include/topoexec/adapters`, `topoexec::adapter_sdk`, and optional `topoexec_adapters::*` targets | adapter SDK v0 plus dependency-free preview mappings over public runtime types | YAML, CLI, runtime reverse-dependency, external SDKs unless an explicit optional adapter goal adds and tests them |
 | `tools/topoexec` | CLI presentation and command wiring | new semantics duplicated outside runtime/compiler APIs; low-level channel/scheduler/trigger internals |
 | `examples` | runnable app patterns | production adapter dependencies |
 | `tests` | unit, semantic, golden, package, policy, and future fuzz/sanitizer checks | hidden production dependencies |
@@ -19,6 +19,9 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 
 - Installed package exports `topoexec::core`, `topoexec::runtime`, `topoexec::adapter_sdk`, and `topoexec::yaml` separately.
 - `tests/cmake/runtime_smoke` links only `topoexec::runtime` and uses GraphBuilder/RuntimeRunner without YAML or CLI includes.
+- `tests/cmake/otel_adapter_options_smoke.cmake` configures a runtime-only
+  build with `TOPOEXEC_BUILD_OTEL_ADAPTER=ON`, installs it, and proves
+  downstream `topoexec_adapters::otel` consumption without the CLI.
 - `tests/policy/check_no_adapter_deps.py` audits installed headers, runtime source files, CLI includes, adapter tokens, private include paths, and CMake target links.
 - `policy_no_core_adapter_deps` verifies the current tree.
 - `policy_architecture_self_test` plants fake dependency violations and proves the policy checker catches them.
@@ -32,6 +35,7 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 | `topoexec_core` | interface include path and C++20 feature only | YAML, CLI, adapter SDKs, runtime implementation |
 | `topoexec_runtime` | `topoexec_core` | `topoexec_yaml`, `topoexec_adapter_sdk`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, adapter SDKs |
 | `topoexec_adapter_sdk` | `topoexec_runtime` | `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, concrete adapter SDKs |
+| `topoexec_adapters_otel` | `topoexec_adapter_sdk` | direct `topoexec_runtime`, `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, external telemetry SDKs |
 | `topoexec_yaml` | `topoexec_runtime`, YAML parser privately, JSON privately | CLI target or adapter SDKs |
 | `topoexec_cli` | `topoexec_yaml`, CLI11/JSON privately | direct low-level runtime internals that duplicate compiler/runtime semantics |
 
@@ -50,5 +54,7 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 - Scheduler owns execution decisions; trigger engine owns readiness.
 - Channel owns capacity, overflow, and backpressure accounting.
 - Metrics and trace are observation surfaces, not control flow.
-- Concrete adapter-specific dependencies must remain in docs or optional adapter targets; only the dependency-free `topoexec::adapter_sdk` boundary may live in this repo before concrete adapter goals open.
+- Concrete adapter-specific dependencies must remain in docs or optional adapter
+  targets. The G58 OTel preview remains dependency-free; production telemetry
+  SDKs still require an explicit dependency decision and focused boundary tests.
 - Any future policy exception must be documented here, justified in `CHANGELOG.md`, and protected by a focused test.

@@ -10,6 +10,7 @@ option(TOPOEXEC_BUILD_YAML "Build YAML graph loading target" ON)
 option(TOPOEXEC_BUILD_CLI "Build topoexec CLI" ON)
 option(TOPOEXEC_BUILD_EXAMPLES "Build runnable example applications" ON)
 option(TOPOEXEC_BUILD_FUZZERS "Build optional graph input fuzz targets" OFF)
+option(TOPOEXEC_BUILD_OTEL_ADAPTER "Build optional OTel exporter preview target" OFF)
 set(TOPOEXEC_FUZZER_ENGINE "AUTO" CACHE STRING "Fuzzer engine: AUTO, LIBFUZZER, or STANDALONE")
 set_property(CACHE TOPOEXEC_FUZZER_ENGINE PROPERTY STRINGS AUTO LIBFUZZER STANDALONE)
 option(TOPOEXEC_ENABLE_ASAN "Build TopoExec with AddressSanitizer instrumentation" OFF)
@@ -135,6 +136,15 @@ set_target_properties(topoexec_adapter_sdk PROPERTIES
 target_link_libraries(topoexec_adapter_sdk INTERFACE topoexec_runtime)
 add_library(topoexec::adapter_sdk ALIAS topoexec_adapter_sdk)
 
+if(TOPOEXEC_BUILD_OTEL_ADAPTER)
+  add_library(topoexec_adapters_otel INTERFACE)
+  set_target_properties(topoexec_adapters_otel PROPERTIES
+    EXPORT_NAME otel
+  )
+  target_link_libraries(topoexec_adapters_otel INTERFACE topoexec_adapter_sdk)
+  add_library(topoexec_adapters::otel ALIAS topoexec_adapters_otel)
+endif()
+
 set(TOPOEXEC_INSTALL_TARGETS topoexec_core topoexec_runtime topoexec_adapter_sdk)
 
 if(TOPOEXEC_BUILD_YAML)
@@ -248,6 +258,17 @@ install(EXPORT topoexecTargets
   NAMESPACE topoexec::
   DESTINATION lib/cmake/topoexec
 )
+if(TOPOEXEC_BUILD_OTEL_ADAPTER)
+  install(TARGETS topoexec_adapters_otel
+    EXPORT topoexecAdapterTargets
+    INCLUDES DESTINATION include
+  )
+  install(EXPORT topoexecAdapterTargets
+    FILE topoexecAdapterTargets.cmake
+    NAMESPACE topoexec_adapters::
+    DESTINATION lib/cmake/topoexec
+  )
+endif()
 configure_package_config_file(
   cmake/topoexecConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/topoexecConfig.cmake
@@ -318,6 +339,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   add_executable(test_adapter_sdk tests/test_adapter_sdk.cpp)
   target_link_libraries(test_adapter_sdk PRIVATE topoexec_adapter_sdk GTest::gtest_main)
   add_test(NAME test_adapter_sdk COMMAND test_adapter_sdk)
+
+  if(TOPOEXEC_BUILD_OTEL_ADAPTER)
+    add_executable(test_otel_adapter tests/test_otel_adapter.cpp)
+    target_link_libraries(test_otel_adapter PRIVATE topoexec_adapters_otel GTest::gtest_main)
+    add_test(NAME test_otel_adapter COMMAND test_otel_adapter)
+  endif()
 
   add_executable(topoexec_bench_task_executor benchmarks/task_executor.cpp)
   target_link_libraries(topoexec_bench_task_executor PRIVATE topoexec_runtime)
@@ -564,6 +591,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
       -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/runtime_only_options_smoke.cmake
+  )
+  add_test(NAME cmake_otel_adapter_options_smoke
+    COMMAND ${CMAKE_COMMAND}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/otel_adapter_options_smoke.cmake
   )
   add_test(NAME cmake_cpack_smoke
     COMMAND ${CMAKE_COMMAND}

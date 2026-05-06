@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|release|sanitizer|format|debug]
+Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|adapters|release|sanitizer|format|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
@@ -16,6 +16,7 @@ Goal-specific validation dispatcher for TopoExec agents.
 - stress: bounded runtime stress graph smoke plus task-executor overload stress
 - bench:  benchmark output-contract smoke plus local baseline generation without thresholds
 - policy: architecture/dependency policy smokes
+- adapters: optional adapter-preview target/package smokes
 - release: release automation dry-run smoke
 - sanitizer: ASAN+UBSAN Debug build and full CTest
 - format: clang-format check target
@@ -79,6 +80,13 @@ case "$MODE" in
   policy)
     configure_build
     ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'policy_.*'
+    ;;
+  adapters)
+    OTEL_BUILD_DIR="${BUILD_DIR}-otel"
+    cmake -S . -B "$OTEL_BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTOPOEXEC_BUILD_OTEL_ADAPTER=ON
+    cmake --build "$OTEL_BUILD_DIR" -j
+    ctest --test-dir "$OTEL_BUILD_DIR" --output-on-failure \
+      -R 'test_adapter_sdk|test_otel_adapter|cmake_otel_adapter_options_smoke|policy_.*'
     ;;
   release)
     configure_build

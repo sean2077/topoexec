@@ -21,6 +21,7 @@ v0.2.0-alpha.0
 - [ ] `./scripts/goal_check.sh package` passes.
 - [ ] `./scripts/goal_check.sh golden` passes.
 - [ ] `./scripts/goal_check.sh docs` passes.
+- [ ] `./scripts/goal_check.sh adapters` passes.
 - [ ] `./scripts/goal_check.sh release` passes.
 - [ ] `./scripts/goal_check.sh stress` passes.
 - [ ] `./scripts/goal_check.sh bench` passes.
@@ -143,8 +144,8 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - Benchmark schema v2 and local baseline generation exist, but global timing
   thresholds remain intentionally absent; use only opt-in per-machine
   comparisons.
-- ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and
-  external Perfetto adapters remain deferred.
+- ROS 2, production OpenTelemetry/Prometheus, Python, C API, dynamic plugin
+  loading, and external Perfetto adapters remain deferred.
 - Package-manager recipes under `packaging/` are drafts, not published ports.
 - `scripts/release_prepare.sh` can generate local candidate artifacts and
   checksums, but signed release uploads and annotated tag pushes still require a
@@ -154,8 +155,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - G42 graph templates are strict parameter-substitution snippets only; they do
   not implement arbitrary expressions, includes, conditionals, loops, or runtime
   template interpretation.
-- G57 Adapter SDK v0 is a dependency-free boundary only; concrete ROS 2, OTel,
-  Prometheus, Python, Perfetto, C API, and plugin adapters remain deferred.
+- G57 Adapter SDK v0 is a dependency-free boundary and G58 OTel is only an
+  in-memory mapping preview; concrete ROS 2, production OTel/Prometheus,
+  Python, Perfetto, C API, and plugin adapters remain deferred.
 - G69 robot-cell pilot is a dependency-free in-process case study; it is not a
   hardware driver, ROS graph, camera SDK integration, exporter integration, or
   external scheduling guarantee.

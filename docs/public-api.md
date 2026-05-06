@@ -10,11 +10,13 @@ TopoExec is pre-1.0, but embedders should still know which headers are intended 
 | `topoexec::runtime` | Components, C++ graph construction, validation, runtime execution, payload helpers, metrics, and traces. | No YAML parser or CLI dependency for pure C++ embedding. |
 | `topoexec::yaml` | YAML `schema_version: 1` loading and optional JSON/Mermaid plan helpers. | Depends on `topoexec::runtime` and parser/JSON libraries. |
 | `topoexec::adapter_sdk` | Header-only adapter SDK v0 boundary for future adapter packages. | Depends on `topoexec::runtime`; no YAML, CLI, ROS, OpenTelemetry, Prometheus, Python, Perfetto, or plugin-loader dependency. |
+| `topoexec_adapters::otel` | Optional OTel exporter preview target. | Depends on `topoexec::adapter_sdk`; no core/runtime reverse dependency and no external telemetry SDK. Default OFF. |
 
 Installed package config metadata exposes `TOPOEXEC_VERSION`,
 `TOPOEXEC_SCHEMA_VERSION`, `TOPOEXEC_SEMANTIC_CONTRACT_VERSION`,
 `TOPOEXEC_HAS_RUNTIME`, `TOPOEXEC_HAS_ADAPTER_SDK`, `TOPOEXEC_HAS_YAML`,
-`TOPOEXEC_HAS_CLI`, and `TOPOEXEC_HAS_EXAMPLES` so downstream projects can assert package capabilities
+`TOPOEXEC_HAS_OTEL_ADAPTER`, `TOPOEXEC_HAS_CLI`, and
+`TOPOEXEC_HAS_EXAMPLES` so downstream projects can assert package capabilities
 at configure time.
 
 ## Stability markers
@@ -64,6 +66,7 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
 | `topoexec/adapters/sdk.hpp` | Adapter SDK v0 preview: observer aliases, `BoundaryBridge`, and `ComponentFactoryProvider` for dependency-free future adapter packages. |
+| `topoexec/adapters/otel.hpp` | OTel exporter preview: dependency-free in-memory mapping records over runtime metrics, trace, health, and errors. |
 | `topoexec/common/metrics.hpp` | Small metrics registry/value helpers; runtime metric schema descriptors live in `topoexec/runtime/metric_schema.hpp`. |
 | `topoexec/common/logging.hpp` | Structured logging helper; adapter/exporter boundary is not stable yet. |
 | `topoexec/common/trace.hpp` | Trace collection helper used by the runtime; public timeline fields are exposed through `RuntimeTraceEvent`. |
@@ -94,6 +97,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `ITaskExecutor`, `DeterministicTaskExecutor`, `TaskExecutor`, `ThreadedTaskExecutor` | experimental | The deterministic compatibility name remains available; threaded executor preview shutdown/admission details may change before beta. |
 | `RuntimeChannelBus`, `RuntimePublicationRouter`, `TriggerPolicyEngine`, `EventRuntime` | experimental | Advanced runtime internals may change as scheduler/channel/trigger v2 goals land. |
 | `topoexec::adapters::BoundaryBridge`, `BoundaryMessage`, `BoundaryPollResult`, `BoundaryBridgeStatus`, `ComponentFactoryProvider` | experimental | Adapter SDK v0 is a header-only boundary. Bridges are bounded/best-effort and providers register components explicitly; concrete adapter packages and dynamic discovery remain future work. |
+| `topoexec::adapters::otel::ExporterPreview` and preview record structs | experimental | G58 dependency-free OTel-shaped mapping over the observer API. Record names and options may change before production exporter work. |
 
 ## Compatibility Expectations
 
@@ -163,8 +167,13 @@ G57 establishes Adapter SDK v0 as a preview/dependency-free boundary:
 - Core/runtime headers must not include ROS 2, OpenTelemetry, Prometheus, Python, Perfetto, dynamic plugin SDK headers, or `topoexec/adapters/*`.
 - `ResultSink`, `RuntimeObserver`, `MetricSink`, `TraceSink`, and `InMemoryRuntimeObserver` remain the stable-v0.2 in-process observer surface; `topoexec/adapters/sdk.hpp` re-exports them under `topoexec::adapters` for adapter authors.
 - `topoexec::adapter_sdk` is a header-only interface target that depends on `topoexec::runtime`; `topoexec::runtime` does not depend on it.
+- `topoexec_adapters::otel` is a default-off preview target that depends on
+  `topoexec::adapter_sdk` and maps observer/result records without linking an
+  external telemetry SDK.
 - `BoundaryBridge` is bounded/best-effort and must not directly affect runtime scheduling. Bridge failures are adapter health/diagnostic evidence unless represented as ordinary graph boundary input/output.
-- `ComponentFactoryProvider` registers explicit in-process factories into `ComponentRegistry`; dynamic discovery, ABI policy, sandboxing, and concrete exporters remain future work.
+- `ComponentFactoryProvider` registers explicit in-process factories into
+  `ComponentRegistry`; dynamic discovery, ABI policy, sandboxing, production
+  telemetry exporters, and network transports remain future work.
 
 ## Pure runtime embedding smoke
 

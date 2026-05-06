@@ -60,11 +60,13 @@ inspect a YAML graph in less than 30 minutes by following this path.
 ## Adapters
 
 - [Adapter boundaries](adapters.md)
+- [OTel exporter preview](adapters/otel.md)
 - [ROS 2 adapter plan](adapters/ros2.md)
 
 Adapters remain deferred/preview unless a later goal explicitly implements them.
-Do not infer ROS 2, OpenTelemetry, Prometheus, Python, or dynamic plugin support
-from docs that only describe boundaries.
+Do not infer ROS 2, production OpenTelemetry/Prometheus, Python, or dynamic
+plugin support from docs that only describe boundaries. The G58 OTel target is a
+dependency-free mapping preview, not a production telemetry SDK integration.
 
 ## Testing and release
 

@@ -49,9 +49,12 @@ The installed package exports:
 
 - `topoexec::core`: header-only common baseline.
 - `topoexec::runtime`: embeddable runtime library.
+- `topoexec::adapter_sdk`: dependency-free adapter SDK v0 boundary.
 - `topoexec::yaml`: optional YAML graph loader target when built.
 - `topoexec::topoexec_cli`: optional imported executable target when the CLI is
   built and installed.
+- `topoexec_adapters::otel`: optional dependency-free OTel exporter preview
+  target when `TOPOEXEC_BUILD_OTEL_ADAPTER=ON`.
 
 The CLI executable is installed as `bin/topoexec` when `TOPOEXEC_BUILD_CLI=ON`.
 The installed config also exposes package metadata variables:
@@ -60,6 +63,8 @@ The installed config also exposes package metadata variables:
 - `TOPOEXEC_SCHEMA_VERSION`
 - `TOPOEXEC_SEMANTIC_CONTRACT_VERSION`
 - `TOPOEXEC_HAS_RUNTIME`
+- `TOPOEXEC_HAS_ADAPTER_SDK`
+- `TOPOEXEC_HAS_OTEL_ADAPTER`
 - `TOPOEXEC_HAS_YAML`
 - `TOPOEXEC_HAS_CLI`
 - `TOPOEXEC_HAS_EXAMPLES`
@@ -73,6 +78,7 @@ The installed config also exposes package metadata variables:
 | `TOPOEXEC_BUILD_EXAMPLES` | `ON` | Build runnable example applications; requires YAML for YAML-backed apps. |
 | `TOPOEXEC_BUILD_TESTING` | `ON` | Build CTest suite; currently requires YAML, CLI, and examples. |
 | `TOPOEXEC_BUILD_FUZZERS` | `OFF` | Build optional graph-input fuzz targets; requires YAML. |
+| `TOPOEXEC_BUILD_OTEL_ADAPTER` | `OFF` | Build and export the optional dependency-free OTel exporter preview target. |
 | `TOPOEXEC_FUZZER_ENGINE` | `AUTO` | Fuzzer engine when fuzzers are enabled: `AUTO`, `LIBFUZZER`, or `STANDALONE`. |
 | `TOPOEXEC_ENABLE_ASAN` | `OFF` | Add AddressSanitizer instrumentation for GCC/Clang builds. |
 | `TOPOEXEC_ENABLE_UBSAN` | `OFF` | Add UndefinedBehaviorSanitizer instrumentation for GCC/Clang builds. |
@@ -91,6 +97,27 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 ```
 
 This path is covered by `cmake_runtime_only_options_smoke`.
+
+Optional OTel preview target:
+
+```bash
+cmake -S . -B build-otel -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DTOPOEXEC_BUILD_OTEL_ADAPTER=ON
+cmake --build build-otel -j
+ctest --test-dir build-otel --output-on-failure -R test_otel_adapter
+```
+
+Installed consumers request the optional package component and link the adapter
+namespace target:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED COMPONENTS otel)
+target_link_libraries(my_exporter PRIVATE topoexec_adapters::otel)
+```
+
+This preview target maps existing runtime metrics, trace, health, and errors to
+in-memory OTel-shaped records. It does not link an external telemetry SDK and is
+covered by `cmake_otel_adapter_options_smoke`.
 
 Optional fuzzer smoke:
 

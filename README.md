@@ -49,7 +49,7 @@ find_package(topoexec CONFIG REQUIRED)
 target_link_libraries(my_app PRIVATE topoexec::runtime)
 ```
 
-Build graphs directly in C++ with `GraphSpec` or `topoexec/runtime/graph_builder.hpp`. `examples/apps/cpp_builder_minimal` is the minimal embeddable example. YAML loading and CLI tooling are optional through `topoexec::yaml`; future adapter packages can use the dependency-free `topoexec::adapter_sdk` boundary without adding concrete adapter dependencies to runtime.
+Build graphs directly in C++ with `GraphSpec` or `topoexec/runtime/graph_builder.hpp`. `examples/apps/cpp_builder_minimal` is the minimal embeddable example. YAML loading and CLI tooling are optional through `topoexec::yaml`; adapter packages use the dependency-free `topoexec::adapter_sdk` boundary, and the default-off `topoexec_adapters::otel` target previews telemetry mapping without adding concrete adapter dependencies to runtime.
 
 ## CLI Tools
 
@@ -137,7 +137,9 @@ Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and 
   declarative previews; arbitrary trigger scripts and wall-clock debounce timers
   are not implemented.
 - Non-blocking ThreadSanitizer CI is wired for GitHub Actions and passed on current `main`; local `scripts/agent_check.sh` remains the required agent gate.
-- ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.
+- ROS 2, production OpenTelemetry/Prometheus, Python, and external Perfetto
+  adapters are deferred; the default-off OTel target is only a dependency-free
+  mapping preview.
 - The beta readiness review covers only a possible core-runtime beta candidate;
   adapter/ecosystem beta readiness, hard real-time scheduling, signed release
   uploads, and package-registry publication remain deferred.
