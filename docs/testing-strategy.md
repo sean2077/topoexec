@@ -17,7 +17,7 @@ This configures, builds, and runs all default CTest tests.
 | Semantic runtime | graph compiler, edge visibility, trigger, scheduler, async, CompositeLoop, state/config tests | `ctest --test-dir build --output-on-failure -R 'test_graph|test_runtime|test_state'` |
 | Golden CLI | normalized plan, metrics, trace, and render outputs | `./scripts/goal_check.sh golden` |
 | Schema | strict schema contract plus schema/semantic CLI split | `./scripts/goal_check.sh schema` |
-| Docs | executable `topoexec-doc-test` tutorial/CLI markers | `./scripts/goal_check.sh docs` |
+| Docs | recursive `topoexec-doc-test` markers plus docs learning-map/section contract | `./scripts/goal_check.sh docs` |
 | Fuzz smoke | deterministic malformed, invalid-UTF-8, oversized, parser-limit corpus plus optional fuzzer target corpus replay | `./scripts/goal_check.sh fuzz` |
 | Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
 | Benchmark smoke | RuntimeRunner benchmark cases, task-executor benchmark output, schema v2 metadata, and optional local baseline generation | `./scripts/goal_check.sh bench` |
@@ -89,6 +89,15 @@ TOPOEXEC_BENCH_THRESHOLD_PERCENT=15 \
 See [Performance baselines](performance-baselines.md) for interpretation and
 policy. Benchmark success proves output-contract and workload health, not a
 portable performance guarantee.
+
+## Docs smoke
+
+`docs_command_smoke` runs every `topoexec-doc-test` marker under `docs/` and
+verifies the G55 docs map: getting-started, concepts, runtime semantics, API
+reference, schema, cookbook, adapters, testing/release pages, architecture
+diagrams, why-not comparisons, and design principles. Add a marker for commands
+that should remain executable, and update `tests/docs/check_docs.py` only when
+the documentation contract intentionally changes.
 
 ## Sanitizer gates
 

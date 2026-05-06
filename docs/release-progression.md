@@ -23,6 +23,8 @@ the repository has:
   timing thresholds.
 - Installed package smokes cover runtime-only, YAML, and CLI consumption from an
   install prefix; CPack TGZ and package-manager draft checks exist.
+- Documentation system v2 adds an executable cookbook, architecture diagrams,
+  why-not comparisons, design principles, and recursive docs contract checks.
 - G26 adds golden coverage for Chrome trace shape, schema dump JSON, and doctor
   JSON in addition to plan/metrics/trace/render outputs.
 
@@ -90,6 +92,7 @@ git diff --check
 cmake --build build --target topoexec_format_check
 ./scripts/goal_check.sh package
 ./scripts/goal_check.sh golden
+./scripts/goal_check.sh docs
 ./scripts/goal_check.sh stress
 ./scripts/goal_check.sh bench
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
@@ -113,7 +116,8 @@ A release artifact rehearsal should produce:
 5. runtime-only package smoke summary;
 6. ASAN+UBSAN summary;
 7. golden output summary for plan, metrics, trace, Chrome trace, render, schema dump, and doctor JSON;
-8. stress smoke summary, plus optional soak summary when run;
-9. benchmark output-contract summary and any optional local baseline comparison;
-10. CPack source/binary smoke summary and package-draft review status;
-11. known limitations copied into release notes.
+8. docs command/map smoke summary;
+9. stress smoke summary, plus optional soak summary when run;
+10. benchmark output-contract summary and any optional local baseline comparison;
+11. CPack source/binary smoke summary and package-draft review status;
+12. known limitations copied into release notes.

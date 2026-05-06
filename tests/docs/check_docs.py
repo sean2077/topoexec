@@ -12,6 +12,66 @@ from pathlib import Path
 
 MARKER = re.compile(r"<!--\s*topoexec-doc-test:\s*(.*?)\s*-->")
 
+REQUIRED_DOCS = [
+    "getting-started.md",
+    "concepts.md",
+    "runtime-semantics.md",
+    "api-overview.md",
+    "public-api.md",
+    "schema-v1.md",
+    "cookbook.md",
+    "adapters.md",
+    "testing-strategy.md",
+    "release-checklist.md",
+    "architecture-diagrams.md",
+    "why-topoexec.md",
+    "design-principles.md",
+]
+
+REQUIRED_SECTIONS = {
+    "cookbook.md": [
+        "## Low-latency latest pipeline",
+        "## Bounded queue command stream",
+        "## Delay feedback control",
+        "## CompositeLoop solver",
+        "## Async request/response",
+        "## State/config snapshot",
+        "## Large payload ownership",
+    ],
+    "architecture-diagrams.md": [
+        "## Runtime flow",
+        "## Publication routing",
+        "## Scheduler lanes",
+        "## Channel lifecycle",
+        "```mermaid",
+    ],
+    "why-topoexec.md": [
+        "## oneTBB",
+        "## Dora",
+        "## GStreamer",
+        "## ROS 2",
+        "## Workflow engines",
+    ],
+    "design-principles.md": [
+        "## Bounded everything",
+        "## Explicit feedback",
+        "## No hidden recursion",
+        "## Observation is not control",
+    ],
+}
+
+README_REQUIRED_LINKS = [
+    "(getting-started.md)",
+    "(concepts.md)",
+    "(runtime-semantics.md)",
+    "(api-overview.md)",
+    "(schema-v1.md)",
+    "(cookbook.md)",
+    "(adapters.md)",
+    "(testing-strategy.md)",
+    "(release-checklist.md)",
+]
+
 
 def expand(command: str, *, source_dir: Path, build_dir: Path, topoexec: Path) -> str:
     return (
@@ -19,6 +79,28 @@ def expand(command: str, *, source_dir: Path, build_dir: Path, topoexec: Path) -
         .replace("${BUILD_DIR}", str(build_dir))
         .replace("${TOPOEXEC}", str(topoexec))
     )
+
+
+def validate_docs_map(docs_dir: Path) -> list[str]:
+    failures: list[str] = []
+    for relative in REQUIRED_DOCS:
+        if not (docs_dir / relative).exists():
+            failures.append(f"missing required docs page: docs/{relative}")
+
+    readme = (docs_dir / "README.md").read_text(encoding="utf-8")
+    for link in README_REQUIRED_LINKS:
+        if link not in readme:
+            failures.append(f"docs/README.md missing required link {link}")
+
+    for relative, sections in REQUIRED_SECTIONS.items():
+        path = docs_dir / relative
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for section in sections:
+            if section not in text:
+                failures.append(f"docs/{relative} missing required section {section}")
+    return failures
 
 
 def main() -> int:
@@ -29,8 +111,14 @@ def main() -> int:
     args = parser.parse_args()
 
     docs_dir = args.source_dir / "docs"
+    map_failures = validate_docs_map(docs_dir)
+    if map_failures:
+        for failure in map_failures:
+            sys.stderr.write(f"{failure}\n")
+        return 1
+
     commands: list[tuple[Path, int, str]] = []
-    for path in sorted(docs_dir.glob("*.md")):
+    for path in sorted(docs_dir.rglob("*.md")):
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             match = MARKER.search(line)
             if match:

@@ -20,6 +20,7 @@ v0.2.0-alpha.0
 - [ ] `cmake --build build --target topoexec_format_check` passes.
 - [ ] `./scripts/goal_check.sh package` passes.
 - [ ] `./scripts/goal_check.sh golden` passes.
+- [ ] `./scripts/goal_check.sh docs` passes.
 - [ ] `./scripts/goal_check.sh stress` passes.
 - [ ] `./scripts/goal_check.sh bench` passes.
 - [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer` passes.

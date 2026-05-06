@@ -11,7 +11,7 @@ Goal-specific validation dispatcher for TopoExec agents.
 - golden: normalized CLI golden output checks
 - schema: schema v1 contract smoke
 - package: install/export downstream smoke, runtime-only option smoke, CPack, and package draft checks
-- docs:   executable docs command smoke
+- docs:   executable docs command smoke plus docs map contract
 - fuzz:   deterministic parser/compiler fuzz smoke plus optional fuzzer target corpus replay
 - stress: bounded runtime stress graph smoke plus task-executor overload stress
 - bench:  benchmark output-contract smoke plus local baseline generation without thresholds

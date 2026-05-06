@@ -1638,6 +1638,15 @@ Priority: P1/P2
 
 - A new user can understand TopoExec without reading source.
 - Agent can follow docs to implement goals without re-deriving architecture.
+- Cookbook commands are executable through docs smoke.
+- Architecture diagrams and comparisons describe current implemented boundaries
+  without overclaiming deferred adapters.
+
+Implementation note: the G55 pass reorganizes `docs/README.md` into learning,
+semantics, API, schema, cookbook, adapter, testing/release, and maintenance
+paths; adds executable cookbook recipes, architecture diagrams, why-not
+comparisons, and design principles; and extends `docs_command_smoke` to recurse
+through docs while checking required G55 pages and sections.
 
 ---
 

@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, and G54 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P0/P1 goal in backlog order is G55 Documentation System v2. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, and G55 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P0/P1 goal in backlog order is G56 Example Applications v2. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Active / Recent Goals
 
@@ -45,12 +45,32 @@ The next unfinished P0/P1 goal in backlog order is G55 Documentation System v2. 
 | G52 | complete | `tests/test_stress.cpp`, `tests/stress/check_stress_workloads.py`, `scripts/stress_smoke.sh`, `CMakeLists.txt`, `scripts/goal_check.sh`, `docs/stress-testing.md`, testing/build/release/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Bounded stress smoke now covers generated scheduler/channel workloads, `thread_pool` overload, and `ThreadedTaskExecutor` overload with queue-depth/drop/reject assertions; opt-in soak mode is bounded by steps/duration/iterations and remains confidence evidence, not a performance claim. |
 | G53 | complete | `benchmarks/*.yaml`, `benchmarks/task_executor.cpp`, `tests/bench/check_bench_contract.py`, `scripts/bench_baseline.*`, `CMakeLists.txt`, `scripts/goal_check.sh`, benchmark/testing/build/release docs, updated doctor golden, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Benchmark schema v2 now includes graph hashes plus compiler/build/CPU/commit metadata; expanded graph cases and a non-installed task-executor benchmark are output-contract checked, while local baseline comparison remains opt-in and per-machine. |
 | G54 | complete | `cmake/topoexecConfig.cmake.in`, `CMakeLists.txt`, `tests/cmake/*_smoke`, `tests/package/check_package_drafts.py`, `packaging/vcpkg/*`, `packaging/conan/*`, `tools/topoexec/main.cpp`, packaging/build/release docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Installed CMake packages now expose version/schema/semantic metadata, discover YAML dependencies when the YAML component is requested, support runtime-only/YAML/imported-CLI downstream consumption, find installed schema from the CLI path, generate CPack TGZ archives, and keep package-manager recipes as reviewable drafts. |
+| G55 | complete | `docs/README.md`, `docs/cookbook.md`, `docs/architecture-diagrams.md`, `docs/why-topoexec.md`, `docs/design-principles.md`, `tests/docs/check_docs.py`, testing docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Documentation now has a learning/reference/release map, executable cookbook recipes, architecture diagrams, why-not comparisons, design principles, and a recursive docs smoke that checks required G55 pages and sections. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+./scripts/goal_check.sh docs
+# G55 passed: recursive docs command smoke plus required docs map/section contract
+
+./scripts/goal_check.sh quick
+# G55 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+cmake --build build --target topoexec_format_check
+# G55 passed
+
+./scripts/agent_check.sh
+# G55 passed: 62/62 CTest tests with recursive docs smoke included
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G55 passed: 62/62 CTest tests in the ASAN+UBSAN Debug build
+
+git diff --check
+python3 -m py_compile tests/docs/check_docs.py
+# G55 passed
+
 cmake --build build -j
 # G54 passed: package metadata, downstream smoke, and installed-schema CLI changes rebuilt successfully
 
