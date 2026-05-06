@@ -12,7 +12,7 @@ hardware, package-registry, or 1.0 readiness claim.
 
 | Question | Verdict |
 | --- | --- |
-| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G64, G66-G67, and G69-G70 are complete; remaining G65 and G68 are P3/P2 editor/community work and must stay explicit if not done before beta. Schema v2 implementation remains deferred beyond the G64 design note. |
+| Are all plan2 P0/P1 goals complete or explicitly deferred? | Yes. G26-G65, G66-G67, and G69-G70 are complete; remaining G68 is P2 community work and must stay explicit if not done before beta. Schema v2 implementation remains deferred beyond the G64 design note, and a full editor/LSP extension remains beyond the G65 guide. |
 | Can TopoExec honestly prepare a core-runtime beta candidate? | Yes, if release notes keep the deferred features and alpha/experimental surfaces explicit and CI/release-prep evidence is attached for the exact candidate commit. |
 | Can TopoExec claim adapter/ecosystem beta readiness? | No. G58/G59 add dependency-free telemetry mapping/text previews and G60 adds only a dependency-free ROS 2 fake-boundary preview; concrete ROS 2 client-library packages, production OpenTelemetry/Prometheus, stable C ABI, native Python bindings, sandboxed/stable plugin ecosystems, graph-driven plugin discovery, external Perfetto, and package-registry surfaces remain deferred or draft-only. |
 | Can TopoExec claim hard real-time or external scheduling guarantees? | No. Fixed-rate/thread-pool behavior is cooperative and observable; OS RT policy, CPU affinity guarantees, independent lane threads, hard preemption, and advanced starvation aging remain future work. |
@@ -49,6 +49,7 @@ adapter or ecosystem beta.
 | Benchmark output stable / no overclaims | `docs/performance-baselines.md`, `benchmarks/*.yaml`, `tests/bench/check_bench_contract.py`, and `./scripts/goal_check.sh bench`. | Covered; thresholds opt-in per machine |
 | Parser limits / no dynamic plugin default | `GraphInputLimits`, defensive-input docs/tests/fuzz smoke, architecture guardrails, plugin-loader docs, and plugin option smoke. | Covered; plugin loading stays default-off and explicit |
 | Schema v2 boundary | `docs/schema-v2-notes.md`, `docs/schema-v1.md`, `docs/versioning.md`, `schema_v1_contract_smoke`, and docs map smoke. | Covered as design boundary only; no v2 loader or migration CLI |
+| Editor/schema UX | `docs/editor-schema.md`, installed CLI schema discovery package smoke, `editor_schema_ux_smoke`, and docs map smoke. | Covered as setup guide and JSON diagnostics; no editor extension or LSP server |
 | Hierarchical graph contract | `docs/hierarchical-graphs.md`, schema-v1 docs, graph/runtime tests, plan JSON hierarchy metadata, and invariant coverage. | Covered as compile-time namespace expansion, not runtime nesting |
 | Graph template contract | `docs/graph-templates.md`, schema-v1 docs, template example YAML, graph/schema tests, and docs smoke. | Covered as strict parameter substitution, not runtime interpretation |
 | CompositeLoop solver-style policy contract | `docs/composite-loops.md`, schema-v1 docs, runtime/graph tests, metrics/trace docs, and invariant coverage. | Covered as bounded in-process residual reporting and partial-output policy, not external solver plugins |
@@ -91,7 +92,7 @@ blocking for a beta tag, record that decision in release notes.
 - Production OpenTelemetry SDK/network exporter and Prometheus HTTP/scrape
   service. G58/G59 cover only dependency-free mapping/text previews.
 - Real ROS 2 client-library package beyond the G60 fake-boundary preview.
-- Stable C ABI beyond the G61 ABI-version-0 preview, native Python bindings beyond the G62 CLI-backed automation preview, sandboxed/stable plugin ecosystems beyond the G63 trusted-native loader preview, actual schema v2 implementation/migration tooling beyond the G64 design note, and editor/LSP UX (G65).
+- Stable C ABI beyond the G61 ABI-version-0 preview, native Python bindings beyond the G62 CLI-backed automation preview, sandboxed/stable plugin ecosystems beyond the G63 trusted-native loader preview, actual schema v2 implementation/migration tooling beyond the G64 design note, and a full editor extension or LSP server beyond the G65 setup guide.
 - Community/contribution readiness work (G68) if the beta is aimed at broad external contributors rather than core-runtime evaluators.
 
 ## Human release decision

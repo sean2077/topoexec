@@ -45,6 +45,7 @@ inspect a YAML graph in less than 30 minutes by following this path.
 - [Graph spec](graph-spec.md)
 - [Schema v1](schema-v1.md)
 - [Schema v2 notes](schema-v2-notes.md)
+- [Editor and schema UX](editor-schema.md)
 - [Hierarchical graphs](hierarchical-graphs.md)
 - [Graph templates](graph-templates.md)
 - [Channels and backpressure](channels.md)
@@ -101,6 +102,7 @@ sandboxed plugin, or package-discovery integrations.
 
 The `docs_command_smoke` CTest runs selected commands embedded as
 `topoexec-doc-test` markers across the docs tree. It also checks that the G55
-learning map, cookbook, diagrams, comparisons, design-principle pages, and G64
-schema-v2 decision note keep required sections present. Package, C++ app, benchmark, fuzz, and stress smokes
+learning map, cookbook, diagrams, comparisons, design-principle pages, G64
+schema-v2 decision note, and G65 editor-schema guide keep required sections
+present. Package, C++ app, benchmark, fuzz, and stress smokes
 cover compileable/runtime snippets outside docs.

@@ -57,7 +57,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G62 | P3 | complete | Python Binding Preview for Config/Test | Default-off `topoexec_preview` now provides a stdlib-only CLI-backed Python automation package for graph load/validate/plan/bounded-run/metrics/trace workflows, with source/installed smokes and disabled runtime-only coverage proving Python is not a required runtime dependency. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh python`; `./scripts/goal_check.sh policy`; format |
 | G63 | P2/P3 | complete | Dynamic Plugin Loading Preview | Default-off `topoexec::plugin_loader` now loads trusted native component plugins by explicit path with manifest/plugin-API/schema validation, descriptor mismatch errors, opt-in unload behavior, package metadata, docs, and policy checks while keeping explicit `ComponentRegistry` registration as the stable path. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh plugins`; `./scripts/goal_check.sh policy`; format; ASAN+UBSAN sanitizer |
 | G64 | P2 | complete | Schema v2 Exploration | `docs/schema-v2-notes.md` classifies additive-v1 vs breaking-v2 candidates, migration policy, and non-goals while keeping the v1 loader strict. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh schema`; `./scripts/goal_check.sh docs`; `./scripts/goal_check.sh quick`; format; ASAN+UBSAN sanitizer |
-| G65 | P3 | pending | Editor / LSP / JSON Schema UX | 提升 graph authoring 体验，但保持 runtime 优先。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G65 | P3 | complete | Editor / LSP / JSON Schema UX | `docs/editor-schema.md`, installed-CLI schema discovery smoke, and editor diagnostic JSON smoke document VS Code/YAML Language Server setup without adding a runtime dependency or LSP server. | `./scripts/agent_check.sh`; `ctest -R 'editor_schema_ux_smoke|cli_schema_dump_json|cli_schema_check_minimal_json|docs_command_smoke|cmake_package_runtime_smoke'`; `./scripts/goal_check.sh docs`; `./scripts/goal_check.sh package`; `./scripts/goal_check.sh quick`; format |
 | G66 | P0/P1 | complete | Architecture Enforcement CI v2 | `tests/policy/check_no_adapter_deps.py`, `policy_architecture_self_test`, CMake target/include audits, and `docs/architecture-guardrails.md` enforce module boundaries. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh policy`; format |
 | G67 | P1 | complete | Release Automation and Artifact Reproducibility | `scripts/release_prepare.sh`, release dry-run workflow, release runbook, artifact/checksum generation, and `./scripts/goal_check.sh release` make prerelease preparation repeatable without automatic tag/publish authority. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh release`; `./scripts/goal_check.sh package`; `./scripts/goal_check.sh docs`; format; ASAN+UBSAN sanitizer |
 | G68 | P2 | pending | Community and Contribution Readiness | 让开源用户和贡献者可以参与，而不需要你解释所有上下文。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -67,8 +67,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 ## Next goal
 
 All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals"
-objective, the next unfinished backlog goals are G65 editor UX and G68
-community readiness. Lower-priority design/adapter/ecosystem
+objective, the next unfinished backlog goal is G68 community readiness. Lower-priority design/adapter/ecosystem
 work remains pending and concrete adapter implementations remain deferred unless
 that scope is explicitly opened.
 

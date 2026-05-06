@@ -106,6 +106,7 @@ Each app directory includes a README with graph shape, run command, expected out
 - [Runtime semantics](docs/runtime-semantics.md)
 - [Schema v1](docs/schema-v1.md)
 - [Schema v2 notes](docs/schema-v2-notes.md)
+- [Editor and schema UX](docs/editor-schema.md)
 - [API overview](docs/api-overview.md)
 - [Public API stability](docs/public-api.md)
 - [Python automation preview](docs/python-preview.md)

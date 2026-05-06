@@ -24,6 +24,7 @@ REQUIRED_DOCS = [
     "plugin-loader.md",
     "schema-v1.md",
     "schema-v2-notes.md",
+    "editor-schema.md",
     "hierarchical-graphs.md",
     "graph-templates.md",
     "cookbook.md",
@@ -98,6 +99,15 @@ REQUIRED_SECTIONS = {
         "## Non-goals",
         "## Validation",
     ],
+    "editor-schema.md": [
+        "## Status",
+        "## Schema discovery",
+        "## VS Code workspace settings",
+        "## Inline modeline",
+        "## Diagnostics for editor integrations",
+        "## LSP design boundary",
+        "## Validation",
+    ],
 }
 
 README_REQUIRED_LINKS = [
@@ -112,6 +122,7 @@ README_REQUIRED_LINKS = [
     "(plugin-loader.md)",
     "(schema-v1.md)",
     "(schema-v2-notes.md)",
+    "(editor-schema.md)",
     "(hierarchical-graphs.md)",
     "(graph-templates.md)",
     "(cookbook.md)",

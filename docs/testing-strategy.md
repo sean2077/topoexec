@@ -17,12 +17,13 @@ This configures, builds, and runs all default CTest tests.
 | Semantic runtime | graph compiler, edge visibility, trigger, scheduler, async, CompositeLoop, state/config tests | `ctest --test-dir build --output-on-failure -R 'test_graph|test_runtime|test_state'` |
 | Golden CLI | normalized plan, metrics, trace, and render outputs | `./scripts/goal_check.sh golden` |
 | Schema | strict schema contract plus schema/semantic CLI split | `./scripts/goal_check.sh schema` |
+| Editor schema UX | installed schema discovery, stable schema dump, and diagnostic JSON fields for editor problem lists | `ctest --test-dir build --output-on-failure -R editor_schema_ux_smoke` |
 | Docs | recursive `topoexec-doc-test` markers plus docs learning-map/section contract | `./scripts/goal_check.sh docs` |
 | Example apps | dependency-free reference apps plus the G69 robot-cell pilot covering latest/drop, fixed-rate state feedback, task completion, CompositeLoop, payload ownership, multi-lane feedback, config snapshots, metrics/trace, and invalid-config rejection | `ctest --test-dir build --output-on-failure -R 'app_'` |
 | Fuzz smoke | deterministic malformed, invalid-UTF-8, oversized, parser-limit corpus plus optional fuzzer target corpus replay | `./scripts/goal_check.sh fuzz` |
 | Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
 | Benchmark smoke | RuntimeRunner benchmark cases, task-executor benchmark output, schema v2 metadata, and optional local baseline generation | `./scripts/goal_check.sh bench` |
-| Package | install/export/downstream `find_package(topoexec)` runtime-only, adapter SDK, YAML, and CLI smokes | `./scripts/goal_check.sh package` |
+| Package | install/export/downstream `find_package(topoexec)` runtime-only, adapter SDK, YAML, CLI, and installed-schema discovery smokes | `./scripts/goal_check.sh package` |
 | Adapter previews | optional adapter targets, package exports, and dependency-boundary policy | `./scripts/goal_check.sh adapters` |
 | Release prep | non-publishing release_prepare dry run, release notes draft, and human-only tag-command contract | `./scripts/goal_check.sh release` |
 | Sanitizers | ASAN+UBSAN full CTest; TSAN non-blocking CI | `./scripts/goal_check.sh sanitizer` |

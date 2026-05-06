@@ -86,6 +86,18 @@ Current local evidence after G64 schema-v2 exploration:
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 78/78 ASAN+UBSAN CTest tests.
 ```
 
+Current local evidence after G65 editor/schema UX:
+
+```text
+ctest --test-dir build --output-on-failure -R 'editor_schema_ux_smoke|cli_schema_dump_json|cli_schema_check_minimal_json|docs_command_smoke|cmake_package_runtime_smoke': passed editor diagnostic JSON, schema dump/check, docs map, and installed CLI schema discovery smokes.
+./scripts/goal_check.sh docs: passed docs map including editor-schema.md.
+./scripts/goal_check.sh package: passed package/runtime-only/CPack/package-draft smokes, including installed CLI schema discovery.
+./scripts/goal_check.sh quick: passed golden/schema smokes.
+./scripts/goal_check.sh policy: passed architecture policy smokes.
+./scripts/agent_check.sh: passed, 79/79 CTest tests.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 79/79 ASAN+UBSAN CTest tests.
+```
+
 ## Golden drift surfaces
 
 The release candidate must preserve or intentionally update these goldens:
@@ -169,8 +181,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
   comparisons.
 - Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python
   bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems,
-  graph-driven plugin discovery, schema v2 implementation/migration tooling, and
-  external Perfetto adapters remain deferred.
+  graph-driven plugin discovery, schema v2 implementation/migration tooling, full
+  editor/LSP extension implementation, and external Perfetto adapters remain
+  deferred.
 - Package-manager recipes under `packaging/` are drafts, not published ports.
 - `scripts/release_prepare.sh` can generate local candidate artifacts and
   checksums, but signed release uploads and annotated tag pushes still require a
@@ -200,6 +213,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - G64 is a schema-v2 design note only. It classifies future schema candidates but
   does not implement a v2 loader, migration CLI, runtime nesting, graph-driven
   plugin/package discovery, adapter-specific graph fields, or expression language.
+- G65 is an editor/schema setup guide and diagnostic/schema smoke only. It does
+  not implement a VS Code extension, language server, file watcher, or runtime
+  editor dependency.
 
 ## Tagging
 

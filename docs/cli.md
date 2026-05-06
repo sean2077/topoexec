@@ -64,8 +64,9 @@ as normal validation JSON when `--format json` is selected.
 `schema dump --format json` includes the schema annotation
 `x-topoexec-semantic_contract_version`. `doctor --format json` reports the same
 runtime contract as `semantic_contract_version` alongside the graph
-`schema_version`, health-event observer defaults, and default
-`graph_input_limits`.
+`schema_version`, installed schema path, health-event observer defaults, and
+default `graph_input_limits`. For VS Code / YAML Language Server setup, see
+[Editor and Schema UX](editor-schema.md).
 
 <!-- topoexec-doc-test: ${TOPOEXEC} schema dump --format json -->
 <!-- topoexec-doc-test: ${TOPOEXEC} schema check ${SOURCE_DIR}/examples/minimal.yaml --format json -->

@@ -365,4 +365,4 @@ Release candidates should include:
 - If a sanitized installed static library fails to link in a downstream smoke,
   propagate the same sanitizer link flags to the downstream executable.
 - Use `topoexec doctor --format json` in a default build to inspect schema,
-  example, and benchmark discovery paths.
+  example, benchmark discovery paths, and installed CLI schema discovery paths.

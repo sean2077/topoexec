@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G35, G36, G37, G38, G39, G40, G41, G42, G45, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, G57, G58, G59, G60, G61, G62, G63, G64, G67, G69, and G70 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" objective, the next unfinished backlog goals are G65 editor UX and G68 community readiness. Schema v2 implementation/migration tooling and concrete adapter implementations remain deferred unless that scope is explicitly opened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G35, G36, G37, G38, G39, G40, G41, G42, G45, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, G57, G58, G59, G60, G61, G62, G63, G64, G65, G67, G69, and G70 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" objective, the next unfinished backlog goal is G68 community readiness. Schema v2 implementation/migration tooling, full editor/LSP extension scope, and concrete adapter implementations remain deferred unless that scope is explicitly opened.
 
 ## Active / Recent Goals
 
@@ -59,15 +59,46 @@ All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" obje
 | G62 | complete | `python/topoexec_preview`, `tests/python/test_python_preview.py`, `tests/cmake/python_preview_options_smoke.cmake`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `scripts/goal_check.sh`, docs map/policy checks, `docs/python-preview.md`, public API/package/release docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Default-off `topoexec_preview` provides stdlib-only CLI-backed graph load/validate/plan/bounded-run/metrics/trace automation; source and installed smokes plus disabled runtime-only option coverage prove Python is not a native binding, component callback path, high-throughput payload path, or required runtime dependency. |
 | G63 | complete | `include/topoexec/plugins/loader.hpp`, `src/plugin_loader.cpp`, `tests/test_plugin_loader.cpp`, `tests/plugins/*`, `tests/cmake/plugin_loader_options_smoke.cmake`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `scripts/goal_check.sh`, policy checks, `docs/plugin-loader.md`, public API/package/release docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Default-off `topoexec::plugin_loader` loads trusted native plugins by explicit path with manifest/plugin-API/schema validation, descriptor mismatch reporting, package metadata, and no default unload/sandbox/stable-ABI claim; explicit `ComponentRegistry` registration remains the stable primary path. |
 | G64 | complete | `docs/schema-v2-notes.md`, `src/graph_io.cpp`, `tests/test_graph.cpp`, `tests/docs/check_docs.py`, `tests/schema/check_schema_contract.py`, schema/versioning/API docs, release/beta/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Schema v2 is now a reviewed design boundary only: additive-v1 vs breaking-v2 candidates, migration policy, and non-goals are documented while the v1 loader remains strict and rejects `schema_version: 2` sketches. |
+| G65 | complete | `docs/editor-schema.md`, `CMakeLists.txt`, `tests/cli/check_editor_schema_ux.py`, `tests/cmake/package_smoke.cmake`, `tests/docs/check_docs.py`, schema/CLI/diagnostics/package docs, release/beta/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Editor/schema UX is now covered by the existing JSON Schema and diagnostic JSON surfaces: VS Code/YAML Language Server setup is documented, installed CLI schema discovery is tested, and no runtime dependency, editor extension, or LSP server is added. |
 | G67 | complete | `scripts/release_prepare.sh`, `.github/workflows/release-dry-run.yml`, `tests/release/check_release_prepare.py`, `docs/release-runbook.md`, release/progression/versioning docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Release preparation is now reproducible from a clean candidate commit: the script checks tag/changelog/doc policy, runs gates unless skipped, drafts notes, generates source/CPack/schema artifacts plus checksums, writes a human-only annotated tag command, and never tags or publishes automatically. |
 | G69 | complete | `examples/apps/robot_cell_pilot`, `docs/case-study-robot-cell.md`, `docs/examples.md`, `examples/README.md`, README/docs index updates, `CMakeLists.txt`, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | The robot-cell pilot composes event-loop/thread-pool/fixed-rate lanes, async frame overload/drop, state and delay feedback, BufferPool `FrameView` payloads, config transaction/snapshot evidence, runtime metrics/trace/observer evidence, and invalid-config rejection while linking only `topoexec_runtime` and adding no adapter dependency. |
-| G70 | complete | `docs/beta-readiness-review.md`, `docs/public-api.md`, `docs/versioning.md`, `docs/runtime-invariants.md`, release docs, README/docs index updates, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | TopoExec can honestly enter a human-approved core-runtime beta candidate review after the required gates pass, but must not claim adapter/ecosystem beta readiness, signed/published package artifacts, hard real-time scheduling, schema v2 implementation, or deferred G65/G68 scope. |
+| G70 | complete | `docs/beta-readiness-review.md`, `docs/public-api.md`, `docs/versioning.md`, `docs/runtime-invariants.md`, release docs, README/docs index updates, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | TopoExec can honestly enter a human-approved core-runtime beta candidate review after the required gates pass, but must not claim adapter/ecosystem beta readiness, signed/published package artifacts, hard real-time scheduling, schema v2 implementation, or deferred G68 scope or full editor/LSP implementation. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+ctest --test-dir build --output-on-failure -R 'editor_schema_ux_smoke|cli_schema_dump_json|cli_schema_check_minimal_json|docs_command_smoke|cmake_package_runtime_smoke'
+# G65 passed: editor diagnostic JSON, schema dump/check, docs map, and installed CLI schema discovery smokes.
+
+./scripts/goal_check.sh docs
+# G65 passed: recursive docs command smoke and docs map including editor-schema.md.
+
+./scripts/goal_check.sh package
+# G65 passed: package/runtime-only/CPack/package-draft smokes, including installed CLI schema discovery.
+
+./scripts/goal_check.sh quick
+# G65 passed: cli_golden_outputs and schema_v1_contract_smoke.
+
+./scripts/goal_check.sh policy
+# G65 passed: policy_no_core_adapter_deps and policy_architecture_self_test.
+
+cmake --build build --target topoexec_format_check
+# G65 passed.
+
+./scripts/agent_check.sh
+# G65 passed: 79/79 CTest tests in the default RelWithDebInfo GCC build.
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G65 passed: 79/79 CTest tests in the ASAN+UBSAN Debug build.
+
+python3 -m py_compile tests/cli/check_editor_schema_ux.py tests/docs/check_docs.py
+# G65 passed.
+
+git diff --check
+# G65 passed.
+
 ./scripts/goal_check.sh schema
 # G64 passed: schema_v1_contract_smoke plus schema-only/semantic minimal CLI smokes; contract now verifies schema_version remains const 1 and rejects schema_version: 2 sketches.
 

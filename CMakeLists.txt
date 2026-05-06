@@ -691,6 +691,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     PASS_REGULAR_EXPRESSION "\"ok\": true"
   )
+  add_test(NAME editor_schema_ux_smoke
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/check_editor_schema_ux.py
+      --topoexec $<TARGET_FILE:topoexec_cli>
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+  )
   add_test(NAME cli_reject_invalid_unknown_field
     COMMAND topoexec graph validate ${CMAKE_CURRENT_SOURCE_DIR}/examples/invalid_unknown_field.yaml
   )

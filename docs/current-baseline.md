@@ -26,7 +26,7 @@ Release decision note:
 
 ```text
 Recommended next prerelease: v0.2.0-alpha.0.
-Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while production exporter adapters, long fuzz/soak campaigns, and adapter/ecosystem beta readiness remain explicit future work. RuntimeObserver v1, the dependency-free G58/G59 telemetry preview mappings, the G60 ROS 2 fake-boundary preview, the G61 C API/FFI preview, the G62 CLI-backed Python automation preview, the G63 trusted-native plugin loader preview, the G64 schema-v2 decision boundary, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
+Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while production exporter adapters, long fuzz/soak campaigns, and adapter/ecosystem beta readiness remain explicit future work. RuntimeObserver v1, the dependency-free G58/G59 telemetry preview mappings, the G60 ROS 2 fake-boundary preview, the G61 C API/FFI preview, the G62 CLI-backed Python automation preview, the G63 trusted-native plugin loader preview, the G64 schema-v2 decision boundary, the G65 editor/schema UX guide, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
 Human release approval should still verify CI on the exact tag commit before creating the annotated tag.
 ```
 
@@ -232,6 +232,21 @@ python3 -m py_compile tests/docs/check_docs.py tests/schema/check_schema_contrac
 git diff --check passed.
 ```
 
+Observed G65 local result:
+
+```text
+ctest --test-dir build --output-on-failure -R 'editor_schema_ux_smoke|cli_schema_dump_json|cli_schema_check_minimal_json|docs_command_smoke|cmake_package_runtime_smoke' passed: editor diagnostic JSON, schema dump/check, docs map, and installed CLI schema discovery smokes.
+./scripts/goal_check.sh docs passed: recursive docs command smoke and docs map including editor-schema.md.
+./scripts/goal_check.sh package passed: package/runtime-only/CPack/package-draft smokes, including installed CLI schema discovery.
+./scripts/goal_check.sh quick passed: cli_golden_outputs and schema_v1_contract_smoke.
+./scripts/goal_check.sh policy passed: policy_no_core_adapter_deps and policy_architecture_self_test.
+cmake --build build --target topoexec_format_check passed.
+./scripts/agent_check.sh passed: 79/79 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 79/79 CTest tests in the ASAN+UBSAN Debug build.
+python3 -m py_compile tests/cli/check_editor_schema_ux.py tests/docs/check_docs.py passed.
+git diff --check passed.
+```
+
 Observed G67 local result:
 
 ```text
@@ -341,18 +356,18 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
 - The beta-readiness review supports only a possible human-approved core-runtime
   beta candidate. It is not an adapter/ecosystem beta, package-registry
   publication, signed-artifact release, or hard real-time scheduling claim.
-- Documentation now has an executable cookbook, architecture diagrams, why-not comparisons, design principles, and the G64 schema-v2 decision boundary with recursive docs smoke coverage. The docs still describe adapter/exporter surfaces as deferred unless future goals implement them.
+- Documentation now has an executable cookbook, architecture diagrams, why-not comparisons, design principles, the G64 schema-v2 decision boundary, and the G65 editor/schema UX guide with recursive docs smoke coverage. The docs still describe adapter/exporter/editor-extension surfaces as deferred unless future goals implement them.
 - Reference apps and tests now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop fixed-point and solver-style convergence/budget/partial-output behavior, BufferPool copy/shared/loaned metrics, a template-expanded source-transform-sink YAML, and the G69 robot-cell pilot that composes multiple lanes, async overload, state/delay feedback, config snapshots, metrics/trace, and invalid-config rejection. They remain dependency-free in-process examples; hierarchy/templates are compile-time expansion features, and no external adapter stack is implemented by G69/G41/G42/G45.
 - The robot-cell pilot is an embedded case study, not a hardware driver, robot controller, camera integration, ROS graph, exporter integration, or external scheduling guarantee.
 - ThreadSanitizer remains non-blocking.
 - Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python
   bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems,
-  graph-driven plugin discovery, schema v2 implementation/migration tooling,
-  and external Perfetto adapters remain deferred
+  graph-driven plugin discovery, schema v2 implementation/migration tooling, full
+  editor/LSP extension implementation, and external Perfetto adapters remain deferred
   and must not be claimed as implemented; G57 provides a dependency-free SDK
   boundary, G58/G59 provide only dependency-free telemetry preview mappings, G60
   provides only a dependency-free ROS 2 fake-boundary preview, G61 provides only
   an unstable ABI-version-0 C API/FFI preview, G62 provides only a CLI-backed
   Python automation preview, and G63 provides only a trusted-native plugin-loader
-  preview; G64 provides only schema-v2 notes and no v2 loader or migration CLI.
+  preview; G64 provides only schema-v2 notes and no v2 loader or migration CLI; G65 provides only schema/editor setup docs and smokes, not an editor extension or LSP server.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

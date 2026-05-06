@@ -40,6 +40,7 @@ This document maps the invariants from `docs/plans/plan.md` G3 to concrete CI te
 | 33 | Python automation preview stays CLI-backed, default-off, and outside core/runtime native bindings. | `python_preview_smoke`; `cmake_python_preview_options_smoke`; `policy_no_core_adapter_deps`. |
 | 34 | Dynamic plugin loading is optional, explicit, trusted-native only, and does not become a runtime/core dependency. | `test_plugin_loader`; `cmake_plugin_loader_options_smoke`; `policy_no_core_adapter_deps`; `policy_architecture_self_test`. |
 | 35 | Schema v2 remains a design boundary until a reviewed v2 loader exists; schema v1 stays strict and rejects `schema_version: 2`. | `schema_v1_contract_smoke`; `docs_command_smoke`; `docs/schema-v2-notes.md`. |
+| 36 | Editor/schema UX uses installed schema discovery and diagnostic JSON without adding a runtime editor/LSP dependency. | `editor_schema_ux_smoke`; `cmake_package_runtime_smoke`; `docs_command_smoke`; `docs/editor-schema.md`. |
 
 ## Maintenance rule
 

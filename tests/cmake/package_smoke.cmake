@@ -101,6 +101,38 @@ if(NOT EXISTS "${INSTALL_DIR}/bin/topoexec")
   message(FATAL_ERROR "Default install did not include topoexec CLI")
 endif()
 
+set(DOCTOR_CWD "${SMOKE_ROOT}/installed-cli-cwd")
+file(MAKE_DIRECTORY "${DOCTOR_CWD}")
+execute_process(
+  COMMAND "${INSTALL_DIR}/bin/topoexec" doctor --format json
+  WORKING_DIRECTORY "${DOCTOR_CWD}"
+  RESULT_VARIABLE installed_doctor_result
+  OUTPUT_VARIABLE installed_doctor_json
+  ERROR_VARIABLE installed_doctor_error
+)
+if(NOT installed_doctor_result EQUAL 0)
+  message(FATAL_ERROR "Installed topoexec doctor failed: ${installed_doctor_error}")
+endif()
+if(NOT installed_doctor_json MATCHES "\"schema_found\"[^\n]*true")
+  message(FATAL_ERROR "Installed topoexec doctor did not discover installed schema: ${installed_doctor_json}")
+endif()
+if(NOT installed_doctor_json MATCHES "share/topoexec/schema/topoexec\\.schema\\.v1\\.json")
+  message(FATAL_ERROR "Installed topoexec doctor schema_path did not point at installed schema: ${installed_doctor_json}")
+endif()
+execute_process(
+  COMMAND "${INSTALL_DIR}/bin/topoexec" schema dump --format json
+  WORKING_DIRECTORY "${DOCTOR_CWD}"
+  RESULT_VARIABLE installed_schema_dump_result
+  OUTPUT_VARIABLE installed_schema_dump_json
+  ERROR_VARIABLE installed_schema_dump_error
+)
+if(NOT installed_schema_dump_result EQUAL 0)
+  message(FATAL_ERROR "Installed topoexec schema dump failed: ${installed_schema_dump_error}")
+endif()
+if(NOT installed_schema_dump_json MATCHES "\"\\$id\"[^\n]*topoexec\\.schema\\.v1\\.json")
+  message(FATAL_ERROR "Installed topoexec schema dump did not read the installed schema")
+endif()
+
 execute_process(
   COMMAND "${CMAKE_COMMAND}"
     -S "${SOURCE_DIR}/tests/cmake/yaml_smoke"

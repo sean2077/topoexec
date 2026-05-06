@@ -95,6 +95,11 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
   candidate feature classification, additive-v1 vs breaking-v2 rules, migration
   guidance, docs-map coverage, and schema-contract coverage proving v1 remains
   strict and v2 sketches are not accepted by the v1 checker.
+- Added `docs/editor-schema.md` as the G65 editor/schema UX guide, including
+  schema discovery, VS Code/YAML Language Server association examples, inline
+  modeline guidance, editor diagnostic JSON expectations, installed-schema
+  package smoke coverage, and `editor_schema_ux_smoke` without adding a runtime
+  dependency or LSP implementation.
 - Added `topoexec schema dump`, `topoexec schema check`, and `topoexec doctor` JSON/text tooling.
 - Added state/config, batch/time-sync, service-style async, and boundary-adapter-pattern YAML examples plus an examples catalog with CLI smokes.
 - Added a documentation index, tutorial/reference pages, and doc-command smoke coverage for the getting-started and CLI paths.

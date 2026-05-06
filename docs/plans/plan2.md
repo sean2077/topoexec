@@ -2178,6 +2178,19 @@ Priority: P3
 - Users can get editor completion/validation with existing schema.
 - No runtime dependency added.
 
+### Implementation note (2026-05-06)
+
+- Added `docs/editor-schema.md` with schema discovery, VS Code / YAML Language
+  Server `yaml.schemas` setup, inline modeline guidance, editor-oriented
+  diagnostic JSON fields, and a future LSP boundary that stays adapter-only.
+- Added `editor_schema_ux_smoke` to verify `doctor` schema discovery, stable
+  schema dump `$id`, editor diagnostic `code`/`graph_path`/`suggested_fix`
+  fields, and schema-check path errors.
+- Extended package smoke so an installed `bin/topoexec` discovers
+  `share/topoexec/schema/topoexec.schema.v1.json` and can dump that installed
+  schema from outside the source tree. No runtime dependency, VS Code extension,
+  or LSP server was added.
+
 ---
 
 ## G66. Architecture Enforcement CI v2
@@ -2424,7 +2437,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G65, G68, or actual schema v2 implementation/migration scope.
+  and hidden deferral of G68, actual schema v2 implementation/migration scope, or full editor/LSP implementation.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2496,7 +2509,7 @@ Priority: P0 before beta
 40. G62 Python Binding Preview（complete）
 41. G63 Dynamic Plugin Loading Preview（complete）
 42. G64 Schema v2 Exploration（complete）
-43. G65 Editor / LSP UX
+43. G65 Editor / LSP UX（complete）
 
 ## Phase H：Beta
 

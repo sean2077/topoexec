@@ -438,6 +438,8 @@ topoexec graph validate examples/minimal.yaml --semantic --format json
 
 `--schema-only` checks the strict loader contract (required fields, known fields, basic scalar shapes). `--semantic` is the default and additionally runs the compiler/validator checks.
 
+For editor integration and YAML-language-server setup, see [Editor and Schema UX](editor-schema.md).
+
 The standalone tooling surface is:
 
 ```bash
