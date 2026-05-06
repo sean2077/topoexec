@@ -38,7 +38,7 @@ const std::vector<GraphDiagnosticDescriptor>& graph_diagnostic_registry() {
        "Treat the field as documentation only until the matching scheduler capability is implemented."},
       {"advisory_execution_field_ignored", "advisory",
        "A component execution field is parsed and preserved but not enforced by the current runtime.",
-       "Treat the field as documentation only until runtime-level admission or priority support is implemented."},
+       "Treat the field as documentation only until the matching execution capability is implemented."},
       {"graph_validation_error", "error", "Generic graph validation failure.",
        "Inspect the graph path and schema reference for the invalid contract."},
   };

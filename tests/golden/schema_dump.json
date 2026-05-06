@@ -279,6 +279,12 @@
         },
         "priority": {
           "default": "normal",
+          "enum": [
+            "background",
+            "low",
+            "normal",
+            "high"
+          ],
           "type": "string"
         },
         "reentrant": {

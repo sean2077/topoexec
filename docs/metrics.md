@@ -41,6 +41,12 @@ Scheduler:
 - `runtime.scheduler.active_count`: maximum active workers observed for a lane. This is `0` for the single-thread event loop.
 - `runtime.scheduler.in_flight_count`: maximum in-flight scheduler tasks observed for a lane. This is `0` for the single-thread event loop.
 - `runtime.scheduler.rejected_count`: scheduler admission rejections, skipped ready invocations, or dropped ready invocations for a lane.
+- `runtime.scheduler.priority_high_count`: completed invocations with runtime `execution.priority: high`.
+- `runtime.scheduler.priority_normal_count`: completed invocations with default or explicit runtime `execution.priority: normal`.
+- `runtime.scheduler.priority_low_count`: completed invocations with runtime `execution.priority: low`.
+- `runtime.scheduler.priority_background_count`: completed invocations with runtime `execution.priority: background`.
+- `runtime.scheduler.low_priority_rejected_count`: low/background ready invocations rejected or dropped by lane admission overflow.
+- `runtime.scheduler.starvation_guard_count`: explicit runtime starvation-guard interventions; v1 normally reports `0` because no aging intervention is implemented.
 
 Components:
 

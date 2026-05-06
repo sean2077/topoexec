@@ -174,6 +174,24 @@ bool is_allowed_overrun_policy(const std::string& policy) {
   return policy == "drop_tick" || policy == "skip_next" || policy == "catch_up_once";
 }
 
+bool is_allowed_runtime_priority(const std::string& priority) {
+  return priority.empty() || priority == "background" || priority == "low" || priority == "normal" ||
+         priority == "high";
+}
+
+int runtime_priority_rank(const std::string& priority) {
+  if (priority == "high") {
+    return 3;
+  }
+  if (priority == "low") {
+    return 1;
+  }
+  if (priority == "background") {
+    return 0;
+  }
+  return 2;
+}
+
 bool is_non_default_advisory_lane_field(const LaneSpec& lane, const std::string& field) {
   if (field == "priority") {
     return !lane.priority.empty();
@@ -435,6 +453,10 @@ GraphCompileResult compile_graph_impl(const GraphSpec& graph) {
   }
 
   std::map<std::string, std::size_t> component_scc;
+  std::map<std::string, int> component_priority;
+  for (const auto& component : graph.components) {
+    component_priority[component.id] = runtime_priority_rank(component.execution.priority);
+  }
   for (std::size_t scc_index = 0; scc_index < result.plan.immediate_sccs.size(); ++scc_index) {
     for (const auto& component : result.plan.immediate_sccs[scc_index]) {
       component_scc[component] = scc_index;
@@ -524,11 +546,34 @@ GraphCompileResult compile_graph_impl(const GraphSpec& graph) {
   }
 
   std::deque<std::string> ready;
+  auto region_priority_rank = [&](const std::string& region_id) {
+    auto found = std::find_if(result.plan.regions.begin(), result.plan.regions.end(),
+                              [&](const auto& region) { return region.id == region_id; });
+    if (found == result.plan.regions.end()) {
+      return 2;
+    }
+    int rank = -1;
+    for (const auto& component_id : found->components) {
+      rank = std::max(rank, component_priority[component_id]);
+    }
+    return rank < 0 ? 2 : rank;
+  };
+  auto sort_ready = [&]() {
+    std::stable_sort(ready.begin(), ready.end(), [&](const auto& lhs, const auto& rhs) {
+      const auto lhs_rank = region_priority_rank(lhs);
+      const auto rhs_rank = region_priority_rank(rhs);
+      if (lhs_rank != rhs_rank) {
+        return lhs_rank > rhs_rank;
+      }
+      return false;
+    });
+  };
   for (const auto& region_id : region_ids) {
     if (indegree[region_id] == 0u) {
       ready.push_back(region_id);
     }
   }
+  sort_ready();
   while (!ready.empty()) {
     const auto region_id = ready.front();
     ready.pop_front();
@@ -540,6 +585,7 @@ GraphCompileResult compile_graph_impl(const GraphSpec& graph) {
       }
       if (next_indegree == 0u) {
         ready.push_back(next);
+        sort_ready();
       }
     }
   }
@@ -708,11 +754,9 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     if (lanes.count(component.execution.lane) == 0u) {
       add_error(result, "component " + component.id + " references missing lane " + component.execution.lane);
     }
-    if (!component.execution.priority.empty() && component.execution.priority != "normal") {
-      add_advisory(result, "advisory_execution_field_ignored",
-                   "component " + component.id +
-                       " execution.priority is parsed and preserved but not used for runtime admission yet",
-                   "components." + component.id + ".execution.priority");
+    if (!is_allowed_runtime_priority(component.execution.priority)) {
+      add_error(result,
+                "component " + component.id + " has unsupported execution.priority " + component.execution.priority);
     }
     if (component.execution.on_error != "fail_fast") {
       add_error(result, "component " + component.id + " has unsupported execution.on_error " +

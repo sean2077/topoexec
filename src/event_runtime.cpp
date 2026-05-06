@@ -84,6 +84,35 @@ bool lane_overflow_fails_fast(const std::string& overflow) {
   return overflow == "fail_fast";
 }
 
+int runtime_priority_rank(const std::string& priority) {
+  if (priority == "high") {
+    return 3;
+  }
+  if (priority == "low") {
+    return 1;
+  }
+  if (priority == "background") {
+    return 0;
+  }
+  return 2;
+}
+
+void record_priority_metric(SchedulerMetrics& metrics, const std::string& priority) {
+  if (priority == "high") {
+    ++metrics.priority_high_count;
+  } else if (priority == "low") {
+    ++metrics.priority_low_count;
+  } else if (priority == "background") {
+    ++metrics.priority_background_count;
+  } else {
+    ++metrics.priority_normal_count;
+  }
+}
+
+bool is_low_priority_for_rejection_metric(const Invocation& invocation) {
+  return invocation.priority == "low" || invocation.priority == "background";
+}
+
 std::chrono::steady_clock::duration fixed_rate_period_for_lane(const SchedulerGroupConfig& lane) {
   if (lane.period.count() > 0) {
     return lane.period;
@@ -165,12 +194,15 @@ public:
   PersistentWorkerPool(const PersistentWorkerPool&) = delete;
   PersistentWorkerPool& operator=(const PersistentWorkerPool&) = delete;
 
-  std::future<WorkerInvocationOutcome> submit(Work work) {
+  std::future<WorkerInvocationOutcome> submit(Work work, int priority_rank, std::string component_id) {
     WorkItem item;
     item.work = std::move(work);
+    item.priority_rank = priority_rank;
+    item.component_id = std::move(component_id);
     auto future = item.promise.get_future();
     {
       std::lock_guard lock(mutex_);
+      item.enqueue_order = next_enqueue_order_++;
       queue_.push_back(std::move(item));
     }
     cv_.notify_one();
@@ -198,6 +230,9 @@ private:
   struct WorkItem {
     Work work;
     std::promise<WorkerInvocationOutcome> promise;
+    int priority_rank{2};
+    std::size_t enqueue_order{0};
+    std::string component_id;
   };
 
   void worker_loop(std::size_t worker_id) {
@@ -210,8 +245,17 @@ private:
         if (stop_requested_ && queue_.empty()) {
           return;
         }
-        item = std::move(queue_.front());
-        queue_.pop_front();
+        auto best = std::min_element(queue_.begin(), queue_.end(), [](const auto& lhs, const auto& rhs) {
+          if (lhs.priority_rank != rhs.priority_rank) {
+            return lhs.priority_rank > rhs.priority_rank;
+          }
+          if (lhs.enqueue_order != rhs.enqueue_order) {
+            return lhs.enqueue_order < rhs.enqueue_order;
+          }
+          return lhs.component_id < rhs.component_id;
+        });
+        item = std::move(*best);
+        queue_.erase(best);
       }
       try {
         item.promise.set_value(WorkerInvocationOutcome{item.work(worker_id), worker_id});
@@ -226,6 +270,7 @@ private:
   std::size_t worker_count_{1};
   std::vector<std::thread> workers_;
   std::deque<WorkItem> queue_;
+  std::size_t next_enqueue_order_{0};
   std::mutex mutex_;
   std::condition_variable cv_;
   bool stop_requested_{false};
@@ -463,9 +508,9 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
               result.ticked_tasks.size() < options.max_recorded_ticked_tasks) {
             result.ticked_tasks.push_back(found->id);
           }
-          SchedulerMetrics metrics;
-          metrics.completed_count = 1;
-          result.group_metrics[found->lane.id].completed_count += 1;
+          auto& lane_metrics = result.group_metrics[found->lane.id];
+          lane_metrics.completed_count += 1;
+          record_priority_metric(lane_metrics, invocation.priority);
           return true;
         };
 
@@ -513,6 +558,12 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
         if (invocations.size() > admission_capacity) {
           const auto overflow_count = invocations.size() - admission_capacity;
           lane_metrics.enqueue_rejected_count += overflow_count;
+          const auto rejected_begin = lane_overflow_drops_oldest(found->lane.overflow)
+                                          ? invocations.begin()
+                                          : invocations.begin() + static_cast<std::ptrdiff_t>(admission_capacity);
+          const auto rejected_end = rejected_begin + static_cast<std::ptrdiff_t>(overflow_count);
+          lane_metrics.low_priority_rejected_count += static_cast<std::size_t>(
+              std::count_if(rejected_begin, rejected_end, is_low_priority_for_rejection_metric));
           if (lane_overflow_fails_fast(found->lane.overflow)) {
             result.ok = false;
             result.stop_reason = SchedulerStopReason::kError;
@@ -545,7 +596,8 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           for (std::size_t index = 0; index < count; ++index) {
             const auto invocation = invocations[offset + index];
             futures.push_back(
-                pool.submit([&, invocation](std::size_t worker_id) { return run_invocation(invocation, worker_id); }));
+                pool.submit([&, invocation](std::size_t worker_id) { return run_invocation(invocation, worker_id); },
+                            runtime_priority_rank(invocation.priority), found->id));
           }
 
           std::vector<WorkerInvocationOutcome> outcomes;

@@ -41,3 +41,7 @@ Current stable codes:
 | `graph_validation_error` | Generic fallback validation error. |
 
 Add new codes rather than changing existing meanings. If a code meaning must change, update `docs/versioning.md` and the changelog.
+
+Note: `execution.priority` is implemented runtime behavior in the G32 scheduler
+priority pass. Supported values do not emit `advisory_execution_field_ignored`;
+unknown priority values fail validation.

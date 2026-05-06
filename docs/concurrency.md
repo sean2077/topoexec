@@ -37,16 +37,17 @@ Runtime behavior:
 - `overflow` handles over-capacity ready invocations before work is submitted to workers: `drop_oldest`/`overwrite` keep newest work, `drop_newest`/`reject`/`reject_new`/`block` keep oldest work in the non-blocking runtime, and `fail_fast` stops the run.
 - `execution.reentrant: false` serializes invocations for that component.
 - `execution.reentrant: true` permits overlap up to the lane worker bound.
-- Ready invocations admitted to the lane are queued FIFO; priority queue ordering is future work.
+- Ready invocations admitted to the lane are queued by runtime priority (`high`, `normal`, `low`, `background`), then enqueue order, then component id.
 - Immediate publications are committed at the worker/component barrier, not recursively from `GraphContext::publish()`.
 - Stop requests prevent new scheduler iterations/submissions and wait for already-admitted invocations to drain cooperatively before workers stop and join.
 - `thread_name` is best-effort for persistent worker threads on supported platforms and remains advisory as a portable guarantee.
 
-Advisory fields such as priority, CPU affinity, RT policy, thread-name portability guarantees, and isolation intent are parsed but not fully enforced by the current runtime. Unsupported policy should be documented as advisory rather than silently claimed.
+Advisory lane fields such as lane priority, CPU affinity, RT policy, thread-name portability guarantees, and isolation intent are parsed but not fully enforced by the current runtime. Unsupported policy should be documented as advisory rather than silently claimed.
 
-Validation emits advisory diagnostics when those fields are set, and plan JSON
+Validation emits advisory diagnostics when lane-only scheduler fields are set, and plan JSON
 reports the lane capability summary. Treat runtime priority and OS priority as
-separate concepts: `execution.priority` is not admission ordering yet, while
+separate concepts: `execution.priority` is implemented as runtime ordering and
+accepts `background`, `low`, `normal`, or `high`, while
 `nice_priority`/`rt_policy`/`cpu_affinity` are OS hints that TopoExec does not
 apply today.
 
@@ -93,6 +94,6 @@ Async admission metrics use the `runtime.async.*` namespace; channel metrics rep
 - Threaded async task/future executor surface; deterministic `TaskExecutor` helper exists for bounded submission and tests.
 - OS priority, affinity, and hard real-time policy enforcement.
 - Independent fixed-rate lane threads and OS jitter control.
-- Runtime-level priority/admission ordering for worker queues.
+- Advanced starvation aging or OS-backed priority enforcement beyond runtime priority ordering.
 - Timeout preemption for long-running component code.
 - Blocking overflow behavior on the default non-blocking runtime path.

@@ -320,8 +320,8 @@ TEST(Graph, AdvisorySchedulerFieldsProduceDiagnosticsWithoutFailingValidation) {
   EXPECT_TRUE(has_diagnostic(result.diagnostics, "advisory_lane_field_ignored", "advisory", "lanes.main.cpu_affinity"));
   EXPECT_TRUE(
       has_diagnostic(result.diagnostics, "advisory_lane_field_ignored", "advisory", "lanes.main.wall_clock_enabled"));
-  EXPECT_TRUE(has_diagnostic(result.diagnostics, "advisory_execution_field_ignored", "advisory",
-                             "components.a.execution.priority"));
+  EXPECT_FALSE(has_diagnostic(result.diagnostics, "advisory_execution_field_ignored", "advisory",
+                              "components.a.execution.priority"));
 }
 
 TEST(Graph, PlanJsonIncludesSchedulerLaneCapabilitySummary) {
@@ -354,7 +354,7 @@ edges: []
   const auto plan_json = topoexec::graph_plan_json(graph, result.compiled_plan);
   EXPECT_NE(plan_json.find("\"lane_capabilities\""), std::string::npos);
   EXPECT_NE(plan_json.find("\"persistent_worker_lifecycle\""), std::string::npos);
-  EXPECT_NE(plan_json.find("\"bounded_fifo_queue\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"bounded_priority_queue\""), std::string::npos);
   EXPECT_NE(plan_json.find("\"worker_id_trace\""), std::string::npos);
   EXPECT_NE(plan_json.find("\"priority_queue\""), std::string::npos);
   EXPECT_NE(plan_json.find("\"opt_in_wall_clock_cadence\""), std::string::npos);
@@ -374,6 +374,16 @@ TEST(Graph, RejectsInvalidSchedulerLaneAdmissionFields) {
   EXPECT_TRUE(has_error_containing(result.errors, "lane main queue_capacity must be non-negative"));
   EXPECT_TRUE(has_error_containing(result.errors, "lane main has unsupported overflow mystery"));
   EXPECT_TRUE(has_error_containing(result.errors, "lane main has unsupported overrun_policy mystery"));
+}
+
+TEST(Graph, RejectsUnknownRuntimePriorityClass) {
+  auto graph = minimal_graph();
+  graph.components.front().execution.priority = "urgent";
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "component a has unsupported execution.priority urgent"));
 }
 
 TEST(Graph, NonFailFastExecutionPolicyIsParsedButRejected) {

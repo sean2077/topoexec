@@ -52,6 +52,12 @@ struct SchedulerMetrics {
   std::size_t active_count{0};
   std::size_t in_flight_count{0};
   std::size_t enqueue_rejected_count{0};
+  std::size_t priority_high_count{0};
+  std::size_t priority_normal_count{0};
+  std::size_t priority_low_count{0};
+  std::size_t priority_background_count{0};
+  std::size_t low_priority_rejected_count{0};
+  std::size_t starvation_guard_count{0};
   std::size_t completed_count{0};
 };
 

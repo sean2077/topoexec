@@ -478,17 +478,19 @@ nlohmann::json lane_capability_summary(const LaneSpec& lane) {
   summary["unsupported_claims"] = {"hard_preemption", "hard_real_time", "implicit_os_scheduler_tuning"};
   if (lane.type == "event_loop") {
     summary["implemented"] = {"deterministic_region_order", "bounded_runner_stop_checks",
-                              "runtime_owned_publication_commit"};
+                              "runtime_owned_publication_commit", "runtime_priority_ordering"};
     summary["future_extensions"] = {"manual_step_lane"};
   } else if (lane.type == "fixed_rate") {
-    summary["implemented"] = {"bounded_simulated_ticks", "opt_in_wall_clock_cadence", "overrun_metrics",
-                              "jitter_metrics",          "max_lateness_metrics",      "overrun_policy"};
+    summary["implemented"] = {"bounded_simulated_ticks",  "opt_in_wall_clock_cadence", "overrun_metrics",
+                              "jitter_metrics",           "max_lateness_metrics",      "overrun_policy",
+                              "runtime_priority_ordering"};
     summary["future_extensions"] = {"independent_lane_threads", "hard_realtime_jitter_control"};
   } else if (lane.type == "thread_pool") {
     summary["implemented"] = {
-        "persistent_worker_lifecycle", "bounded_fifo_queue", "queue_admission",  "overflow_policy",
-        "non_reentrant_serialization", "worker_id_trace",    "batch_trace_span", "best_effort_worker_thread_naming"};
-    summary["future_extensions"] = {"priority_queue", "cooperative_timeout_policy"};
+        "persistent_worker_lifecycle",     "bounded_priority_queue", "queue_admission", "overflow_policy",
+        "non_reentrant_serialization",     "priority_queue",         "worker_id_trace", "batch_trace_span",
+        "best_effort_worker_thread_naming"};
+    summary["future_extensions"] = {"cooperative_timeout_policy"};
   } else {
     summary["implemented"] = nlohmann::json::array();
     summary["future_extensions"] = {"isolated_thread", "manual_step"};

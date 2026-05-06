@@ -179,6 +179,16 @@ bool has_component_record(std::uint64_t sequence, const std::string& component_i
   });
 }
 
+std::optional<std::size_t> first_record_index(std::uint64_t sequence, const std::string& component_id) {
+  const auto found = std::find_if(runtime_records().begin(), runtime_records().end(), [&](const RuntimeRecord& record) {
+    return record.sequence == sequence && record.component_id == component_id;
+  });
+  if (found == runtime_records().end()) {
+    return std::nullopt;
+  }
+  return static_cast<std::size_t>(std::distance(runtime_records().begin(), found));
+}
+
 bool has_batch_record(std::uint64_t sequence, const std::string& component_id,
                       const std::vector<std::string>& payloads) {
   return std::any_of(runtime_records().begin(), runtime_records().end(), [&](const RuntimeRecord& record) {
@@ -1297,6 +1307,28 @@ edges: []
 )");
 }
 
+topoexec::GraphSpec priority_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: priority_order, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: low
+    type: topoexec.test.SlowManual
+    boundary: {role: input_output, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main, priority: low}
+  - id: high
+    type: topoexec.test.SlowManual
+    boundary: {role: input_output, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main, priority: high}
+edges: []
+)");
+}
+
 topoexec::GraphSpec lifecycle_graph(std::vector<std::pair<std::string, std::string>> components) {
   topoexec::GraphSpec graph;
   graph.schema_version = 1;
@@ -2000,6 +2032,29 @@ TEST(Runtime, FixedRateWallClockModeSleepsBetweenTicksWhenOptedIn) {
   EXPECT_TRUE(has_trace_event(result, "fixed_rate_tick_end"));
 }
 
+TEST(Runtime, RuntimePriorityOrdersIndependentReadyComponentsAndDoesNotStarveLowPriority) {
+  const auto reg = delay_registry();
+  const auto spec = priority_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 3;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto high_first = first_record_index(1, "high");
+  const auto low_first = first_record_index(1, "low");
+  ASSERT_TRUE(high_first.has_value());
+  ASSERT_TRUE(low_first.has_value());
+  EXPECT_LT(*high_first, *low_first);
+  EXPECT_TRUE(has_component_record(3, "low"));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.priority_high_count", 3.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.priority_low_count", 3.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.starvation_guard_count", 0.0));
+}
+
 TEST(Runtime, CoalesceMergesMultiplePendingUpdatesIntoOneInvocation) {
   const auto reg = delay_registry();
   topoexec::RuntimeRunner runner(reg);
@@ -2425,6 +2480,7 @@ TEST(Runtime, ThreadPoolLaneQueueCapacityRejectsNewestWhenFull) {
   spec.lanes.back().max_threads = 1;
   spec.lanes.back().queue_capacity = 1;
   spec.lanes.back().overflow = "drop_newest";
+  spec.components.back().execution.priority = "low";
   topoexec::RuntimeRunner runner(reg);
   topoexec::RuntimeRunnerOptions options;
   options.mode = topoexec::RuntimeRunMode::kRun;
@@ -2440,6 +2496,7 @@ TEST(Runtime, ThreadPoolLaneQueueCapacityRejectsNewestWhenFull) {
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
   EXPECT_FALSE(has_record(1, "worker", "in", "burst-1-3"));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.rejected_count", 1.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.low_priority_rejected_count", 1.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.queue_capacity", 1.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.queue_depth", 1.0));
   EXPECT_TRUE(has_trace_event(result, "thread_pool_batch"));

@@ -36,7 +36,7 @@ not poll arbitrary global state to decide readiness.
 
 `event_loop` is the deterministic single-thread lane. `thread_pool` supports the
 bounded persistent worker-pool v1 documented in [Scheduler](scheduler.md) and
-[Concurrency](concurrency.md), including FIFO queue admission, worker-id trace
+[Concurrency](concurrency.md), including runtime-priority queue admission, worker-id trace
 attributes, and non-reentrant serialization. TopoExec does not claim hard
 real-time behavior.
 

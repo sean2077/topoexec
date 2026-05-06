@@ -21,9 +21,9 @@ epoch
 
 | Lane type | Runtime behavior | Enforced today | Not enforced today |
 | --- | --- | --- | --- |
-| `event_loop` | Deterministic in-process execution in compiled region order. | Region order, trigger readiness, edge commit boundaries, stop-token checks before iterations. | Wall-clock rate, OS priority/affinity/RT policy. |
-| `fixed_rate` | Deterministic simulated ticks by default, with opt-in wall-clock cadence v1. | Bounded tick count, component budget metric checks, simulated overrun count, opt-in `wall_clock_enabled` sleeps between ticks, `overrun_policy`, tick/skipped/max-lateness metrics, and trace events. | Independent per-lane threads, hard real-time cadence, and OS jitter control. |
-| `thread_pool` | Persistent worker-pool execution for ready invocations. | `max_threads` persistent lane workers, bounded FIFO queue admission, optional `queue_capacity`, overflow admission, non-reentrant serialization, reentrant overlap within the lane bound, worker-id trace attributes, region barrier before downstream work. | Priority queue/admission ordering, OS priority/affinity/RT policy, hard thread-name guarantee, timeout preemption. |
+| `event_loop` | Deterministic in-process execution in compiled region order. | Region order, runtime `execution.priority` ordering for independent ready regions, trigger readiness, edge commit boundaries, stop-token checks before iterations. | Wall-clock rate, OS priority/affinity/RT policy. |
+| `fixed_rate` | Deterministic simulated ticks by default, with opt-in wall-clock cadence v1. | Bounded tick count, runtime `execution.priority` ordering for independent ready regions, component budget metric checks, simulated overrun count, opt-in `wall_clock_enabled` sleeps between ticks, `overrun_policy`, tick/skipped/max-lateness metrics, and trace events. | Independent per-lane threads, hard real-time cadence, and OS jitter control. |
+| `thread_pool` | Persistent worker-pool execution for ready invocations. | `max_threads` persistent lane workers, bounded priority queue admission, optional `queue_capacity`, overflow admission with low-priority rejection metrics, non-reentrant serialization, reentrant overlap within the lane bound, worker-id trace attributes, region barrier before downstream work. | OS priority/affinity/RT policy, hard thread-name guarantee, timeout preemption, advanced starvation aging. |
 | future `isolated_thread` | Dedicated thread per lane or component. | Not supported by schema v1/runtime. | All behavior future. |
 | future `manual_step` | Host application manually advances a lane. | Not supported by schema v1/runtime. | All behavior future. |
 
@@ -72,10 +72,34 @@ Metrics:
 - `runtime.scheduler.max_lateness_ms`
 - `runtime.scheduler.blocked_duration_ms`
 
+## Runtime Priority v1
+
+`execution.priority` is a component/invocation runtime hint. Supported classes
+are `high`, `normal`, `low`, and `background`; an omitted value behaves like
+`normal`. It is deliberately separate from lane `priority`, `nice_priority`,
+`rt_policy`, `rt_priority`, and `cpu_affinity`, which remain OS/platform intents
+that TopoExec does not apply today.
+
+Runtime ordering rules:
+
+- Independent compiled regions with no dependency between them are ordered by
+  the highest `execution.priority` of the components in that region.
+- `thread_pool` queue items are ordered by priority rank, then enqueue order,
+  then component id.
+- Equal-priority work preserves deterministic enqueue/topology order.
+- Priority does not bypass dependency edges, CompositeLoop ownership, epoch
+  visibility, publication commit barriers, or `execution.reentrant` limits.
+- Lane overflow policy still decides which over-capacity ready invocations are
+  dropped or rejected; low/background drops increment
+  `runtime.scheduler.low_priority_rejected_count`.
+- `runtime.scheduler.starvation_guard_count` exists as an explicit future
+  intervention metric. G32 v1 has bounded priority ordering and starvation smoke
+  coverage, but no aging intervention that would make this counter non-zero.
+
 ## Persistent Thread Pool v1
 
 `thread_pool` owns a run-scoped persistent worker pool. Workers start when the
-runtime run starts, wait on a bounded FIFO queue, and stop/join during runtime
+runtime run starts, wait on a bounded priority queue, and stop/join during runtime
 cleanup after admitted work drains. The lane is still an in-process alpha
 concurrency surface, not a hard real-time scheduler.
 
@@ -93,7 +117,7 @@ Runtime rules:
 - `overflow` controls over-capacity ready invocations: `drop_oldest`/`overwrite` keep the newest admitted work, `drop_newest`/`reject`/`reject_new`/`block` keep the oldest admitted work in the non-blocking runtime, and `fail_fast` stops the run with an error.
 - `execution.reentrant: false` permits at most one in-flight invocation for that component.
 - `execution.reentrant: true` permits overlap up to the lane `max_threads` bound.
-- Lane admission is FIFO for admitted ready invocations; priority queues are future work.
+- Lane admission orders admitted ready invocations by runtime priority (`high`, `normal`, `low`, `background`), then enqueue order, then component id. This is runtime-level ordering only; it is not OS scheduler priority.
 - `thread_name` is applied as a best-effort worker thread name on supported platforms and remains advisory as a portable contract.
 - Downstream regions do not run until the current admitted worker work has drained and immediate publications have been committed.
 
@@ -103,7 +127,8 @@ Test coverage:
 - `Runtime.ThreadPoolWorkersPersistAcrossMultipleRuntimeSteps` proves workers remain bounded and reused across runtime steps.
 - `Runtime.ThreadPoolLaneSerializesNonReentrantInvocations` proves non-reentrant no-overlap.
 - `Runtime.ThreadPoolStopWhileQueueNonEmptyDrainsAdmittedWork` proves stop requests do not deadlock with queued admitted work.
-- `Runtime.ThreadPoolLaneQueueCapacityRejectsNewestWhenFull` and `Runtime.ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured` prove explicit lane admission behavior and rejected-count metrics.
+- `Runtime.ThreadPoolLaneQueueCapacityRejectsNewestWhenFull` and `Runtime.ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured` prove explicit lane admission behavior, rejected-count metrics, and low-priority rejection counting.
+- `Runtime.RuntimePriorityOrdersIndependentReadyComponentsAndDoesNotStarveLowPriority` proves runtime priority ordering for independent ready regions while still executing lower-priority work in a bounded example.
 - `Runtime.ThreadPoolExecuteStatusFailureKeepsStructuredRuntimeError` proves current fail-fast execute errors remain structured on worker lanes.
 - `Runtime.PublishStagesWithoutRecursiveDownstreamExecute` protects the no-recursive-publish boundary that worker lanes must preserve.
 
@@ -142,8 +167,14 @@ Scheduler metrics are emitted through `RuntimeRunnerResult::runtime_metrics`:
 - `runtime.scheduler.active_count`
 - `runtime.scheduler.in_flight_count`
 - `runtime.scheduler.rejected_count`
+- `runtime.scheduler.priority_high_count`
+- `runtime.scheduler.priority_normal_count`
+- `runtime.scheduler.priority_low_count`
+- `runtime.scheduler.priority_background_count`
+- `runtime.scheduler.low_priority_rejected_count`
+- `runtime.scheduler.starvation_guard_count`
 
-For `event_loop` and simulated `fixed_rate`, worker/queue metrics remain zero unless a future implementation adds real queues. For `thread_pool`, `worker_count`, `queue_capacity`, `queue_depth`, `active_count`, `in_flight_count`, `completed_count`, and `rejected_count` describe the maximum admitted persistent-pool work observed during the run.
+For `event_loop` and simulated `fixed_rate`, worker/queue metrics remain zero unless a future implementation adds real queues. Priority counters still report completed invocations by runtime priority class. For `thread_pool`, `worker_count`, `queue_capacity`, `queue_depth`, `active_count`, `in_flight_count`, `completed_count`, `rejected_count`, and `low_priority_rejected_count` describe the maximum admitted or dropped persistent-pool work observed during the run. `starvation_guard_count` is reserved for explicit aging/intervention events; v1 normally reports zero.
 
 Trace events around scheduler and component execution include:
 
@@ -174,8 +205,7 @@ The following schema fields are parsed and preserved but advisory in the current
 - lane `nice_priority`;
 - lane `rt_policy`;
 - lane `rt_priority`;
-- lane `isolation_intent`;
-- execution `priority`.
+- lane `isolation_intent`.
 
 The runtime must not claim OS priority, CPU affinity, hard real-time scheduling, or a portable hard worker-name guarantee until platform-specific enforcement and tests exist.
 
@@ -187,7 +217,8 @@ but emits machine-readable diagnostics:
   `wall_clock_enabled` where applicable; `thread_name` also uses this diagnostic
   when it cannot be applied to persistent worker threads on the current runtime
   surface.
-- `advisory_execution_field_ignored` for component `execution.priority`.
+
+Supported component `execution.priority` values are runtime behavior, not advisory. Unknown values fail validation.
 
 These diagnostics are warnings/advisories, not validation failures. They exist to
 prevent schema fields from looking implemented merely because they parse.
@@ -195,7 +226,7 @@ prevent schema fields from looking implemented merely because they parse.
 ## Remaining Work
 
 - Independent fixed-rate lane threads and OS jitter controls.
-- Priority queue/admission ordering for worker queues.
+- Aging-based starvation intervention beyond the current bounded priority ordering.
 - Timeout preemption or explicit cancellation policy.
 - Platform-specific priority, affinity, and RT helpers.
 

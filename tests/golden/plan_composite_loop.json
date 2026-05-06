@@ -130,7 +130,8 @@
       "implemented": [
         "deterministic_region_order",
         "bounded_runner_stop_checks",
-        "runtime_owned_publication_commit"
+        "runtime_owned_publication_commit",
+        "runtime_priority_ordering"
       ],
       "max_threads": 0,
       "overflow": "reject",

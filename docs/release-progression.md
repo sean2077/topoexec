@@ -64,8 +64,8 @@ Deferred capabilities remain documented as limitations rather than hidden TODOs:
   loaders, and package-manager publication are preview/deferred surfaces.
 - TSAN remains non-blocking until concurrency signal is stable.
 - Coverage-guided fuzzing and stress/soak expansion remain beta hardening work.
-- Scheduler priority/admission ordering, affinity/RT policy, independent
-  fixed-rate lane threads, OS jitter control, and hard timeout preemption remain
+- Scheduler runtime priority/admission ordering exists for component invocations, while affinity/RT policy, independent
+  fixed-rate lane threads, OS jitter control, advanced starvation aging, and hard timeout preemption remain
   future work.
 
 ## Required release evidence for next tag

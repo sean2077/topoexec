@@ -57,7 +57,7 @@ Fields:
 
 - `type` required string; allowed values are `event_loop`, `fixed_rate`, and `thread_pool`.
 - `hz` optional number, default `0`.
-- `priority` optional string, default empty.
+- `priority` optional string, default empty; lane-level scheduler/OS priority intent remains advisory.
 - `max_callback_ms` optional integer, default `0`.
 - `max_threads` optional integer, default `0`; must be non-negative. For `thread_pool`, this is the persistent worker count and active worker width (`0` means one worker).
 - `queue_capacity` optional integer, default `0`; must be non-negative. For `thread_pool`, positive values bound pending ready invocations after active workers; `0` admits only the active worker width.
@@ -73,7 +73,7 @@ Fields:
 - `rt_priority` optional integer, default `0`.
 - `isolation_intent` optional string, default `none`.
 
-Runtime support note: `event_loop` is the deterministic default. `fixed_rate` is simulated by bounded runtime ticks unless `wall_clock_enabled` opts into cooperative sleeping cadence; it reports tick/overrun/jitter/skipped/max-lateness metrics from `hz`, `period_ms`, `tick_budget_ms`, and `overrun_policy`. `thread_pool` uses run-scoped persistent workers plus bounded FIFO queue admission for ready invocations with explicit queue/worker metrics; see [scheduler.md](scheduler.md) and [concurrency.md](concurrency.md).
+Runtime support note: `event_loop` is the deterministic default. `fixed_rate` is simulated by bounded runtime ticks unless `wall_clock_enabled` opts into cooperative sleeping cadence; it reports tick/overrun/jitter/skipped/max-lateness metrics from `hz`, `period_ms`, `tick_budget_ms`, and `overrun_policy`. Runtime component `execution.priority` orders independent ready work using `high > normal > low > background` without changing OS priority. `thread_pool` uses run-scoped persistent workers plus bounded priority queue admission for ready invocations with explicit queue/worker/priority metrics; see [scheduler.md](scheduler.md) and [concurrency.md](concurrency.md).
 
 ## components
 
@@ -142,7 +142,7 @@ Allowed fields:
 
 - `lane` required string; must reference a lane id.
 - `reentrant` optional boolean, default `false`.
-- `priority` optional string, default `normal`.
+- `priority` optional string, default `normal`; allowed values are `background`, `low`, `normal`, and `high`. This is runtime-level component/invocation priority, not lane/OS scheduler priority.
 - `budget_ms` optional integer, default `0`.
 - `on_error` optional string, default `fail_fast`; declared values are `fail_fast`, `continue`, and `isolate`, but only `fail_fast` is implemented in schema v1 today. Other values parse but semantic validation rejects them rather than silently emulating a policy, using diagnostic code `unsupported_error_policy`.
 

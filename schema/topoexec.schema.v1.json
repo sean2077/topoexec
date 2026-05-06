@@ -323,7 +323,13 @@
         },
         "priority": {
           "type": "string",
-          "default": "normal"
+          "default": "normal",
+          "enum": [
+            "background",
+            "low",
+            "normal",
+            "high"
+          ]
         },
         "budget_ms": {
           "type": "integer",

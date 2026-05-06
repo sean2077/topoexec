@@ -290,6 +290,18 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                             {}, lane_id);
       append_runtime_metric(result, "runtime.scheduler.rejected_count",
                             static_cast<double>(metrics.enqueue_rejected_count), {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.priority_high_count",
+                            static_cast<double>(metrics.priority_high_count), {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.priority_normal_count",
+                            static_cast<double>(metrics.priority_normal_count), {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.priority_low_count",
+                            static_cast<double>(metrics.priority_low_count), {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.priority_background_count",
+                            static_cast<double>(metrics.priority_background_count), {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.low_priority_rejected_count",
+                            static_cast<double>(metrics.low_priority_rejected_count), {}, lane_id);
+      append_runtime_metric(result, "runtime.scheduler.starvation_guard_count",
+                            static_cast<double>(metrics.starvation_guard_count), {}, lane_id);
     }
     for (const auto& [component_id, metrics] : run_result.component_metrics) {
       append_runtime_metric(result, "runtime.component.execution_count", static_cast<double>(metrics.execution_count),
