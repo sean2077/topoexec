@@ -114,6 +114,22 @@ DropPolicy drop_policy_from_string(const std::string& value) {
   return DropPolicy::kFailFast;
 }
 
+std::string drop_policy_name(DropPolicy policy) {
+  switch (policy) {
+  case DropPolicy::kOverwrite:
+    return "overwrite";
+  case DropPolicy::kDropOldest:
+    return "drop_oldest";
+  case DropPolicy::kDropNewest:
+    return "drop_newest";
+  case DropPolicy::kBlockProducer:
+    return "block";
+  case DropPolicy::kFailFast:
+    return "fail_fast";
+  }
+  return "unknown";
+}
+
 CopyPolicy copy_policy_from_string(const std::string& value) {
   if (value == "shared_view") {
     return CopyPolicy::kSharedView;
@@ -183,6 +199,7 @@ RuntimeChannelBus::RuntimeChannelBus(const std::vector<EdgeSpec>& specs) {
     state.config.type = channel_type_from_policy(spec.policy);
     state.config.capacity = static_cast<std::size_t>(std::max(1, spec.policy.capacity));
     state.config.drop_policy = drop_policy_from_string(spec.policy.overflow);
+    state.config.emit_health_events = spec.policy.emit_health_events;
     state.config.lifespan = std::chrono::milliseconds(spec.policy.lifespan_ms);
     state.config.deadline = std::chrono::milliseconds(spec.policy.deadline_ms);
     state.config.timestamp_domain = timestamp_domain_from_string(spec.policy.timestamp_domain);
@@ -495,6 +512,11 @@ std::vector<RuntimeChannelMetrics> RuntimeChannelBus::metrics_snapshot() const {
   return values;
 }
 
+void RuntimeChannelBus::set_health_event_sink(HealthEventSink* sink) {
+  std::lock_guard lock(mutex_);
+  health_events_ = sink;
+}
+
 std::uint64_t RuntimeChannelBus::update_sequence() const {
   std::lock_guard lock(mutex_);
   return update_sequence_;
@@ -550,6 +572,8 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
         ++state.metrics.drop_count;
         ++state.metrics.overwrite_count;
         ++state.metrics.health_event_count;
+        emit_channel_health_event(state, HealthEventKind::kChannelOverflow, message.sequence,
+                                  (state.latest.has_value() ? 1u : 0u) + 1u, "previous tick pending value overwritten");
       }
       state.pending_previous_tick = message;
       ++state.metrics.published_count;
@@ -563,6 +587,8 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
         ++state.metrics.drop_count;
         ++state.metrics.overwrite_count;
         ++state.metrics.health_event_count;
+        emit_channel_health_event(state, HealthEventKind::kChannelOverflow, message.sequence, 1u,
+                                  "latest value overwritten");
       }
       state.queue.clear();
     } else {
@@ -572,12 +598,15 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
         ++state.metrics.drop_count;
         ++state.metrics.overwrite_count;
         ++state.metrics.health_event_count;
+        emit_channel_health_event(state, HealthEventKind::kChannelOverflow, message.sequence, state.queue.size(),
+                                  "oldest queued payload dropped");
       }
     }
     ++state.metrics.published_count;
     state.metrics.depth =
         is_latest_style(state.config.type) ? (state.latest.has_value() ? 1u : 0u) : state.queue.size();
     state.metrics.max_depth = std::max(state.metrics.max_depth, state.metrics.depth);
+    maybe_emit_high_watermark(state, message);
     ++update_sequence_;
     update_available_.notify_all();
     return RuntimeChannelPublishResult{true, {}};
@@ -588,17 +617,23 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
       ++state.metrics.drop_count;
       ++state.metrics.reject_count;
       ++state.metrics.health_event_count;
+      emit_channel_health_event(state, HealthEventKind::kChannelOverflow, message.sequence, state.queue.size(),
+                                "dropped newest payload");
       return {false, "dropped newest payload"};
     }
     if (state.config.drop_policy == DropPolicy::kBlockProducer) {
       ++state.metrics.reject_count;
       ++state.metrics.health_event_count;
+      emit_channel_health_event(state, HealthEventKind::kChannelOverflow, message.sequence, state.queue.size(),
+                                "would block producer");
       return {false, "would block producer"};
     }
     if (state.config.drop_policy == DropPolicy::kFailFast) {
       ++state.metrics.drop_count;
       ++state.metrics.reject_count;
       ++state.metrics.health_event_count;
+      emit_channel_health_event(state, HealthEventKind::kChannelOverflow, message.sequence, state.queue.size(),
+                                "channel capacity exceeded");
       return {false, "channel capacity exceeded"};
     }
   }
@@ -613,8 +648,9 @@ std::optional<RuntimeChannelMessage> RuntimeChannelBus::consume_latest_from_stat
   }
   const auto now = std::chrono::steady_clock::now();
   if (message_expired(state, *state.latest, now)) {
+    const auto expired = *state.latest;
     state.latest.reset();
-    mark_stale_drop(state);
+    mark_stale_drop(state, expired);
     state.metrics.depth = 0;
     return std::nullopt;
   }
@@ -644,7 +680,7 @@ RuntimeChannelBus::consume_from_state(ChannelState& state, const std::string& re
   std::deque<RuntimeChannelMessage> retained;
   for (auto& message : state.queue) {
     if (message_expired(state, message, now)) {
-      mark_stale_drop(state);
+      mark_stale_drop(state, message);
       continue;
     }
     const bool already_delivered_to_reader = multi_reader && message.sequence <= last_delivered;
@@ -676,8 +712,9 @@ std::vector<RuntimeChannelMessage> RuntimeChannelBus::snapshot_from_state(Channe
   std::vector<RuntimeChannelMessage> messages;
   if (is_latest_style(state.config.type)) {
     if (state.latest.has_value() && message_expired(state, *state.latest, now)) {
+      const auto expired = *state.latest;
       state.latest.reset();
-      mark_stale_drop(state);
+      mark_stale_drop(state, expired);
       state.metrics.depth = 0;
       return {};
     }
@@ -689,7 +726,7 @@ std::vector<RuntimeChannelMessage> RuntimeChannelBus::snapshot_from_state(Channe
   std::deque<RuntimeChannelMessage> retained;
   for (auto& message : state.queue) {
     if (message_expired(state, message, now)) {
-      mark_stale_drop(state);
+      mark_stale_drop(state, message);
       continue;
     }
     if (max_batch == 0u || messages.size() < max_batch) {
@@ -717,14 +754,52 @@ void RuntimeChannelBus::mark_delivery_metrics(ChannelState& state, RuntimeChanne
     ++state.metrics.deadline_miss_count;
     ++state.metrics.health_event_count;
     state.metrics.degradation_reason = "deadline missed";
+    emit_channel_health_event(state, HealthEventKind::kChannelDeadlineMiss, message.sequence, state.metrics.depth,
+                              "deadline missed",
+                              {{"age_ms", std::to_string(state.metrics.message_age_ms)},
+                               {"deadline_ms", std::to_string(state.config.deadline.count())}});
   }
 }
 
-void RuntimeChannelBus::mark_stale_drop(ChannelState& state) {
+void RuntimeChannelBus::mark_stale_drop(ChannelState& state, const RuntimeChannelMessage& message) {
   ++state.metrics.drop_count;
   ++state.metrics.stale_drop_count;
   ++state.metrics.health_event_count;
   state.metrics.degradation_reason = "stale message expired";
+  emit_channel_health_event(state, HealthEventKind::kChannelStaleDrop, message.sequence, state.metrics.depth,
+                            "stale message expired", {{"lifespan_ms", std::to_string(state.config.lifespan.count())}});
+}
+
+void RuntimeChannelBus::emit_channel_health_event(const ChannelState& state, HealthEventKind kind,
+                                                  std::uint64_t sequence, std::size_t depth, std::string reason,
+                                                  std::map<std::string, std::string> attributes) {
+  if (!state.config.emit_health_events || health_events_ == nullptr) {
+    return;
+  }
+  HealthEvent event;
+  event.kind = kind;
+  event.source = "channel";
+  event.channel_id = state.config.id;
+  event.edge_id = state.config.id;
+  event.policy = drop_policy_name(state.config.drop_policy);
+  event.reason = std::move(reason);
+  event.sequence = sequence;
+  event.depth = depth;
+  event.capacity = state.config.capacity;
+  event.attributes = std::move(attributes);
+  event.attributes["from"] = state.from;
+  event.attributes["to"] = state.to;
+  health_events_->emit(std::move(event));
+}
+
+void RuntimeChannelBus::maybe_emit_high_watermark(ChannelState& state, const RuntimeChannelMessage& message) {
+  if (state.high_watermark_reported || is_latest_style(state.config.type) || state.config.capacity == 0u ||
+      state.metrics.depth < state.config.capacity) {
+    return;
+  }
+  state.high_watermark_reported = true;
+  emit_channel_health_event(state, HealthEventKind::kBackpressureHighWatermark, message.sequence, state.metrics.depth,
+                            "channel depth reached capacity");
 }
 
 RuntimeChannelMetrics RuntimeChannelBus::metrics_from_state(const ChannelState& state) const {

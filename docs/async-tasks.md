@@ -25,6 +25,8 @@ The core runtime does not require a task executor. Applications can attach any `
 
 The executor never creates an unbounded task backlog.
 
+Rejected task submissions increment `TaskExecutorMetrics::rejected_count` and, when a bounded `HealthEventSink` is attached, emit a `task_reject` health event with the executor overflow policy, reason, depth, and capacity. The event is observer-only; it does not run graph components or retry work.
+
 ## Deterministic execution
 
 `DeterministicTaskExecutor::run_ready(max_tasks, cancel_token)` runs pending work synchronously in FIFO order on the caller thread. If the token is already requested before the next task starts, the executor cancels pending tasks and returns without forced termination. This remains the default test-friendly mode. `TaskExecutor` is kept as the compatibility name for this deterministic implementation.

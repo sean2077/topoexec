@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <stdexcept>
 #include <string>
@@ -22,6 +23,11 @@ topoexec::EdgeSpec edge(std::string id, std::string mode = "latest", int capacit
   spec.policy.overflow = spec.policy.mode == "latest" ? "overwrite" : "drop_oldest";
   spec.policy.copy_policy = "shared_view";
   return spec;
+}
+
+std::size_t health_count(const std::vector<topoexec::HealthEvent>& events, topoexec::HealthEventKind kind) {
+  return static_cast<std::size_t>(
+      std::count_if(events.begin(), events.end(), [&](const auto& event) { return event.kind == kind; }));
 }
 
 } // namespace
@@ -51,6 +57,71 @@ TEST(Channel, QueueDropsOldestWhenFull) {
   EXPECT_EQ(*messages[0].payload, "two");
   EXPECT_EQ(*messages[1].payload, "three");
   EXPECT_EQ(bus.metrics("events").drop_count, 1u);
+}
+
+TEST(Channel, HealthEventsReportHighWatermarkOnceAndCoalesceOverflow) {
+  topoexec::HealthEventSink sink(8);
+  topoexec::RuntimeChannelBus bus({edge("events", "queue", 2)});
+  bus.set_health_event_sink(&sink);
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("three")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("four")).accepted);
+
+  const auto events = sink.snapshot();
+  EXPECT_EQ(health_count(events, topoexec::HealthEventKind::kBackpressureHighWatermark), 1u);
+  EXPECT_EQ(health_count(events, topoexec::HealthEventKind::kChannelOverflow), 1u);
+  const auto overflow = std::find_if(events.begin(), events.end(), [](const auto& event) {
+    return event.kind == topoexec::HealthEventKind::kChannelOverflow;
+  });
+  ASSERT_NE(overflow, events.end());
+  EXPECT_EQ(overflow->edge_id, "events");
+  EXPECT_EQ(overflow->policy, "drop_oldest");
+  EXPECT_EQ(overflow->occurrence_count, 2u);
+  EXPECT_EQ(sink.coalesced_count(), 1u);
+}
+
+TEST(Channel, HealthEventsRespectEdgeEmissionFlag) {
+  auto spec = edge("events", "queue", 1);
+  spec.policy.emit_health_events = false;
+  topoexec::HealthEventSink sink(8);
+  topoexec::RuntimeChannelBus bus({spec});
+  bus.set_health_event_sink(&sink);
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+
+  EXPECT_TRUE(sink.snapshot().empty());
+  EXPECT_EQ(bus.metrics("events").health_event_count, 1u);
+}
+
+TEST(Channel, HealthEventSinkBoundsStoredEventsWithoutRejectingRuntimePath) {
+  topoexec::HealthEventSink sink(1);
+  topoexec::RuntimeChannelBus bus({edge("events", "queue", 1)});
+  bus.set_health_event_sink(&sink);
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("three")).accepted);
+
+  const auto events = sink.snapshot();
+  ASSERT_LE(events.size(), 1u);
+  EXPECT_GE(sink.dropped_count(), 1u);
+  EXPECT_EQ(bus.metrics("events").published_count, 3u);
+}
+
+TEST(Channel, ZeroCapacityHealthEventSinkDoesNotBlockOrRejectPublish) {
+  topoexec::HealthEventSink sink(0);
+  topoexec::RuntimeChannelBus bus({edge("events", "queue", 1)});
+  bus.set_health_event_sink(&sink);
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+
+  EXPECT_TRUE(sink.snapshot().empty());
+  EXPECT_GE(sink.dropped_count(), 1u);
+  EXPECT_EQ(bus.metrics("events").published_count, 2u);
 }
 
 TEST(Channel, QueueDropNewestRejectsIncomingPayloadWhenFull) {
@@ -160,7 +231,9 @@ TEST(Channel, QueueMultiReaderMaintainsPerReaderCursor) {
 TEST(Channel, DeadlineMissIsMarkedOnLateConsume) {
   auto spec = edge("events", "queue", 2);
   spec.policy.deadline_ms = 1;
+  topoexec::HealthEventSink sink(4);
   topoexec::RuntimeChannelBus bus({spec});
+  bus.set_health_event_sink(&sink);
   ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("late")).accepted);
   std::this_thread::sleep_for(std::chrono::milliseconds(2));
 
@@ -172,12 +245,15 @@ TEST(Channel, DeadlineMissIsMarkedOnLateConsume) {
   EXPECT_EQ(metrics.deadline_miss_count, 1u);
   EXPECT_EQ(metrics.health_event_count, 1u);
   EXPECT_GT(metrics.message_age_ms, 0.0);
+  EXPECT_EQ(health_count(sink.snapshot(), topoexec::HealthEventKind::kChannelDeadlineMiss), 1u);
 }
 
 TEST(Channel, LifespanDropsStaleMessageBeforeDelivery) {
   auto spec = edge("events", "queue", 2);
   spec.policy.lifespan_ms = 1;
+  topoexec::HealthEventSink sink(4);
   topoexec::RuntimeChannelBus bus({spec});
+  bus.set_health_event_sink(&sink);
   ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("stale")).accepted);
   std::this_thread::sleep_for(std::chrono::milliseconds(2));
 
@@ -189,6 +265,7 @@ TEST(Channel, LifespanDropsStaleMessageBeforeDelivery) {
   EXPECT_EQ(metrics.stale_drop_count, 1u);
   EXPECT_EQ(metrics.health_event_count, 1u);
   EXPECT_EQ(metrics.degradation_reason, "stale message expired");
+  EXPECT_EQ(health_count(sink.snapshot(), topoexec::HealthEventKind::kChannelStaleDrop), 1u);
 }
 
 TEST(Channel, PreviousTickExposesPayloadOnlyAfterEpochAdvance) {

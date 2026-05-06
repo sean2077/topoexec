@@ -83,6 +83,14 @@ Channels:
 - `runtime.channel.message_age_ms`: latest observed age at delivery time for that channel.
 - `runtime.channel.payload_copy_count`: payload copies forced by channel copy policy.
 
+Health events:
+
+- `runtime.health.event_count`: bounded health events retained in `RuntimeRunnerResult::health_events`.
+- `runtime.health.dropped_count`: health events dropped because the sink capacity was full or the sink could not accept the event without waiting.
+- `runtime.health.coalesced_count`: repeated health events merged into an existing retained event with the same coalescing key.
+
+Health event metrics summarize the observer sink only. Channel-specific `runtime.channel.health_event_count` remains the per-channel degradation counter and is not a substitute for the bounded event list.
+
 Publication router:
 
 - `runtime.publication.staged`: total staged publications observed by `GraphContext::publish()`.
@@ -161,4 +169,4 @@ These fields summarize the sample array for quick CLI and test assertions; the s
 
 ## Channel health metrics
 
-See [channels.md](channels.md) for the channel/backpressure contract. Deadline misses, stale drops, rejects, overwrites, and aggregate health events are exported as stable `runtime.channel.*` metrics.
+See [channels.md](channels.md) for the channel/backpressure contract. Deadline misses, stale drops, rejects, overwrites, and aggregate health counters are exported as stable `runtime.channel.*` metrics. Optional bounded health events are observer records in `RuntimeRunnerResult::health_events` and trace output, not default metric labels.

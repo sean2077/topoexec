@@ -14,10 +14,17 @@
     "examples/large_payload_copy.yaml"
   ],
   "features": {
+    "health_events": true,
     "json": true,
     "runtime": true,
     "sanitizers": "external-ci",
     "yaml": true
+  },
+  "health_events": {
+    "bounded_sink": true,
+    "control_flow": "observer_only",
+    "default_capacity": 64,
+    "default_emit": true
   },
   "ok": true,
   "schema_found": true,

@@ -6,6 +6,7 @@
 #include "topoexec/runtime/clock.hpp"
 #include "topoexec/runtime/component.hpp"
 #include "topoexec/runtime/graph.hpp"
+#include "topoexec/runtime/health.hpp"
 #include "topoexec/runtime/payload.hpp"
 
 #include <chrono>
@@ -76,6 +77,7 @@ struct ChannelConfig {
   ChannelType type{ChannelType::kLatestOnly};
   std::size_t capacity{1};
   DropPolicy drop_policy{DropPolicy::kOverwrite};
+  bool emit_health_events{true};
   std::chrono::milliseconds lifespan{0};
   std::chrono::milliseconds deadline{0};
   TimestampDomain timestamp_domain{TimestampDomain::kSteady};
@@ -185,6 +187,7 @@ public:
 
   RuntimeChannelMetrics metrics(const std::string& channel_id) const;
   std::vector<RuntimeChannelMetrics> metrics_snapshot() const;
+  void set_health_event_sink(HealthEventSink* sink);
   std::uint64_t update_sequence() const;
   bool wait_for_update(std::uint64_t last_seen, std::chrono::milliseconds timeout,
                        const std::function<bool()>& stop_requested);
@@ -201,6 +204,7 @@ private:
     std::map<std::string, std::uint64_t> delivered_latest_sequences;
     std::map<std::string, std::uint64_t> delivered_queue_sequences;
     RuntimeChannelMetrics metrics;
+    bool high_watermark_reported{false};
   };
 
   RuntimeChannelPublishResult prepare_payload_for_state(ChannelState& state, RuntimePayloadPtr source,
@@ -216,7 +220,11 @@ private:
                        std::chrono::steady_clock::time_point now) const;
   void mark_delivery_metrics(ChannelState& state, RuntimeChannelMessage& message,
                              std::chrono::steady_clock::time_point now);
-  void mark_stale_drop(ChannelState& state);
+  void mark_stale_drop(ChannelState& state, const RuntimeChannelMessage& message);
+  void emit_channel_health_event(const ChannelState& state, HealthEventKind kind, std::uint64_t sequence,
+                                 std::size_t depth, std::string reason,
+                                 std::map<std::string, std::string> attributes = {});
+  void maybe_emit_high_watermark(ChannelState& state, const RuntimeChannelMessage& message);
   RuntimeChannelMetrics metrics_from_state(const ChannelState& state) const;
   std::vector<std::string> channel_ids_for_component_port(const std::string& component_id,
                                                           const std::string& port_name) const;
@@ -227,6 +235,7 @@ private:
   mutable std::mutex mutex_;
   std::condition_variable update_available_;
   std::uint64_t update_sequence_{0};
+  HealthEventSink* health_events_{nullptr};
 };
 
 class RuntimePublicationRouter : public GraphOutputPublisher {

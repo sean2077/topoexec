@@ -3,6 +3,7 @@
 // API stability: experimental. Deterministic and threaded task helpers may change before beta.
 
 #include "topoexec/runtime/cancellation.hpp"
+#include "topoexec/runtime/health.hpp"
 #include "topoexec/runtime/payload.hpp"
 
 #include <chrono>
@@ -70,6 +71,7 @@ public:
   virtual std::vector<TaskCompletion> run_ready(std::size_t max_tasks = 0, CancellationToken cancel_token = {}) = 0;
   virtual std::size_t cancel_pending() = 0;
   virtual TaskExecutorMetrics metrics() const = 0;
+  virtual void set_health_event_sink(HealthEventSink*) {}
   virtual void shutdown() {}
 };
 
@@ -81,6 +83,7 @@ public:
   std::vector<TaskCompletion> run_ready(std::size_t max_tasks = 0, CancellationToken cancel_token = {}) override;
   std::size_t cancel_pending() override;
   TaskExecutorMetrics metrics() const override;
+  void set_health_event_sink(HealthEventSink* sink) override;
 
 private:
   struct PendingTask {
@@ -92,11 +95,13 @@ private:
   std::size_t admission_capacity() const;
   bool drop_oldest_on_overflow() const;
   TaskSubmissionResult reject_submission(std::string reason);
+  void emit_reject_health_event(const std::string& reason);
 
   TaskExecutorConfig config_;
   std::uint64_t next_task_id_{1};
   std::deque<PendingTask> pending_;
   TaskExecutorMetrics metrics_;
+  HealthEventSink* health_events_{nullptr};
 };
 
 class ThreadedTaskExecutor : public ITaskExecutor {
@@ -111,6 +116,7 @@ public:
   std::vector<TaskCompletion> run_ready(std::size_t max_tasks = 0, CancellationToken cancel_token = {}) override;
   std::size_t cancel_pending() override;
   TaskExecutorMetrics metrics() const override;
+  void set_health_event_sink(HealthEventSink* sink) override;
   void shutdown() override;
   bool wait_for_idle(std::chrono::milliseconds timeout);
 
@@ -125,6 +131,7 @@ private:
   bool drop_oldest_on_overflow_locked() const;
   bool cancel_pending_on_shutdown_locked() const;
   TaskSubmissionResult reject_submission_locked(std::string reason);
+  void emit_reject_health_event_locked(const std::string& reason);
   void cancel_pending_locked();
   void start_workers();
   void worker_loop();
@@ -139,6 +146,7 @@ private:
   std::deque<TaskCompletion> completed_;
   std::vector<std::thread> workers_;
   TaskExecutorMetrics metrics_;
+  HealthEventSink* health_events_{nullptr};
   bool stopping_{false};
 };
 

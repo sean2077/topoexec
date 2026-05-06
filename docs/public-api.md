@@ -36,7 +36,7 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/diagnostics.hpp` | `GraphDiagnosticDescriptor`, `graph_diagnostic_registry()` | Stable diagnostic code descriptors for editor/tooling integrations. |
 | `topoexec/runtime/graph.hpp` | `GraphSpec`, edge/channel/trigger policy specs, validation and compile result structs, runtime metric samples | The C++ graph model is stable; YAML loader declarations in this header require linking `topoexec::yaml` when called. |
 | `topoexec/runtime/graph_builder.hpp` | `GraphBuilder` and helper constructors | Convenience only; it does not create a second graph model. |
-| `topoexec/runtime/runtime_runner.hpp` | `RuntimeRunner`, `RuntimeRunnerOptions`, `RuntimeRunnerResult`, `RuntimeTraceEvent`, `RuntimeError` | Primary execution API for embedded applications. |
+| `topoexec/runtime/runtime_runner.hpp` | `RuntimeRunner`, `RuntimeRunnerOptions`, `RuntimeRunnerResult`, `RuntimeTraceEvent`, `RuntimeError`, health event result fields | Primary execution API for embedded applications. |
 
 ### Mixed stability headers
 
@@ -51,6 +51,7 @@ These headers are safe for ordinary runtime users to include directly.
 | --- | --- |
 | `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, channel read APIs, and channel metrics. Prefer `RuntimeRunner`/`GraphContext` for ordinary embedding. |
 | `topoexec/runtime/event_runtime.hpp` | Lower-level event runtime surface used by tests and advanced embedders. |
+| `topoexec/runtime/health.hpp` | `HealthEvent` and bounded `HealthEventSink` observer helpers; event shape may evolve with the future observer API. |
 | `topoexec/runtime/state.hpp` | Namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits. |
 | `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
@@ -71,7 +72,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `ComponentRegistry::register_component/create/metadata/types` | stable-v0.2 | Registration metadata can gain additive fields. |
 | `GraphSpec`, `LaneSpec`, `EdgeSpec`, `TriggerPolicySpec`, `CompositeLoopSpec` | stable-v0.2 for current fields | Additive fields are allowed only when schema/runtime meaning stays compatible. |
 | `validate_graph`, `compile_graph`, `GraphDiagnostic` | stable-v0.2 | New diagnostics may be added; existing codes should keep meanings. |
-| `RuntimeRunner::run()` and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, trace vectors, metric vectors, and error fields should keep meanings. |
+| `RuntimeRunner::run()` and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, trace vectors, metric vectors, health event vectors, and error fields should keep meanings. |
 | `SchedulerStopSource`/`SchedulerStopToken` | stable-v0.2 through runner options | Direct scheduler registry/metrics internals remain experimental. |
 | `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | Snapshot/config transaction APIs may be reshaped by G43/G44. |
 | `ITaskExecutor`, `DeterministicTaskExecutor`, `TaskExecutor`, `ThreadedTaskExecutor` | experimental | The deterministic compatibility name remains available; threaded executor preview shutdown/admission details may change before beta. |

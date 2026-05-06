@@ -6,9 +6,12 @@
 #include "topoexec/runtime/state.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <exception>
 #include <map>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string_view>
 #include <utility>
 
@@ -110,6 +113,60 @@ std::uint64_t non_negative_duration_ns(std::chrono::steady_clock::duration durat
   return count < 0 ? 0u : static_cast<std::uint64_t>(count);
 }
 
+std::optional<bool> parse_config_bool(const ConfigView& config, const std::string& key) {
+  const auto found = config.values.find(key);
+  if (found == config.values.end()) {
+    return std::nullopt;
+  }
+  if (found->second == "true" || found->second == "1" || found->second == "yes" || found->second == "on") {
+    return true;
+  }
+  if (found->second == "false" || found->second == "0" || found->second == "no" || found->second == "off") {
+    return false;
+  }
+  return std::nullopt;
+}
+
+std::optional<std::size_t> parse_config_size(const ConfigView& config, const std::string& key) {
+  const auto found = config.values.find(key);
+  if (found == config.values.end()) {
+    return std::nullopt;
+  }
+  if (found->second.empty() || found->second.front() == '-') {
+    return std::nullopt;
+  }
+  try {
+    const auto parsed = std::stoull(found->second);
+    return static_cast<std::size_t>(parsed);
+  } catch (const std::exception&) {
+    return std::nullopt;
+  }
+}
+
+bool resolved_health_event_enabled(const GraphSpec& graph, const RuntimeRunnerOptions& options) {
+  return parse_config_bool(graph.config, "emit_health_events").value_or(options.emit_health_events);
+}
+
+std::size_t resolved_health_event_capacity(const GraphSpec& graph, const RuntimeRunnerOptions& options) {
+  return parse_config_size(graph.config, "health_event_capacity").value_or(options.health_event_capacity);
+}
+
+std::chrono::steady_clock::time_point earliest_trace_epoch(const std::vector<SpanRecord>& spans,
+                                                           const std::vector<HealthEvent>& health_events) {
+  std::chrono::steady_clock::time_point epoch{};
+  for (const auto& span : spans) {
+    if (epoch == std::chrono::steady_clock::time_point{} || span.started_at < epoch) {
+      epoch = span.started_at;
+    }
+  }
+  for (const auto& event : health_events) {
+    if (epoch == std::chrono::steady_clock::time_point{} || event.observed_at < epoch) {
+      epoch = event.observed_at;
+    }
+  }
+  return epoch;
+}
+
 } // namespace
 
 std::string to_string(RuntimeRunMode mode) {
@@ -154,7 +211,10 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     return result;
   }
 
+  const auto emit_health_events = resolved_health_event_enabled(graph, options);
+  HealthEventSink health_events(resolved_health_event_capacity(graph, options), emit_health_events);
   RuntimeChannelBus channels(graph.edges);
+  channels.set_health_event_sink(&health_events);
   RuntimePublicationRouter publications(&channels, graph.edges);
   TraceCollector trace;
   publications.set_trace_collector(&trace);
@@ -239,6 +299,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
 
     EventRuntime runtime(&channels, result.validation.compiled_plan, &publications);
     runtime.set_trace_collector(&trace);
+    runtime.set_health_event_sink(&health_events);
     runtime.set_state_store(&state_store);
     runtime.set_config_store(&config_store);
     for (const auto& spec : graph.components) {
@@ -444,6 +505,15 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                           static_cast<double>(publication_metrics.async_completion_count));
     append_runtime_metric(result, "runtime.async.cancelled_count",
                           static_cast<double>(publication_metrics.async_cancelled_count));
+    result.health_events = health_events.snapshot();
+    result.health_event_count = result.health_events.size();
+    result.health_event_dropped_count = health_events.dropped_count();
+    result.health_event_coalesced_count = health_events.coalesced_count();
+    append_runtime_metric(result, "runtime.health.event_count", static_cast<double>(result.health_event_count));
+    append_runtime_metric(result, "runtime.health.dropped_count",
+                          static_cast<double>(result.health_event_dropped_count));
+    append_runtime_metric(result, "runtime.health.coalesced_count",
+                          static_cast<double>(result.health_event_coalesced_count));
     const auto state_metrics = state_store.metrics();
     if (state_metrics.staged_write_count != 0u || state_metrics.committed_write_count != 0u ||
         state_metrics.rejected_write_count != 0u || state_metrics.snapshot_read_count != 0u) {
@@ -477,16 +547,18 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       result.runtime_metrics.push_back(RuntimeMetricSample{sample.name, sample.value, {}, {}, {}, {}});
     }
     const auto spans = trace.spans();
-    const auto trace_epoch =
-        spans.empty() ? std::chrono::steady_clock::time_point{}
-                      : std::min_element(spans.begin(), spans.end(), [](const auto& left, const auto& right) {
-                          return left.started_at < right.started_at;
-                        })->started_at;
+    const auto trace_epoch = earliest_trace_epoch(spans, result.health_events);
     for (const auto& span : spans) {
       result.trace_events.push_back(span.name);
       result.trace.push_back(
           RuntimeTraceEvent{span.name, span.trace_id.value(), non_negative_duration_ns(span.started_at - trace_epoch),
                             non_negative_duration_ns(span.finished_at - span.started_at), span.attributes});
+    }
+    for (const auto& event : result.health_events) {
+      result.trace_events.push_back("health_event");
+      result.trace.push_back(RuntimeTraceEvent{"health_event", TraceId::generate().value(),
+                                               non_negative_duration_ns(event.observed_at - trace_epoch), 0u,
+                                               health_event_attributes(event)});
     }
     result.trace_event_count = result.trace_events.size();
     append_runtime_metric(result, "runtime.trace.event_count", static_cast<double>(result.trace_event_count));

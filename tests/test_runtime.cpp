@@ -282,6 +282,13 @@ bool has_trace_event_attribute_key(const topoexec::RuntimeRunnerResult& result, 
   });
 }
 
+bool has_health_event(const topoexec::RuntimeRunnerResult& result, topoexec::HealthEventKind kind,
+                      const std::string& channel_id = {}) {
+  return std::any_of(result.health_events.begin(), result.health_events.end(), [&](const auto& event) {
+    return event.kind == kind && (channel_id.empty() || event.channel_id == channel_id);
+  });
+}
+
 std::optional<RuntimeRecord> find_record_snapshot(std::uint64_t sequence, const std::string& component_id,
                                                   const std::string& ready_input = {}) {
   std::lock_guard lock(runtime_records_mutex());
@@ -1517,6 +1524,32 @@ edges:
   return graph;
 }
 
+topoexec::GraphSpec health_event_graph() {
+  return topoexec::load_graph_text(R"(
+schema_version: 1
+graph:
+  name: health_event_runtime
+  kind: runnable
+lanes:
+  main: {type: event_loop}
+components:
+  - id: source
+    type: topoexec.test.LenientBurstSource
+    boundary: {role: input, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: target
+    type: topoexec.test.BatchTarget
+    boundary: {role: output, descriptor: test}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: source_target, kind: immediate, from: source.out, to: target.in, policy: {mode: queue, capacity: 1, overflow: drop_oldest, copy_policy: shared_view}}
+)");
+}
+
 topoexec::GraphSpec async_max_inflight_graph(std::string overflow = "drop_oldest", int max_inflight = 2,
                                              std::string source_type = "topoexec.test.BurstSource") {
   auto graph = topoexec::load_graph_text(R"(
@@ -1737,6 +1770,63 @@ TEST(Runtime, DelayEdgeCarriesCausationAcrossEpoch) {
   EXPECT_TRUE(has_trace_event_attribute(result, "component_execute", "causation_id", "publisher_target_delay#1"));
 }
 
+TEST(Runtime, HealthEventsExposeChannelBackpressureInRunnerResultAndTrace) {
+  const auto reg = delay_registry();
+  const auto spec = health_event_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  const auto result = runner.run(spec, options);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_health_event(result, topoexec::HealthEventKind::kBackpressureHighWatermark, "source_target"));
+  EXPECT_TRUE(has_health_event(result, topoexec::HealthEventKind::kChannelOverflow, "source_target"));
+  EXPECT_GE(result.health_event_count, 2u);
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.health.event_count", 2.0));
+  EXPECT_TRUE(has_trace_event_attribute(result, "health_event", "kind", "channel_overflow"));
+  const auto overflow = std::find_if(result.health_events.begin(), result.health_events.end(), [](const auto& event) {
+    return event.kind == topoexec::HealthEventKind::kChannelOverflow;
+  });
+  ASSERT_NE(overflow, result.health_events.end());
+  EXPECT_EQ(overflow->edge_id, "source_target");
+  EXPECT_EQ(overflow->policy, "drop_oldest");
+  EXPECT_EQ(overflow->occurrence_count, 2u);
+}
+
+TEST(Runtime, HealthEventsCanBeDisabledByGraphConfig) {
+  const auto reg = delay_registry();
+  auto spec = health_event_graph();
+  spec.config.values["emit_health_events"] = "false";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  const auto result = runner.run(spec, options);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.health_event_count, 0u);
+  EXPECT_TRUE(result.health_events.empty());
+  EXPECT_FALSE(has_trace_event_attribute(result, "health_event", "kind", "channel_overflow"));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.channel.health_event_count", 1.0));
+}
+
+TEST(Runtime, HealthEventCapacityBoundsRunnerResult) {
+  const auto reg = delay_registry();
+  auto spec = health_event_graph();
+  spec.config.values["health_event_capacity"] = "1";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  const auto result = runner.run(spec, options);
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_LE(result.health_events.size(), 1u);
+  EXPECT_EQ(result.health_event_count, result.health_events.size());
+  EXPECT_GE(result.health_event_dropped_count, 1u);
+}
+
 TEST(Runtime, StateAndAsyncEdgesCommitAfterCurrentEpoch) {
   const auto reg = delay_registry();
   topoexec::RuntimeRunner runner(reg);
@@ -1861,6 +1951,8 @@ TEST(Runtime, TaskExecutorRejectsAndCancelsBoundedBacklog) {
   config.max_inflight = 1;
   config.overflow = "reject";
   topoexec::TaskExecutor executor(config);
+  topoexec::HealthEventSink sink(4);
+  executor.set_health_event_sink(&sink);
 
   EXPECT_TRUE(executor.submit([]() { return topoexec::make_text_payload("one"); }).accepted);
   const auto rejected = executor.submit([]() { return topoexec::make_text_payload("two"); });
@@ -1871,6 +1963,11 @@ TEST(Runtime, TaskExecutorRejectsAndCancelsBoundedBacklog) {
   const auto metrics = executor.metrics();
   EXPECT_EQ(metrics.rejected_count, 1u);
   EXPECT_EQ(metrics.cancelled_count, 1u);
+  const auto events = sink.snapshot();
+  ASSERT_EQ(events.size(), 1u);
+  EXPECT_EQ(events.front().kind, topoexec::HealthEventKind::kTaskReject);
+  EXPECT_EQ(events.front().policy, "reject");
+  EXPECT_EQ(events.front().reason, "task executor queue full");
 }
 
 TEST(Runtime, TaskExecutorCancellationTokenCancelsPendingTasks) {
@@ -2975,6 +3072,8 @@ TEST(Runtime, ThreadPoolLaneQueueCapacityRejectsNewestWhenFull) {
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.low_priority_rejected_count", 1.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.queue_capacity", 1.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.queue_depth", 1.0));
+  EXPECT_TRUE(has_health_event(result, topoexec::HealthEventKind::kSchedulerReject));
+  EXPECT_TRUE(has_trace_event_attribute(result, "health_event", "kind", "scheduler_reject"));
   EXPECT_TRUE(has_trace_event(result, "thread_pool_batch"));
 }
 

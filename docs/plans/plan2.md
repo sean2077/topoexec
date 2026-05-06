@@ -800,6 +800,8 @@ Priority: P1
 - Health is observable without recursive control flow.
 - Runtime does not call components because a health event was emitted unless explicitly wired via a normal graph boundary in future.
 
+Implementation note: the current G37 pass adds bounded observer-only `HealthEvent` capture for channel overflow/stale/deadline/high-watermark, task reject, and scheduler reject paths, with RuntimeRunner/CLI/trace exposure and config controls for emission and capacity.
+
 ---
 
 ## G38. Channel v2: Multi-Reader and Move-Only Hardening

@@ -194,7 +194,7 @@ Allowed fields:
 - `max_inflight` optional non-negative integer, default `0`; applies only to `async` edges and limits deferred completions before channel capacity.
 - `preserve_order` optional boolean, default `true`.
 - `allow_drop` optional boolean, default `true`.
-- `emit_health_events` optional boolean, default `true`.
+- `emit_health_events` optional boolean, default `true`; suppresses observer health-event records for this edge when `false` while preserving metrics.
 - `timestamp_domain` optional string, default `steady`; allowed values are `steady`, `system`, `device`, and `external`.
 - `copy_policy` optional string, default `copy`; allowed values are `copy`, `shared_view`, `loaned_view`, and `move_only`.
 - `owner` optional string, default `runtime`; allowed values are `producer`, `runtime`, and `consumer`.

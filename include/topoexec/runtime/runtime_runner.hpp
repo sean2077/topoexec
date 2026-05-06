@@ -4,6 +4,7 @@
 
 #include "topoexec/runtime/component_registry.hpp"
 #include "topoexec/runtime/graph.hpp"
+#include "topoexec/runtime/health.hpp"
 #include "topoexec/runtime/scheduler.hpp"
 
 #include <chrono>
@@ -28,6 +29,8 @@ struct RuntimeRunnerOptions {
   bool run_until_idle{false};
   SchedulerStopToken stop_token;
   std::chrono::milliseconds pending_task_cleanup_timeout{1000};
+  bool emit_health_events{true};
+  std::size_t health_event_capacity{kDefaultHealthEventCapacity};
 };
 
 struct RuntimeTraceEvent {
@@ -73,6 +76,9 @@ struct RuntimeRunnerResult {
   std::size_t state_commit_count{0};
   std::size_t async_publication_count{0};
   std::size_t failed_publication_commit_count{0};
+  std::size_t health_event_count{0};
+  std::size_t health_event_dropped_count{0};
+  std::size_t health_event_coalesced_count{0};
   std::size_t trace_event_count{0};
   std::size_t loop_iteration_count{0};
   std::size_t loop_converged_count{0};
@@ -85,6 +91,7 @@ struct RuntimeRunnerResult {
   std::vector<std::string> ticked_components;
   std::vector<std::string> trace_events;
   std::vector<RuntimeTraceEvent> trace;
+  std::vector<HealthEvent> health_events;
   std::vector<RuntimeMetricSample> runtime_metrics;
   std::vector<RuntimeError> runtime_errors;
   std::vector<std::string> errors;

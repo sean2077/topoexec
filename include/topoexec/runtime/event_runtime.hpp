@@ -34,6 +34,7 @@ public:
   void set_compiled_plan(GraphCompiledPlan compiled_plan);
   void set_publication_router(RuntimePublicationRouter* publications);
   void set_trace_collector(TraceCollector* trace);
+  void set_health_event_sink(HealthEventSink* sink);
   void set_state_store(RuntimeStateStore* state_store);
   void set_config_store(ConfigSnapshotStore* config_store);
   SchedulerRunResult run(const SchedulerRunOptions& options);
@@ -43,6 +44,7 @@ private:
   RuntimeChannelBus* channels_{nullptr};
   RuntimePublicationRouter* publications_{nullptr};
   TraceCollector* trace_{nullptr};
+  HealthEventSink* health_events_{nullptr};
   RuntimeStateStore* state_store_{nullptr};
   ConfigSnapshotStore* config_store_{nullptr};
   GraphCompiledPlan compiled_plan_;

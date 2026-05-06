@@ -34,6 +34,8 @@ Channel metrics distinguish common causes:
 
 `RuntimeChannelMetrics::degradation_reason` stores the latest human-readable reason for a degradation path.
 
+When runtime health events are enabled, channel overflow, stale drop, deadline miss, and queue high-watermark conditions are also recorded as bounded observer events. Each event carries `channel_id`/`edge_id`, overflow `policy`, `reason`, `depth`, `capacity`, and endpoint attributes. `policy.emit_health_events: false` suppresses these channel events for one edge without changing channel behavior or degradation counters.
+
 ## Read semantics
 
 Low-level readers expose the same semantics used by the runtime trigger engine:

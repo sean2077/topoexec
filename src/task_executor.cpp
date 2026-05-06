@@ -40,7 +40,26 @@ bool DeterministicTaskExecutor::drop_oldest_on_overflow() const {
 
 TaskSubmissionResult DeterministicTaskExecutor::reject_submission(std::string reason) {
   ++metrics_.rejected_count;
+  emit_reject_health_event(reason);
   return {false, 0u, std::move(reason)};
+}
+
+void DeterministicTaskExecutor::emit_reject_health_event(const std::string& reason) {
+  if (health_events_ == nullptr) {
+    return;
+  }
+  HealthEvent event;
+  event.kind = HealthEventKind::kTaskReject;
+  event.source = "task_executor";
+  event.policy = config_.overflow;
+  event.reason = reason;
+  event.depth = pending_.size();
+  event.capacity = admission_capacity();
+  health_events_->emit(std::move(event));
+}
+
+void DeterministicTaskExecutor::set_health_event_sink(HealthEventSink* sink) {
+  health_events_ = sink;
 }
 
 TaskSubmissionResult DeterministicTaskExecutor::submit(Work work, CompletionCallback completion) {
@@ -146,7 +165,27 @@ bool ThreadedTaskExecutor::cancel_pending_on_shutdown_locked() const {
 
 TaskSubmissionResult ThreadedTaskExecutor::reject_submission_locked(std::string reason) {
   ++metrics_.rejected_count;
+  emit_reject_health_event_locked(reason);
   return {false, 0u, std::move(reason)};
+}
+
+void ThreadedTaskExecutor::emit_reject_health_event_locked(const std::string& reason) {
+  if (health_events_ == nullptr) {
+    return;
+  }
+  HealthEvent event;
+  event.kind = HealthEventKind::kTaskReject;
+  event.source = "task_executor";
+  event.policy = config_.overflow;
+  event.reason = reason;
+  event.depth = pending_.size() + metrics_.active_count;
+  event.capacity = admission_capacity_locked();
+  health_events_->emit(std::move(event));
+}
+
+void ThreadedTaskExecutor::set_health_event_sink(HealthEventSink* sink) {
+  std::lock_guard lock(mutex_);
+  health_events_ = sink;
 }
 
 void ThreadedTaskExecutor::cancel_pending_locked() {

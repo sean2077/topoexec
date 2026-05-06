@@ -10,6 +10,10 @@
   "errors": [],
   "failed_publication_commit_count": 0,
   "graph_name": "minimal",
+  "health_event_coalesced_count": 0,
+  "health_event_count": 0,
+  "health_event_dropped_count": 0,
+  "health_events": [],
   "loop_budget_overrun_count": 0,
   "loop_converged_count": 0,
   "loop_iteration_count": 0,
@@ -820,6 +824,30 @@
       "component_id": "",
       "lane": "",
       "name": "runtime.async.cancelled_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.health.event_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.health.dropped_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
+      "name": "runtime.health.coalesced_count",
       "tags": [],
       "value": 0.0
     },

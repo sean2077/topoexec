@@ -344,6 +344,10 @@ void EventRuntime::set_trace_collector(TraceCollector* trace) {
   trace_ = trace;
 }
 
+void EventRuntime::set_health_event_sink(HealthEventSink* sink) {
+  health_events_ = sink;
+}
+
 void EventRuntime::set_state_store(RuntimeStateStore* state_store) {
   state_store_ = state_store;
 }
@@ -628,6 +632,21 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
         if (invocations.size() > admission_capacity) {
           const auto overflow_count = invocations.size() - admission_capacity;
           lane_metrics.enqueue_rejected_count += overflow_count;
+          if (health_events_ != nullptr) {
+            HealthEvent event;
+            event.kind = HealthEventKind::kSchedulerReject;
+            event.source = "scheduler";
+            event.component_id = found->id;
+            event.lane = found->lane.id;
+            event.policy = found->lane.overflow;
+            event.reason = lane_overflow_fails_fast(found->lane.overflow) ? "thread_pool queue capacity exceeded"
+                                                                          : "thread_pool invocation admission rejected";
+            event.depth = invocations.size();
+            event.capacity = admission_capacity;
+            event.occurrence_count = overflow_count;
+            event.attributes["rejected_count"] = std::to_string(overflow_count);
+            health_events_->emit(std::move(event));
+          }
           const auto rejected_begin = lane_overflow_drops_oldest(found->lane.overflow)
                                           ? invocations.begin()
                                           : invocations.begin() + static_cast<std::ptrdiff_t>(admission_capacity);

@@ -43,7 +43,7 @@ Validate it with:
 ## Required fields
 
 - `schema_version`: currently `1`.
-- `graph`: name, kind, and optional graph-level `config` snapshot.
+- `graph`: name, kind, and optional graph-level `config` snapshot. `config.emit_health_events` and `config.health_event_capacity` are recognized by `RuntimeRunner` as observer health-event controls.
 - `lanes`: named execution lanes such as `event_loop` or bounded `thread_pool`.
 - `components`: ids, type names, event sources, trigger policies, execution
   options, optional config, and optional boundary metadata.

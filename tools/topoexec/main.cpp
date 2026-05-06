@@ -356,6 +356,26 @@ nlohmann::json runtime_errors_json(const topoexec::RuntimeRunnerResult& result) 
   return errors;
 }
 
+nlohmann::json runtime_health_events_json(const topoexec::RuntimeRunnerResult& result) {
+  nlohmann::json events = nlohmann::json::array();
+  for (const auto& event : result.health_events) {
+    events.push_back({{"kind", topoexec::to_string(event.kind)},
+                      {"source", event.source},
+                      {"component_id", event.component_id},
+                      {"lane", event.lane},
+                      {"channel_id", event.channel_id},
+                      {"edge_id", event.edge_id},
+                      {"policy", event.policy},
+                      {"reason", event.reason},
+                      {"sequence", event.sequence},
+                      {"depth", event.depth},
+                      {"capacity", event.capacity},
+                      {"occurrence_count", event.occurrence_count},
+                      {"attributes", event.attributes}});
+  }
+  return events;
+}
+
 nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result) {
   nlohmann::json events = nlohmann::json::array();
   for (const auto& event : result.trace) {
@@ -395,6 +415,10 @@ nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
           {"state_commit_count", result.state_commit_count},
           {"async_publication_count", result.async_publication_count},
           {"failed_publication_commit_count", result.failed_publication_commit_count},
+          {"health_event_count", result.health_event_count},
+          {"health_event_dropped_count", result.health_event_dropped_count},
+          {"health_event_coalesced_count", result.health_event_coalesced_count},
+          {"health_events", runtime_health_events_json(result)},
           {"trace_event_count", result.trace_event_count},
           {"trace_events", result.trace_events},
           {"trace", runtime_trace_json(result)},
@@ -417,6 +441,7 @@ int print_runner_result(const topoexec::RuntimeRunnerResult& result, const std::
     std::cout << "channel_publish_count: " << result.channel_publish_count << "\n";
     std::cout << "channel_delivery_count: " << result.channel_delivery_count << "\n";
     std::cout << "channel_drop_count: " << result.channel_drop_count << "\n";
+    std::cout << "health_event_count: " << result.health_event_count << "\n";
     std::cout << "runtime_publication_committed: " << result.committed_publication_count << "\n";
     for (const auto& error : result.errors) {
       std::cout << "- " << error << "\n";
@@ -436,6 +461,8 @@ int print_metrics_result(const topoexec::RuntimeRunnerResult& result, const std:
     std::cout << "channel_publish_count=" << result.channel_publish_count << "\n";
     std::cout << "channel_delivery_count=" << result.channel_delivery_count << "\n";
     std::cout << "channel_drop_count=" << result.channel_drop_count << "\n";
+    std::cout << "health_event_count=" << result.health_event_count << "\n";
+    std::cout << "health_event_dropped_count=" << result.health_event_dropped_count << "\n";
   }
   return result.ok ? 0 : 1;
 }
@@ -725,7 +752,12 @@ int print_doctor(const std::string& format) {
     value["schema_path"] = schema_path;
     value["examples"] = examples;
     value["benchmarks"] = benchmarks;
-    value["features"] = {{"runtime", true}, {"yaml", true}, {"json", true}, {"sanitizers", "external-ci"}};
+    value["features"] = {
+        {"runtime", true}, {"yaml", true}, {"json", true}, {"health_events", true}, {"sanitizers", "external-ci"}};
+    value["health_events"] = {{"default_emit", true},
+                              {"default_capacity", topoexec::kDefaultHealthEventCapacity},
+                              {"bounded_sink", true},
+                              {"control_flow", "observer_only"}};
     std::cout << value.dump(2) << "\n";
   } else {
     std::cout << (ok ? "ok" : "error") << "\n";
@@ -733,6 +765,8 @@ int print_doctor(const std::string& format) {
     std::cout << "semantic_contract_version: " << topoexec::kTopoExecSemanticContractVersion << "\n";
     std::cout << "schema_version: " << topoexec::kTopoExecSchemaVersion << "\n";
     std::cout << "cxx_standard: " << __cplusplus << "\n";
+    std::cout << "health_events: observer_only bounded default_capacity=" << topoexec::kDefaultHealthEventCapacity
+              << "\n";
     std::cout << "schema_found: " << (!schema_path.empty() ? "true" : "false") << "\n";
     if (!schema_path.empty()) {
       std::cout << "schema_path: " << schema_path << "\n";

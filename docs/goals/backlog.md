@@ -29,7 +29,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G34 | P1/P2 | complete | TaskExecutor v2: Threaded Executor Preview | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in bounded `ThreadedTaskExecutor` preview now cover threaded smoke, cancellation, shutdown drain, failure completion, and exactly-once completion publication while preserving deterministic defaults. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
 | G35 | P2 | pending | Trigger Engine v2: Watermark and Condition Triggers | 扩展 trigger policy，但不破坏现有 v1 trigger semantics。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G36 | P1 | complete | Correlation, Causality, and Invocation Metadata | `InvocationMetadata` now propagates correlation, causation, epoch, transaction, source endpoint, and trigger-kind metadata through publish/channel/trigger/invocation/task/composite-loop paths, with trace attributes, docs, goldens, and runtime coverage while keeping metrics labels bounded. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
-| G37 | P1 | pending | Channel v2: Explicit Backpressure Events | 将 backpressure 从 metrics-only 提升为 optional runtime health event，不改变执行控制流。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G37 | P1 | complete | Channel v2: Explicit Backpressure Events | `HealthEvent` and a bounded non-waiting sink now expose channel overflow/stale/deadline/high-watermark, task reject, and scheduler reject paths through RuntimeRunnerResult, CLI JSON, doctor metadata, and trace events without recursive control flow. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_channel|test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G38 | P1 | pending | Channel v2: Multi-Reader and Move-Only Hardening | 加强 multi-reader、single-reader、move-only、shared/loaned view 的 correctness 和 explainability。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G39 | P1/P2 | pending | Payload and Memory v2 | 将 payload system 从 useful helper 推进为可嵌入应用的内存策略层。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G40 | P1 | pending | Graph Compiler v2: Typed Ports and Constraints | 从 string endpoint validation 走向 typed port contract，减少错误连接。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G37 Channel v2: Explicit Backpressure Events is the next unfinished P1 goal after G36; G35 remains pending P2 and is intentionally deferred by the P0/P1 ordering rule.
+G38 Channel v2: Multi-Reader and Move-Only Hardening is the next unfinished P1 goal after G37; G35 remains pending P2 and is intentionally deferred by the P0/P1 ordering rule.
 
 ## Blockers
 

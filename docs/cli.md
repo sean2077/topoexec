@@ -38,7 +38,7 @@ without CLI or YAML.
 `schema dump --format json` includes the schema annotation
 `x-topoexec-semantic_contract_version`. `doctor --format json` reports the same
 runtime contract as `semantic_contract_version` alongside the graph
-`schema_version`.
+`schema_version` and health-event observer defaults.
 
 <!-- topoexec-doc-test: ${TOPOEXEC} schema dump --format json -->
 <!-- topoexec-doc-test: ${TOPOEXEC} schema check ${SOURCE_DIR}/examples/minimal.yaml --format json -->
