@@ -10,13 +10,14 @@ TopoExec is pre-1.0, but embedders should still know which headers are intended 
 | `topoexec::runtime` | Components, C++ graph construction, validation, runtime execution, payload helpers, metrics, and traces. | No YAML parser or CLI dependency for pure C++ embedding. |
 | `topoexec::yaml` | YAML `schema_version: 1` loading and optional JSON/Mermaid plan helpers. | Depends on `topoexec::runtime` and parser/JSON libraries. |
 | `topoexec::adapter_sdk` | Header-only adapter SDK v0 boundary for future adapter packages. | Depends on `topoexec::runtime`; no YAML, CLI, ROS, OpenTelemetry, Prometheus, Python, Perfetto, or plugin-loader dependency. |
+| `topoexec::c_api` | Optional unstable C API/FFI preview target. | Depends on `topoexec::runtime`; no YAML, CLI, adapters, Python, dynamic plugin, or ABI-stability promise. Default OFF. |
 | `topoexec_adapters::otel` | Optional OTel exporter preview target. | Depends on `topoexec::adapter_sdk`; no core/runtime reverse dependency and no external telemetry SDK. Default OFF. |
 | `topoexec_adapters::prometheus` | Optional Prometheus text exporter preview target. | Depends on `topoexec::adapter_sdk`; no core/runtime reverse dependency, no HTTP server, and no external Prometheus library. Default OFF. |
 | `topoexec_adapters::ros2` | Optional ROS 2 fake-boundary preview target. | Depends on `topoexec::adapter_sdk`; no core/runtime reverse dependency, no ROS client library, no executor, and no schema fields. Default OFF. |
 
 Installed package config metadata exposes `TOPOEXEC_VERSION`,
 `TOPOEXEC_SCHEMA_VERSION`, `TOPOEXEC_SEMANTIC_CONTRACT_VERSION`,
-`TOPOEXEC_HAS_RUNTIME`, `TOPOEXEC_HAS_ADAPTER_SDK`, `TOPOEXEC_HAS_YAML`,
+`TOPOEXEC_HAS_RUNTIME`, `TOPOEXEC_HAS_ADAPTER_SDK`, `TOPOEXEC_HAS_C_API`, `TOPOEXEC_HAS_YAML`,
 `TOPOEXEC_HAS_OTEL_ADAPTER`, `TOPOEXEC_HAS_PROMETHEUS_ADAPTER`,
 `TOPOEXEC_HAS_ROS2_ADAPTER`, `TOPOEXEC_HAS_CLI`, and
 `TOPOEXEC_HAS_EXAMPLES` so downstream projects can assert package capabilities
@@ -68,6 +69,7 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/state.hpp` | Namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits and experimental config transaction metadata. |
 | `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
+| `topoexec/c_api/topoexec.h` | C API/FFI preview: opaque handles, create/run/destroy, borrowed error strings, and metric iteration for downstream C smoke tests. |
 | `topoexec/adapters/sdk.hpp` | Adapter SDK v0 preview: observer aliases, `BoundaryBridge`, and `ComponentFactoryProvider` for dependency-free future adapter packages. |
 | `topoexec/adapters/otel.hpp` | OTel exporter preview: dependency-free in-memory mapping records over runtime metrics, trace, health, and errors. |
 | `topoexec/adapters/prometheus.hpp` | Prometheus exporter preview: dependency-free text exposition mapping over runtime metric descriptors and histogram summaries. |
@@ -101,6 +103,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | State snapshots and config transactions are epoch-boundary, observable APIs; transaction metadata and immediate-update escape hatches may be reshaped before beta. |
 | `ITaskExecutor`, `DeterministicTaskExecutor`, `TaskExecutor`, `ThreadedTaskExecutor` | experimental | The deterministic compatibility name remains available; threaded executor preview shutdown/admission details may change before beta. |
 | `RuntimeChannelBus`, `RuntimePublicationRouter`, `TriggerPolicyEngine`, `EventRuntime` | experimental | Advanced runtime internals may change as scheduler/channel/trigger v2 goals land. |
+| `topoexec/c_api/topoexec.h` opaque handles and functions | experimental | G61 C API/FFI preview, ABI version `0`. Names, ownership details, and exported functions may change before any stable ABI promise. |
 | `topoexec::adapters::BoundaryBridge`, `BoundaryMessage`, `BoundaryPollResult`, `BoundaryBridgeStatus`, `ComponentFactoryProvider` | experimental | Adapter SDK v0 is a header-only boundary. Bridges are bounded/best-effort and providers register components explicitly; concrete adapter packages and dynamic discovery remain future work. |
 | `topoexec::adapters::otel::ExporterPreview` and preview record structs | experimental | G58 dependency-free OTel-shaped mapping over the observer API. Record names and options may change before production exporter work. |
 | `topoexec::adapters::prometheus::TextExporterPreview` | experimental | G59 dependency-free Prometheus text exposition mapping over metric descriptors and custom histogram summaries. Text names/options may change before production exporter work. |

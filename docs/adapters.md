@@ -164,7 +164,7 @@ not core schema and belongs in a ROS adapter config layer.
 | Perfetto | Convert trace events to richer Perfetto output. | Core keeps Chrome trace JSON as dependency-free output. |
 | ROS 2 | G60 preview maps topics/services/actions and adapter-side QoS through `topoexec_adapters::ros2` fake boundary bridges. | Core does not include ROS client libraries, ROS executors, or ROS QoS fields. |
 | Python | Configuration, tests, and scripting first. | Python is not the high-performance payload path. |
-| C API | Stable FFI boundary over runtime/result/config primitives. | No premature ABI freeze before C++ API and schema stabilize. |
+| C API | G61 preview exposes `topoexec::c_api` opaque handles, create/run/destroy, error strings, and metric iteration. | ABI version remains `0`; no Python binding, dynamic plugin, or stable ABI promise. |
 | Plugin loader | Optional dynamic component discovery. | Current core uses explicit `ComponentRegistry` factories only. |
 
 ## Detailed adapter plans
@@ -177,6 +177,8 @@ not core schema and belongs in a ROS adapter config layer.
 - [ROS 2 adapter preview](adapters/ros2.md) documents the dependency-free
   G60 fake-boundary target, topic/service/action mapping, QoS separation,
   executor interaction, lifecycle, diagnostics, tracing, and package smoke.
+- [C API / FFI preview](c-api.md) documents the unstable G61 ABI-version-0
+  target, opaque handles, ownership, error-string, and metric iteration rules.
 
 ## Stub examples
 

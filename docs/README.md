@@ -30,6 +30,7 @@ inspect a YAML graph in less than 30 minutes by following this path.
 
 - [API overview](api-overview.md)
 - [Public API stability](public-api.md)
+- [C API / FFI preview](c-api.md)
 - [API change checklist](api-change-checklist.md)
 - [Components](components.md)
 - [Payloads and ownership](payloads.md)
@@ -66,9 +67,10 @@ inspect a YAML graph in less than 30 minutes by following this path.
 
 Adapters remain deferred/preview unless a later goal explicitly implements them.
 Do not infer production ROS 2, production OpenTelemetry/Prometheus, Python,
-or dynamic plugin support from docs that only describe boundaries. The G58
-OTel, G59 Prometheus, and G60 ROS 2 targets are dependency-free previews, not
-production telemetry SDK/server/client-library integrations.
+dynamic plugin, or stable ABI support from docs that only describe boundaries.
+The G58 OTel, G59 Prometheus, G60 ROS 2, and G61 C API targets are
+dependency-free/unstable previews, not production telemetry SDK/server/client,
+binding, plugin, or ABI-stable integrations.
 
 ## Testing and release
 

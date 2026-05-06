@@ -139,7 +139,7 @@ Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and 
 - Non-blocking ThreadSanitizer CI is wired for GitHub Actions and passed on current `main`; local `scripts/agent_check.sh` remains the required agent gate.
 - Production ROS 2 packages, production OpenTelemetry/Prometheus, Python,
   and external Perfetto adapters are deferred; the default-off OTel,
-  Prometheus, and ROS 2 targets are only dependency-free previews.
+  Prometheus, ROS 2, and C API targets are only dependency-free/unstable previews.
 - The beta readiness review covers only a possible core-runtime beta candidate;
   adapter/ecosystem beta readiness, hard real-time scheduling, signed release
   uploads, and package-registry publication remain deferred.

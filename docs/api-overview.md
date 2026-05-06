@@ -1,13 +1,14 @@
 # API Overview
 
-TopoExec's public C++ surface is split into two CMake targets:
+TopoExec's public C++ surface is split into runtime/YAML targets, with optional preview targets for adapters and FFI:
 
 - `topoexec::runtime`: component, graph model, channel, scheduler, runtime runner, metrics, trace, and the C++ graph builder.
 - `topoexec::yaml`: optional YAML graph loading and JSON plan rendering helpers.
+- `topoexec::c_api`: optional unstable C API/FFI preview over a small runtime subset. It is default-off and ABI version `0`.
 
 Use `topoexec::runtime` when an application builds `GraphSpec` directly in C++ and does not need YAML parsing.
 
-For stability categories and lifecycle failure behavior, see [public-api.md](public-api.md). For payload ownership and typed access helpers, see [payloads.md](payloads.md).
+For stability categories and lifecycle failure behavior, see [public-api.md](public-api.md). For the C API/FFI preview, see [c-api.md](c-api.md). For payload ownership and typed access helpers, see [payloads.md](payloads.md).
 
 ## Minimal Runtime Shape
 

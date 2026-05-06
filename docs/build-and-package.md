@@ -50,6 +50,8 @@ The installed package exports:
 - `topoexec::core`: header-only common baseline.
 - `topoexec::runtime`: embeddable runtime library.
 - `topoexec::adapter_sdk`: dependency-free adapter SDK v0 boundary.
+- `topoexec::c_api`: optional unstable C API/FFI preview target when
+  `TOPOEXEC_BUILD_C_API=ON`.
 - `topoexec::yaml`: optional YAML graph loader target when built.
 - `topoexec::topoexec_cli`: optional imported executable target when the CLI is
   built and installed.
@@ -68,6 +70,7 @@ The installed config also exposes package metadata variables:
 - `TOPOEXEC_SEMANTIC_CONTRACT_VERSION`
 - `TOPOEXEC_HAS_RUNTIME`
 - `TOPOEXEC_HAS_ADAPTER_SDK`
+- `TOPOEXEC_HAS_C_API`
 - `TOPOEXEC_HAS_OTEL_ADAPTER`
 - `TOPOEXEC_HAS_PROMETHEUS_ADAPTER`
 - `TOPOEXEC_HAS_ROS2_ADAPTER`
@@ -84,6 +87,7 @@ The installed config also exposes package metadata variables:
 | `TOPOEXEC_BUILD_EXAMPLES` | `ON` | Build runnable example applications; requires YAML for YAML-backed apps. |
 | `TOPOEXEC_BUILD_TESTING` | `ON` | Build CTest suite; currently requires YAML, CLI, and examples. |
 | `TOPOEXEC_BUILD_FUZZERS` | `OFF` | Build optional graph-input fuzz targets; requires YAML. |
+| `TOPOEXEC_BUILD_C_API` | `OFF` | Build and export the optional unstable C API/FFI preview target. |
 | `TOPOEXEC_BUILD_OTEL_ADAPTER` | `OFF` | Build and export the optional dependency-free OTel exporter preview target. |
 | `TOPOEXEC_BUILD_PROMETHEUS_ADAPTER` | `OFF` | Build and export the optional dependency-free Prometheus text exporter preview target. |
 | `TOPOEXEC_BUILD_ROS2_ADAPTER` | `OFF` | Build and export the optional dependency-free ROS 2 fake-boundary preview target. |
@@ -105,6 +109,28 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 ```
 
 This path is covered by `cmake_runtime_only_options_smoke`.
+
+Optional C API preview target:
+
+```bash
+cmake -S . -B build-ffi -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DTOPOEXEC_BUILD_C_API=ON
+cmake --build build-ffi -j
+ctest --test-dir build-ffi --output-on-failure -R test_c_api
+```
+
+Installed C consumers request the optional component and link the C API target:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED COMPONENTS c_api)
+add_executable(my_c_embedder main.c)
+set_property(TARGET my_c_embedder PROPERTY LINKER_LANGUAGE CXX)
+target_link_libraries(my_c_embedder PRIVATE topoexec::c_api)
+```
+
+This preview target exports `topoexec/c_api/topoexec.h`, opaque handles,
+create/run/destroy, error strings, and metric iteration. It is ABI version `0`,
+unstable, and covered by `cmake_c_api_options_smoke`.
 
 Optional OTel preview target:
 

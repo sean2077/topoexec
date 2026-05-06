@@ -17,8 +17,12 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 
 ## Enforced today
 
-- Installed package exports `topoexec::core`, `topoexec::runtime`, `topoexec::adapter_sdk`, and `topoexec::yaml` separately.
+- Installed package exports `topoexec::core`, `topoexec::runtime`, `topoexec::adapter_sdk`, optional `topoexec::c_api`, and `topoexec::yaml` separately.
 - `tests/cmake/runtime_smoke` links only `topoexec::runtime` and uses GraphBuilder/RuntimeRunner without YAML or CLI includes.
+- `tests/cmake/c_api_options_smoke.cmake` configures a runtime-only build
+  with `TOPOEXEC_BUILD_C_API=ON`, installs it, and proves downstream C source
+  consumption of `topoexec::c_api` without YAML, CLI, adapters, Python, or
+  dynamic plugins.
 - `tests/cmake/otel_adapter_options_smoke.cmake` configures a runtime-only
   build with `TOPOEXEC_BUILD_OTEL_ADAPTER=ON`, installs it, and proves
   downstream `topoexec_adapters::otel` consumption without the CLI.
@@ -43,6 +47,7 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 | `topoexec_core` | interface include path and C++20 feature only | YAML, CLI, adapter SDKs, runtime implementation |
 | `topoexec_runtime` | `topoexec_core` | `topoexec_yaml`, `topoexec_adapter_sdk`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, adapter SDKs |
 | `topoexec_adapter_sdk` | `topoexec_runtime` | `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, concrete adapter SDKs |
+| `topoexec_c_api` | `topoexec_runtime` | `topoexec_yaml`, `topoexec_adapter_sdk`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, adapters, Python/dynamic plugin runtimes |
 | `topoexec_adapters_otel` | `topoexec_adapter_sdk` | direct `topoexec_runtime`, `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, external telemetry SDKs |
 | `topoexec_adapters_prometheus` | `topoexec_adapter_sdk` | direct `topoexec_runtime`, `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, HTTP server libraries, external Prometheus SDKs |
 | `topoexec_adapters_ros2` | `topoexec_adapter_sdk` | direct `topoexec_runtime`, `topoexec_yaml`, `CLI11`, `PkgConfig::YAML_CPP`, `nlohmann_json`, ROS package discovery, ROS client libraries |

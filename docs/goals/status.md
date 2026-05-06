@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G35, G36, G37, G38, G39, G40, G41, G42, G45, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, G57, G58, G59, G60, G67, G69, and G70 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" objective, the next unfinished backlog goals are G61-G65 adapter/interface/ecosystem preview work and G68 community readiness. Concrete adapter implementations remain deferred unless that scope is explicitly opened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G35, G36, G37, G38, G39, G40, G41, G42, G45, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, G57, G58, G59, G60, G61, G67, G69, and G70 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" objective, the next unfinished backlog goals are G62-G65 adapter/interface/ecosystem preview work and G68 community readiness. Concrete adapter implementations remain deferred unless that scope is explicitly opened.
 
 ## Active / Recent Goals
 
@@ -55,38 +55,42 @@ All P0/P1 plan2 goals are complete. For the active "finish all plan2 goals" obje
 | G58 | complete | `include/topoexec/adapters/otel.hpp`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `tests/test_otel_adapter.cpp`, `tests/cmake/otel_adapter_smoke`, `tests/cmake/otel_adapter_options_smoke.cmake`, adapter policy checks, adapter/API/metrics/trace/package docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Default-off `topoexec_adapters::otel` maps runtime metric descriptors, trace events, health events, runtime errors, and result summaries into dependency-free in-memory OTel-shaped records; package and policy smokes prove `topoexec::runtime` stays free of adapter or telemetry SDK dependencies. |
 | G59 | complete | `include/topoexec/adapters/prometheus.hpp`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `tests/test_prometheus_adapter.cpp`, `tests/cmake/prometheus_adapter_smoke`, `tests/cmake/prometheus_adapter_options_smoke.cmake`, adapter policy checks, adapter/API/metrics/package docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Default-off `topoexec_adapters::prometheus` renders descriptor-backed counters/gauges and custom histogram summaries as dependency-free text exposition with bounded labels only; no HTTP server, Prometheus library, or runtime exporter dependency is added. |
 | G60 | complete | `include/topoexec/adapters/ros2.hpp`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `tests/test_ros2_adapter.cpp`, `tests/cmake/ros2_adapter_smoke`, `tests/cmake/ros2_adapter_options_smoke.cmake`, adapter policy checks, adapter/API/package/ROS docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Default-off `topoexec_adapters::ros2` maps topics/services/actions and adapter-side QoS into fake boundary bridge contracts; package and policy smokes prove no ROS package/client-library dependency, executor, or schema field is added. |
+| G61 | complete | `include/topoexec/c_api/topoexec.h`, `src/c_api.cpp`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `tests/test_c_api.cpp`, `tests/cmake/c_api_smoke`, `tests/cmake/c_api_options_smoke.cmake`, `docs/c-api.md`, public API/package/versioning docs, policy checks, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Default-off `topoexec::c_api` exposes unstable ABI-version-0 opaque handles for runtime/graph/result create-run-destroy, borrowed error strings, and metric iteration; downstream C smoke proves FFI shape without Python, dynamic plugins, YAML/CLI coupling, or an ABI freeze. |
 | G67 | complete | `scripts/release_prepare.sh`, `.github/workflows/release-dry-run.yml`, `tests/release/check_release_prepare.py`, `docs/release-runbook.md`, release/progression/versioning docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Release preparation is now reproducible from a clean candidate commit: the script checks tag/changelog/doc policy, runs gates unless skipped, drafts notes, generates source/CPack/schema artifacts plus checksums, writes a human-only annotated tag command, and never tags or publishes automatically. |
 | G69 | complete | `examples/apps/robot_cell_pilot`, `docs/case-study-robot-cell.md`, `docs/examples.md`, `examples/README.md`, README/docs index updates, `CMakeLists.txt`, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | The robot-cell pilot composes event-loop/thread-pool/fixed-rate lanes, async frame overload/drop, state and delay feedback, BufferPool `FrameView` payloads, config transaction/snapshot evidence, runtime metrics/trace/observer evidence, and invalid-config rejection while linking only `topoexec_runtime` and adding no adapter dependency. |
-| G70 | complete | `docs/beta-readiness-review.md`, `docs/public-api.md`, `docs/versioning.md`, `docs/runtime-invariants.md`, release docs, README/docs index updates, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | TopoExec can honestly enter a human-approved core-runtime beta candidate review after the required gates pass, but must not claim adapter/ecosystem beta readiness, signed/published package artifacts, hard real-time scheduling, or deferred G61-G65/G68 scope. |
+| G70 | complete | `docs/beta-readiness-review.md`, `docs/public-api.md`, `docs/versioning.md`, `docs/runtime-invariants.md`, release docs, README/docs index updates, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | TopoExec can honestly enter a human-approved core-runtime beta candidate review after the required gates pass, but must not claim adapter/ecosystem beta readiness, signed/published package artifacts, hard real-time scheduling, or deferred G62-G65/G68 scope. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
-./scripts/goal_check.sh adapters
-# G60 passed: test_adapter_sdk, test_otel_adapter, test_prometheus_adapter, test_ros2_adapter, all three adapter option smokes, and policy smokes, 9/9.
+./scripts/goal_check.sh ffi
+# G61 passed: test_c_api, cmake_c_api_options_smoke, and policy smokes, 4/4.
 
 ./scripts/goal_check.sh quick
-# G60 passed: cli_golden_outputs and schema_v1_contract_smoke.
+# G61 passed: cli_golden_outputs and schema_v1_contract_smoke.
 
 ./scripts/goal_check.sh docs
-# G60 passed: recursive docs command smoke after adapter docs updates.
+# G61 passed: recursive docs command smoke after C API docs updates.
 
 cmake --build build --target topoexec_format_check
-# G60 passed.
+# G61 passed.
 
 ./scripts/goal_check.sh policy
-# G60 passed: policy_no_core_adapter_deps and policy_architecture_self_test.
+# G61 passed: policy_no_core_adapter_deps and policy_architecture_self_test.
 
 ./scripts/agent_check.sh
-# G60 passed: 75/75 CTest tests in the default RelWithDebInfo GCC build.
+# G61 passed: 76/76 CTest tests in the default RelWithDebInfo GCC build.
 
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
-# G60 passed: 75/75 CTest tests in the ASAN+UBSAN Debug build.
+# G61 passed: 76/76 CTest tests in the ASAN+UBSAN Debug build.
 
 git diff --check
-# G60 passed.
+# G61 passed.
+
+git diff --cached --check
+# G61 passed.
 
 ctest --test-dir build --output-on-failure -R 'test_runtime|test_graph|app_composite_solver_runs|schema_v1_contract_smoke|cli_golden_outputs|docs_command_smoke'
 # G45 focused pass: solver_iteration convergence/residual/partial-output behavior, graph validation, composite-solver app, schema/golden, and docs smoke passed.

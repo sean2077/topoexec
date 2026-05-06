@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|adapters|release|sanitizer|format|debug]
+Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|adapters|ffi|release|sanitizer|format|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
@@ -17,6 +17,7 @@ Goal-specific validation dispatcher for TopoExec agents.
 - bench:  benchmark output-contract smoke plus local baseline generation without thresholds
 - policy: architecture/dependency policy smokes
 - adapters: optional adapter-preview target/package smokes
+- ffi: optional C API/FFI preview target/package smoke
 - release: release automation dry-run smoke
 - sanitizer: ASAN+UBSAN Debug build and full CTest
 - format: clang-format check target
@@ -90,6 +91,13 @@ case "$MODE" in
     cmake --build "$OTEL_BUILD_DIR" -j
     ctest --test-dir "$OTEL_BUILD_DIR" --output-on-failure \
       -R 'test_adapter_sdk|test_otel_adapter|test_prometheus_adapter|test_ros2_adapter|cmake_otel_adapter_options_smoke|cmake_prometheus_adapter_options_smoke|cmake_ros2_adapter_options_smoke|policy_.*'
+    ;;
+  ffi)
+    FFI_BUILD_DIR="${BUILD_DIR}-ffi"
+    cmake -S . -B "$FFI_BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTOPOEXEC_BUILD_C_API=ON
+    cmake --build "$FFI_BUILD_DIR" -j
+    ctest --test-dir "$FFI_BUILD_DIR" --output-on-failure \
+      -R 'test_c_api|cmake_c_api_options_smoke|policy_.*'
     ;;
   release)
     configure_build

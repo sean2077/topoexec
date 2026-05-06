@@ -26,7 +26,7 @@ Release decision note:
 
 ```text
 Recommended next prerelease: v0.2.0-alpha.0.
-Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while production exporter adapters, long fuzz/soak campaigns, and beta readiness remain explicit future work. RuntimeObserver v1, the dependency-free G58/G59 telemetry preview mappings, the G60 ROS 2 fake-boundary preview, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
+Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while production exporter adapters, long fuzz/soak campaigns, and beta readiness remain explicit future work. RuntimeObserver v1, the dependency-free G58/G59 telemetry preview mappings, the G60 ROS 2 fake-boundary preview, the G61 C API/FFI preview, persistent worker-pool v1, fixed-rate wall-clock cadence v1, coverage-guided fuzz smoke, and bounded stress smoke are now part of the plan2 architecture-stabilization line.
 Human release approval should still verify CI on the exact tag commit before creating the annotated tag.
 ```
 
@@ -176,6 +176,19 @@ cmake --build build --target topoexec_format_check passed.
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 75/75 CTest tests in the ASAN+UBSAN Debug build.
 ```
 
+Observed G61 local result:
+
+```text
+./scripts/goal_check.sh ffi passed: test_c_api, cmake_c_api_options_smoke, and policy smokes, 4/4.
+./scripts/goal_check.sh quick passed: cli_golden_outputs and schema_v1_contract_smoke.
+./scripts/goal_check.sh docs passed: recursive docs command smoke after C API docs updates.
+cmake --build build --target topoexec_format_check passed.
+./scripts/goal_check.sh policy passed: policy_no_core_adapter_deps and policy_architecture_self_test.
+./scripts/agent_check.sh passed: 76/76 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 76/76 CTest tests in the ASAN+UBSAN Debug build.
+git diff --check and git diff --cached --check passed.
+```
+
 Observed G67 local result:
 
 ```text
@@ -258,8 +271,9 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
   schema version 1, diagnostic schema version 1, invocation
   correlation/causation metadata, bounded observer-only health events,
   RuntimeObserver v1, Adapter SDK v0, the dependency-free G58 OTel preview
-  mapping, G59 Prometheus text preview, and G60 ROS 2 fake-boundary preview.
-  Concrete production exporter/ROS adapters and a richer health-event v2
+  mapping, G59 Prometheus text preview, G60 ROS 2 fake-boundary preview, and G61
+  C API/FFI preview. Concrete production exporter/ROS adapters, stable ABI,
+  Python bindings, and a richer health-event v2
   contract remain future work.
 - Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, deterministic malformed-input fuzz smoke, and an optional `fuzz_graph_inputs` libFuzzer/standalone corpus target. Longer fuzz campaigns and broader target coverage remain future hardening work.
 - Hierarchical `subgraphs[]` are implemented as schema-v1 compile-time
@@ -290,5 +304,6 @@ Current branch limitations after the plan2 G45 CompositeLoop solver-style pass:
   API, dynamic plugin loading, and external Perfetto adapters remain deferred
   and must not be claimed as implemented; G57 provides a dependency-free SDK
   boundary, G58/G59 provide only dependency-free telemetry preview mappings,
-  and G60 provides only a dependency-free ROS 2 fake-boundary preview.
+  G60 provides only a dependency-free ROS 2 fake-boundary preview, and G61
+  provides only an unstable ABI-version-0 C API/FFI preview.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

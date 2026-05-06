@@ -71,6 +71,11 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
   descriptors, adapter-side QoS mapping, fake boundary bridge tests, installed
   package metadata, downstream CMake smoke coverage, and policy checks proving
   runtime has no ROS package dependency.
+- Added the default-off `topoexec::c_api` FFI preview with
+  `TOPOEXEC_BUILD_C_API`, `topoexec/c_api/topoexec.h`, opaque runtime/graph/result
+  handles, create/run/destroy, borrowed error strings, metric iteration,
+  downstream C smoke coverage, and ABI version `0` to avoid accidental ABI
+  freeze.
 - Added release automation with `scripts/release_prepare.sh`, `./scripts/goal_check.sh release`, manual CI dry-run artifact upload, release notes draft generation, annotated-tag/no-retag guardrails, source/CPack/schema artifacts, and checksum output without publishing or tagging automatically.
 - Added the G69 robot-cell pilot app and case study, composing multiple lanes, async overload drops, state/delay feedback, BufferPool frames, config transactions/snapshots, metrics/trace evidence, and invalid-config rejection without adapter dependencies.
 - Added the G70 beta readiness review, beta-candidate gate checklist, explicit

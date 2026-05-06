@@ -19,6 +19,7 @@ REQUIRED_DOCS = [
     "runtime-semantics.md",
     "api-overview.md",
     "public-api.md",
+    "c-api.md",
     "schema-v1.md",
     "hierarchical-graphs.md",
     "graph-templates.md",
@@ -63,6 +64,13 @@ REQUIRED_SECTIONS = {
         "## No hidden recursion",
         "## Observation is not control",
     ],
+    "c-api.md": [
+        "## Status",
+        "## Design decisions",
+        "## Ownership rules",
+        "## Non-goals",
+        "## Validation",
+    ],
 }
 
 README_REQUIRED_LINKS = [
@@ -71,6 +79,8 @@ README_REQUIRED_LINKS = [
     "(case-study-robot-cell.md)",
     "(runtime-semantics.md)",
     "(api-overview.md)",
+    "(public-api.md)",
+    "(c-api.md)",
     "(schema-v1.md)",
     "(hierarchical-graphs.md)",
     "(graph-templates.md)",

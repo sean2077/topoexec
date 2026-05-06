@@ -1983,6 +1983,17 @@ Priority: P2/P3
 - FFI path is understood before Python binding.
 - No accidental ABI freeze.
 
+### Implementation note (2026-05-06)
+
+G61 landed as an unstable ABI-version-0 preview, not a stable ABI.
+`topoexec::c_api` and `topoexec/c_api/topoexec.h` provide opaque runtime, graph
+builder, and result handles; explicit create/run/destroy ownership; borrowed
+error strings; minimal event-loop/no-op graph construction; and runtime metric
+iteration. `test_c_api` and `cmake_c_api_options_smoke` prove a downstream C
+source can consume the installed target. Python bindings, dynamic plugins, C
+component callbacks, high-throughput payload handles, and ABI stability remain
+future scope.
+
 ---
 
 ## G62. Python Binding Preview for Config/Test
@@ -2371,7 +2382,7 @@ Priority: P0 before beta
 - The review authorizes only a human-approved **core runtime beta candidate**
   path. It explicitly rejects adapter/ecosystem beta claims, hard real-time
   scheduling claims, automatic tag/publish actions, package-registry publication,
-  and hidden deferral of G42, G61-G65, or G68.
+  and hidden deferral of G42, G62-G65, or G68.
 - Updated public API/versioning docs with a pre-1.0 deprecation policy, expanded
   runtime-invariant coverage rows for config transactions, observers, metric
   schema, parser limits, policy boundaries, release prep, and the G69 pilot, and
@@ -2439,7 +2450,7 @@ Priority: P0 before beta
 36. G58 OpenTelemetry Exporter Preview（complete）
 37. G59 Prometheus Exporter Preview（complete）
 38. G60 ROS 2 Adapter Preview（complete）
-39. G61 C API / FFI Design
+39. G61 C API / FFI Design（complete）
 40. G62 Python Binding Preview
 41. G63 Dynamic Plugin Loading Preview
 42. G64 Schema v2 Exploration

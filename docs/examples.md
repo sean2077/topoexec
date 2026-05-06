@@ -3,8 +3,8 @@
 TopoExec examples are intentionally small and dependency-free. They teach the
 core runtime contracts without implying that adapter packages, dynamic plugin
 loaders, production ROS 2 packages, production OpenTelemetry/Prometheus, or
-Python bindings are implemented. The G58/G59 telemetry targets and G60 ROS 2
-target are dependency-free previews,
+Python bindings are implemented. The G58/G59 telemetry targets, G60 ROS 2
+target, and G61 C API target are dependency-free or unstable previews,
 not example app dependencies.
 
 Use this page as the learning path after the README quickstart.
