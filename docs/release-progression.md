@@ -6,7 +6,8 @@ a tag announcement.
 
 ## Current candidate state
 
-As of the post-G25 baseline commit `b86a586d3a48d84bf4e03ccabde3d061e3073579`,
+The post-G25 baseline commit `b86a586d3a48d84bf4e03ccabde3d061e3073579`
+started the current release-candidate line. As of the plan2 line through G67,
 the repository has:
 
 - G0-G25 complete and archived as the previous plan sweep.
@@ -14,7 +15,9 @@ the repository has:
 - ASAN+UBSAN Debug CTest passing in the previous baseline evidence.
 - Runtime-only configure/build/install smoke coverage with YAML, CLI, examples,
   and tests disabled.
-- Adapter and ROS 2 previews documented only; no adapter SDK dependency in core.
+- Dependency-free Adapter SDK v0 for future adapters; no concrete ROS 2,
+  OpenTelemetry, Prometheus, Python, C API, dynamic plugin, or external Perfetto
+  adapter is implemented.
 - Defensive parser limits plus deterministic fuzz smoke.
 - Bounded stress smoke for generated scheduler/channel workloads, thread-pool
   overload, and task-executor overload.
@@ -25,6 +28,9 @@ the repository has:
   install prefix; CPack TGZ and package-manager draft checks exist.
 - Documentation system v2 adds an executable cookbook, architecture diagrams,
   why-not comparisons, design principles, and recursive docs contract checks.
+- Release automation prepares a candidate without publishing: `scripts/release_prepare.sh`
+  can run gates, draft notes, generate source/CPack/schema artifacts, write
+  checksums, and print a human-only annotated tag command.
 - G26 adds golden coverage for Chrome trace shape, schema dump JSON, and doctor
   JSON in addition to plan/metrics/trace/render outputs.
 
@@ -57,7 +63,7 @@ Rationale:
 | Stage | Status | Evidence | Remaining before tagging that stage |
 | --- | --- | --- | --- |
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
-| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption and CPack smoke evidence. | Verify CI on exact tag commit; run local release checklist; prepare notes/checksums. |
+| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption, Adapter SDK boundary, CPack smoke, and G67 release-prep automation evidence. | Verify CI on exact tag commit; run local release checklist; attach release-prep artifacts; human approves the annotated tag. |
 | `v0.3.0-alpha` | Preview-doc ready, partial observer API implemented | RuntimeObserver v1, adapter contracts, stub layout, and ROS 2 design are complete without core dependency pollution. | Add concrete exporter/adapter targets before claiming adapter implementation readiness. |
 | `v0.5.0-beta` | Not ready | ASAN+UBSAN, fuzz smoke, and bounded stress smoke exist; docs/examples are mature. | Blocking TSAN decision, longer fuzz/property/soak evidence, API/deprecation hardening, and external release artifact rehearsals. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
@@ -93,9 +99,11 @@ cmake --build build --target topoexec_format_check
 ./scripts/goal_check.sh package
 ./scripts/goal_check.sh golden
 ./scripts/goal_check.sh docs
+./scripts/goal_check.sh release
 ./scripts/goal_check.sh stress
 ./scripts/goal_check.sh bench
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+./scripts/release_prepare.sh --version v0.2.0-alpha.0
 ```
 
 Then confirm GitHub Actions are green for:
@@ -109,15 +117,17 @@ Then confirm GitHub Actions are green for:
 
 A release artifact rehearsal should produce:
 
-1. source tarball from the exact annotated tag;
+1. source tarball from the exact candidate commit or annotated tag;
 2. checksum file;
 3. release notes from `CHANGELOG.md`;
-4. default CTest summary;
-5. runtime-only package smoke summary;
-6. ASAN+UBSAN summary;
-7. golden output summary for plan, metrics, trace, Chrome trace, render, schema dump, and doctor JSON;
-8. docs command/map smoke summary;
-9. stress smoke summary, plus optional soak summary when run;
-10. benchmark output-contract summary and any optional local baseline comparison;
-11. CPack source/binary smoke summary and package-draft review status;
-12. known limitations copied into release notes.
+4. schema artifact copied from `schema/topoexec.schema.v1.json`;
+5. default CTest summary;
+6. runtime-only package smoke summary;
+7. ASAN+UBSAN summary;
+8. golden output summary for plan, metrics, trace, Chrome trace, render, schema dump, and doctor JSON;
+9. docs command/map smoke summary;
+10. release-prep smoke summary;
+11. stress smoke summary, plus optional soak summary when run;
+12. benchmark output-contract summary and any optional local baseline comparison;
+13. CPack source/binary smoke summary and package-draft review status;
+14. known limitations copied into release notes.

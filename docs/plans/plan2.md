@@ -2113,6 +2113,18 @@ Priority: P1
 - A future Codex goal can prepare a release candidate without guessing.
 - Human still approves final tag/push.
 
+### Implementation note (2026-05-06)
+
+- Completed with a non-publishing `scripts/release_prepare.sh` that validates a
+  clean candidate tree, tag reuse, `CHANGELOG.md` Unreleased content, release
+  doc version mentions, local gates, notes drafting, source/CPack/schema
+  artifact generation, checksums, and human-only annotated tag command output.
+- Added `./scripts/goal_check.sh release`, `release_prepare_smoke`, and a manual
+  GitHub Actions release dry-run workflow that uploads artifacts without
+  creating or pushing tags.
+- Kept tag mode deferred to a human-approved follow-up; public tags remain
+  immutable and mistakes use fix-forward prerelease tags.
+
 ---
 
 ## G68. Community and Contribution Readiness

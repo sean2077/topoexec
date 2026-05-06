@@ -112,11 +112,12 @@ Each app directory includes a README with graph shape, run command, expected out
 - [Build and package](docs/build-and-package.md)
 - [Defensive input handling](docs/defensive-input.md)
 - [Performance baselines](docs/performance-baselines.md)
+- [Release runbook](docs/release-runbook.md)
 - [Release progression](docs/release-progression.md)
 - [FAQ](docs/faq.md)
 - [Adapter boundaries](docs/adapters.md)
 
-Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), and [docs/release-checklist.md](docs/release-checklist.md). The latest published tag is `v0.1.0-alpha`; current `main` carries post-alpha scheduler priority, concurrency, and async admission work.
+Release planning is tracked in [CHANGELOG.md](CHANGELOG.md), [docs/versioning.md](docs/versioning.md), [docs/release-checklist.md](docs/release-checklist.md), and [docs/release-runbook.md](docs/release-runbook.md). `scripts/release_prepare.sh` prepares local release-candidate notes, artifacts, checksums, and a human-only tag command; it does not publish or tag automatically. The latest published tag is `v0.1.0-alpha`; current `main` carries post-alpha runtime, packaging, adapter-SDK, docs, example, and release-automation work.
 Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and [docs/goals/status.md](docs/goals/status.md).
 
 ## Known Limitations

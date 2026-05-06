@@ -21,6 +21,7 @@ v0.2.0-alpha.0
 - [ ] `./scripts/goal_check.sh package` passes.
 - [ ] `./scripts/goal_check.sh golden` passes.
 - [ ] `./scripts/goal_check.sh docs` passes.
+- [ ] `./scripts/goal_check.sh release` passes.
 - [ ] `./scripts/goal_check.sh stress` passes.
 - [ ] `./scripts/goal_check.sh bench` passes.
 - [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer` passes.
@@ -31,6 +32,9 @@ v0.2.0-alpha.0
 - [ ] `docs/release-progression.md` names the intended stage and remaining limitations.
 - [ ] `CHANGELOG.md` has the release section updated.
 - [ ] `docs/versioning.md` matches the intended tag.
+- [ ] `scripts/release_prepare.sh --version v0.2.0-alpha.0` completes on the
+  clean candidate commit or any intentional `--skip-gates` rehearsal is clearly
+  labeled as not final release evidence.
 
 Current local evidence for G26:
 
@@ -40,6 +44,20 @@ cmake --build build --target topoexec_format_check: passed.
 ./scripts/goal_check.sh package: passed, 2/2 package tests.
 ./scripts/goal_check.sh golden: passed, cli_golden_outputs.
 TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 50/50 ASAN+UBSAN CTest tests.
+```
+
+Current local evidence after G67 release-automation wiring:
+
+```text
+./scripts/goal_check.sh release: passed release_prepare_smoke.
+./scripts/release_prepare.sh --version v0.2.0-alpha.0 --skip-gates --allow-dirty --artifacts-dir build/release-prepare-artifact-smoke --build-dir build-release-candidate-smoke --notes-out build/release-prepare-artifact-smoke/release-notes-v0.2.0-alpha.0.md: passed artifact rehearsal without publishing.
+./scripts/goal_check.sh docs: passed release-runbook doc marker.
+./scripts/goal_check.sh package: passed package/CPack smokes.
+./scripts/goal_check.sh quick: passed golden/schema smokes.
+cmake --build build --target topoexec_format_check: passed.
+./scripts/agent_check.sh: passed, 69/69 CTest tests.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer: passed, 69/69 ASAN+UBSAN CTest tests.
+git diff --check: passed.
 ```
 
 ## Golden drift surfaces
@@ -68,6 +86,19 @@ Intentional changes to these files require a changelog and semantic/API/doc note
   `TOPOEXEC_STRESS_PROFILE=soak TOPOEXEC_STRESS_DURATION_SECONDS=60 ./scripts/stress_smoke.sh`.
 
 ## Artifact smoke
+
+The preferred candidate-prep entry point is the release runbook:
+
+```bash
+./scripts/release_prepare.sh --version v0.2.0-alpha.0
+```
+
+It checks policy, runs local gates by default, drafts release notes, creates
+source/CPack/schema artifacts, writes `SHA256SUMS`, and prints a human-only
+annotated tag command. Use `--dry-run --allow-dirty` only for script smoke and
+`--skip-gates` only when the skipped evidence is already attached separately.
+
+Manual package checks remain useful when diagnosing artifact failures:
 
 Build from a clean checkout:
 
@@ -113,8 +144,9 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and
   external Perfetto adapters remain deferred.
 - Package-manager recipes under `packaging/` are drafts, not published ports.
-- CPack TGZ archives are local release-candidate artifacts; signed source
-  archives/checksums still require a human release step.
+- `scripts/release_prepare.sh` can generate local candidate artifacts and
+  checksums, but signed release uploads and annotated tag pushes still require a
+  human release step.
 - G56 reference apps are dependency-free in-process examples; they do not implement
   hierarchical graphs or external adapter stacks.
 - G57 Adapter SDK v0 is a dependency-free boundary only; concrete ROS 2, OTel,

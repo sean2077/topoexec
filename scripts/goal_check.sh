@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|sanitizer|format|debug]
+Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|release|sanitizer|format|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
@@ -16,6 +16,7 @@ Goal-specific validation dispatcher for TopoExec agents.
 - stress: bounded runtime stress graph smoke plus task-executor overload stress
 - bench:  benchmark output-contract smoke plus local baseline generation without thresholds
 - policy: architecture/dependency policy smokes
+- release: release automation dry-run smoke
 - sanitizer: ASAN+UBSAN Debug build and full CTest
 - format: clang-format check target
 - debug:  Debug build + CTest in build-debug-gcc
@@ -78,6 +79,10 @@ case "$MODE" in
   policy)
     configure_build
     ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'policy_.*'
+    ;;
+  release)
+    configure_build
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R release_prepare_smoke
     ;;
   sanitizer)
     ./scripts/sanitizer_check.sh

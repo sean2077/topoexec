@@ -39,6 +39,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added documentation system v2 with a reorganized docs map, executable cookbook recipes, architecture diagrams, why-not comparisons, design principles, and recursive docs smoke coverage for required pages/sections.
 - Added example applications v2 with dependency-free reference apps for low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop solver convergence/budget overrun, and BufferPool copy/shared/loaned payload metrics.
 - Added Adapter SDK v0 with `topoexec::adapter_sdk`, `topoexec/adapters/sdk.hpp`, observer/result-sink aliases, bounded `BoundaryBridge` contracts, explicit `ComponentFactoryProvider`, adapter package smoke tests, and architecture policy coverage that keeps runtime dependency-free.
+- Added release automation with `scripts/release_prepare.sh`, `./scripts/goal_check.sh release`, manual CI dry-run artifact upload, release notes draft generation, annotated-tag/no-retag guardrails, source/CPack/schema artifacts, and checksum output without publishing or tagging automatically.
 - Added `topoexec schema dump`, `topoexec schema check`, and `topoexec doctor` JSON/text tooling.
 - Added state/config, batch/time-sync, service-style async, and boundary-adapter-pattern YAML examples plus an examples catalog with CLI smokes.
 - Added a documentation index, tutorial/reference pages, and doc-command smoke coverage for the getting-started and CLI paths.

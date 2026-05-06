@@ -568,6 +568,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/check_package_drafts.py
       --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
   )
+  add_test(NAME release_prepare_smoke
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/release/check_release_prepare.py
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+      --build-dir ${CMAKE_CURRENT_BINARY_DIR}
+  )
   add_test(NAME app_minimal_pipeline_runs
     COMMAND topoexec_app_minimal_pipeline
   )

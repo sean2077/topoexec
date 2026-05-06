@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, and G57 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P0/P1 goal in backlog order is G67 Release Automation and Artifact Reproducibility. Lower-priority G35, G41, G42, G45, and G58-G65 remain pending P2/P3 design/adapter/ecosystem work and are deferred by the active ordering rule unless the plan order is explicitly reopened; concrete adapter implementations remain deferred.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, G56, G57, and G67 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P0/P1 goal in backlog order is G69 Real-World Pilot App. Lower-priority G35, G41, G42, G45, G58-G65, and G68 remain pending P2/P3 design/adapter/ecosystem/community work and are deferred by the active ordering rule unless the plan order is explicitly reopened; concrete adapter implementations remain deferred.
 
 ## Active / Recent Goals
 
@@ -48,12 +48,44 @@ The next unfinished P0/P1 goal in backlog order is G67 Release Automation and Ar
 | G55 | complete | `docs/README.md`, `docs/cookbook.md`, `docs/architecture-diagrams.md`, `docs/why-topoexec.md`, `docs/design-principles.md`, `tests/docs/check_docs.py`, testing docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Documentation now has a learning/reference/release map, executable cookbook recipes, architecture diagrams, why-not comparisons, design principles, and a recursive docs smoke that checks required G55 pages and sections. |
 | G56 | complete | `examples/apps/low_latency_sensor_pipeline`, `examples/apps/control_loop_with_state`, `examples/apps/async_request_response`, `examples/apps/composite_solver`, `examples/apps/payload_pool_pipeline`, `CMakeLists.txt`, examples/testing/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Reference apps now exercise latest/drop semantics, fixed-rate state plus delay boundaries, deterministic task-completion response flow, CompositeLoop convergence and budget-overrun metrics, and BufferPool copy/shared/loaned metrics without adding external adapters; hierarchical preview remains deferred until G41. |
 | G57 | complete | `include/topoexec/adapters/sdk.hpp`, `CMakeLists.txt`, `cmake/topoexecConfig.cmake.in`, `tests/test_adapter_sdk.cpp`, `tests/cmake/adapter_sdk_smoke`, package/runtime-only smokes, architecture policy, adapter/API/guardrail docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Adapter SDK v0 now exports a dependency-free `topoexec::adapter_sdk` interface target over public runtime types, observer/result-sink aliases, bounded `BoundaryBridge` contracts, and explicit `ComponentFactoryProvider`; runtime does not link/include the SDK and no concrete adapter is implemented. |
+| G67 | complete | `scripts/release_prepare.sh`, `.github/workflows/release-dry-run.yml`, `tests/release/check_release_prepare.py`, `docs/release-runbook.md`, release/progression/versioning docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Release preparation is now reproducible from a clean candidate commit: the script checks tag/changelog/doc policy, runs gates unless skipped, drafts notes, generates source/CPack/schema artifacts plus checksums, writes a human-only annotated tag command, and never tags or publishes automatically. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+bash -n scripts/release_prepare.sh
+python3 -m py_compile tests/release/check_release_prepare.py tests/docs/check_docs.py
+# G67 passed: release script and Python smoke helpers have valid syntax.
+
+./scripts/goal_check.sh release
+# G67 passed: release_prepare_smoke dry-runs the release prep script without tagging or creating artifacts.
+
+./scripts/release_prepare.sh --version v0.2.0-alpha.0 --skip-gates --allow-dirty --artifacts-dir build/release-prepare-artifact-smoke --build-dir build-release-candidate-smoke --notes-out build/release-prepare-artifact-smoke/release-notes-v0.2.0-alpha.0.md
+# G67 artifact rehearsal passed: release notes, source archive, CPack binary/source TGZ, schema artifact, SHA256SUMS, and human-only tag-command draft were generated without publishing.
+
+./scripts/goal_check.sh docs
+# G67 passed: recursive docs command smoke including the release runbook marker.
+
+./scripts/goal_check.sh package
+# G67 passed: installed package, runtime-only option, CPack, and package-draft smokes.
+
+./scripts/goal_check.sh quick
+# G67 passed: cli_golden_outputs and schema_v1_contract_smoke.
+
+cmake --build build --target topoexec_format_check
+# G67 passed.
+
+./scripts/agent_check.sh
+# G67 passed: 69/69 CTest tests in the default RelWithDebInfo GCC build.
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G67 passed: 69/69 CTest tests in the ASAN+UBSAN Debug build.
+
+git diff --check
+# G67 passed.
+
 ctest --test-dir build --output-on-failure -R 'test_adapter_sdk|policy_no_core_adapter_deps|cmake_package_runtime_smoke|cmake_runtime_only_options_smoke'
 # G57 focused pass: adapter SDK unit tests, adapter policy, installed package smoke, and runtime-only adapter SDK smoke (4/4).
 

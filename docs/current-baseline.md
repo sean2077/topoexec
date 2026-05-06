@@ -140,6 +140,21 @@ TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./
 ./scripts/goal_check.sh docs and git diff --check passed after adapter docs/ledger updates.
 ```
 
+Observed G67 local result:
+
+```text
+bash -n scripts/release_prepare.sh and python3 -m py_compile tests/release/check_release_prepare.py tests/docs/check_docs.py passed.
+./scripts/goal_check.sh release passed: release_prepare_smoke dry-ran release preparation without tagging or creating artifacts.
+./scripts/release_prepare.sh --version v0.2.0-alpha.0 --skip-gates --allow-dirty --artifacts-dir build/release-prepare-artifact-smoke --build-dir build-release-candidate-smoke --notes-out build/release-prepare-artifact-smoke/release-notes-v0.2.0-alpha.0.md passed: release notes, source archive, CPack binary/source TGZ, schema artifact, SHA256SUMS, and human-only tag-command draft were generated without publishing.
+./scripts/goal_check.sh docs passed: recursive docs command smoke including the release runbook marker.
+./scripts/goal_check.sh package passed: installed package, runtime-only option, CPack, and package-draft smokes.
+./scripts/goal_check.sh quick passed.
+cmake --build build --target topoexec_format_check passed.
+./scripts/agent_check.sh passed: 69/69 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 69/69 CTest tests in the ASAN+UBSAN Debug build.
+git diff --check passed.
+```
+
 Golden output surfaces protected after G26:
 
 - `tests/golden/plan_composite_loop.json` — graph plan JSON.
@@ -150,7 +165,7 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations after the plan2 G57 adapter-SDK pass:
+Current branch limitations after the plan2 G67 release-automation pass:
 
 - `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, cooperative cancellation/timeout-budget observation, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and hard timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
@@ -161,6 +176,7 @@ Current branch limitations after the plan2 G57 adapter-SDK pass:
 - Bounded stress smoke now covers generated scheduler/channel graph workloads, `thread_pool` overload, and `ThreadedTaskExecutor` overload. Longer soak runs are opt-in release-candidate evidence, not default slow-path CI or performance claims.
 - Benchmark schema v2 now covers graph hashes, compiler/build/CPU/commit metadata, expanded RuntimeRunner graph cases, and a non-installed task-executor benchmark. Local baseline files and threshold comparisons are opt-in per-machine evidence, not default CI gates or global performance claims.
 - Installed CMake package smoke now covers runtime-only, Adapter SDK, YAML, imported CLI, CPack TGZ, and package-manager draft surfaces. vcpkg/Conan files are still drafts pending external registry/clean-machine validation, and CPack archives are local release-candidate artifacts rather than signed release artifacts.
+- Release automation can prepare candidate notes, local artifacts, checksums, and a human-only annotated tag command, but it does not publish, upload signed release assets, create tags, retag, or replace human release approval.
 - Documentation now has an executable cookbook, architecture diagrams, why-not comparisons, and design principles with recursive docs smoke coverage. The docs still describe adapter/exporter surfaces as deferred unless future goals implement them.
 - Reference apps now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop solver convergence/budget overrun, and BufferPool copy/shared/loaned metrics. They remain dependency-free in-process examples; hierarchical graph preview stays deferred until G41 and no external adapter stack is implemented by G56.
 - ThreadSanitizer remains non-blocking.

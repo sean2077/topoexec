@@ -23,6 +23,7 @@ This configures, builds, and runs all default CTest tests.
 | Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
 | Benchmark smoke | RuntimeRunner benchmark cases, task-executor benchmark output, schema v2 metadata, and optional local baseline generation | `./scripts/goal_check.sh bench` |
 | Package | install/export/downstream `find_package(topoexec)` runtime-only, adapter SDK, YAML, and CLI smokes | `./scripts/goal_check.sh package` |
+| Release prep | non-publishing release_prepare dry run, release notes draft, and human-only tag-command contract | `./scripts/goal_check.sh release` |
 | Sanitizers | ASAN+UBSAN full CTest; TSAN non-blocking CI | `./scripts/goal_check.sh sanitizer` |
 
 ## Fuzz smoke
@@ -100,6 +101,22 @@ diagrams, why-not comparisons, and design principles. It also executes the G56
 reference-app binaries listed from `docs/examples.md`. Add a marker for commands
 that should remain executable, and update `tests/docs/check_docs.py` only when
 the documentation contract intentionally changes.
+
+## Release prep smoke
+
+`release_prepare_smoke` runs `scripts/release_prepare.sh --dry-run --allow-dirty`
+with the recommended `v0.2.0-alpha.0` prerelease target. It proves the script
+can validate release docs/changelog policy, draft notes, and write the
+human-only annotated tag command without creating artifacts, tags, or uploads.
+Use the focused gate for script changes:
+
+```bash
+./scripts/goal_check.sh release
+```
+
+Artifact creation is covered by candidate rehearsals through
+`scripts/release_prepare.sh --skip-gates` or by a full clean-tree release prep
+when a human-approved candidate commit is ready.
 
 ## Sanitizer gates
 

@@ -1,0 +1,64 @@
+name: Release dry run
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Candidate annotated tag, e.g. v0.2.0-alpha.0"
+        required: true
+        default: "v0.2.0-alpha.0"
+      run_gates:
+        description: "Run the full local release gates inside the workflow"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  prepare:
+    name: Prepare release candidate artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            g++ \
+            libcli11-dev \
+            libyaml-cpp-dev \
+            ninja-build \
+            nlohmann-json3-dev \
+            pkg-config
+
+      - name: Configure release-prep arguments
+        id: args
+        run: |
+          if [ "${{ inputs.run_gates }}" = "true" ]; then
+            echo "extra=" >> "$GITHUB_OUTPUT"
+          else
+            echo "extra=--skip-gates" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare release candidate without tagging
+        env:
+          EXTRA_ARGS: ${{ steps.args.outputs.extra }}
+        run: |
+          ./scripts/release_prepare.sh \
+            --version "${{ inputs.version }}" \
+            --artifacts-dir "dist/release-candidate/${{ inputs.version }}" \
+            $EXTRA_ARGS
+
+      - name: Upload release-prep artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: topoexec-release-candidate-${{ inputs.version }}
+          path: dist/release-candidate/${{ inputs.version }}

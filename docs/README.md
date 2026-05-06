@@ -69,6 +69,7 @@ from docs that only describe boundaries.
 - [Performance baselines](performance-baselines.md)
 - [Build and package](build-and-package.md)
 - [Release checklist](release-checklist.md)
+- [Release runbook](release-runbook.md)
 - [Release progression](release-progression.md)
 - [Versioning](versioning.md)
 - [Current baseline](current-baseline.md)

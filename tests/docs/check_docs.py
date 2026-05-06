@@ -23,6 +23,7 @@ REQUIRED_DOCS = [
     "adapters.md",
     "testing-strategy.md",
     "release-checklist.md",
+    "release-runbook.md",
     "architecture-diagrams.md",
     "why-topoexec.md",
     "design-principles.md",
@@ -70,6 +71,7 @@ README_REQUIRED_LINKS = [
     "(adapters.md)",
     "(testing-strategy.md)",
     "(release-checklist.md)",
+    "(release-runbook.md)",
 ]
 
 

@@ -178,17 +178,29 @@ archives and checksums in the final release process.
 
 ## Release artifacts
 
+Use the release runbook for candidate artifact preparation:
+
+```bash
+./scripts/release_prepare.sh --version v0.2.0-alpha.0
+```
+
+The script runs the release gates by default, creates the source archive from
+`git archive HEAD`, runs CPack for binary/source TGZ artifacts, copies the schema
+artifact, writes `SHA256SUMS`, and emits only a human-approved annotated tag
+command. It does not tag, retag, publish, or upload a public release.
+
 Release candidates should include:
 
-1. source tarball from a signed/tagged commit;
-2. checksum file for the source artifact;
+1. source tarball from the exact candidate commit or signed/tagged commit;
+2. checksum file for generated artifacts;
 3. release notes from `CHANGELOG.md`;
-4. default CTest evidence;
-5. runtime-only install/export smoke evidence;
-6. YAML and CLI installed package smoke evidence when those options are enabled;
-7. CPack source/binary archive smoke evidence;
-8. ASAN+UBSAN sanitizer evidence;
-9. known limitations for deferred adapters, benchmark thresholds, and non-blocking TSAN.
+4. schema artifact;
+5. default CTest evidence;
+6. runtime-only install/export smoke evidence;
+7. YAML and CLI installed package smoke evidence when those options are enabled;
+8. CPack source/binary archive smoke evidence;
+9. ASAN+UBSAN sanitizer evidence;
+10. known limitations for deferred adapters, benchmark thresholds, and non-blocking TSAN.
 
 ## Troubleshooting
 

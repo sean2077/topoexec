@@ -80,6 +80,9 @@ git push origin v0.1.0-alpha
 ```
 
 Do not tag a release until [release-checklist.md](release-checklist.md) is complete for the intended target.
+The current recommended next prerelease target is `v0.2.0-alpha.0`; prepare it
+with [release-runbook.md](release-runbook.md) and `scripts/release_prepare.sh`
+before any human-approved annotated tag is created.
 
 ## Progression Notes
 
