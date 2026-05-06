@@ -74,6 +74,24 @@ Always run `./scripts/agent_check.sh` before marking a repository change ready.
 Use focused gates as additional evidence, not a substitute for the full gate
 unless a blocker is documented.
 
+## Commit messages
+
+Commit messages must be written in English and use a Conventional Commit subject:
+
+```text
+<type>(optional-scope): concise intent
+```
+
+Allowed types are `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`,
+`refactor`, `revert`, `style`, and `test`. Use lowercase scopes such as
+`runtime`, `schema`, `docs`, `api`, or `packaging` when they clarify the review
+surface.
+
+The first line should describe why the change exists in a short, reviewable
+form. When decision context matters, keep the Lore trailers from `AGENTS.md`
+after the body, especially `Constraint:`, `Rejected:`, `Directive:`, `Tested:`,
+and `Not-tested:`.
+
 ## How to propose a semantic change
 
 Open a design proposal issue before changing runtime meaning. Include:
@@ -185,6 +203,6 @@ full validation evidence they ran and must not hide deferred scope.
 
 ## Commit policy
 
-Use the Lore commit protocol from `AGENTS.md`. Include what was tested and known
-gaps. Keep commits grouped by goal or subsystem so each commit can be reviewed
-or reverted independently.
+Use English Conventional Commit subjects and the Lore commit protocol from
+`AGENTS.md`. Include what was tested and known gaps. Keep commits grouped by
+goal or subsystem so each commit can be reviewed or reverted independently.

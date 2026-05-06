@@ -17,7 +17,7 @@ Work in this repository should keep TopoExec small, embeddable, C++20-first, sem
 - Each goal must have scope, allowed files, acceptance criteria, validation, and blocker handling before edits spread beyond documentation.
 - If a goal needs a product/API decision, write a blocker note under `docs/goals/blockers/`, recommend one option, and continue only with a safe independent goal.
 - Do not add adapters or new major CLI commands before the core/API/concurrency P0 goals are complete.
-- For commits, use the Lore commit protocol required by the active agent instructions.
+- For commits, use English Conventional Commit subjects and the Lore commit protocol required by the active agent instructions.
 
 ## Required Checks
 
