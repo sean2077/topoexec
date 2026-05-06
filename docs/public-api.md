@@ -10,6 +10,12 @@ TopoExec is pre-1.0, but embedders should still know which headers are intended 
 | `topoexec::runtime` | Components, C++ graph construction, validation, runtime execution, payload helpers, metrics, and traces. | No YAML parser or CLI dependency for pure C++ embedding. |
 | `topoexec::yaml` | YAML `schema_version: 1` loading and optional JSON/Mermaid plan helpers. | Depends on `topoexec::runtime` and parser/JSON libraries. |
 
+Installed package config metadata exposes `TOPOEXEC_VERSION`,
+`TOPOEXEC_SCHEMA_VERSION`, `TOPOEXEC_SEMANTIC_CONTRACT_VERSION`,
+`TOPOEXEC_HAS_RUNTIME`, `TOPOEXEC_HAS_YAML`, `TOPOEXEC_HAS_CLI`, and
+`TOPOEXEC_HAS_EXAMPLES` so downstream projects can assert package capabilities
+at configure time.
+
 ## Stability markers
 
 Each installed public header now starts with one of these markers:

@@ -10,7 +10,7 @@ Goal-specific validation dispatcher for TopoExec agents.
 - quick:  configure/build plus focused golden/schema checks
 - golden: normalized CLI golden output checks
 - schema: schema v1 contract smoke
-- package: install/export downstream smoke plus runtime-only option smoke
+- package: install/export downstream smoke, runtime-only option smoke, CPack, and package draft checks
 - docs:   executable docs command smoke
 - fuzz:   deterministic parser/compiler fuzz smoke plus optional fuzzer target corpus replay
 - stress: bounded runtime stress graph smoke plus task-executor overload stress
@@ -50,7 +50,7 @@ case "$MODE" in
     ;;
   package)
     configure_build
-    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'cmake_package_runtime_smoke|cmake_runtime_only_options_smoke'
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'cmake_package_runtime_smoke|cmake_runtime_only_options_smoke|cmake_cpack_smoke|package_draft_smoke'
     ;;
   docs)
     configure_build

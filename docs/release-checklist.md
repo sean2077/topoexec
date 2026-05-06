@@ -25,6 +25,8 @@ v0.2.0-alpha.0
 - [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer` passes.
 - [ ] `cmake_runtime_only_options_smoke` passes as part of CTest/package smoke.
 - [ ] `cmake_package_runtime_smoke` passes as part of CTest/package smoke.
+- [ ] `cmake_cpack_smoke` passes as part of package smoke.
+- [ ] `package_draft_smoke` passes as part of package smoke.
 - [ ] `docs/release-progression.md` names the intended stage and remaining limitations.
 - [ ] `CHANGELOG.md` has the release section updated.
 - [ ] `docs/versioning.md` matches the intended tag.
@@ -110,6 +112,8 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and
   external Perfetto adapters remain deferred.
 - Package-manager recipes under `packaging/` are drafts, not published ports.
+- CPack TGZ archives are local release-candidate artifacts; signed source
+  archives/checksums still require a human release step.
 
 ## Tagging
 

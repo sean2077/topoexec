@@ -29,13 +29,40 @@ find_package(topoexec CONFIG REQUIRED)
 target_link_libraries(my_app PRIVATE topoexec::runtime)
 ```
 
+YAML-loading consumers should request the component so the package config can
+discover parser/JSON dependencies:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED COMPONENTS yaml)
+target_link_libraries(my_graph_tool PRIVATE topoexec::yaml)
+```
+
+CLI package checks can request the imported executable component:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED COMPONENTS cli)
+add_custom_target(check_topoexec_cli
+  COMMAND $<TARGET_FILE:topoexec::topoexec_cli> doctor --format json)
+```
+
 The installed package exports:
 
 - `topoexec::core`: header-only common baseline.
 - `topoexec::runtime`: embeddable runtime library.
 - `topoexec::yaml`: optional YAML graph loader target when built.
+- `topoexec::topoexec_cli`: optional imported executable target when the CLI is
+  built and installed.
 
 The CLI executable is installed as `bin/topoexec` when `TOPOEXEC_BUILD_CLI=ON`.
+The installed config also exposes package metadata variables:
+
+- `TOPOEXEC_VERSION`
+- `TOPOEXEC_SCHEMA_VERSION`
+- `TOPOEXEC_SEMANTIC_CONTRACT_VERSION`
+- `TOPOEXEC_HAS_RUNTIME`
+- `TOPOEXEC_HAS_YAML`
+- `TOPOEXEC_HAS_CLI`
+- `TOPOEXEC_HAS_EXAMPLES`
 
 ## Build options
 
@@ -96,6 +123,17 @@ temporary baseline without thresholds. The baseline script can generate a local
 ignored baseline file and optionally compare against a user-selected per-machine
 threshold.
 
+Packaging smoke:
+
+```bash
+./scripts/goal_check.sh package
+```
+
+This installs the current build and verifies downstream runtime-only,
+`topoexec::yaml`, and imported CLI consumption without requiring a source-tree
+clone. It also checks the runtime-only option build/install path, CPack TGZ
+generation, and package-manager draft files.
+
 ## Dependency policy
 
 - Runtime code does not depend on YAML, CLI11, ROS, Python, OpenTelemetry, or
@@ -116,11 +154,27 @@ threshold.
 Draft notes live under:
 
 - `packaging/vcpkg/README.md`
+- `packaging/vcpkg/vcpkg.json`
+- `packaging/vcpkg/portfile.cmake`
 - `packaging/conan/README.md`
+- `packaging/conan/conanfile.py`
 
 They are intentionally not published package recipes yet. Keep them aligned with
 the CMake options above and do not add package-manager-specific dependencies to
 the core runtime.
+
+## CPack drafts
+
+The build defines TGZ source and binary package generators:
+
+```bash
+cpack -G TGZ --config build/CPackConfig.cmake
+cpack -G TGZ --config build/CPackSourceConfig.cmake
+```
+
+`cmake_cpack_smoke` checks that both packages can be generated. These archives
+are local release-candidate artifacts, not a substitute for signed source
+archives and checksums in the final release process.
 
 ## Release artifacts
 
@@ -131,8 +185,10 @@ Release candidates should include:
 3. release notes from `CHANGELOG.md`;
 4. default CTest evidence;
 5. runtime-only install/export smoke evidence;
-6. ASAN+UBSAN sanitizer evidence;
-7. known limitations for deferred adapters and non-blocking TSAN.
+6. YAML and CLI installed package smoke evidence when those options are enabled;
+7. CPack source/binary archive smoke evidence;
+8. ASAN+UBSAN sanitizer evidence;
+9. known limitations for deferred adapters, benchmark thresholds, and non-blocking TSAN.
 
 ## Troubleshooting
 

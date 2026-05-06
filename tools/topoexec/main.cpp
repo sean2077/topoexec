@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -19,11 +20,14 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <thread>
 #include <utility>
 #include <vector>
 
 namespace {
+
+std::string g_executable_dir;
 
 struct LintFinding {
   std::string severity;
@@ -510,15 +514,38 @@ std::string benchmark_schema_version() {
   return "2";
 }
 
+std::string executable_directory(const char* argv0) {
+#if defined(__linux__)
+  std::error_code link_error;
+  const auto self = std::filesystem::read_symlink("/proc/self/exe", link_error);
+  if (!link_error && !self.empty()) {
+    return self.parent_path().string();
+  }
+#endif
+  if (argv0 == nullptr || std::string(argv0).empty()) {
+    return {};
+  }
+  std::error_code path_error;
+  const auto absolute = std::filesystem::absolute(argv0, path_error);
+  if (path_error) {
+    return {};
+  }
+  return absolute.parent_path().string();
+}
+
 std::string find_schema_path() {
   if (const auto* env = std::getenv("TOPOEXEC_SCHEMA_PATH"); env != nullptr && std::string(env).size() > 0u) {
     return env;
   }
-  const std::vector<std::string> candidates = {
-      "schema/topoexec.schema.v1.json",
-      "../share/topoexec/schema/topoexec.schema.v1.json",
-      "share/topoexec/schema/topoexec.schema.v1.json",
-  };
+  std::vector<std::string> candidates;
+  if (!g_executable_dir.empty()) {
+    candidates.push_back(g_executable_dir + "/../share/topoexec/schema/topoexec.schema.v1.json");
+  }
+  candidates.insert(candidates.end(), {
+                                          "schema/topoexec.schema.v1.json",
+                                          "../share/topoexec/schema/topoexec.schema.v1.json",
+                                          "share/topoexec/schema/topoexec.schema.v1.json",
+                                      });
   for (const auto& candidate : candidates) {
     std::ifstream input(candidate);
     if (input) {
@@ -1090,7 +1117,7 @@ int print_doctor(const std::string& format) {
   const auto schema_path = find_schema_path();
   const auto examples = existing_yaml_files("examples");
   const auto benchmarks = existing_yaml_files("benchmarks");
-  const bool ok = !schema_path.empty() && !examples.empty();
+  const bool ok = !schema_path.empty();
   if (format == "json") {
     nlohmann::json value;
     value["ok"] = ok;
@@ -1165,6 +1192,7 @@ int print_schema_check(const std::string& path, const std::string& format, const
 } // namespace
 
 int main(int argc, char** argv) {
+  g_executable_dir = executable_directory(argc > 0 ? argv[0] : nullptr);
   CLI::App app{"TopoExec graph tooling"};
   app.require_subcommand(1);
   auto input_limits = topoexec::default_graph_input_limits();

@@ -21,6 +21,8 @@ the repository has:
 - Benchmark schema v2 output-contract coverage with expanded graph cases,
   task-executor benchmark smoke, and local baseline generation without mandatory
   timing thresholds.
+- Installed package smokes cover runtime-only, YAML, and CLI consumption from an
+  install prefix; CPack TGZ and package-manager draft checks exist.
 - G26 adds golden coverage for Chrome trace shape, schema dump JSON, and doctor
   JSON in addition to plan/metrics/trace/render outputs.
 
@@ -53,7 +55,7 @@ Rationale:
 | Stage | Status | Evidence | Remaining before tagging that stage |
 | --- | --- | --- | --- |
 | `v0.1.1-alpha` | Still possible, but no longer the recommended label | Completed post-MVP stabilization evidence exists. | Use only if the release intentionally excludes broader runtime-completeness messaging. |
-| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs. | Verify CI on exact tag commit; run local release checklist; prepare notes/checksums. |
+| `v0.2.0-alpha.0` | Recommended next prerelease candidate after G26 | G0-G25 complete; G26 baseline/golden surfaces protect post-G25 outputs; plan2 now adds package-consumption and CPack smoke evidence. | Verify CI on exact tag commit; run local release checklist; prepare notes/checksums. |
 | `v0.3.0-alpha` | Preview-doc ready, partial observer API implemented | RuntimeObserver v1, adapter contracts, stub layout, and ROS 2 design are complete without core dependency pollution. | Add concrete exporter/adapter targets before claiming adapter implementation readiness. |
 | `v0.5.0-beta` | Not ready | ASAN+UBSAN, fuzz smoke, and bounded stress smoke exist; docs/examples are mature. | Blocking TSAN decision, longer fuzz/property/soak evidence, API/deprecation hardening, and external release artifact rehearsals. |
 | `v1.0.0` | Not ready | Core semantic direction is clear. | Stable schema/API/metrics names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
@@ -113,4 +115,5 @@ A release artifact rehearsal should produce:
 7. golden output summary for plan, metrics, trace, Chrome trace, render, schema dump, and doctor JSON;
 8. stress smoke summary, plus optional soak summary when run;
 9. benchmark output-contract summary and any optional local baseline comparison;
-10. known limitations copied into release notes.
+10. CPack source/binary smoke summary and package-draft review status;
+11. known limitations copied into release notes.

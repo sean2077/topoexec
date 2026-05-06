@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, and G53 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P0/P1 goal in backlog order is G54 Packaging v2. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, and G54 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P0/P1 goal in backlog order is G55 Documentation System v2. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Active / Recent Goals
 
@@ -44,12 +44,38 @@ The next unfinished P0/P1 goal in backlog order is G54 Packaging v2. Lower-prior
 | G51 | complete | `CMakeLists.txt`, `tests/fuzz/fuzz_graph_inputs.cpp`, `tests/fuzz/corpus/graph_inputs/*`, `scripts/fuzz_smoke.sh`, `scripts/goal_check.sh`, `.github/workflows/ci.yml`, fuzzing/build/testing/defensive-input docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Coverage-guided graph input fuzzing is now optional through `TOPOEXEC_BUILD_FUZZERS` with libFuzzer on Clang and standalone corpus replay elsewhere; minimized crash regressions can be committed as corpus seeds without changing the default agent gate. |
 | G52 | complete | `tests/test_stress.cpp`, `tests/stress/check_stress_workloads.py`, `scripts/stress_smoke.sh`, `CMakeLists.txt`, `scripts/goal_check.sh`, `docs/stress-testing.md`, testing/build/release/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Bounded stress smoke now covers generated scheduler/channel workloads, `thread_pool` overload, and `ThreadedTaskExecutor` overload with queue-depth/drop/reject assertions; opt-in soak mode is bounded by steps/duration/iterations and remains confidence evidence, not a performance claim. |
 | G53 | complete | `benchmarks/*.yaml`, `benchmarks/task_executor.cpp`, `tests/bench/check_bench_contract.py`, `scripts/bench_baseline.*`, `CMakeLists.txt`, `scripts/goal_check.sh`, benchmark/testing/build/release docs, updated doctor golden, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Benchmark schema v2 now includes graph hashes plus compiler/build/CPU/commit metadata; expanded graph cases and a non-installed task-executor benchmark are output-contract checked, while local baseline comparison remains opt-in and per-machine. |
+| G54 | complete | `cmake/topoexecConfig.cmake.in`, `CMakeLists.txt`, `tests/cmake/*_smoke`, `tests/package/check_package_drafts.py`, `packaging/vcpkg/*`, `packaging/conan/*`, `tools/topoexec/main.cpp`, packaging/build/release docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Installed CMake packages now expose version/schema/semantic metadata, discover YAML dependencies when the YAML component is requested, support runtime-only/YAML/imported-CLI downstream consumption, find installed schema from the CLI path, generate CPack TGZ archives, and keep package-manager recipes as reviewable drafts. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+cmake --build build -j
+# G54 passed: package metadata, downstream smoke, and installed-schema CLI changes rebuilt successfully
+
+cmake --build build --target topoexec_format_check
+# G54 passed
+
+ctest --test-dir build --output-on-failure -R 'cmake_package_runtime_smoke|cmake_runtime_only_options_smoke|cmake_cpack_smoke|package_draft_smoke|cli_golden_outputs|docs_command_smoke'
+# G54 passed: package downstream smokes, CPack, package drafts, golden, and docs smoke
+
+./scripts/goal_check.sh package
+# G54 passed: runtime/YAML/CLI installed package smokes, runtime-only options, CPack TGZ, and package draft checks
+
+./scripts/goal_check.sh quick
+# G54 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+./scripts/agent_check.sh
+# G54 passed: 62/62 CTest tests with package and CPack smokes included
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G54 passed: 62/62 CTest tests in the ASAN+UBSAN Debug build
+
+git diff --check
+python3 -m py_compile tests/package/check_package_drafts.py
+# G54 passed
+
 cmake --build build -j
 # G53 passed: benchmark schema v2 CLI and task-executor targets rebuilt successfully
 

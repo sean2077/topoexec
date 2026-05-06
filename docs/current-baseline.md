@@ -91,6 +91,19 @@ TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./
 git diff --check and python3 -m py_compile scripts/bench_baseline.py tests/bench/check_bench_contract.py passed.
 ```
 
+Observed G54 local result:
+
+```text
+cmake --build build -j passed.
+cmake --build build --target topoexec_format_check passed.
+ctest -R 'cmake_package_runtime_smoke|cmake_runtime_only_options_smoke|cmake_cpack_smoke|package_draft_smoke|cli_golden_outputs|docs_command_smoke' passed: 6/6 focused tests.
+./scripts/goal_check.sh package passed: installed runtime/YAML/CLI downstream smokes, runtime-only option smoke, CPack TGZ smoke, and package draft smoke.
+./scripts/goal_check.sh quick passed.
+./scripts/agent_check.sh passed: 62/62 CTest tests in the default RelWithDebInfo GCC build.
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer passed: 62/62 CTest tests in the ASAN+UBSAN Debug build.
+git diff --check and python3 -m py_compile tests/package/check_package_drafts.py passed.
+```
+
 Golden output surfaces protected after G26:
 
 - `tests/golden/plan_composite_loop.json` — graph plan JSON.
@@ -101,7 +114,7 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations after the plan2 G53 benchmark/baseline pass:
+Current branch limitations after the plan2 G54 packaging pass:
 
 - `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, cooperative cancellation/timeout-budget observation, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and hard timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
@@ -111,6 +124,7 @@ Current branch limitations after the plan2 G53 benchmark/baseline pass:
 - Graph input loading is bounded by `GraphInputLimits` with UTF-8 validation, incremental file-size rejection, schema string/count limits, CLI parser-limit overrides, deterministic malformed-input fuzz smoke, and an optional `fuzz_graph_inputs` libFuzzer/standalone corpus target. Longer fuzz campaigns and broader target coverage remain future hardening work.
 - Bounded stress smoke now covers generated scheduler/channel graph workloads, `thread_pool` overload, and `ThreadedTaskExecutor` overload. Longer soak runs are opt-in release-candidate evidence, not default slow-path CI or performance claims.
 - Benchmark schema v2 now covers graph hashes, compiler/build/CPU/commit metadata, expanded RuntimeRunner graph cases, and a non-installed task-executor benchmark. Local baseline files and threshold comparisons are opt-in per-machine evidence, not default CI gates or global performance claims.
+- Installed CMake package smoke now covers runtime-only, YAML, imported CLI, CPack TGZ, and package-manager draft surfaces. vcpkg/Conan files are still drafts pending external registry/clean-machine validation, and CPack archives are local release-candidate artifacts rather than signed release artifacts.
 - ThreadSanitizer remains non-blocking.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and external Perfetto adapters remain deferred and must not be claimed as implemented.
 - Package-manager recipes under `packaging/` are drafts, not published ecosystem packages.

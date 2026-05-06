@@ -1,0 +1,43 @@
+{
+  "name": "topoexec",
+  "version-string": "0.1.0",
+  "description": "Small embeddable C++20 semantic graph runtime",
+  "homepage": "https://github.com/sean2077/topoexec",
+  "license": "MIT",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ],
+  "default-features": [
+    "yaml",
+    "cli"
+  ],
+  "features": {
+    "yaml": {
+      "description": "Build topoexec::yaml and YAML graph loading support.",
+      "dependencies": [
+        "yaml-cpp",
+        "nlohmann-json"
+      ]
+    },
+    "cli": {
+      "description": "Build and install the topoexec CLI executable.",
+      "dependencies": [
+        "cli11",
+        {
+          "name": "topoexec",
+          "features": [
+            "yaml"
+          ],
+          "default-features": false
+        }
+      ]
+    }
+  }
+}

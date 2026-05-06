@@ -35,6 +35,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
 - Added benchmark schema v2 with expanded graph cases, graph hashes, compiler/build/CPU/commit metadata, a non-installed task-executor benchmark, output-contract CTest coverage, and optional local baseline generation without global timing thresholds.
+- Added packaging v2 smoke coverage with installed CMake package metadata, runtime-only/YAML/imported-CLI downstream consumers, installed-schema CLI lookup, CPack TGZ generation, and reviewable vcpkg/Conan draft files.
 - Added `topoexec schema dump`, `topoexec schema check`, and `topoexec doctor` JSON/text tooling.
 - Added state/config, batch/time-sync, service-style async, and boundary-adapter-pattern YAML examples plus an examples catalog with CLI smokes.
 - Added a documentation index, tutorial/reference pages, and doc-command smoke coverage for the getting-started and CLI paths.

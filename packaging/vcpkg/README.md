@@ -1,34 +1,24 @@
 # vcpkg Port Draft
 
-This is a draft for a future upstream vcpkg port. It is not a submitted or
-validated registry package yet.
+This folder contains a reviewable draft for a future upstream vcpkg port. It is
+not submitted to any registry yet and must not be treated as a published package.
 
-Expected CMake options for a default library package:
+Files:
 
-```cmake
-vcpkg_cmake_configure(
-  SOURCE_PATH "${SOURCE_PATH}"
-  OPTIONS
-    -DTOPOEXEC_BUILD_TESTING=OFF
-    -DTOPOEXEC_BUILD_EXAMPLES=OFF
-    -DTOPOEXEC_BUILD_CLI=ON
-    -DTOPOEXEC_BUILD_YAML=ON
-)
-vcpkg_cmake_install()
-vcpkg_cmake_config_fixup(PACKAGE_NAME topoexec CONFIG_PATH lib/cmake/topoexec)
-```
+- `vcpkg.json`: draft manifest with `yaml` and `cli` features.
+- `portfile.cmake`: draft CMake install/config-fixup flow.
 
-A minimal runtime-only feature should pass:
+Expected feature mapping:
 
-```cmake
--DTOPOEXEC_BUILD_YAML=OFF
--DTOPOEXEC_BUILD_CLI=OFF
--DTOPOEXEC_BUILD_EXAMPLES=OFF
--DTOPOEXEC_BUILD_TESTING=OFF
-```
+| Feature | CMake options | Dependencies |
+| --- | --- | --- |
+| runtime-only | `TOPOEXEC_BUILD_YAML=OFF`, `TOPOEXEC_BUILD_CLI=OFF`, `TOPOEXEC_BUILD_EXAMPLES=OFF`, `TOPOEXEC_BUILD_TESTING=OFF` | none beyond C++ toolchain |
+| `yaml` | `TOPOEXEC_BUILD_YAML=ON` | `yaml-cpp`, `nlohmann-json` |
+| `cli` | `TOPOEXEC_BUILD_CLI=ON`, requires YAML | `cli11`, plus YAML deps |
 
-Dependencies to model:
+Publication blockers:
 
-- default/YAML feature: `yaml-cpp`, `nlohmann-json`;
-- CLI feature: `cli11`;
-- tests are off for package builds.
+1. Replace the placeholder `SHA512` in `portfile.cmake` with the checksum of an
+   immutable release archive.
+2. Verify the final feature-dependency syntax against the target vcpkg registry.
+3. Run vcpkg CI on Linux/macOS/Windows before submitting.

@@ -1,34 +1,24 @@
 # Conan Recipe Draft
 
-This is a draft for a future Conan recipe. It is not a published package recipe
-yet.
+This folder contains a reviewable draft for a future Conan recipe. It is not
+published to a Conan remote yet.
 
-Package options should mirror CMake:
+Files:
 
-```python
-options = {
-    "yaml": [True, False],
-    "cli": [True, False],
-    "examples": [True, False],
-}
-default_options = {
-    "yaml": True,
-    "cli": True,
-    "examples": False,
-}
-```
+- `conanfile.py`: draft recipe mirroring the CMake package options.
 
-The generated CMake configure step should translate options to:
+Expected option mapping:
 
-```python
-tc.variables["TOPOEXEC_BUILD_YAML"] = self.options.yaml
-tc.variables["TOPOEXEC_BUILD_CLI"] = self.options.cli
-tc.variables["TOPOEXEC_BUILD_EXAMPLES"] = self.options.examples
-tc.variables["TOPOEXEC_BUILD_TESTING"] = False
-```
+| Option | CMake option | Dependencies |
+| --- | --- | --- |
+| `yaml=False`, `cli=False` | runtime-only package | none beyond C++ toolchain |
+| `yaml=True` | `TOPOEXEC_BUILD_YAML=ON` | `yaml-cpp`, `nlohmann_json` |
+| `cli=True` | `TOPOEXEC_BUILD_CLI=ON`, forces YAML | `cli11`, plus YAML deps |
+| `examples=True` | `TOPOEXEC_BUILD_EXAMPLES=ON` | YAML required by examples |
 
-Dependency mapping:
+Publication blockers:
 
-- `yaml=True`: require `yaml-cpp` and `nlohmann_json`;
-- `cli=True`: require `cli11` and force `yaml=True`;
-- runtime-only consumers link `topoexec::runtime`.
+1. Verify dependency version ranges against ConanCenter package names.
+2. Run `conan create` for runtime-only, YAML, and CLI profiles on clean machines.
+3. Decide whether CLI executable packaging belongs in the library recipe or a
+   separate tool package before publishing.

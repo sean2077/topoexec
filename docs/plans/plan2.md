@@ -1579,6 +1579,13 @@ Priority: P1
 - External CMake app can consume TopoExec without cloning source.
 - package recipes can be reviewed and later published.
 
+Implementation note: the G54 pass hardens installed CMake package consumption
+with exported package metadata, YAML dependency discovery when the YAML component
+is requested, runtime-only/YAML/imported-CLI downstream smokes,
+installed-schema CLI lookup, CPack TGZ smoke coverage, and reviewable
+vcpkg/Conan draft files.
+Package-manager recipes remain drafts until external registry validation.
+
 ---
 
 ## G55. Documentation System v2

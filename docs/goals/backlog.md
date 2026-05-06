@@ -46,7 +46,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G51 | P1/P2 | complete | Coverage-Guided Fuzzing | Optional `TOPOEXEC_BUILD_FUZZERS` support now builds `fuzz_graph_inputs` with libFuzzer or standalone corpus replay, seed corpus regressions, local fuzz smoke script, docs, and optional Clang CI smoke. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh fuzz`; `TOPOEXEC_FUZZER_ENGINE=STANDALONE ./scripts/fuzz_smoke.sh`; format; ASAN+UBSAN sanitizer |
 | G52 | P1/P2 | complete | Stress and Soak Tests | Bounded stress smoke now covers generated scheduler/channel graph workloads, `thread_pool` overload, and `ThreadedTaskExecutor` overload; opt-in soak runs are release-candidate evidence, not performance claims. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh stress`; format; ASAN+UBSAN sanitizer |
 | G53 | P1/P2 | complete | Benchmark v2 and Regression Policy | Benchmark schema v2 metadata, expanded graph cases, task-executor benchmark smoke, local baseline generation, and opt-in per-machine regression policy are complete without global timing thresholds. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh bench`; format; ASAN+UBSAN sanitizer |
-| G54 | P1 | pending | Packaging v2 | 把 CMake package 从 smoke 可用推进到可被外部用户稳定消费。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G54 | P1 | complete | Packaging v2 | Installed CMake package metadata, runtime-only/YAML/CLI downstream smokes, runtime-only install consumption, CPack TGZ smoke, and reviewable vcpkg/Conan drafts are complete. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh package`; format; ASAN+UBSAN sanitizer |
 | G55 | P1/P2 | pending | Documentation System v2 | 把文档从“齐全”推进到“用户可学习、Agent 可执行、维护可持续”。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G56 | P1/P2 | pending | Example Applications v2 | 从 toy examples 扩展为更接近真实应用的 reference apps，但仍不引入 external adapters。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G57 | P1/P2 | pending | Adapter SDK v0 | 在不实现具体 adapter 的情况下，先稳定 adapter SDK 边界。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G54 Packaging v2 is the next unfinished P0/P1 goal after G53; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
+G55 Documentation System v2 is the next unfinished P0/P1 goal after G54; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Blockers
 

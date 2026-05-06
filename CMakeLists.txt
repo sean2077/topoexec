@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.20)
 project(topoexec VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(TOPOEXEC_SCHEMA_VERSION 1)
+set(TOPOEXEC_SEMANTIC_CONTRACT_VERSION "0.2")
 
 option(TOPOEXEC_BUILD_TESTING "Build TopoExec tests" ON)
 option(TOPOEXEC_BUILD_YAML "Build YAML graph loading target" ON)
@@ -238,6 +240,24 @@ install(FILES
   DESTINATION lib/cmake/topoexec
 )
 install(FILES schema/topoexec.schema.v1.json DESTINATION share/topoexec/schema)
+
+set(CPACK_PACKAGE_NAME "topoexec")
+set(CPACK_PACKAGE_VENDOR "TopoExec")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Small embeddable C++20 semantic runtime")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/sean2077/topoexec")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_GENERATOR "TGZ")
+set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_SOURCE_IGNORE_FILES
+  "/\\\\.git/"
+  "/build/"
+  "/build-[^/]+/"
+  "/dist/"
+  "/compile_commands\\\\.json$"
+  "/benchmarks/local-baseline[^/]*\\\\.json$"
+)
+include(CPack)
 
 include(CTest)
 if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
@@ -509,6 +529,18 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
       -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/runtime_only_options_smoke.cmake
+  )
+  add_test(NAME cmake_cpack_smoke
+    COMMAND ${CMAKE_COMMAND}
+      -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+      -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+      -DCPACK_COMMAND=${CMAKE_CPACK_COMMAND}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/cpack_smoke.cmake
+  )
+  add_test(NAME package_draft_smoke
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/check_package_drafts.py
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
   )
   add_test(NAME app_minimal_pipeline_runs
     COMMAND topoexec_app_minimal_pipeline
