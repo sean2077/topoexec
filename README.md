@@ -80,6 +80,11 @@ The CLI validates `schema_version: 1` graphs, emits text/JSON/Mermaid views, run
 - `examples/apps/composite_loop_fixed_point`: explicit immediate feedback owner.
 - `examples/apps/async_worker`: async deferred delivery, bounded queue behavior, and overload semantics.
 - `examples/apps/cpp_builder_minimal`: pure C++ graph builder path.
+- `examples/apps/low_latency_sensor_pipeline`: source/preprocessor/detector/tracker latest-only path.
+- `examples/apps/control_loop_with_state`: fixed-rate control loop with state and delay boundaries.
+- `examples/apps/async_request_response`: request boundary, validator, task executor, and response boundary.
+- `examples/apps/composite_solver`: CompositeLoop convergence and budget-overrun evidence.
+- `examples/apps/payload_pool_pipeline`: BufferPool copy/shared/loaned payload metrics.
 - YAML examples in `examples/` also cover state/config snapshots, batch/time-sync, service-style async flow, large-payload linting, and app-owned boundary adapter patterns.
 
 Each app directory includes a README with graph shape, run command, expected output, semantic lesson, and contrast case. The full example catalog is in [docs/examples.md](docs/examples.md) and [examples/README.md](examples/README.md).

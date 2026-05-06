@@ -48,7 +48,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G53 | P1/P2 | complete | Benchmark v2 and Regression Policy | Benchmark schema v2 metadata, expanded graph cases, task-executor benchmark smoke, local baseline generation, and opt-in per-machine regression policy are complete without global timing thresholds. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh bench`; format; ASAN+UBSAN sanitizer |
 | G54 | P1 | complete | Packaging v2 | Installed CMake package metadata, runtime-only/YAML/CLI downstream smokes, runtime-only install consumption, CPack TGZ smoke, and reviewable vcpkg/Conan drafts are complete. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh package`; format; ASAN+UBSAN sanitizer |
 | G55 | P1/P2 | complete | Documentation System v2 | Docs are reorganized into learning/reference/release paths with executable cookbook recipes, architecture diagrams, why-not comparisons, design principles, and a recursive docs map/command smoke contract. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh docs`; format; ASAN+UBSAN sanitizer |
-| G56 | P1/P2 | pending | Example Applications v2 | 从 toy examples 扩展为更接近真实应用的 reference apps，但仍不引入 external adapters。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G56 | P1/P2 | complete | Example Applications v2 | Dependency-free reference apps now cover low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop convergence/budget overrun, and BufferPool copy/shared/loaned metrics; hierarchical preview remains deferred until G41. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh docs`; `ctest -R app_`; format; ASAN+UBSAN sanitizer |
 | G57 | P1/P2 | pending | Adapter SDK v0 | 在不实现具体 adapter 的情况下，先稳定 adapter SDK 边界。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G58 | P2/P3 | pending | OpenTelemetry Exporter Preview | 实现第一个 optional exporter preview，验证 observer API，但不让 core 依赖 OTel。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G59 | P2/P3 | pending | Prometheus Exporter Preview | 通过 scrape/exporter 证明 metrics schema 可被外部系统消费。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G56 Example Applications v2 is the next unfinished P0/P1 goal after G55; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
+G57 Adapter SDK v0 is the next unfinished P0/P1 goal after G56; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Blockers
 

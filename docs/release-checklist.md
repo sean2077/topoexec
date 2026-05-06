@@ -115,6 +115,8 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 - Package-manager recipes under `packaging/` are drafts, not published ports.
 - CPack TGZ archives are local release-candidate artifacts; signed source
   archives/checksums still require a human release step.
+- G56 reference apps are dependency-free in-process examples; they do not implement
+  hierarchical graphs or external adapter stacks.
 
 ## Tagging
 

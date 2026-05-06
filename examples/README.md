@@ -35,7 +35,13 @@ ctest --test-dir build --output-on-failure -R 'app_|cli_run_|cli_validate_'
 - `apps/composite_loop_fixed_point`: explicit CompositeLoop ownership.
 - `apps/async_worker`: async completion and bounded backlog.
 - `apps/cpp_builder_minimal`: pure C++ builder and app-defined registry path.
+- `apps/low_latency_sensor_pipeline`: source/preprocessor/detector/tracker latest-only path.
+- `apps/control_loop_with_state`: fixed-rate control loop with state and delay boundaries.
+- `apps/async_request_response`: request, validator, task-executor, and response boundary path.
+- `apps/composite_solver`: CompositeLoop convergence and budget-overrun evidence.
+- `apps/payload_pool_pipeline`: BufferPool copy/shared/loaned payload metrics.
 
 These examples do not implement ROS 2, OpenTelemetry, Prometheus, Python, or
 external Perfetto adapters. Boundary examples show where such adapters can attach
-once the core API is stable.
+once the core API is stable. The `hierarchical_graph_preview` candidate remains
+deferred until G41 adds a hierarchy/subgraph contract.

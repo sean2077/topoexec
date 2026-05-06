@@ -45,6 +45,46 @@ component factories through `topoexec::ComponentRegistry`.
 | Loaned owner lint | `examples/loaned_view_without_pool_owner.yaml` | `loaned_view` should name a producer/pool owner until pool-return callbacks exist. | `cli_lint_loaned_view_without_pool_owner` |
 | Registry / app factories | `examples/apps/cpp_builder_minimal` | Pure C++ apps build graphs and register factories without YAML/CLI dependencies. | `app_cpp_builder_minimal_runs` |
 | Boundary adapter pattern | `examples/boundary_adapter_pattern.yaml` | Boundary nodes mark where an app-owned adapter injects or drains data without adding adapter dependencies to core. | `cli_run_boundary_adapter_pattern` |
+| Reference app v2 | `examples/apps/low_latency_sensor_pipeline` | Source/preprocessor/detector/tracker latest-only path with explicit drop metrics. | `app_low_latency_sensor_pipeline_runs` |
+| Reference app v2 | `examples/apps/control_loop_with_state` | Fixed-rate control loop with state snapshot and delay feedback boundaries. | `app_control_loop_with_state_runs` |
+| Reference app v2 | `examples/apps/async_request_response` | Request boundary, validator, deterministic task executor, and response boundary without service adapters. | `app_async_request_response_runs` |
+| Reference app v2 | `examples/apps/composite_solver` | CompositeLoop convergence and loop-budget overrun evidence. | `app_composite_solver_runs` |
+| Reference app v2 | `examples/apps/payload_pool_pipeline` | BufferPool, copy/shared/loaned payload metrics, and in-process frame identity. | `app_payload_pool_pipeline_runs` |
+
+## Reference applications v2
+
+G56 adds closer-to-real application slices while preserving the project boundary:
+all apps are dependency-free C++20 examples and no ROS 2, OpenTelemetry,
+Prometheus, Python, external Perfetto, or shared-memory middleware adapter is
+implemented.
+
+Run the focused smoke set:
+
+```bash
+ctest --test-dir build --output-on-failure -R 'app_(low_latency_sensor_pipeline|control_loop_with_state|async_request_response|composite_solver|payload_pool_pipeline)_runs'
+```
+
+Command markers keep the standalone binaries executable in docs smoke:
+
+<!-- topoexec-doc-test: ${BUILD_DIR}/topoexec_app_low_latency_sensor_pipeline -->
+<!-- topoexec-doc-test: ${BUILD_DIR}/topoexec_app_control_loop_with_state -->
+<!-- topoexec-doc-test: ${BUILD_DIR}/topoexec_app_async_request_response -->
+<!-- topoexec-doc-test: ${BUILD_DIR}/topoexec_app_composite_solver -->
+<!-- topoexec-doc-test: ${BUILD_DIR}/topoexec_app_payload_pool_pipeline -->
+
+Stable outputs:
+
+```text
+tracker_latest=track:detection:preprocessed:frame-3
+state_snapshot_epoch=2
+response_payload=accepted:req-1
+budget_overrun_count=1
+loaned_address_preserved=true
+```
+
+The planned `hierarchical_graph_preview` reference app is intentionally deferred
+until G41 defines the hierarchy/subgraph contract; this pass does not fake that
+runtime capability.
 
 ## Walkthroughs
 

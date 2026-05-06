@@ -37,6 +37,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added benchmark schema v2 with expanded graph cases, graph hashes, compiler/build/CPU/commit metadata, a non-installed task-executor benchmark, output-contract CTest coverage, and optional local baseline generation without global timing thresholds.
 - Added packaging v2 smoke coverage with installed CMake package metadata, runtime-only/YAML/imported-CLI downstream consumers, installed-schema CLI lookup, CPack TGZ generation, and reviewable vcpkg/Conan draft files.
 - Added documentation system v2 with a reorganized docs map, executable cookbook recipes, architecture diagrams, why-not comparisons, design principles, and recursive docs smoke coverage for required pages/sections.
+- Added example applications v2 with dependency-free reference apps for low-latency latest/drop, fixed-rate state feedback, request/validator/task completion, CompositeLoop solver convergence/budget overrun, and BufferPool copy/shared/loaned payload metrics.
 - Added `topoexec schema dump`, `topoexec schema check`, and `topoexec doctor` JSON/text tooling.
 - Added state/config, batch/time-sync, service-style async, and boundary-adapter-pattern YAML examples plus an examples catalog with CLI smokes.
 - Added a documentation index, tutorial/reference pages, and doc-command smoke coverage for the getting-started and CLI paths.

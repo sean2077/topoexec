@@ -180,6 +180,21 @@ if(TOPOEXEC_BUILD_EXAMPLES)
 
   add_executable(topoexec_app_cpp_builder_minimal examples/apps/cpp_builder_minimal/main.cpp)
   target_link_libraries(topoexec_app_cpp_builder_minimal PRIVATE topoexec_runtime)
+
+  add_executable(topoexec_app_low_latency_sensor_pipeline examples/apps/low_latency_sensor_pipeline/main.cpp)
+  target_link_libraries(topoexec_app_low_latency_sensor_pipeline PRIVATE topoexec_runtime)
+
+  add_executable(topoexec_app_control_loop_with_state examples/apps/control_loop_with_state/main.cpp)
+  target_link_libraries(topoexec_app_control_loop_with_state PRIVATE topoexec)
+
+  add_executable(topoexec_app_async_request_response examples/apps/async_request_response/main.cpp)
+  target_link_libraries(topoexec_app_async_request_response PRIVATE topoexec_runtime)
+
+  add_executable(topoexec_app_composite_solver examples/apps/composite_solver/main.cpp)
+  target_link_libraries(topoexec_app_composite_solver PRIVATE topoexec)
+
+  add_executable(topoexec_app_payload_pool_pipeline examples/apps/payload_pool_pipeline/main.cpp)
+  target_link_libraries(topoexec_app_payload_pool_pipeline PRIVATE topoexec_runtime)
 endif()
 
 if(TOPOEXEC_BUILD_FUZZERS)
@@ -565,4 +580,25 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec_app_cpp_builder_minimal
   )
   set_tests_properties(app_cpp_builder_minimal_runs PROPERTIES PASS_REGULAR_EXPRESSION "builder_sink=hello:built")
+  add_test(NAME app_low_latency_sensor_pipeline_runs
+    COMMAND topoexec_app_low_latency_sensor_pipeline
+  )
+  set_tests_properties(app_low_latency_sensor_pipeline_runs PROPERTIES
+    PASS_REGULAR_EXPRESSION "tracker_latest=track:detection:preprocessed:frame-3")
+  add_test(NAME app_control_loop_with_state_runs
+    COMMAND topoexec_app_control_loop_with_state
+  )
+  set_tests_properties(app_control_loop_with_state_runs PROPERTIES PASS_REGULAR_EXPRESSION "state_snapshot_epoch=2")
+  add_test(NAME app_async_request_response_runs
+    COMMAND topoexec_app_async_request_response
+  )
+  set_tests_properties(app_async_request_response_runs PROPERTIES PASS_REGULAR_EXPRESSION "response_payload=accepted:req-1")
+  add_test(NAME app_composite_solver_runs
+    COMMAND topoexec_app_composite_solver
+  )
+  set_tests_properties(app_composite_solver_runs PROPERTIES PASS_REGULAR_EXPRESSION "budget_overrun_count=1")
+  add_test(NAME app_payload_pool_pipeline_runs
+    COMMAND topoexec_app_payload_pool_pipeline
+  )
+  set_tests_properties(app_payload_pool_pipeline_runs PROPERTIES PASS_REGULAR_EXPRESSION "loaned_address_preserved=true")
 endif()

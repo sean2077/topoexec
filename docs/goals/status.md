@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, and G55 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P0/P1 goal in backlog order is G56 Example Applications v2. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, G48, G49, G50, G51, G52, G53, G54, G55, and G56 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P0/P1 goal in backlog order is G57 Adapter SDK v0. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened; concrete adapter implementations remain deferred.
 
 ## Active / Recent Goals
 
@@ -46,12 +46,34 @@ The next unfinished P0/P1 goal in backlog order is G56 Example Applications v2. 
 | G53 | complete | `benchmarks/*.yaml`, `benchmarks/task_executor.cpp`, `tests/bench/check_bench_contract.py`, `scripts/bench_baseline.*`, `CMakeLists.txt`, `scripts/goal_check.sh`, benchmark/testing/build/release docs, updated doctor golden, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Benchmark schema v2 now includes graph hashes plus compiler/build/CPU/commit metadata; expanded graph cases and a non-installed task-executor benchmark are output-contract checked, while local baseline comparison remains opt-in and per-machine. |
 | G54 | complete | `cmake/topoexecConfig.cmake.in`, `CMakeLists.txt`, `tests/cmake/*_smoke`, `tests/package/check_package_drafts.py`, `packaging/vcpkg/*`, `packaging/conan/*`, `tools/topoexec/main.cpp`, packaging/build/release docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Installed CMake packages now expose version/schema/semantic metadata, discover YAML dependencies when the YAML component is requested, support runtime-only/YAML/imported-CLI downstream consumption, find installed schema from the CLI path, generate CPack TGZ archives, and keep package-manager recipes as reviewable drafts. |
 | G55 | complete | `docs/README.md`, `docs/cookbook.md`, `docs/architecture-diagrams.md`, `docs/why-topoexec.md`, `docs/design-principles.md`, `tests/docs/check_docs.py`, testing docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Documentation now has a learning/reference/release map, executable cookbook recipes, architecture diagrams, why-not comparisons, design principles, and a recursive docs smoke that checks required G55 pages and sections. |
+| G56 | complete | `examples/apps/low_latency_sensor_pipeline`, `examples/apps/control_loop_with_state`, `examples/apps/async_request_response`, `examples/apps/composite_solver`, `examples/apps/payload_pool_pipeline`, `CMakeLists.txt`, examples/testing/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Reference apps now exercise latest/drop semantics, fixed-rate state plus delay boundaries, deterministic task-completion response flow, CompositeLoop convergence and budget-overrun metrics, and BufferPool copy/shared/loaned metrics without adding external adapters; hierarchical preview remains deferred until G41. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+ctest --test-dir build --output-on-failure -R 'app_|docs_command_smoke'
+# G56 passed: docs command smoke plus all 11 example-app smokes, including five new reference apps (12/12).
+
+./scripts/goal_check.sh docs
+# G56 passed: recursive docs command smoke, including reference-app doc markers.
+
+./scripts/goal_check.sh quick
+# G56 passed: cli_golden_outputs and schema_v1_contract_smoke.
+
+cmake --build build --target topoexec_format_check
+# G56 passed.
+
+./scripts/agent_check.sh
+# G56 passed: 67/67 CTest tests in the default RelWithDebInfo GCC build.
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G56 passed: 67/67 CTest tests in the ASAN+UBSAN Debug build.
+
+git diff --check
+# G56 passed.
+
 ./scripts/goal_check.sh docs
 # G55 passed: recursive docs command smoke plus required docs map/section contract
 

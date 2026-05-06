@@ -1693,6 +1693,15 @@ Priority: P1/P2
 6. `apps/hierarchical_graph_preview`
    - if G41 implemented
 
+### G56 implementation note
+
+Completed under `examples/apps/` with dependency-free C++ reference apps for
+low-latency latest/drop, fixed-rate state feedback, request/validator/task
+completion, CompositeLoop convergence/budget overrun, and BufferPool
+copy/shared/loaned metrics. `hierarchical_graph_preview` remains deferred until
+G41 defines the hierarchy/subgraph runtime contract; this goal does not fake a
+hierarchical runtime.
+
 ### Acceptance
 
 - Each app has README:
