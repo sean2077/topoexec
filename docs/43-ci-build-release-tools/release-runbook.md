@@ -38,9 +38,9 @@ From a clean working tree on the exact candidate commit:
 ```
 
 The script checks the clean tree, rejects an existing local tag of the same name,
-validates that release docs mention the requested version, runs the required local
-gates, writes a release notes draft, creates source/CPack/schema artifacts, and
-writes `SHA256SUMS`.
+validates that release docs mention the requested version, runs the required
+local gates including `clang-format` and `clang-tidy`, writes a release notes
+draft, creates source/CPack/schema artifacts, and writes `SHA256SUMS`.
 
 For a local rehearsal that skips long gates but still builds artifacts:
 

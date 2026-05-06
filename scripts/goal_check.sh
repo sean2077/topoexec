@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|adapters|ffi|python|plugins|release|sanitizer|format|debug]
+Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|adapters|ffi|python|plugins|release|sanitizer|format|tidy|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
@@ -23,6 +23,7 @@ Goal-specific validation dispatcher for TopoExec agents.
 - release: release automation dry-run smoke
 - sanitizer: ASAN+UBSAN Debug build and full CTest
 - format: clang-format check target
+- tidy: clang-tidy check target
 - debug:  Debug build + CTest in build-debug-gcc
 
 Set TOPOEXEC_BUILD_DIR to override the default build directory.
@@ -123,7 +124,12 @@ case "$MODE" in
     ./scripts/sanitizer_check.sh
     ;;
   format)
+    cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo
     cmake --build "$BUILD_DIR" --target topoexec_format_check
+    ;;
+  tidy)
+    cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    cmake --build "$BUILD_DIR" --target topoexec_tidy_check
     ;;
   debug)
     cmake -S . -B build-debug-gcc -DCMAKE_BUILD_TYPE=Debug

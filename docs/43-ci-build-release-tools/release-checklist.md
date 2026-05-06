@@ -17,7 +17,8 @@ v0.2.0-alpha.0
 - [ ] `git status --short` is clean before tagging.
 - [ ] `git diff --check` passes.
 - [ ] `./scripts/agent_check.sh` passes locally.
-- [ ] `cmake --build build --target topoexec_format_check` passes.
+- [ ] `./scripts/goal_check.sh format` passes.
+- [ ] `./scripts/goal_check.sh tidy` passes.
 - [ ] `./scripts/goal_check.sh quick` passes.
 - [ ] `./scripts/goal_check.sh docs` passes.
 - [ ] `./scripts/goal_check.sh package` passes.

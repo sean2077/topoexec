@@ -13,6 +13,7 @@ This configures, builds, and runs all default CTest tests.
 
 | Layer | Evidence | Command |
 | --- | --- | --- |
+| Quality gates | whitespace, commit-message policy, clang-format, production clang-tidy, build, and default CTest | `./scripts/agent_check.sh` |
 | Unit | `test_common`, `test_graph`, `test_channel`, `test_state`, `test_runtime` | `ctest --test-dir build --output-on-failure -R 'test_'` |
 | Semantic runtime | graph compiler, edge visibility, trigger, scheduler, async, CompositeLoop, state/config tests | `ctest --test-dir build --output-on-failure -R 'test_graph|test_runtime|test_state'` |
 | Golden CLI | normalized plan, metrics, trace, and render outputs | `./scripts/goal_check.sh golden` |
@@ -28,6 +29,7 @@ This configures, builds, and runs all default CTest tests.
 | Adapter previews | optional adapter targets, package exports, and dependency-boundary policy | `./scripts/goal_check.sh adapters` |
 | Release prep | non-publishing release_prepare dry run, release notes draft, and human-only tag-command contract | `./scripts/goal_check.sh release` |
 | Sanitizers | ASAN+UBSAN full CTest; TSAN non-blocking CI | `./scripts/goal_check.sh sanitizer` |
+| Formatting/static analysis | repository clang-format and clang-tidy baselines | `./scripts/goal_check.sh format` / `./scripts/goal_check.sh tidy` |
 
 ## Fuzz smoke
 

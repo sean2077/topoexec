@@ -293,7 +293,7 @@ public:
   }
 
   topoexec::Status apply_config(topoexec::GraphContext& context, const topoexec::ConfigView& config) override {
-    const auto validation = validate_config(config);
+    auto validation = validate_config(config);
     if (!validation.ok()) {
       return validation;
     }

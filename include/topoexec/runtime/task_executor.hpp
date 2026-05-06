@@ -133,6 +133,7 @@ private:
   TaskSubmissionResult reject_submission_locked(std::string reason);
   void emit_reject_health_event_locked(const std::string& reason);
   void cancel_pending_locked();
+  void shutdown_workers();
   void start_workers();
   void worker_loop();
   TaskCompletion execute_task(PendingTask& task);

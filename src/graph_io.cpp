@@ -14,7 +14,7 @@
 namespace topoexec {
 namespace {
 
-thread_local const GraphInputLimits* g_active_limits = &default_graph_input_limits();
+thread_local const GraphInputLimits* g_active_limits = nullptr;
 
 const GraphInputLimits& active_limits() {
   return g_active_limits == nullptr ? default_graph_input_limits() : *g_active_limits;
@@ -245,7 +245,7 @@ std::string namespace_endpoint(const std::string& namespace_id, const std::strin
   if (local_component.empty()) {
     throw std::invalid_argument(context + " must name a local component");
   }
-  const auto prefixed_component = namespace_id + "." + local_component;
+  std::string prefixed_component = namespace_id + "." + local_component;
   enforce_identifier_limit(prefixed_component, context + " component", active_limits());
   if (local_component.size() == endpoint.size()) {
     return prefixed_component;

@@ -10,7 +10,8 @@ Minimum expectations:
 2. Use the issue and design-proposal templates for semantic/API/schema changes.
 3. Update docs, tests, goal ledgers, and `CHANGELOG.md` for user-visible changes.
 4. Write commit messages in English with Conventional Commit subjects.
-5. Run `./scripts/agent_check.sh` before marking a PR ready, plus focused gates
-   for touched surfaces.
+5. Run `./scripts/agent_check.sh` before marking a PR ready; it includes
+   `clang-format` and `clang-tidy` quality gates. Use focused gates for touched
+   surfaces while iterating.
 6. Fill out `.github/PULL_REQUEST_TEMPLATE.md`; agent-generated PRs use the same
    structure as human PRs.

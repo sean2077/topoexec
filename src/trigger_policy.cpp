@@ -163,6 +163,10 @@ bool messages_have_comparable_timestamps(const std::vector<std::pair<std::string
   });
 }
 
+std::int64_t event_timestamp_ns(const RuntimeChannelMessage& message) {
+  return message.event_timestamp.has_value() ? message.event_timestamp->nanoseconds : 0;
+}
+
 std::int64_t timestamp_slop_ns(const TriggerPolicySpec& policy) {
   return static_cast<std::int64_t>(policy.sync_slop_ms) * 1000000LL;
 }
@@ -500,14 +504,15 @@ std::vector<Invocation> TriggerPolicyEngine::collect_time_sync(const TickContext
     auto min_item = messages->begin();
     auto max_item = messages->begin();
     for (auto item = messages->begin(); item != messages->end(); ++item) {
-      if (item->second.event_timestamp->nanoseconds < min_item->second.event_timestamp->nanoseconds) {
+      const auto timestamp_ns = event_timestamp_ns(item->second);
+      if (timestamp_ns < event_timestamp_ns(min_item->second)) {
         min_item = item;
       }
-      if (item->second.event_timestamp->nanoseconds > max_item->second.event_timestamp->nanoseconds) {
+      if (timestamp_ns > event_timestamp_ns(max_item->second)) {
         max_item = item;
       }
     }
-    if (max_item->second.event_timestamp->nanoseconds - min_item->second.event_timestamp->nanoseconds <= slop_ns) {
+    if (event_timestamp_ns(max_item->second) - event_timestamp_ns(min_item->second) <= slop_ns) {
       consume_front_messages(inputs, pending);
       return {
           invocation_from_messages(EventKind::kMessage, TriggerKind::kTimeSync, context, component, lane, *messages)};

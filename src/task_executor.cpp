@@ -148,7 +148,7 @@ ThreadedTaskExecutor::ThreadedTaskExecutor(ThreadedTaskExecutorConfig config) : 
 }
 
 ThreadedTaskExecutor::~ThreadedTaskExecutor() {
-  shutdown();
+  shutdown_workers();
 }
 
 std::size_t ThreadedTaskExecutor::admission_capacity_locked() const {
@@ -275,6 +275,10 @@ TaskExecutorMetrics ThreadedTaskExecutor::metrics() const {
 }
 
 void ThreadedTaskExecutor::shutdown() {
+  shutdown_workers();
+}
+
+void ThreadedTaskExecutor::shutdown_workers() {
   std::vector<std::thread> workers;
   {
     std::lock_guard lock(mutex_);

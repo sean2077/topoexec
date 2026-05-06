@@ -19,7 +19,7 @@ inline constexpr int kTopoExecSchemaVersion = 1;
 inline constexpr const char* kTopoExecSemanticContractVersion = "0.2";
 
 struct GraphInputLimits {
-  std::size_t max_graph_input_bytes{1024u * 1024u};
+  std::size_t max_graph_input_bytes{std::size_t{1024u} * 1024u};
   std::size_t max_lanes{256u};
   std::size_t max_components{4096u};
   std::size_t max_edges{8192u};

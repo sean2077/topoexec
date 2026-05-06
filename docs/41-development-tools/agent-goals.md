@@ -52,6 +52,7 @@ Blocker protocol:
 - `./scripts/goal_check.sh plugins` — optional trusted-native dynamic plugin loader preview smokes.
 - `./scripts/goal_check.sh sanitizer` — ASAN+UBSAN Debug build plus full CTest.
 - `./scripts/goal_check.sh format` — clang-format target.
+- `./scripts/goal_check.sh tidy` — clang-tidy target.
 - `./scripts/goal_check.sh debug` — local Debug GCC build and CTest.
 
 Always run `./scripts/agent_check.sh` before declaring repository changes complete. Use focused goal checks as additional evidence, not as a replacement for the full gate unless a blocker is documented.

@@ -1,0 +1,17 @@
+---
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  portability-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -performance-enum-size,
+  -performance-inefficient-string-concatenation,
+  -performance-unnecessary-value-param,
+  -portability-avoid-pragma-once
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/topoexec/(include|src|tools|tests|examples|benchmarks)/.*'
+SystemHeaders: false
+FormatStyle: file

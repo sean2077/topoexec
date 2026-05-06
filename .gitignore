@@ -5,3 +5,5 @@ compile_commands.json
 benchmarks/local-baseline*.json
 *.swp
 *.swo
+__pycache__/
+*.pyc

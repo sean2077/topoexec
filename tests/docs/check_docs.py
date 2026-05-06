@@ -33,6 +33,7 @@ REQUIRED_DOCS = [
     "24-testing/testing-strategy.md",
     "33-specs-rfcs/schema-v1.md",
     "33-specs-rfcs/schema-v2-notes.md",
+    "41-development-tools/quality-gates.md",
     "41-development-tools/editor-schema.md",
     "43-ci-build-release-tools/beta-readiness-review.md",
     "43-ci-build-release-tools/release-checklist.md",
@@ -115,6 +116,13 @@ REQUIRED_SECTIONS = {
         "## LSP design boundary",
         "## Validation",
     ],
+    "41-development-tools/quality-gates.md": [
+        "## Status",
+        "## Local Setup",
+        "## CMake Presets",
+        "## clang-tidy Boundary",
+        "## Release Boundary",
+    ],
 }
 
 README_REQUIRED_LINKS = [
@@ -129,6 +137,7 @@ README_REQUIRED_LINKS = [
     "(24-testing/testing-strategy.md)",
     "(31-planning-roadmap/goals/backlog.md)",
     "(33-specs-rfcs/schema-v1.md)",
+    "(41-development-tools/quality-gates.md)",
     "(41-development-tools/cli.md)",
     "(43-ci-build-release-tools/build-and-package.md)",
     "(44-coding-standards/contributing.md)",

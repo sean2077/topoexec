@@ -59,12 +59,27 @@ def validate_message(commit: str, message: str) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--message-file",
+        type=str,
+        help="validate one commit message file, used by the pre-commit commit-msg hook",
+    )
+    parser.add_argument(
         "revisions",
         nargs="*",
         default=["HEAD"],
         help="git log revision arguments to validate, defaults to HEAD history",
     )
     args = parser.parse_args()
+
+    if args.message_file:
+        message = open(args.message_file, encoding="utf-8").read().strip("\n")
+        failures = validate_message("COMMIT_MSG", message)
+        if failures:
+            sys.stderr.write("commit message check failed:\n")
+            for failure in failures:
+                sys.stderr.write(f"- {failure}\n")
+            return 1
+        return 0
 
     failures: list[str] = []
     for commit, message in iter_messages(run_git_log(args.revisions)):

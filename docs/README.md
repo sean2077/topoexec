@@ -24,7 +24,7 @@ This directory is the canonical documentation root. The project is complex enoug
 | `24-testing` | Test strategy, fuzz/stress/bench evidence, and defensive input checks. | [Testing strategy](24-testing/testing-strategy.md) |
 | `31-planning-roadmap` | Current backlog, goal status, active blockers, and roadmap records. | [Goal backlog](31-planning-roadmap/goals/backlog.md) |
 | `33-specs-rfcs` | Schema and proposal-like design notes. | [Schema v1](33-specs-rfcs/schema-v1.md) |
-| `41-development-tools` | CLI, editor/schema tooling, and agent workflow helpers. | [CLI](41-development-tools/cli.md) |
+| `41-development-tools` | CLI, quality gates, editor/schema tooling, and agent workflow helpers. | [Quality gates](41-development-tools/quality-gates.md) / [CLI](41-development-tools/cli.md) |
 | `43-ci-build-release-tools` | Build, package, release, versioning, and baseline evidence. | [Build and package](43-ci-build-release-tools/build-and-package.md) |
 | `44-coding-standards` | Contribution and coding process standards. | [Contributing](44-coding-standards/contributing.md) |
 | `45-doc-standards` | Documentation conventions and maintenance rules. | [Documentation system](45-doc-standards/documentation-system.md) |

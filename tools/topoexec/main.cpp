@@ -445,7 +445,7 @@ std::string compiler_version() {
 
 std::string build_type() {
 #ifdef TOPOEXEC_CMAKE_BUILD_TYPE
-  const std::string configured = TOPOEXEC_CMAKE_BUILD_TYPE;
+  std::string configured = TOPOEXEC_CMAKE_BUILD_TYPE;
   if (!configured.empty()) {
     return configured;
   }
@@ -494,7 +494,7 @@ std::string git_commit() {
     return env;
   }
 #ifdef TOPOEXEC_GIT_COMMIT_DEFAULT
-  const std::string configured = TOPOEXEC_GIT_COMMIT_DEFAULT;
+  std::string configured = TOPOEXEC_GIT_COMMIT_DEFAULT;
   if (!configured.empty() && configured != "unknown") {
     return configured;
   }
@@ -670,14 +670,12 @@ nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result) {
   std::map<std::string, std::size_t> track_ids;
   auto track_id_for = [&](const topoexec::RuntimeTraceEvent& event) {
     auto key = event.phase;
-    if (event.phase == "channel" && !event.channel_id.empty()) {
+    if (!event.channel_id.empty()) {
       key += ":channel:" + event.channel_id;
     } else if (!event.lane.empty()) {
       key += ":lane:" + event.lane;
     } else if (!event.component_id.empty()) {
       key += ":component:" + event.component_id;
-    } else if (!event.channel_id.empty()) {
-      key += ":channel:" + event.channel_id;
     } else {
       key += ":runtime";
     }
@@ -845,6 +843,7 @@ std::vector<LintFinding> lint_graph(const topoexec::GraphSpec& graph,
       try {
         descriptors[component.id] = registry->create(component.type)->describe();
       } catch (const std::exception&) {
+        continue;
       }
     }
   }

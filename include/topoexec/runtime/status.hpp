@@ -3,6 +3,7 @@
 // API stability: stable-v0.2. Status/Result helpers are intended embedder API.
 
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -53,11 +54,17 @@ public:
   }
 
   const T& value() const {
-    return *value_;
+    if (!value_.has_value()) {
+      throw std::logic_error("topoexec::Result has no value");
+    }
+    return value_.value();
   }
 
   T& value() {
-    return *value_;
+    if (!value_.has_value()) {
+      throw std::logic_error("topoexec::Result has no value");
+    }
+    return value_.value();
   }
 
 private:

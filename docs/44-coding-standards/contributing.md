@@ -59,15 +59,19 @@ Agent-friendly shortcuts:
 ```bash
 ./scripts/goal_check.sh all
 ./scripts/goal_check.sh quick
+./scripts/goal_check.sh format
+./scripts/goal_check.sh tidy
 ./scripts/goal_check.sh package
 ./scripts/goal_check.sh fuzz
 ./scripts/goal_check.sh sanitizer
 ```
 
-Optional formatting check:
+Local pre-commit hooks mirror the same quality scripts:
 
 ```bash
-cmake --build build --target topoexec_format_check
+pre-commit install
+pre-commit install --hook-type commit-msg
+pre-commit run --all-files
 ```
 
 Always run `./scripts/agent_check.sh` before marking a repository change ready.

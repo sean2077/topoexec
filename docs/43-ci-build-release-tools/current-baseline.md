@@ -50,6 +50,8 @@ Before declaring repository changes complete:
 
 ```bash
 git diff --check
+./scripts/goal_check.sh format
+./scripts/goal_check.sh tidy
 ./scripts/goal_check.sh docs
 ./scripts/agent_check.sh
 ```

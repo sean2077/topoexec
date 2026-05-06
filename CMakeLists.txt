@@ -40,17 +40,25 @@ endif()
 
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 if(CLANG_FORMAT_EXE)
-  add_custom_target(topoexec_format_check
-    COMMAND ${CMAKE_COMMAND} -E env CLANG_FORMAT=${CLANG_FORMAT_EXE}
-      /usr/bin/env bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/format_check.sh
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Checking C++ formatting with clang-format"
-  )
-else()
-  add_custom_target(topoexec_format_check
-    COMMAND ${CMAKE_COMMAND} -E echo "clang-format not found; install clang-format or set CLANG_FORMAT to run the optional format check"
-  )
+  set(TOPOEXEC_CLANG_FORMAT_ENV CLANG_FORMAT=${CLANG_FORMAT_EXE})
 endif()
+add_custom_target(topoexec_format_check
+  COMMAND ${CMAKE_COMMAND} -E env ${TOPOEXEC_CLANG_FORMAT_ENV}
+    /usr/bin/env bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/format_check.sh
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Checking C++ formatting with clang-format"
+)
+
+find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+if(CLANG_TIDY_EXE)
+  set(TOPOEXEC_CLANG_TIDY_ENV CLANG_TIDY=${CLANG_TIDY_EXE})
+endif()
+add_custom_target(topoexec_tidy_check
+  COMMAND ${CMAKE_COMMAND} -E env ${TOPOEXEC_CLANG_TIDY_ENV} TOPOEXEC_BUILD_DIR=${CMAKE_BINARY_DIR}
+    /usr/bin/env bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/tidy_check.sh
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Checking C++ diagnostics with clang-tidy"
+)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)

@@ -1,0 +1,25 @@
+minimum_pre_commit_version: "3.0.0"
+
+repos:
+  - repo: local
+    hooks:
+      - id: git-diff-check
+        name: git diff whitespace check
+        entry: bash -c 'git diff --check --cached'
+        language: system
+        pass_filenames: false
+      - id: clang-format-check
+        name: clang-format check
+        entry: scripts/format_check.sh
+        language: system
+        pass_filenames: false
+      - id: clang-tidy-check
+        name: clang-tidy check
+        entry: scripts/tidy_check.sh
+        language: system
+        pass_filenames: false
+      - id: conventional-commit-subject
+        name: conventional commit subject
+        entry: python3 scripts/check_commit_messages.py --message-file
+        language: system
+        stages: [commit-msg]

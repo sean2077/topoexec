@@ -27,6 +27,8 @@
 - [ ] `git diff --check`
 - [ ] Focused checks:
   - [ ] `./scripts/goal_check.sh quick`
+  - [ ] `./scripts/goal_check.sh format`
+  - [ ] `./scripts/goal_check.sh tidy`
   - [ ] `./scripts/goal_check.sh docs`
   - [ ] `./scripts/goal_check.sh package`
   - [ ] other:

@@ -857,10 +857,10 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           std::vector<std::future<WorkerInvocationOutcome>> futures;
           futures.reserve(count);
           for (std::size_t index = 0; index < count; ++index) {
-            const auto invocation = invocations[offset + index];
-            futures.push_back(
-                pool.submit([&, invocation](std::size_t worker_id) { return run_invocation(invocation, worker_id); },
-                            runtime_priority_rank(invocation.priority), found->id));
+            const auto priority = runtime_priority_rank(invocations[offset + index].priority);
+            futures.push_back(pool.submit([&, invocation = invocations[offset + index]](
+                                              std::size_t worker_id) { return run_invocation(invocation, worker_id); },
+                                          priority, found->id));
           }
 
           std::vector<WorkerInvocationOutcome> outcomes;

@@ -175,7 +175,8 @@ fi
 if [[ "$SKIP_GATES" -ne 1 ]]; then
   git diff --check
   ./scripts/agent_check.sh
-  cmake --build build --target topoexec_format_check
+  ./scripts/goal_check.sh format
+  ./scripts/goal_check.sh tidy
   ./scripts/goal_check.sh package
   ./scripts/goal_check.sh golden
   ./scripts/goal_check.sh docs
