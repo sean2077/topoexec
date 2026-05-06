@@ -14,12 +14,13 @@ The core runtime does not require a task executor. Applications can attach one t
 - `max_inflight`: maximum outstanding deterministic tasks; `0` is normalized to `1`.
 - `queue_capacity`: additional pending backlog beyond `max_inflight`.
 - `overflow`: `reject` / `drop_newest` / `block` reject new work in the current non-blocking executor; `drop_oldest` / `overwrite` cancel the oldest pending work to accept new work; `fail_fast` reports a capacity exceeded reason.
+- `task_budget`: optional cooperative duration budget for each task. Exceeding it records `timeout_budget_exceeded_count` after the task returns; it does not interrupt the task.
 
 The executor never creates an unbounded task backlog.
 
 ## Deterministic execution
 
-`run_ready(max_tasks)` runs pending work synchronously in FIFO order on the caller thread. This makes tests deterministic and keeps the helper independent from scheduler lane implementation. A future threaded executor can reuse the same admission and metrics contract.
+`run_ready(max_tasks, cancel_token)` runs pending work synchronously in FIFO order on the caller thread. If the token is already requested before the next task starts, the executor cancels pending tasks and returns without forced termination. This makes tests deterministic and keeps the helper independent from scheduler lane implementation. A future threaded executor can reuse the same admission and metrics contract.
 
 ## Metrics
 
@@ -31,6 +32,9 @@ The executor never creates an unbounded task backlog.
 - `cancelled_count`
 - `rejected_count`
 - `failed_count`
+- `cancellation_requested_count`
+- `cancellation_observed_count`
+- `timeout_budget_exceeded_count`
 - `max_inflight_count`
 - `queue_depth`
 

@@ -180,6 +180,7 @@ Invocation TriggerPolicyEngine::timer_invocation_for(const TickContext& context,
   invocation.scheduled_at = context.scheduled_at;
   invocation.started_at = context.started_at;
   invocation.sequence = context.sequence;
+  invocation.cancel_token = context.cancel_token;
   invocation.stop_requested = context.stop_requested;
   invocation.budget = std::chrono::milliseconds(component.execution.budget_ms);
   invocation.lane = lane.id;
@@ -196,6 +197,7 @@ Invocation TriggerPolicyEngine::event_invocation_for(EventKind event, const Tick
   invocation.scheduled_at = context.scheduled_at;
   invocation.started_at = context.started_at;
   invocation.sequence = context.sequence;
+  invocation.cancel_token = context.cancel_token;
   invocation.stop_requested = context.stop_requested;
   invocation.budget = std::chrono::milliseconds(component.execution.budget_ms);
   invocation.lane = lane.id;

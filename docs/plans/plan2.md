@@ -52,20 +52,20 @@
 - 已经有 runtime invariant coverage、golden tests、schema contract smoke、docs command smoke、deterministic fuzz smoke、sanitizer gates、package smoke。
 - 当前 goal ledger 记录 G0–G25 已完成。
 - 当前 release checklist 记录本地 `50/50 CTest`、ASAN+UBSAN、format、runtime-only option smoke、adapter policy smoke 等证据。
-- 当前已发布或已准备 `v0.1.0-alpha`，`main` 已经进入 post-alpha concurrency/async admission 后的状态。
+- 当前已发布或已准备 `v0.1.0-alpha`，`main` 已经进入 post-alpha scheduler/concurrency/cooperative-cancellation 后的状态。
 
 ### 0.2 当前明确 limitations
 
 当前仍应视为未完成或未产品化的方向：
 
-- `thread_pool` lane 在 G30 后已有 persistent worker-pool v1，但仍是 experimental alpha concurrency surface：
-  - priority 未真正调度化
+- `thread_pool` lane 在 G33 后已有 persistent worker-pool v1、runtime priority admission、cooperative cancellation/timeout observation，但仍是 experimental alpha concurrency surface：
   - CPU affinity 未执行
   - RT policy 未执行
   - portable hard worker-name guarantee 未实现
-  - timeout preemption 未实现
+  - advanced starvation aging 未实现
+  - hard timeout preemption 未实现
 - `async policy.max_inflight` 已用于 async edge admission，但不是完整 async task/future executor。
-- `TaskExecutor` 当前偏 deterministic helper，threaded executor pool 仍是未来方向。
+- `TaskExecutor` 当前仍是 deterministic helper，已有 cooperative pending-task cancellation 和 post-return task-budget metrics；threaded executor pool 仍是未来方向。
 - deterministic fuzz smoke 已有，但 coverage-guided fuzzing 仍未完成。
 - TSAN 仍可保持 non-blocking，beta 前需要更强并发信心。
 - ROS 2、OpenTelemetry、Prometheus、Python、C API、dynamic plugin loading、external Perfetto adapter 仍 deferred。
@@ -456,7 +456,7 @@ Priority: P1
 ### Requirements
 
 - 仍不承诺 hard real-time。
-- 仍不实现强制 timeout preemption。
+- 仍不实现强制 hard timeout preemption。
 - 必须保持 bounded queue。
 - 必须尊重 non-reentrant component serialization。
 - 必须能 clean shutdown。

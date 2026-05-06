@@ -148,6 +148,9 @@ struct ComponentInvocationOutcome {
   Status status;
   std::chrono::steady_clock::time_point started_at;
   std::chrono::steady_clock::time_point finished_at;
+  std::size_t cancellation_observed_before{0};
+  std::size_t cancellation_observed_after{0};
+  bool cancellation_requested_after{false};
 };
 
 struct WorkerInvocationOutcome {
@@ -326,6 +329,10 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
   SchedulerRunResult result;
   result.stop_reason = SchedulerStopReason::kTickBound;
   TriggerPolicyEngine trigger(channels_);
+  const auto runtime_cancel_token =
+      options.cancel_token.valid()
+          ? options.cancel_token
+          : CancellationToken::from_callback([token = options.stop_token]() { return token.stop_requested(); });
   const auto started_at = std::chrono::steady_clock::now();
   const auto lanes = lane_map(components_);
   std::map<std::string, std::chrono::steady_clock::time_point> next_wall_clock_ticks;
@@ -368,7 +375,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
   std::map<std::string, std::size_t> component_in_flight;
   for (std::size_t iteration = 0; iteration < iterations; ++iteration) {
     const auto tick_calls_before_iteration = result.tick_calls;
-    if (options.stop_token.stop_requested()) {
+    if (options.stop_token.stop_requested() || runtime_cancel_token.requested()) {
       result.stop_reason = SchedulerStopReason::kStopRequested;
       break;
     }
@@ -434,7 +441,8 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       tick.sequence = result.iterations + 1u;
       tick.scheduled_at = now;
       tick.started_at = now;
-      tick.stop_requested = [token = options.stop_token]() { return token.stop_requested(); };
+      tick.cancel_token = runtime_cancel_token;
+      tick.stop_requested = [token = runtime_cancel_token]() { return token.cancel_requested(); };
       try {
         auto invocations = trigger.collect_ready_invocations(tick, found->spec, found->lane);
         auto& trigger_metrics = result.trigger_metrics[found->id];
@@ -459,15 +467,28 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
         };
 
         auto run_invocation = [&](const Invocation& invocation, std::optional<std::size_t> worker_id = std::nullopt) {
+          auto invocation_for_execute = invocation;
+          const auto invocation_cancel_token =
+              CancellationToken::from_callback([token = runtime_cancel_token]() { return token.requested(); });
+          invocation_for_execute.cancel_token = invocation_cancel_token;
+          invocation_for_execute.stop_requested = [token = invocation_cancel_token]() {
+            return token.cancel_requested();
+          };
+          auto invocation_context = *found->context;
+          invocation_context.cancel_token = invocation_cancel_token;
+
           ComponentInvocationOutcome outcome;
+          outcome.cancellation_observed_before = invocation_cancel_token.observed_count();
           outcome.started_at = std::chrono::steady_clock::now();
           record_trace_event(trace_, "component_execute_begin", invocation_trace_attributes(worker_id));
           try {
-            outcome.status = found->component->execute_status(invocation, *found->context);
+            outcome.status = found->component->execute_status(invocation_for_execute, invocation_context);
           } catch (const std::exception& error) {
             outcome.status = Status::error(error.what());
           }
           outcome.finished_at = std::chrono::steady_clock::now();
+          outcome.cancellation_observed_after = invocation_cancel_token.observed_count();
+          outcome.cancellation_requested_after = invocation_cancel_token.requested();
           auto span_attributes = invocation_trace_attributes(worker_id);
           span_attributes["trigger"] = std::to_string(static_cast<int>(invocation.trigger));
           record_trace_span(trace_, "component_execute", outcome.started_at, outcome.finished_at,
@@ -485,6 +506,22 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           component_metrics.max_duration_ns = std::max(component_metrics.max_duration_ns, duration_ns);
           if (invocation.budget.count() > 0 && outcome.finished_at - outcome.started_at > invocation.budget) {
             ++component_metrics.budget_overrun_count;
+            ++component_metrics.timeout_budget_exceeded_count;
+            record_trace_event(trace_, "component_timeout_budget_exceeded",
+                               {{"component_id", found->id},
+                                {"lane", found->lane.id},
+                                {"budget_ms", std::to_string(invocation.budget.count())},
+                                {"duration_ns", std::to_string(duration_ns)}});
+          }
+          if (outcome.cancellation_requested_after) {
+            ++component_metrics.cancellation_requested_count;
+            record_trace_event(trace_, "component_cancellation_requested",
+                               {{"component_id", found->id}, {"lane", found->lane.id}});
+          }
+          if (outcome.cancellation_observed_after > outcome.cancellation_observed_before) {
+            ++component_metrics.cancellation_observed_count;
+            record_trace_event(trace_, "component_cancellation_observed",
+                               {{"component_id", found->id}, {"lane", found->lane.id}});
           }
           if (!outcome.status.ok()) {
             ++component_metrics.error_count;
@@ -659,11 +696,23 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
             region.loop_policy.max_iterations > 0 ? static_cast<std::size_t>(region.loop_policy.max_iterations) : 1u;
         bool converged = false;
         bool budget_overrun = false;
+        bool cancelled = false;
         const auto loop_started_at = std::chrono::steady_clock::now();
         if (publications_ != nullptr) {
           publications_->begin_composite_region(region.components);
         }
         for (std::size_t loop_iteration = 0; loop_iteration < max_iterations; ++loop_iteration) {
+          if (loop_iteration > 0u && runtime_cancel_token.requested()) {
+            cancelled = true;
+            result.stop_reason = SchedulerStopReason::kStopRequested;
+            ++result.loop_cancellation_requested_count[region.id];
+            ++result.loop_cancellation_observed_count[region.id];
+            record_trace_event(trace_, "loop_cancellation_requested",
+                               {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
+            record_trace_event(trace_, "loop_cancellation_observed",
+                               {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
+            break;
+          }
           const auto loop_iteration_started_at = std::chrono::steady_clock::now();
           record_trace_event(trace_, "loop_iteration_begin",
                              {{"loop_id", region.id}, {"iteration", std::to_string(loop_iteration + 1u)}});
@@ -695,7 +744,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
             break;
           }
         }
-        if (!converged && !budget_overrun && region.loop_policy.max_iterations > 0) {
+        if (!converged && !budget_overrun && !cancelled && region.loop_policy.max_iterations > 0) {
           ++result.loop_max_iteration_hit_count[region.id];
         }
         if (publications_ != nullptr) {
@@ -707,6 +756,9 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
                                     commit.reason);
             return result;
           }
+        }
+        if (cancelled) {
+          return result;
         }
         continue;
       }

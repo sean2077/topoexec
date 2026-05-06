@@ -131,7 +131,9 @@
         "deterministic_region_order",
         "bounded_runner_stop_checks",
         "runtime_owned_publication_commit",
-        "runtime_priority_ordering"
+        "runtime_priority_ordering",
+        "cooperative_cancellation",
+        "timeout_budget_observation"
       ],
       "max_threads": 0,
       "overflow": "reject",

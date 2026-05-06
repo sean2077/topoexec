@@ -143,7 +143,7 @@ Allowed fields:
 - `lane` required string; must reference a lane id.
 - `reentrant` optional boolean, default `false`.
 - `priority` optional string, default `normal`; allowed values are `background`, `low`, `normal`, and `high`. This is runtime-level component/invocation priority, not lane/OS scheduler priority.
-- `budget_ms` optional integer, default `0`.
+- `budget_ms` optional integer, default `0`; this is a cooperative execution budget. Exceeding it records budget/timeout metrics after the invocation returns and does not preempt component code.
 - `on_error` optional string, default `fail_fast`; declared values are `fail_fast`, `continue`, and `isolate`, but only `fail_fast` is implemented in schema v1 today. Other values parse but semantic validation rejects them rather than silently emulating a policy, using diagnostic code `unsupported_error_policy`.
 
 ### boundary
@@ -225,7 +225,7 @@ Fields:
 Loop policy fields:
 
 - `type` required string; allowed values are `fixed_point`, `transaction`, `coalesced_event`, and `async_task`.
-- `budget_ms` optional non-negative integer.
+- `budget_ms` optional non-negative integer; the loop checks this cooperatively between completed iterations.
 - `max_iterations` optional non-negative integer.
 - `max_inflight` optional non-negative integer.
 - `drop_policy` optional string.

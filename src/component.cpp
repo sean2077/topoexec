@@ -116,6 +116,10 @@ TaskSubmissionResult GraphContext::submit_task(const std::string& completion_por
   });
 }
 
+bool GraphContext::cancel_requested() const {
+  return cancel_token.cancel_requested();
+}
+
 void Component::execute(const Invocation&, GraphContext&) {
   throw std::logic_error("component does not implement execute");
 }

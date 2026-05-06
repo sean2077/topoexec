@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <optional>
@@ -109,6 +110,11 @@ std::mutex& thread_pool_probe_mutex() {
   return mutex;
 }
 
+std::function<void()>& cancellation_request_hook() {
+  static std::function<void()> hook;
+  return hook;
+}
+
 void reset_throwing_component_state() {
   throwing_deactivate_count() = 0;
   status_failure_deactivate_count() = 0;
@@ -119,6 +125,10 @@ void reset_thread_pool_probe_state() {
   thread_pool_max_invocations().store(0);
   std::lock_guard lock(thread_pool_probe_mutex());
   thread_pool_thread_ids().clear();
+}
+
+void reset_cancellation_request_hook() {
+  cancellation_request_hook() = {};
 }
 
 void observe_thread_pool_invocation_begin() {
@@ -224,6 +234,17 @@ bool has_metric_at_least(const topoexec::RuntimeRunnerResult& result, const std:
 std::optional<double> metric_value(const topoexec::RuntimeRunnerResult& result, const std::string& name) {
   const auto found = std::find_if(result.runtime_metrics.begin(), result.runtime_metrics.end(),
                                   [&](const auto& metric) { return metric.name == name; });
+  if (found == result.runtime_metrics.end()) {
+    return std::nullopt;
+  }
+  return found->value;
+}
+
+std::optional<double> component_metric_value(const topoexec::RuntimeRunnerResult& result, const std::string& name,
+                                             const std::string& component_id) {
+  const auto found =
+      std::find_if(result.runtime_metrics.begin(), result.runtime_metrics.end(),
+                   [&](const auto& metric) { return metric.name == name && metric.component_id == component_id; });
   if (found == result.runtime_metrics.end()) {
     return std::nullopt;
   }
@@ -585,6 +606,50 @@ public:
   }
 };
 
+class CancellationProbeComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.CancellationProbe";
+    descriptor.name = "cancellation_probe";
+    descriptor.role = topoexec::ComponentRole::kInputOutputBoundary;
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    if (cancellation_request_hook()) {
+      cancellation_request_hook()();
+    }
+    if (!invocation.cancel_requested() || !context.cancel_requested()) {
+      throw std::runtime_error("cancellation was not observable");
+    }
+    record_invocation(invocation, context);
+  }
+};
+
+class CancellationIgnoringSlowComponent : public topoexec::Component {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    topoexec::ComponentDescriptor descriptor;
+    descriptor.type = "topoexec.test.CancellationIgnoringSlow";
+    descriptor.name = "cancellation_ignoring_slow";
+    descriptor.role = topoexec::ComponentRole::kInputOutputBoundary;
+    return descriptor;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+  void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    if (cancellation_request_hook()) {
+      cancellation_request_hook()();
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    record_invocation(invocation, context);
+  }
+};
+
 class LoopEstimatorComponent : public topoexec::Component {
 public:
   topoexec::ComponentDescriptor describe() const override {
@@ -666,6 +731,22 @@ public:
   void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
     record_invocation(invocation, context);
     throw std::runtime_error("loop controller failed");
+  }
+};
+
+class CancellingLoopControllerComponent : public LoopControllerComponent {
+public:
+  topoexec::ComponentDescriptor describe() const override {
+    auto descriptor = LoopControllerComponent::describe();
+    descriptor.type = "topoexec.test.CancellingLoopController";
+    return descriptor;
+  }
+
+  void execute(const topoexec::Invocation& invocation, topoexec::GraphContext& context) override {
+    if (cancellation_request_hook()) {
+      cancellation_request_hook()();
+    }
+    LoopControllerComponent::execute(invocation, context);
   }
 };
 
@@ -866,6 +947,10 @@ topoexec::ComponentRegistry delay_registry() {
   registry.register_component({"topoexec.test.ThreadPoolProbe"},
                               []() { return std::make_unique<ThreadPoolProbeComponent>(); });
   registry.register_component({"topoexec.test.SlowManual"}, []() { return std::make_unique<SlowManualComponent>(); });
+  registry.register_component({"topoexec.test.CancellationProbe"},
+                              []() { return std::make_unique<CancellationProbeComponent>(); });
+  registry.register_component({"topoexec.test.CancellationIgnoringSlow"},
+                              []() { return std::make_unique<CancellationIgnoringSlowComponent>(); });
   registry.register_component({"topoexec.test.LoopEstimator"},
                               []() { return std::make_unique<LoopEstimatorComponent>(); });
   registry.register_component({"topoexec.test.SlowLoopEstimator"},
@@ -874,6 +959,8 @@ topoexec::ComponentRegistry delay_registry() {
                               []() { return std::make_unique<LoopControllerComponent>(); });
   registry.register_component({"topoexec.test.FailingLoopController"},
                               []() { return std::make_unique<FailingLoopControllerComponent>(); });
+  registry.register_component({"topoexec.test.CancellingLoopController"},
+                              []() { return std::make_unique<CancellingLoopControllerComponent>(); });
   registry.register_component({"topoexec.test.Throwing"}, []() { return std::make_unique<ThrowingComponent>(); });
   registry.register_component({"topoexec.test.ConfigureStatusFailure"},
                               []() { return std::make_unique<ConfigureStatusFailureComponent>(); });
@@ -1237,6 +1324,13 @@ topoexec::GraphSpec failing_composite_loop_runtime_graph() {
   return graph;
 }
 
+topoexec::GraphSpec cancelling_composite_loop_runtime_graph() {
+  auto graph = composite_loop_runtime_graph();
+  graph.components[2].type = "topoexec.test.CancellingLoopController";
+  graph.composite_loops.front().loop_policy.max_iterations = 5;
+  return graph;
+}
+
 topoexec::GraphSpec throwing_graph() {
   return topoexec::load_graph_text(R"(
 schema_version: 1
@@ -1327,6 +1421,24 @@ components:
     execution: {lane: main, priority: high}
 edges: []
 )");
+}
+
+topoexec::GraphSpec cancellation_probe_graph(const std::string& component_type) {
+  auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: cancellation_probe, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: worker
+    type: topoexec.test.CancellationProbe
+    boundary: {role: input_output, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+edges: []
+)");
+  graph.components.front().type = component_type;
+  return graph;
 }
 
 topoexec::GraphSpec lifecycle_graph(std::vector<std::pair<std::string, std::string>> components) {
@@ -1676,6 +1788,47 @@ TEST(Runtime, TaskExecutorRejectsAndCancelsBoundedBacklog) {
   const auto metrics = executor.metrics();
   EXPECT_EQ(metrics.rejected_count, 1u);
   EXPECT_EQ(metrics.cancelled_count, 1u);
+}
+
+TEST(Runtime, TaskExecutorCancellationTokenCancelsPendingTasks) {
+  topoexec::TaskExecutorConfig config;
+  config.max_inflight = 1;
+  config.queue_capacity = 2;
+  topoexec::TaskExecutor executor(config);
+  topoexec::CancellationSource cancellation;
+
+  EXPECT_TRUE(executor.submit([]() { return topoexec::make_text_payload("one"); }).accepted);
+  EXPECT_TRUE(executor.submit([]() { return topoexec::make_text_payload("two"); }).accepted);
+  cancellation.request_cancel();
+  const auto completions = executor.run_ready(0, cancellation.token());
+
+  EXPECT_TRUE(completions.empty());
+  const auto metrics = executor.metrics();
+  EXPECT_EQ(metrics.cancelled_count, 2u);
+  EXPECT_EQ(metrics.completed_count, 0u);
+  EXPECT_EQ(metrics.cancellation_requested_count, 1u);
+  EXPECT_EQ(metrics.cancellation_observed_count, 1u);
+}
+
+TEST(Runtime, TaskExecutorBudgetExceededIsReportedWithoutPreemption) {
+  topoexec::TaskExecutorConfig config;
+  config.max_inflight = 1;
+  config.task_budget = std::chrono::milliseconds(1);
+  topoexec::TaskExecutor executor(config);
+
+  ASSERT_TRUE(executor
+                  .submit([]() {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                    return topoexec::make_text_payload("slow");
+                  })
+                  .accepted);
+  const auto completions = executor.run_ready();
+
+  ASSERT_EQ(completions.size(), 1u);
+  EXPECT_TRUE(completions.front().ok);
+  const auto metrics = executor.metrics();
+  EXPECT_EQ(metrics.completed_count, 1u);
+  EXPECT_EQ(metrics.timeout_budget_exceeded_count, 1u);
 }
 
 TEST(Runtime, TaskExecutorReportsFailureAndGraphContextPublishesCompletion) {
@@ -2055,6 +2208,57 @@ TEST(Runtime, RuntimePriorityOrdersIndependentReadyComponentsAndDoesNotStarveLow
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.starvation_guard_count", 0.0));
 }
 
+TEST(Runtime, ComponentObservesCooperativeCancellationToken) {
+  const auto reg = delay_registry();
+  const auto spec = cancellation_probe_graph("topoexec.test.CancellationProbe");
+  topoexec::SchedulerStopSource stop_source;
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  options.stop_token = stop_source.token();
+
+  reset_runtime_records();
+  reset_cancellation_request_hook();
+  cancellation_request_hook() = [&]() { stop_source.request_stop(); };
+  const auto result = runner.run(spec, options);
+  reset_cancellation_request_hook();
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_component_record(1, "worker"));
+  EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.cancellation_requested_count", "worker", 1.0));
+  EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.cancellation_observed_count", "worker", 1.0));
+  EXPECT_TRUE(has_trace_event(result, "component_cancellation_requested"));
+  EXPECT_TRUE(has_trace_event(result, "component_cancellation_observed"));
+}
+
+TEST(Runtime, ComponentIgnoringCancellationReportsBudgetWithoutForcedKill) {
+  const auto reg = delay_registry();
+  auto spec = cancellation_probe_graph("topoexec.test.CancellationIgnoringSlow");
+  spec.components.front().execution.budget_ms = 1;
+  topoexec::SchedulerStopSource stop_source;
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  options.stop_token = stop_source.token();
+
+  reset_runtime_records();
+  reset_cancellation_request_hook();
+  cancellation_request_hook() = [&]() { stop_source.request_stop(); };
+  const auto result = runner.run(spec, options);
+  reset_cancellation_request_hook();
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_component_record(1, "worker"));
+  EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.cancellation_requested_count", "worker", 1.0));
+  const auto observed = component_metric_value(result, "runtime.component.cancellation_observed_count", "worker");
+  ASSERT_TRUE(observed.has_value());
+  EXPECT_EQ(*observed, 0.0);
+  EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.timeout_budget_exceeded_count", "worker", 1.0));
+  EXPECT_TRUE(has_trace_event(result, "component_timeout_budget_exceeded"));
+}
+
 TEST(Runtime, CoalesceMergesMultiplePendingUpdatesIntoOneInvocation) {
   const auto reg = delay_registry();
   topoexec::RuntimeRunner runner(reg);
@@ -2148,6 +2352,34 @@ TEST(Runtime, CompositeLoopBudgetOverrunStopsLoopAndReportsMetric) {
   EXPECT_EQ(result.loop_budget_overrun_count, 1u);
   EXPECT_EQ(result.loop_max_iteration_hit_count, 0u);
   EXPECT_TRUE(has_metric(result, "runtime.loop.budget_overrun"));
+}
+
+TEST(Runtime, CompositeLoopCancellationStopsBetweenIterations) {
+  const auto reg = delay_registry();
+  const auto spec = cancelling_composite_loop_runtime_graph();
+  topoexec::SchedulerStopSource stop_source;
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+  options.stop_token = stop_source.token();
+
+  reset_runtime_records();
+  reset_cancellation_request_hook();
+  cancellation_request_hook() = [&]() { stop_source.request_stop(); };
+  const auto result = runner.run(spec, options);
+  reset_cancellation_request_hook();
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kStopRequested);
+  EXPECT_LT(result.loop_iteration_count, 5u);
+  EXPECT_EQ(result.loop_cancellation_requested_count, 1u);
+  EXPECT_EQ(result.loop_cancellation_observed_count, 1u);
+  EXPECT_EQ(result.loop_max_iteration_hit_count, 0u);
+  EXPECT_TRUE(has_metric(result, "runtime.loop.cancellation_requested"));
+  EXPECT_TRUE(has_metric(result, "runtime.loop.cancellation_observed"));
+  EXPECT_TRUE(has_trace_event(result, "loop_cancellation_requested"));
+  EXPECT_TRUE(has_trace_event(result, "loop_cancellation_observed"));
 }
 
 TEST(Runtime, CompositeLoopInternalFailureStopsLoopAndSuppressesExternalCommit) {

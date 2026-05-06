@@ -72,12 +72,12 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations after the plan2 G32 scheduler-priority pass:
+Current branch limitations after the plan2 G33 cooperative-cancellation pass:
 
-- `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and timeout preemption are not implemented.
+- `thread_pool` lanes use persistent worker-pool v1 with bounded runtime-priority admission, cooperative cancellation/timeout-budget observation, queue/rejection/priority metrics, and worker-id trace attributes. CPU affinity, RT policy, portable hard thread-name guarantees, advanced starvation aging, and hard timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated by default; opt-in wall-clock cadence v1 exists, but independent lane threads, OS jitter control, and hard real-time scheduling are not implemented.
 - Async `policy.max_inflight` controls async edge admission, but it is not a complete threaded task/future executor.
-- `TaskExecutor` remains deterministic by default; threaded executor pools are future work.
+- `TaskExecutor` remains deterministic by default with cooperative pending-task cancellation and post-return task-budget metrics; threaded executor pools are future work.
 - Metrics/trace/diagnostics exist, but observer/exporter APIs and metric/trace v2 contracts are not stable yet.
 - Deterministic fuzz smoke exists; coverage-guided fuzzing remains future work.
 - ThreadSanitizer remains non-blocking.

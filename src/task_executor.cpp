@@ -1,6 +1,7 @@
 #include "topoexec/runtime/task_executor.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <exception>
 #include <utility>
 
@@ -50,14 +51,21 @@ TaskSubmissionResult TaskExecutor::submit(Work work, CompletionCallback completi
   return {true, pending_.back().id, {}};
 }
 
-std::vector<TaskCompletion> TaskExecutor::run_ready(std::size_t max_tasks) {
+std::vector<TaskCompletion> TaskExecutor::run_ready(std::size_t max_tasks, CancellationToken cancel_token) {
   std::vector<TaskCompletion> completions;
   while (!pending_.empty() && (max_tasks == 0u || completions.size() < max_tasks)) {
+    if (cancel_token.cancel_requested()) {
+      ++metrics_.cancellation_requested_count;
+      ++metrics_.cancellation_observed_count;
+      cancel_pending();
+      break;
+    }
     auto task = std::move(pending_.front());
     pending_.pop_front();
     metrics_.active_count = 1u;
     TaskCompletion completion;
     completion.task_id = task.id;
+    const auto started_at = std::chrono::steady_clock::now();
     try {
       completion.payload = make_shared_payload(task.work());
       completion.ok = true;
@@ -66,6 +74,10 @@ std::vector<TaskCompletion> TaskExecutor::run_ready(std::size_t max_tasks) {
       completion.ok = false;
       completion.error = error.what();
       ++metrics_.failed_count;
+    }
+    const auto finished_at = std::chrono::steady_clock::now();
+    if (config_.task_budget.count() > 0 && finished_at - started_at > config_.task_budget) {
+      ++metrics_.timeout_budget_exceeded_count;
     }
     metrics_.active_count = 0u;
     if (task.completion) {

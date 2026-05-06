@@ -96,7 +96,7 @@ cmake --install build-runtime-only --prefix /tmp/topoexec-runtime-only
 
 - Scheduler runtime priority/admission ordering exists for component invocations, but affinity, RT policy, portable hard worker
   naming guarantees, independent fixed-rate lane threads, OS jitter control, advanced starvation aging, and
-  timeout preemption are still not implemented.
+  hard timeout preemption are still not implemented.
 - ThreadSanitizer is non-blocking.
 - Deterministic fuzz smoke exists, but coverage-guided fuzzing is future beta work.
 - ROS 2, OpenTelemetry, Prometheus, Python, C API, dynamic plugin loading, and

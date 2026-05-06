@@ -25,7 +25,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G30 | P1 | complete | Persistent Worker Pool v1 | `thread_pool` is now run-scoped persistent worker-pool v1 with bounded FIFO queue admission, worker-id trace attributes, stop/drain coverage, updated scheduler docs, and capability-summary evidence. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format |
 | G31 | P1 | complete | Fixed-Rate Lane v1 | `fixed_rate` now keeps deterministic ticks by default and supports opt-in cooperative wall-clock cadence with `overrun_policy`, tick/skipped/max-lateness metrics, trace events, docs, schema, and golden coverage. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format |
 | G32 | P1 | complete | Scheduler Priority and Admission Policy v1 | Runtime-level `execution.priority` now has deterministic high/normal/low/background semantics, priority queue admission, priority/rejection metrics, schema validation, docs, and runtime/graph/golden coverage without OS priority claims. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
-| G33 | P1 | pending | Cooperative Cancellation and Timeout Semantics | 为 long-running component、task、CompositeLoop 提供 cooperative cancellation contract，而不是伪装为硬 preemption。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G33 | P1 | complete | Cooperative Cancellation and Timeout Semantics | `CancellationToken`/`CancellationSource`, `Invocation::cancel_requested()`, `GraphContext::cancel_requested()`, component/loop/task cancellation and timeout metrics, trace events, docs, and runtime/task coverage now provide honest cooperative semantics without hard preemption. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format; ASAN+UBSAN sanitizer |
 | G34 | P1/P2 | pending | TaskExecutor v2: Threaded Executor Preview | 将 deterministic `TaskExecutor` 扩展为可选 threaded executor preview，同时保持 deterministic mode 作为测试默认。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G35 | P2 | pending | Trigger Engine v2: Watermark and Condition Triggers | 扩展 trigger policy，但不破坏现有 v1 trigger semantics。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G36 | P1 | pending | Correlation, Causality, and Invocation Metadata | 让 runtime trace/metrics 能从输入事件追踪到下游 outputs，支持调试复杂 graph。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G33 Cooperative Cancellation and Timeout Semantics is the next unfinished P1 goal after G32.
+G34 TaskExecutor v2: Threaded Executor Preview is the next unfinished P1/P2 goal after G33.
 
 ## Blockers
 

@@ -11,6 +11,8 @@ Current loop policies are intentionally small:
 - `max_iterations`: hard bound; omitted or non-positive means one iteration at runtime.
 - `convergence`: `single_pass`, `after_first_iteration`, or `always` stops after one iteration and records convergence.
 - `budget_ms`: stops the loop when the cumulative loop duration exceeds the budget.
+- cooperative cancellation: a requested cancellation is observed between loop
+  iterations, never by interrupting the component currently executing.
 
 Future solver-style policies should build on this region model instead of bypassing it.
 
@@ -29,6 +31,8 @@ CompositeLoop metrics use the loop id as `component_id` in `RuntimeMetricSample`
 - `runtime.loop.budget_overrun`
 - `runtime.loop.max_iterations_hit`
 - `runtime.loop.error`
+- `runtime.loop.cancellation_requested`
+- `runtime.loop.cancellation_observed`
 
 Trace events:
 
@@ -36,5 +40,7 @@ Trace events:
 - `loop_iteration`
 - `loop_iteration_end`
 - `loop_error`
+- `loop_cancellation_requested`
+- `loop_cancellation_observed`
 
-These events are sufficient to explain bounded iteration, convergence, budget stop, and internal failure paths without source-level debugging.
+These events are sufficient to explain bounded iteration, convergence, budget stop, cooperative cancellation, and internal failure paths without source-level debugging.

@@ -219,6 +219,30 @@
       "channel_id": "",
       "component_id": "sink",
       "lane": "",
+      "name": "runtime.component.cancellation_requested_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.component.cancellation_observed_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
+      "name": "runtime.component.timeout_budget_exceeded_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "sink",
+      "lane": "",
       "name": "runtime.component.max_in_flight_count",
       "tags": [],
       "value": 1.0
@@ -267,6 +291,30 @@
       "channel_id": "",
       "component_id": "source",
       "lane": "",
+      "name": "runtime.component.cancellation_requested_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.component.cancellation_observed_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
+      "name": "runtime.component.timeout_budget_exceeded_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "source",
+      "lane": "",
       "name": "runtime.component.max_in_flight_count",
       "tags": [],
       "value": 1.0
@@ -308,6 +356,30 @@
       "component_id": "transform",
       "lane": "",
       "name": "runtime.component.budget_overrun_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.component.cancellation_requested_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.component.cancellation_observed_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "transform",
+      "lane": "",
+      "name": "runtime.component.timeout_budget_exceeded_count",
       "tags": [],
       "value": 0.0
     },

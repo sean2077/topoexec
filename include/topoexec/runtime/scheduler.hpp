@@ -67,6 +67,9 @@ struct ComponentExecutionMetrics {
   std::uint64_t last_duration_ns{0};
   std::uint64_t max_duration_ns{0};
   std::size_t budget_overrun_count{0};
+  std::size_t cancellation_requested_count{0};
+  std::size_t cancellation_observed_count{0};
+  std::size_t timeout_budget_exceeded_count{0};
   std::size_t max_in_flight_count{0};
 };
 
@@ -122,6 +125,7 @@ struct SchedulerRunOptions {
   bool run_until_idle{false};
   std::function<void(std::uint64_t)> after_iteration;
   SchedulerStopToken stop_token;
+  CancellationToken cancel_token;
   std::chrono::milliseconds pending_task_cleanup_timeout{1000};
   std::function<void(const SchedulerRunResult&)> progress_callback;
   std::size_t max_recorded_ticked_tasks{0};
@@ -141,6 +145,8 @@ struct SchedulerRunResult {
   std::map<std::string, std::size_t> loop_budget_overrun_count;
   std::map<std::string, std::size_t> loop_max_iteration_hit_count;
   std::map<std::string, std::size_t> loop_error_count;
+  std::map<std::string, std::size_t> loop_cancellation_requested_count;
+  std::map<std::string, std::size_t> loop_cancellation_observed_count;
   std::vector<std::string> ticked_tasks;
 };
 

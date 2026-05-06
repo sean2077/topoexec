@@ -116,7 +116,7 @@ Plan execution is tracked in [docs/goals/backlog.md](docs/goals/backlog.md) and 
 
 ## Known Limitations
 
-- `thread_pool` lanes support bounded runtime-priority admission for ready invocations, but affinity, RT policy, portable worker-name guarantees, advanced starvation aging, and timeout-based preemption remain advisory or not implemented.
+- `thread_pool` lanes support bounded runtime-priority admission and cooperative cancellation/timeout observation for ready invocations, but affinity, RT policy, portable worker-name guarantees, advanced starvation aging, and hard timeout preemption remain advisory or not implemented.
 - Async `policy.max_inflight` admission is implemented for `async` edges; it is an admission limit for deferred completions, not a general async task/future executor.
 - Non-blocking ThreadSanitizer CI is wired for GitHub Actions and passed on current `main`; local `scripts/agent_check.sh` remains the required agent gate.
 - ROS 2, OpenTelemetry, Prometheus, Python, and external Perfetto adapters are deferred.

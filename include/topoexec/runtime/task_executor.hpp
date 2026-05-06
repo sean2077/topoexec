@@ -2,8 +2,10 @@
 
 // API stability: experimental. Deterministic task helper may change before threaded executor v2.
 
+#include "topoexec/runtime/cancellation.hpp"
 #include "topoexec/runtime/payload.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -17,6 +19,7 @@ struct TaskExecutorConfig {
   std::size_t max_inflight{1};
   std::size_t queue_capacity{0};
   std::string overflow{"reject"};
+  std::chrono::milliseconds task_budget{0};
 };
 
 struct TaskExecutorMetrics {
@@ -26,6 +29,9 @@ struct TaskExecutorMetrics {
   std::size_t cancelled_count{0};
   std::size_t rejected_count{0};
   std::size_t failed_count{0};
+  std::size_t cancellation_requested_count{0};
+  std::size_t cancellation_observed_count{0};
+  std::size_t timeout_budget_exceeded_count{0};
   std::size_t max_inflight_count{0};
   std::size_t queue_depth{0};
 };
@@ -51,7 +57,7 @@ public:
   explicit TaskExecutor(TaskExecutorConfig config = {});
 
   TaskSubmissionResult submit(Work work, CompletionCallback completion = {});
-  std::vector<TaskCompletion> run_ready(std::size_t max_tasks = 0);
+  std::vector<TaskCompletion> run_ready(std::size_t max_tasks = 0, CancellationToken cancel_token = {});
   std::size_t cancel_pending();
   TaskExecutorMetrics metrics() const;
 

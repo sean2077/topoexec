@@ -79,6 +79,8 @@ struct RuntimeRunnerResult {
   std::size_t loop_budget_overrun_count{0};
   std::size_t loop_max_iteration_hit_count{0};
   std::size_t loop_error_count{0};
+  std::size_t loop_cancellation_requested_count{0};
+  std::size_t loop_cancellation_observed_count{0};
   SchedulerStopReason scheduler_stop_reason{SchedulerStopReason::kNotStarted};
   std::vector<std::string> ticked_components;
   std::vector<std::string> trace_events;

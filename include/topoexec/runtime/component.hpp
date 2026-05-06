@@ -4,6 +4,7 @@
 
 #include "topoexec/common/logging.hpp"
 #include "topoexec/common/metrics.hpp"
+#include "topoexec/runtime/cancellation.hpp"
 #include "topoexec/runtime/clock.hpp"
 #include "topoexec/runtime/payload.hpp"
 #include "topoexec/runtime/status.hpp"
@@ -140,6 +141,7 @@ struct GraphContext {
   TaskExecutor* task_executor{nullptr};
   RuntimeStateStore* state_store{nullptr};
   ConfigSnapshotStore* config_store{nullptr};
+  CancellationToken cancel_token;
   std::string graph_name;
   std::string component_id;
 
@@ -152,6 +154,7 @@ struct GraphContext {
   RuntimeChannelPublishResult publish_shared(const std::string& port, RuntimePayloadPtr payload,
                                              std::optional<EventTimestamp> event_timestamp = std::nullopt) const;
   TaskSubmissionResult submit_task(const std::string& completion_port, TaskExecutor::Work work) const;
+  bool cancel_requested() const;
 };
 
 using ComponentContext = GraphContext;
@@ -201,6 +204,7 @@ struct Invocation {
   std::chrono::milliseconds budget{0};
   std::string lane;
   std::string priority;
+  CancellationToken cancel_token;
   std::function<bool()> stop_requested;
 
   template <typename T> const T* try_payload_as() const {
@@ -213,6 +217,10 @@ struct Invocation {
       throw std::runtime_error(prefix + "invocation payload is null");
     }
     return topoexec::payload_as<T>(*payload, context.empty() ? "invocation payload" : context);
+  }
+
+  bool cancel_requested() const {
+    return cancel_token.cancel_requested();
   }
 };
 
@@ -236,6 +244,7 @@ struct TickContext {
   std::uint64_t sequence{0};
   std::chrono::steady_clock::time_point scheduled_at;
   std::chrono::steady_clock::time_point started_at;
+  CancellationToken cancel_token;
   std::function<bool()> stop_requested;
 };
 

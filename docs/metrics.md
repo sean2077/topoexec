@@ -55,6 +55,9 @@ Components:
 - `runtime.component.last_duration_ns`: most recent component execution duration in nanoseconds.
 - `runtime.component.max_duration_ns`: maximum component execution duration observed in the run.
 - `runtime.component.budget_overrun_count`: component invocations whose duration exceeded `execution.budget_ms`.
+- `runtime.component.cancellation_requested_count`: component invocations that completed after their cooperative cancellation token was requested.
+- `runtime.component.cancellation_observed_count`: component invocations that called `Invocation::cancel_requested()`, `GraphContext::cancel_requested()`, or legacy `stop_requested()` after cancellation was requested.
+- `runtime.component.timeout_budget_exceeded_count`: component invocations whose cooperative timeout budget was exceeded. This is reported after the invocation returns; it is not hard preemption.
 - `runtime.component.max_in_flight_count`: maximum concurrent in-flight invocations observed for the component. It is `1` or less for non-reentrant components on the current event-loop runtime.
 
 Triggers:
@@ -107,6 +110,8 @@ Composite loops:
 - `runtime.loop.budget_overrun`: budget stops for a CompositeLoop region. `component_id` carries the loop id.
 - `runtime.loop.max_iterations_hit`: max-iteration stops for a CompositeLoop region. `component_id` carries the loop id.
 - `runtime.loop.error`: internal CompositeLoop component failures. `component_id` carries the loop id.
+- `runtime.loop.cancellation_requested`: cancellation requests observed by a CompositeLoop between iterations. `component_id` carries the loop id.
+- `runtime.loop.cancellation_observed`: CompositeLoop cancellation stops performed between iterations. `component_id` carries the loop id.
 
 State/config snapshots:
 
@@ -148,6 +153,8 @@ The top-level JSON result also carries aggregate counters for common dashboards:
 - `loop_converged_count`
 - `loop_budget_overrun_count`
 - `loop_max_iteration_hit_count`
+- `loop_cancellation_requested_count`
+- `loop_cancellation_observed_count`
 
 These fields summarize the sample array for quick CLI and test assertions; the sample array remains the extensible product surface.
 

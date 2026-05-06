@@ -169,6 +169,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   StructuredLogger logger(graph.name);
   logger.attach_sink(&logs);
   auto lanes = lane_configs(graph);
+  const auto runtime_cancel_token =
+      CancellationToken::from_callback([token = options.stop_token]() { return token.stop_requested(); });
 
   struct Instance {
     std::string id;
@@ -190,6 +192,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       instance.context.publisher = &publications;
       instance.context.state_store = &state_store;
       instance.context.config_store = &config_store;
+      instance.context.cancel_token = runtime_cancel_token;
       instance.context.graph_name = graph.name;
       instance.context.component_id = spec.id;
       const auto configure = instance.component->configure_status(instance.context, spec.config);
@@ -249,6 +252,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     run_options.run_duration_ms = options.run_duration_ms;
     run_options.run_until_idle = options.run_until_idle;
     run_options.stop_token = options.stop_token;
+    run_options.cancel_token = runtime_cancel_token;
     run_options.pending_task_cleanup_timeout = options.pending_task_cleanup_timeout;
     run_options.max_recorded_ticked_tasks =
         graph.components.size() * std::max<std::size_t>(1u, options.tick_iterations);
@@ -314,6 +318,12 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                             component_id);
       append_runtime_metric(result, "runtime.component.budget_overrun_count",
                             static_cast<double>(metrics.budget_overrun_count), component_id);
+      append_runtime_metric(result, "runtime.component.cancellation_requested_count",
+                            static_cast<double>(metrics.cancellation_requested_count), component_id);
+      append_runtime_metric(result, "runtime.component.cancellation_observed_count",
+                            static_cast<double>(metrics.cancellation_observed_count), component_id);
+      append_runtime_metric(result, "runtime.component.timeout_budget_exceeded_count",
+                            static_cast<double>(metrics.timeout_budget_exceeded_count), component_id);
       append_runtime_metric(result, "runtime.component.max_in_flight_count",
                             static_cast<double>(metrics.max_in_flight_count), component_id);
     }
@@ -350,6 +360,14 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     for (const auto& [loop_id, count] : run_result.loop_error_count) {
       result.loop_error_count += count;
       append_runtime_metric(result, "runtime.loop.error", static_cast<double>(count), loop_id);
+    }
+    for (const auto& [loop_id, count] : run_result.loop_cancellation_requested_count) {
+      result.loop_cancellation_requested_count += count;
+      append_runtime_metric(result, "runtime.loop.cancellation_requested", static_cast<double>(count), loop_id);
+    }
+    for (const auto& [loop_id, count] : run_result.loop_cancellation_observed_count) {
+      result.loop_cancellation_observed_count += count;
+      append_runtime_metric(result, "runtime.loop.cancellation_observed", static_cast<double>(count), loop_id);
     }
     for (auto it = instances.rbegin(); it != instances.rend(); ++it) {
       if (!it->started) {

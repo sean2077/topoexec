@@ -8,10 +8,10 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-1. G33 Cooperative Cancellation and Timeout Semantics
-2. G34 TaskExecutor v2: Threaded Executor Preview
-3. G35 Trigger Engine v2: Watermark and Condition Triggers
-4. G36 Correlation, Causality, and Invocation Metadata
+1. G34 TaskExecutor v2: Threaded Executor Preview
+2. G35 Trigger Engine v2: Watermark and Condition Triggers
+3. G36 Correlation, Causality, and Invocation Metadata
+4. G37 Channel v2: Explicit Backpressure Events
 
 After those, continue by the phase ordering in `docs/plans/plan2.md`, always finishing the earliest unfinished P0/P1 goal before opening lower-priority adapter/ecosystem work.
 

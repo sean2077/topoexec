@@ -21,9 +21,9 @@ epoch
 
 | Lane type | Runtime behavior | Enforced today | Not enforced today |
 | --- | --- | --- | --- |
-| `event_loop` | Deterministic in-process execution in compiled region order. | Region order, runtime `execution.priority` ordering for independent ready regions, trigger readiness, edge commit boundaries, stop-token checks before iterations. | Wall-clock rate, OS priority/affinity/RT policy. |
-| `fixed_rate` | Deterministic simulated ticks by default, with opt-in wall-clock cadence v1. | Bounded tick count, runtime `execution.priority` ordering for independent ready regions, component budget metric checks, simulated overrun count, opt-in `wall_clock_enabled` sleeps between ticks, `overrun_policy`, tick/skipped/max-lateness metrics, and trace events. | Independent per-lane threads, hard real-time cadence, and OS jitter control. |
-| `thread_pool` | Persistent worker-pool execution for ready invocations. | `max_threads` persistent lane workers, bounded priority queue admission, optional `queue_capacity`, overflow admission with low-priority rejection metrics, non-reentrant serialization, reentrant overlap within the lane bound, worker-id trace attributes, region barrier before downstream work. | OS priority/affinity/RT policy, hard thread-name guarantee, timeout preemption, advanced starvation aging. |
+| `event_loop` | Deterministic in-process execution in compiled region order. | Region order, runtime `execution.priority` ordering for independent ready regions, cooperative cancellation/timeout-budget observation, trigger readiness, edge commit boundaries, stop-token checks before iterations. | Wall-clock rate, OS priority/affinity/RT policy, hard timeout preemption. |
+| `fixed_rate` | Deterministic simulated ticks by default, with opt-in wall-clock cadence v1. | Bounded tick count, runtime `execution.priority` ordering for independent ready regions, cooperative cancellation/timeout-budget observation, component budget metric checks, simulated overrun count, opt-in `wall_clock_enabled` sleeps between ticks, `overrun_policy`, tick/skipped/max-lateness metrics, and trace events. | Independent per-lane threads, hard real-time cadence, hard timeout preemption, and OS jitter control. |
+| `thread_pool` | Persistent worker-pool execution for ready invocations. | `max_threads` persistent lane workers, bounded priority queue admission, optional `queue_capacity`, overflow admission with low-priority rejection metrics, cooperative cancellation/timeout-budget observation, non-reentrant serialization, reentrant overlap within the lane bound, worker-id trace attributes, region barrier before downstream work. | OS priority/affinity/RT policy, hard thread-name guarantee, hard timeout preemption, advanced starvation aging. |
 | future `isolated_thread` | Dedicated thread per lane or component. | Not supported by schema v1/runtime. | All behavior future. |
 | future `manual_step` | Host application manually advances a lane. | Not supported by schema v1/runtime. | All behavior future. |
 
@@ -143,9 +143,12 @@ Test coverage:
 For `thread_pool`, a stop request prevents new scheduler iterations and prevents
 new worker submissions at the next scheduler stop check. Already-admitted worker
 queue items drain cooperatively, then the persistent pool wakes idle workers,
-stops, and joins during runtime cleanup. Component code should check
-`Invocation::stop_requested` for long-running work. Timeout-based preemption is
-not implemented.
+stops, and joins during runtime cleanup. Component code should prefer
+`Invocation::cancel_requested()` or `GraphContext::cancel_requested()` for
+long-running work; legacy `Invocation::stop_requested` observes the same token.
+`execution.budget_ms`, CompositeLoop `budget_ms`, and `TaskExecutorConfig::task_budget`
+are reported after cooperative checkpoints or after work returns. Timeout-based
+preemption is not implemented.
 
 Component errors stop the runtime with `SchedulerStopReason::kError`; already-started components still receive reverse-order deactivate cleanup.
 
@@ -184,12 +187,17 @@ Trace events around scheduler and component execution include:
 - `component_execute_begin`
 - `component_execute`
 - `component_execute_end`
+- `component_cancellation_requested`
+- `component_cancellation_observed`
+- `component_timeout_budget_exceeded`
 - `thread_pool_batch`
 - `fixed_rate_tick_begin`
 - `fixed_rate_tick`
 - `fixed_rate_tick_end`
 - `fixed_rate_overrun`
 - `fixed_rate_skipped_tick`
+- `loop_cancellation_requested`
+- `loop_cancellation_observed`
 
 `component_execute*` events/spans on a `thread_pool` lane include `worker_id`.
 `thread_pool_batch` spans include `worker_ids` for the workers that executed the
@@ -227,7 +235,7 @@ prevent schema fields from looking implemented merely because they parse.
 
 - Independent fixed-rate lane threads and OS jitter controls.
 - Aging-based starvation intervention beyond the current bounded priority ordering.
-- Timeout preemption or explicit cancellation policy.
+- Hard timeout preemption.
 - Platform-specific priority, affinity, and RT helpers.
 
 GitHub Actions has a non-blocking ThreadSanitizer job; keep it green before wider beta concurrency claims.

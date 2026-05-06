@@ -39,7 +39,7 @@ Runtime behavior:
 - `execution.reentrant: true` permits overlap up to the lane worker bound.
 - Ready invocations admitted to the lane are queued by runtime priority (`high`, `normal`, `low`, `background`), then enqueue order, then component id.
 - Immediate publications are committed at the worker/component barrier, not recursively from `GraphContext::publish()`.
-- Stop requests prevent new scheduler iterations/submissions and wait for already-admitted invocations to drain cooperatively before workers stop and join.
+- Stop/cancel requests prevent new scheduler iterations/submissions and wait for already-admitted invocations to drain cooperatively before workers stop and join. Components can observe requests with `Invocation::cancel_requested()` or `GraphContext::cancel_requested()`.
 - `thread_name` is best-effort for persistent worker threads on supported platforms and remains advisory as a portable guarantee.
 
 Advisory lane fields such as lane priority, CPU affinity, RT policy, thread-name portability guarantees, and isolation intent are parsed but not fully enforced by the current runtime. Unsupported policy should be documented as advisory rather than silently claimed.
@@ -95,5 +95,5 @@ Async admission metrics use the `runtime.async.*` namespace; channel metrics rep
 - OS priority, affinity, and hard real-time policy enforcement.
 - Independent fixed-rate lane threads and OS jitter control.
 - Advanced starvation aging or OS-backed priority enforcement beyond runtime priority ordering.
-- Timeout preemption for long-running component code.
+- Hard timeout preemption for long-running component code.
 - Blocking overflow behavior on the default non-blocking runtime path.
