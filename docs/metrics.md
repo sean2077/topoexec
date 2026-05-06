@@ -31,7 +31,7 @@ Scheduler:
 - `runtime.scheduler.tick_overrun_count`: lane tick overruns observed by the scheduler.
 - `runtime.scheduler.queue_depth`: maximum queued scheduler tasks observed for a lane. This is `0` for the single-thread event loop.
 - `runtime.scheduler.queue_capacity`: configured/effective pending queue capacity for the lane.
-- `runtime.scheduler.worker_count`: configured/effective active worker width for the lane.
+- `runtime.scheduler.worker_count`: configured/effective worker count for the lane; for `thread_pool`, this is the persistent worker count.
 - `runtime.scheduler.last_callback_duration_ms`: latest scheduler iteration duration observed for the lane.
 - `runtime.scheduler.tick_jitter_ms`: positive simulated overrun amount above the fixed-rate period or tick budget.
 - `runtime.scheduler.active_count`: maximum active workers observed for a lane. This is `0` for the single-thread event loop.

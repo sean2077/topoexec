@@ -15,7 +15,7 @@ epoch
   -> end epoch
 ```
 
-`thread_pool` can overlap invocations inside a component step, but downstream compiled regions wait until that worker batch has drained and immediate publications have been committed.
+`thread_pool` can overlap invocations inside a component step, but downstream compiled regions wait until the admitted worker work has drained and immediate publications have been committed.
 
 ## Lane Types
 
@@ -23,7 +23,7 @@ epoch
 | --- | --- | --- | --- |
 | `event_loop` | Deterministic in-process execution in compiled region order. | Region order, trigger readiness, edge commit boundaries, stop-token checks before iterations. | Wall-clock rate, OS priority/affinity/RT policy. |
 | `fixed_rate` | Accepted by schema and executed through bounded simulated ticks. | Bounded tick count, component budget metric checks, simulated overrun count, last callback duration, and positive jitter when iteration duration exceeds `hz`, `period_ms`, or `tick_budget_ms`. | Real wall-clock sleep cadence and OS jitter control. |
-| `thread_pool` | Bounded worker-batch execution for ready invocations. | `max_threads` active batch width, optional `queue_capacity`, overflow admission, non-reentrant serialization, reentrant overlap within the lane bound, region barrier before downstream work. | Persistent worker lifecycle, OS priority/affinity/RT policy, worker naming, timeout preemption. |
+| `thread_pool` | Persistent worker-pool execution for ready invocations. | `max_threads` persistent lane workers, bounded FIFO queue admission, optional `queue_capacity`, overflow admission, non-reentrant serialization, reentrant overlap within the lane bound, worker-id trace attributes, region barrier before downstream work. | Priority queue/admission ordering, OS priority/affinity/RT policy, hard thread-name guarantee, timeout preemption. |
 | future `isolated_thread` | Dedicated thread per lane or component. | Not supported by schema v1/runtime. | All behavior future. |
 | future `manual_step` | Host application manually advances a lane. | Not supported by schema v1/runtime. | All behavior future. |
 
@@ -31,9 +31,12 @@ epoch
 tooling can see what each lane type actually implements, which fields are
 advisory, and which capabilities remain future extensions.
 
-## Thread Pool MVP
+## Persistent Thread Pool v1
 
-`thread_pool` is a bounded MVP, not a persistent production worker pool yet.
+`thread_pool` owns a run-scoped persistent worker pool. Workers start when the
+runtime run starts, wait on a bounded FIFO queue, and stop/join during runtime
+cleanup after admitted work drains. The lane is still an in-process alpha
+concurrency surface, not a hard real-time scheduler.
 
 ```yaml
 lanes:
@@ -44,19 +47,23 @@ lanes:
 
 Runtime rules:
 
-- `max_threads` is the maximum active worker batch width; `0` or an omitted value means one worker.
-- `queue_capacity` bounds ready invocations waiting behind the active batch when positive; `0` preserves the current ready set without creating a persistent runtime queue.
+- `max_threads` is the persistent worker count and maximum active worker width; `0` or an omitted value means one worker.
+- `queue_capacity` bounds ready invocations waiting behind active workers when positive; `0` preserves only the active worker width.
 - `overflow` controls over-capacity ready invocations: `drop_oldest`/`overwrite` keep the newest admitted work, `drop_newest`/`reject`/`reject_new`/`block` keep the oldest admitted work in the non-blocking runtime, and `fail_fast` stops the run with an error.
 - `execution.reentrant: false` permits at most one in-flight invocation for that component.
 - `execution.reentrant: true` permits overlap up to the lane `max_threads` bound.
-- The current implementation launches bounded batches and waits for them. It does not keep named persistent worker threads alive between batches.
-- Downstream regions do not run until the current worker batch has drained and immediate publications have been committed.
+- Lane admission is FIFO for admitted ready invocations; priority queues are future work.
+- `thread_name` is applied as a best-effort worker thread name on supported platforms and remains advisory as a portable contract.
+- Downstream regions do not run until the current admitted worker work has drained and immediate publications have been committed.
 
 Test coverage:
 
 - `Runtime.ThreadPoolLaneExecutesReentrantInvocationsConcurrently` proves overlap and the `max_threads` upper bound.
+- `Runtime.ThreadPoolWorkersPersistAcrossMultipleRuntimeSteps` proves workers remain bounded and reused across runtime steps.
 - `Runtime.ThreadPoolLaneSerializesNonReentrantInvocations` proves non-reentrant no-overlap.
+- `Runtime.ThreadPoolStopWhileQueueNonEmptyDrainsAdmittedWork` proves stop requests do not deadlock with queued admitted work.
 - `Runtime.ThreadPoolLaneQueueCapacityRejectsNewestWhenFull` and `Runtime.ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured` prove explicit lane admission behavior and rejected-count metrics.
+- `Runtime.ThreadPoolExecuteStatusFailureKeepsStructuredRuntimeError` proves current fail-fast execute errors remain structured on worker lanes.
 - `Runtime.PublishStagesWithoutRecursiveDownstreamExecute` protects the no-recursive-publish boundary that worker lanes must preserve.
 
 ## Stop, Drain, And Cleanup
@@ -67,7 +74,12 @@ Test coverage:
 - already-started components are deactivated in reverse startup order;
 - `RuntimeRunnerResult::scheduler_stop_reason` is `stop_requested`.
 
-For `thread_pool`, a stop request also prevents new worker batches from being launched. Already-started invocations are drained cooperatively; component code should check `Invocation::stop_requested` for long-running work. Timeout-based preemption is not implemented.
+For `thread_pool`, a stop request prevents new scheduler iterations and prevents
+new worker submissions at the next scheduler stop check. Already-admitted worker
+queue items drain cooperatively, then the persistent pool wakes idle workers,
+stops, and joins during runtime cleanup. Component code should check
+`Invocation::stop_requested` for long-running work. Timeout-based preemption is
+not implemented.
 
 Component errors stop the runtime with `SchedulerStopReason::kError`; already-started components still receive reverse-order deactivate cleanup.
 
@@ -86,7 +98,7 @@ Scheduler metrics are emitted through `RuntimeRunnerResult::runtime_metrics`:
 - `runtime.scheduler.in_flight_count`
 - `runtime.scheduler.rejected_count`
 
-For `event_loop` and simulated `fixed_rate`, worker/queue metrics remain zero unless a future implementation adds real queues. For `thread_pool`, `worker_count`, `queue_capacity`, `active_count`, and `in_flight_count` describe the maximum bounded batch observed during the run.
+For `event_loop` and simulated `fixed_rate`, worker/queue metrics remain zero unless a future implementation adds real queues. For `thread_pool`, `worker_count`, `queue_capacity`, `queue_depth`, `active_count`, `in_flight_count`, `completed_count`, and `rejected_count` describe the maximum admitted persistent-pool work observed during the run.
 
 Trace events around scheduler and component execution include:
 
@@ -98,14 +110,16 @@ Trace events around scheduler and component execution include:
 - `component_execute_end`
 - `thread_pool_batch`
 
-The trace surface can show component execution spans and lane names, but current trace output does not yet expose persistent worker ids because persistent workers are not implemented.
+`component_execute*` events/spans on a `thread_pool` lane include `worker_id`.
+`thread_pool_batch` spans include `worker_ids` for the workers that executed the
+admitted work.
 
 ## Advisory Policy Fields
 
 The following schema fields are parsed and preserved but advisory in the current runtime:
 
 - lane `priority`;
-- lane `thread_name`;
+- lane `thread_name` as a portable guarantee; it is only best-effort for `thread_pool` workers on supported platforms;
 - lane `cpu_affinity`;
 - lane `nice_priority`;
 - lane `rt_policy`;
@@ -113,14 +127,16 @@ The following schema fields are parsed and preserved but advisory in the current
 - lane `isolation_intent`;
 - execution `priority`.
 
-The runtime must not claim OS priority, CPU affinity, hard real-time scheduling, or named persistent workers until platform-specific enforcement and tests exist.
+The runtime must not claim OS priority, CPU affinity, hard real-time scheduling, or a portable hard worker-name guarantee until platform-specific enforcement and tests exist.
 
 When advisory fields are set to non-default values, validation still succeeds
 but emits machine-readable diagnostics:
 
-- `advisory_lane_field_ignored` for lane `priority`, `thread_name`,
-  `cpu_affinity`, `nice_priority`, `rt_policy`, `rt_priority`,
-  `isolation_intent`, and `wall_clock_enabled` where applicable.
+- `advisory_lane_field_ignored` for lane `priority`, `cpu_affinity`,
+  `nice_priority`, `rt_policy`, `rt_priority`, `isolation_intent`, and
+  `wall_clock_enabled` where applicable; `thread_name` also uses this diagnostic
+  when it cannot be applied to persistent worker threads on the current runtime
+  surface.
 - `advisory_execution_field_ignored` for component `execution.priority`.
 
 These diagnostics are warnings/advisories, not validation failures. They exist to
@@ -128,9 +144,8 @@ prevent schema fields from looking implemented merely because they parse.
 
 ## Remaining Work
 
-- Persistent worker-pool lifecycle.
 - Wall-clock fixed-rate sleep cadence and OS jitter controls.
-- Queue rejection policy for a persistent worker queue.
+- Priority queue/admission ordering for worker queues.
 - Timeout preemption or explicit cancellation policy.
 - Platform-specific priority, affinity, and RT helpers.
 

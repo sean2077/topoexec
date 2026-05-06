@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B has started with G29 complete.
-The next unfinished P1 goal is G30 Persistent Worker Pool v1.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B has started with G29 and G30 complete.
+The next unfinished P1 goal is G31 Fixed-Rate Lane v1.
 
 ## Active / Recent Goals
 
@@ -24,10 +24,11 @@ The next unfinished P1 goal is G30 Persistent Worker Pool v1.
 | G28 | complete | `docs/semantic-contract.md`, `docs/versioning.md`, `docs/runtime-semantics.md`, `docs/schema-v1.md`, `docs/cli.md`, `include/topoexec/runtime/graph.hpp`, `tools/topoexec/main.cpp`, `schema/topoexec.schema.v1.json`, `tests/golden/doctor.json`, `tests/golden/schema_dump.json`, and `tests/schema/check_schema_contract.py`. | Runtime semantic contract version `0.2` is documented and exposed through doctor/schema dump without adding a new CLI command or changing graph behavior. |
 | G66 | complete | `tests/policy/check_no_adapter_deps.py`, `CMakeLists.txt`, `scripts/goal_check.sh`, `docs/architecture-guardrails.md`, `docs/goals/backlog.md`, `docs/goals/status.md`, and `CHANGELOG.md`. | Architecture policy now audits installed-header markers, common/runtime/YAML/CLI boundaries, private include leaks, adapter tokens, CMake target links, CLI semantic-bypass includes, and planted fake dependency violations. |
 | G29 | complete | `docs/scheduler.md`, `docs/concurrency.md`, `docs/diagnostics.md`, `src/graph.cpp`, `src/graph_io.cpp`, `src/diagnostics.cpp`, `tests/test_graph.cpp`, `tests/golden/plan_composite_loop.json`, `docs/goals/backlog.md`, `docs/goals/status.md`, and `CHANGELOG.md`. | Scheduler plan JSON now exposes lane capability summaries; validation emits advisory diagnostics for parsed-but-not-enforced lane/execution fields without failing valid graphs. |
+| G30 | complete | `src/event_runtime.cpp`, `src/graph.cpp`, `src/graph_io.cpp`, `tests/test_runtime.cpp`, `tests/test_graph.cpp`, `docs/scheduler.md`, `docs/concurrency.md`, `docs/schema-v1.md`, `docs/semantic-contract.md`, `docs/trace-events.md`, release docs, goal ledgers, and `CHANGELOG.md`. | `thread_pool` now uses run-scoped persistent worker pools with bounded FIFO admission, stop/drain behavior, worker-id trace attributes, updated lane capability summaries, and focused runtime/graph coverage. |
 
 ## Validation Evidence
 
-Fresh G26 checks in this working tree:
+Fresh checks in this working tree:
 
 ```bash
 ./scripts/goal_check.sh quick
@@ -89,6 +90,18 @@ ctest --test-dir build --output-on-failure -R test_graph
 
 cmake --build build --target topoexec_format_check
 # G29 passed
+
+ctest --test-dir build --output-on-failure -R 'test_runtime|test_graph|cli_golden_outputs'
+# G30 passed: persistent worker-pool runtime coverage, capability summary unit coverage, and CLI golden drift check
+
+./scripts/goal_check.sh quick
+# G30 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+./scripts/agent_check.sh
+# G30 passed: 51/51 CTest tests after persistent worker-pool updates
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G30 passed: 51/51 CTest tests in the ASAN+UBSAN Debug build
 
 grep -RInE '#include .*(yaml|rclcpp|opentelemetry|prometheus|Python|perfetto|tools/topoexec|src/)' include || true
 # G27 passed: no YAML/CLI/adapter/private includes in installed headers

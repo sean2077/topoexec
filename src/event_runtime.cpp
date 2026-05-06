@@ -6,12 +6,24 @@
 
 #include <algorithm>
 #include <chrono>
+#include <condition_variable>
 #include <cstddef>
+#include <deque>
 #include <exception>
+#include <functional>
 #include <future>
 #include <map>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <sstream>
 #include <thread>
 #include <utility>
+#include <vector>
+
+#ifdef __linux__
+#include <pthread.h>
+#endif
 
 namespace topoexec {
 namespace {
@@ -78,6 +90,127 @@ struct ComponentInvocationOutcome {
   std::chrono::steady_clock::time_point finished_at;
 };
 
+struct WorkerInvocationOutcome {
+  ComponentInvocationOutcome outcome;
+  std::size_t worker_id{0};
+};
+
+std::string bounded_thread_name(std::string base, std::size_t worker_id) {
+  if (base.empty()) {
+    base = "topoexec";
+  }
+  auto name = base + "-" + std::to_string(worker_id);
+  if (name.size() > 15u) {
+    name.resize(15u);
+  }
+  return name;
+}
+
+void set_current_thread_name(const std::string& name) {
+#ifdef __linux__
+  (void)pthread_setname_np(pthread_self(), name.c_str());
+#else
+  (void)name;
+#endif
+}
+
+class PersistentWorkerPool {
+public:
+  using Work = std::function<ComponentInvocationOutcome(std::size_t worker_id)>;
+
+  PersistentWorkerPool(std::string lane_id, std::string thread_name, std::size_t worker_count)
+      : lane_id_(std::move(lane_id)), thread_name_(std::move(thread_name)),
+        worker_count_(std::max<std::size_t>(worker_count, 1u)) {
+    workers_.reserve(worker_count_);
+    for (std::size_t worker_id = 0; worker_id < worker_count_; ++worker_id) {
+      workers_.emplace_back([this, worker_id]() { this->worker_loop(worker_id); });
+    }
+  }
+
+  ~PersistentWorkerPool() {
+    stop_and_join();
+  }
+
+  PersistentWorkerPool(const PersistentWorkerPool&) = delete;
+  PersistentWorkerPool& operator=(const PersistentWorkerPool&) = delete;
+
+  std::future<WorkerInvocationOutcome> submit(Work work) {
+    WorkItem item;
+    item.work = std::move(work);
+    auto future = item.promise.get_future();
+    {
+      std::lock_guard lock(mutex_);
+      queue_.push_back(std::move(item));
+    }
+    cv_.notify_one();
+    return future;
+  }
+
+  void stop_and_join() {
+    {
+      std::lock_guard lock(mutex_);
+      stop_requested_ = true;
+    }
+    cv_.notify_all();
+    for (auto& worker : workers_) {
+      if (worker.joinable()) {
+        worker.join();
+      }
+    }
+  }
+
+  std::size_t worker_count() const {
+    return worker_count_;
+  }
+
+private:
+  struct WorkItem {
+    Work work;
+    std::promise<WorkerInvocationOutcome> promise;
+  };
+
+  void worker_loop(std::size_t worker_id) {
+    set_current_thread_name(bounded_thread_name(thread_name_.empty() ? lane_id_ : thread_name_, worker_id));
+    while (true) {
+      WorkItem item;
+      {
+        std::unique_lock lock(mutex_);
+        cv_.wait(lock, [&]() { return stop_requested_ || !queue_.empty(); });
+        if (stop_requested_ && queue_.empty()) {
+          return;
+        }
+        item = std::move(queue_.front());
+        queue_.pop_front();
+      }
+      try {
+        item.promise.set_value(WorkerInvocationOutcome{item.work(worker_id), worker_id});
+      } catch (...) {
+        item.promise.set_exception(std::current_exception());
+      }
+    }
+  }
+
+  std::string lane_id_;
+  std::string thread_name_;
+  std::size_t worker_count_{1};
+  std::vector<std::thread> workers_;
+  std::deque<WorkItem> queue_;
+  std::mutex mutex_;
+  std::condition_variable cv_;
+  bool stop_requested_{false};
+};
+
+std::string join_worker_ids(const std::vector<WorkerInvocationOutcome>& outcomes) {
+  std::ostringstream out;
+  for (std::size_t index = 0; index < outcomes.size(); ++index) {
+    if (index > 0u) {
+      out << ",";
+    }
+    out << outcomes[index].worker_id;
+  }
+  return out.str();
+}
+
 constexpr std::size_t kDefaultRunUntilIdleIterationBound = 1000u;
 
 } // namespace
@@ -119,6 +252,13 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
   TriggerPolicyEngine trigger(channels_);
   const auto started_at = std::chrono::steady_clock::now();
   const auto lanes = lane_map(components_);
+  std::map<std::string, std::unique_ptr<PersistentWorkerPool>> worker_pools;
+  for (const auto& [lane_id, lane] : lanes) {
+    if (lane.type == "thread_pool") {
+      worker_pools.emplace(
+          lane_id, std::make_unique<PersistentWorkerPool>(lane_id, lane.thread_name, worker_count_for_lane(lane)));
+    }
+  }
   const std::size_t iterations = options.tick_iterations == 0u
                                      ? (options.run_until_idle ? kDefaultRunUntilIdleIterationBound : 1u)
                                      : options.tick_iterations;
@@ -198,22 +338,29 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
             trigger_metrics.coalesced_count += invocations.size();
           }
         }
-        auto run_invocation = [&](const Invocation& invocation) {
+        auto invocation_trace_attributes = [&](std::optional<std::size_t> worker_id) {
+          std::map<std::string, std::string> attributes{{"component_id", found->id}, {"lane", found->lane.id}};
+          if (worker_id.has_value()) {
+            attributes["worker_id"] = std::to_string(*worker_id);
+          }
+          return attributes;
+        };
+
+        auto run_invocation = [&](const Invocation& invocation, std::optional<std::size_t> worker_id = std::nullopt) {
           ComponentInvocationOutcome outcome;
           outcome.started_at = std::chrono::steady_clock::now();
-          record_trace_event(trace_, "component_execute_begin",
-                             {{"component_id", found->id}, {"lane", found->lane.id}});
+          record_trace_event(trace_, "component_execute_begin", invocation_trace_attributes(worker_id));
           try {
             outcome.status = found->component->execute_status(invocation, *found->context);
           } catch (const std::exception& error) {
             outcome.status = Status::error(error.what());
           }
           outcome.finished_at = std::chrono::steady_clock::now();
+          auto span_attributes = invocation_trace_attributes(worker_id);
+          span_attributes["trigger"] = std::to_string(static_cast<int>(invocation.trigger));
           record_trace_span(trace_, "component_execute", outcome.started_at, outcome.finished_at,
-                            {{"component_id", found->id},
-                             {"lane", found->lane.id},
-                             {"trigger", std::to_string(static_cast<int>(invocation.trigger))}});
-          record_trace_event(trace_, "component_execute_end", {{"component_id", found->id}, {"lane", found->lane.id}});
+                            std::move(span_attributes));
+          record_trace_event(trace_, "component_execute_end", invocation_trace_attributes(worker_id));
           return outcome;
         };
 
@@ -280,14 +427,22 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           return execute_sequential();
         }
 
-        const auto worker_count = worker_count_for_lane(found->lane);
+        auto pool_found = worker_pools.find(found->lane.id);
+        if (pool_found == worker_pools.end() || pool_found->second == nullptr) {
+          result.ok = false;
+          result.stop_reason = SchedulerStopReason::kError;
+          result.errors.push_back("thread_pool lane " + found->lane.id + " has no worker pool");
+          return false;
+        }
+        auto& pool = *pool_found->second;
+        const auto worker_count = pool.worker_count();
         auto& lane_metrics = result.group_metrics[found->lane.id];
         lane_metrics.worker_count = std::max(lane_metrics.worker_count, worker_count);
 
-        const auto batch_limit = found->spec.execution.reentrant ? worker_count : 1u;
-        const auto queue_capacity = queue_capacity_for_lane(found->lane, invocations.size(), batch_limit);
+        const auto active_capacity = found->spec.execution.reentrant ? worker_count : 1u;
+        const auto queue_capacity = queue_capacity_for_lane(found->lane, invocations.size(), active_capacity);
         lane_metrics.queue_capacity = std::max(lane_metrics.queue_capacity, queue_capacity);
-        const auto admission_capacity = batch_limit + queue_capacity;
+        const auto admission_capacity = active_capacity + queue_capacity;
         if (invocations.size() > admission_capacity) {
           const auto overflow_count = invocations.size() - admission_capacity;
           lane_metrics.enqueue_rejected_count += overflow_count;
@@ -304,40 +459,37 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           }
         }
 
-        for (std::size_t offset = 0; offset < invocations.size(); offset += batch_limit) {
+        auto execute_worker_invocations = [&](std::size_t offset, std::size_t count, bool commit_each) {
           if (options.stop_token.stop_requested()) {
             result.stop_reason = SchedulerStopReason::kStopRequested;
             return false;
           }
-          const auto batch_size = std::min(batch_limit, invocations.size() - offset);
-          lane_metrics.queue_depth =
-              std::max(lane_metrics.queue_depth,
-                       invocations.size() - offset > batch_size ? invocations.size() - offset - batch_size : 0u);
-          lane_metrics.active_count = std::max(lane_metrics.active_count, batch_size);
-          lane_metrics.in_flight_count = std::max(lane_metrics.in_flight_count, batch_size);
+          const auto active_count = std::min(active_capacity, count);
+          const auto queued_count = count > active_count ? count - active_count : 0u;
+          lane_metrics.queue_depth = std::max(lane_metrics.queue_depth, queued_count);
+          lane_metrics.active_count = std::max(lane_metrics.active_count, active_count);
+          lane_metrics.in_flight_count = std::max(lane_metrics.in_flight_count, count);
           auto& component_metrics = result.component_metrics[found->id];
-          component_in_flight[found->id] += batch_size;
-          component_metrics.max_in_flight_count =
-              std::max(component_metrics.max_in_flight_count, component_in_flight[found->id]);
+          component_metrics.max_in_flight_count = std::max(component_metrics.max_in_flight_count, active_count);
           const auto batch_started_at = std::chrono::steady_clock::now();
 
-          std::vector<std::future<ComponentInvocationOutcome>> futures;
-          futures.reserve(batch_size);
-          for (std::size_t index = 0; index < batch_size; ++index) {
+          std::vector<std::future<WorkerInvocationOutcome>> futures;
+          futures.reserve(count);
+          for (std::size_t index = 0; index < count; ++index) {
             const auto invocation = invocations[offset + index];
-            futures.push_back(std::async(std::launch::async, [&, invocation]() { return run_invocation(invocation); }));
+            futures.push_back(
+                pool.submit([&, invocation](std::size_t worker_id) { return run_invocation(invocation, worker_id); }));
           }
 
+          std::vector<WorkerInvocationOutcome> outcomes;
+          outcomes.reserve(futures.size());
           for (std::size_t index = 0; index < futures.size(); ++index) {
-            const auto outcome = futures[index].get();
-            if (component_in_flight[found->id] > 0u) {
-              --component_in_flight[found->id];
-            }
-            if (!record_invocation_outcome(invocations[offset + index], outcome, false)) {
+            outcomes.push_back(futures[index].get());
+            if (!record_invocation_outcome(invocations[offset + index], outcomes.back().outcome, commit_each)) {
               return false;
             }
           }
-          if (publications_ != nullptr) {
+          if (!commit_each && publications_ != nullptr) {
             const auto commit = publications_->commit_immediate();
             if (!commit.accepted) {
               result.ok = false;
@@ -351,9 +503,24 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           record_trace_span(trace_, "thread_pool_batch", batch_started_at, batch_finished_at,
                             {{"component_id", found->id},
                              {"lane", found->lane.id},
-                             {"batch_size", std::to_string(batch_size)},
+                             {"batch_size", std::to_string(count)},
                              {"worker_count", std::to_string(worker_count)},
-                             {"queue_capacity", std::to_string(queue_capacity)}});
+                             {"queue_capacity", std::to_string(queue_capacity)},
+                             {"worker_ids", join_worker_ids(outcomes)}});
+          return true;
+        };
+
+        if (!found->spec.execution.reentrant) {
+          for (std::size_t offset = 0; offset < invocations.size(); ++offset) {
+            if (!execute_worker_invocations(offset, 1u, true)) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+        if (!execute_worker_invocations(0u, invocations.size(), false)) {
+          return false;
         }
       } catch (const std::exception& error) {
         if (component_in_flight[found->id] > 0u) {

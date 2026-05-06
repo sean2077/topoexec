@@ -22,7 +22,7 @@ No. `GraphContext::publish()` stages output. The runtime commits staged publicat
 
 ## Is `thread_pool` real?
 
-Yes, as a bounded MVP. `RuntimeRunner` runs ready invocations on worker threads up to the lane `max_threads` value, then waits at the component/region barrier before downstream regions run. `execution.reentrant: false` still serializes a component's invocations.
+Yes, as a bounded persistent worker-pool v1. `RuntimeRunner` starts run-scoped lane workers up to the lane `max_threads` value, admits ready invocations through bounded FIFO queue policy, then waits at the component/region barrier before downstream regions run. `execution.reentrant: false` still serializes a component's invocations.
 
 ## Is async max-inflight implemented?
 

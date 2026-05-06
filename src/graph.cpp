@@ -175,6 +175,11 @@ bool is_non_default_advisory_lane_field(const LaneSpec& lane, const std::string&
     return !lane.priority.empty();
   }
   if (field == "thread_name") {
+#ifdef __linux__
+    if (lane.type == "thread_pool") {
+      return false;
+    }
+#endif
     return !lane.thread_name.empty();
   }
   if (field == "cpu_affinity") {

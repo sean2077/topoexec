@@ -26,7 +26,7 @@ Release decision note:
 
 ```text
 Recommended next prerelease: v0.2.0-alpha.0.
-Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while persistent worker pools, wall-clock fixed-rate lanes, semantic-contract versioning, and observer/exporter APIs remain explicit future work.
+Reason: the post-G25 tree contains runtime-completeness alpha work beyond a small v0.1.x stabilization patch, while wall-clock fixed-rate lanes, observer/exporter APIs, coverage-guided fuzzing, and beta readiness remain explicit future work. Persistent worker-pool v1 is now part of the plan2 architecture-stabilization line and remains experimental.
 Human release approval should still verify CI on the exact tag commit before creating the annotated tag.
 ```
 
@@ -72,9 +72,9 @@ Golden output surfaces protected after G26:
 - `tests/golden/schema_dump.json` — schema dump JSON.
 - `tests/golden/doctor.json` — doctor JSON.
 
-Current branch limitations at the G26 baseline:
+Current branch limitations after the plan2 G30 worker-pool pass:
 
-- `thread_pool` lanes remain bounded batch-style MVP behavior: runtime priority, CPU affinity, RT policy, persistent worker naming, persistent worker lifecycle, and timeout preemption are not implemented.
+- `thread_pool` lanes use persistent worker-pool v1 with bounded FIFO admission, queue/rejection metrics, and worker-id trace attributes. Runtime priority/admission ordering, CPU affinity, RT policy, portable hard thread-name guarantees, and timeout preemption are not implemented.
 - `fixed_rate` lane behavior remains deterministic/simulated for normal tests; wall-clock fixed-rate scheduling is not implemented.
 - Async `policy.max_inflight` controls async edge admission, but it is not a complete threaded task/future executor.
 - `TaskExecutor` remains deterministic by default; threaded executor pools are future work.

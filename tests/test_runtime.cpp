@@ -11,6 +11,7 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <thread>
 #include <utility>
 
@@ -98,6 +99,16 @@ std::atomic_int& thread_pool_max_invocations() {
   return count;
 }
 
+std::set<std::thread::id>& thread_pool_thread_ids() {
+  static std::set<std::thread::id> ids;
+  return ids;
+}
+
+std::mutex& thread_pool_probe_mutex() {
+  static std::mutex mutex;
+  return mutex;
+}
+
 void reset_throwing_component_state() {
   throwing_deactivate_count() = 0;
   status_failure_deactivate_count() = 0;
@@ -106,6 +117,8 @@ void reset_throwing_component_state() {
 void reset_thread_pool_probe_state() {
   thread_pool_active_invocations().store(0);
   thread_pool_max_invocations().store(0);
+  std::lock_guard lock(thread_pool_probe_mutex());
+  thread_pool_thread_ids().clear();
 }
 
 void observe_thread_pool_invocation_begin() {
@@ -113,6 +126,8 @@ void observe_thread_pool_invocation_begin() {
   auto observed = thread_pool_max_invocations().load();
   while (active > observed && !thread_pool_max_invocations().compare_exchange_weak(observed, active)) {
   }
+  std::lock_guard lock(thread_pool_probe_mutex());
+  thread_pool_thread_ids().insert(std::this_thread::get_id());
 }
 
 void observe_thread_pool_invocation_end() {
@@ -214,6 +229,13 @@ bool has_trace_event_attribute(const topoexec::RuntimeRunnerResult& result, cons
   return std::any_of(result.trace.begin(), result.trace.end(), [&](const auto& event) {
     const auto found = event.attributes.find(key);
     return event.name == name && found != event.attributes.end() && found->second == value;
+  });
+}
+
+bool has_trace_event_attribute_key(const topoexec::RuntimeRunnerResult& result, const std::string& name,
+                                   const std::string& key) {
+  return std::any_of(result.trace.begin(), result.trace.end(), [&](const auto& event) {
+    return event.name == name && event.attributes.find(key) != event.attributes.end();
   });
 }
 
@@ -2298,6 +2320,30 @@ TEST(Runtime, ThreadPoolLaneExecutesReentrantInvocationsConcurrently) {
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-3"));
+  EXPECT_TRUE(has_trace_event_attribute_key(result, "component_execute", "worker_id"));
+  EXPECT_TRUE(has_trace_event_attribute_key(result, "thread_pool_batch", "worker_ids"));
+}
+
+TEST(Runtime, ThreadPoolWorkersPersistAcrossMultipleRuntimeSteps) {
+  const auto reg = delay_registry();
+  const auto spec = thread_pool_graph(true);
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+
+  reset_runtime_records();
+  reset_thread_pool_probe_state();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
+  EXPECT_TRUE(has_record(2, "worker", "in", "burst-2-1"));
+  std::lock_guard lock(thread_pool_probe_mutex());
+  EXPECT_GE(thread_pool_thread_ids().size(), 2u);
+  EXPECT_LE(thread_pool_thread_ids().size(), 3u);
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.worker_count", 3.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.completed_count", 6.0));
 }
 
 TEST(Runtime, ThreadPoolLaneSerializesNonReentrantInvocations) {
@@ -2318,6 +2364,8 @@ TEST(Runtime, ThreadPoolLaneSerializesNonReentrantInvocations) {
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-3"));
+  std::lock_guard lock(thread_pool_probe_mutex());
+  EXPECT_LE(thread_pool_thread_ids().size(), 3u);
 }
 
 TEST(Runtime, ThreadPoolLaneQueueCapacityRejectsNewestWhenFull) {
@@ -2342,6 +2390,7 @@ TEST(Runtime, ThreadPoolLaneQueueCapacityRejectsNewestWhenFull) {
   EXPECT_FALSE(has_record(1, "worker", "in", "burst-1-3"));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.rejected_count", 1.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.queue_capacity", 1.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.queue_depth", 1.0));
   EXPECT_TRUE(has_trace_event(result, "thread_pool_batch"));
 }
 
@@ -2365,6 +2414,42 @@ TEST(Runtime, ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured) {
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-3"));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.rejected_count", 1.0));
+}
+
+TEST(Runtime, ThreadPoolStopWhileQueueNonEmptyDrainsAdmittedWork) {
+  const auto reg = delay_registry();
+  auto spec = thread_pool_graph(true);
+  spec.lanes.back().max_threads = 1;
+  spec.lanes.back().queue_capacity = 2;
+  topoexec::SchedulerStopSource stop_source;
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+  options.stop_token = stop_source.token();
+
+  reset_runtime_records();
+  reset_thread_pool_probe_state();
+  std::atomic_bool run_done{false};
+  std::thread stopper([&]() {
+    while (!run_done.load() && thread_pool_active_invocations().load() == 0) {
+      std::this_thread::yield();
+    }
+    if (!run_done.load()) {
+      stop_source.request_stop();
+    }
+  });
+  const auto result = runner.run(spec, options);
+  run_done.store(true);
+  stopper.join();
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kStopRequested);
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-3"));
+  EXPECT_FALSE(has_component_record(2, "source"));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.queue_depth", 2.0));
 }
 
 TEST(Runtime, AsyncMaxInflightDropsOldestBeforeChannelCapacity) {

@@ -8,10 +8,10 @@ Use `docs/goals/backlog.md` as the ordered source of truth and `docs/goals/statu
 
 Current safe order:
 
-1. G30 Persistent Worker Pool v1
-2. G31 Fixed-Rate Lane v1
-3. G32 Scheduler Priority and Admission Policy v1
-4. G33 Cooperative Cancellation and Timeout Semantics
+1. G31 Fixed-Rate Lane v1
+2. G32 Scheduler Priority and Admission Policy v1
+3. G33 Cooperative Cancellation and Timeout Semantics
+4. G34 TaskExecutor v2: Threaded Executor Preview
 
 After those, continue by the phase ordering in `docs/plans/plan2.md`, always finishing the earliest unfinished P0/P1 goal before opening lower-priority adapter/ecosystem work.
 

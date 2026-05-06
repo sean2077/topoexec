@@ -58,11 +58,11 @@
 
 当前仍应视为未完成或未产品化的方向：
 
-- `thread_pool` lane 仍是 bounded MVP：
+- `thread_pool` lane 在 G30 后已有 persistent worker-pool v1，但仍是 experimental alpha concurrency surface：
   - priority 未真正调度化
   - CPU affinity 未执行
   - RT policy 未执行
-  - persistent worker naming 未实现
+  - portable hard worker-name guarantee 未实现
   - timeout preemption 未实现
 - `async policy.max_inflight` 已用于 async edge admission，但不是完整 async task/future executor。
 - `TaskExecutor` 当前偏 deterministic helper，threaded executor pool 仍是未来方向。
@@ -2381,4 +2381,3 @@ AGENTS.md
 ```
 
 to point to the new plan and start with G26.
-

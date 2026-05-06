@@ -484,9 +484,10 @@ nlohmann::json lane_capability_summary(const LaneSpec& lane) {
     summary["advisory_fields"].push_back("wall_clock_enabled");
     summary["future_extensions"] = {"wall_clock_sleep_cadence", "overrun_policy"};
   } else if (lane.type == "thread_pool") {
-    summary["implemented"] = {"bounded_batch_worker_width", "queue_admission", "overflow_policy",
-                              "non_reentrant_serialization", "batch_trace_span"};
-    summary["future_extensions"] = {"persistent_worker_lifecycle", "worker_id_trace", "priority_queue"};
+    summary["implemented"] = {
+        "persistent_worker_lifecycle", "bounded_fifo_queue", "queue_admission",  "overflow_policy",
+        "non_reentrant_serialization", "worker_id_trace",    "batch_trace_span", "best_effort_worker_thread_naming"};
+    summary["future_extensions"] = {"priority_queue", "cooperative_timeout_policy"};
   } else {
     summary["implemented"] = nlohmann::json::array();
     summary["future_extensions"] = {"isolated_thread", "manual_step"};

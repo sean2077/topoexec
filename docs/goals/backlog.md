@@ -22,7 +22,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G27 | P0 | complete | Public API Stability Pass v2 | `docs/public-api.md`, installed header stability markers, `docs/api-change-checklist.md`, runtime-only smoke metrics/trace consumption, and package/policy checks. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh package`; `./scripts/goal_check.sh policy`; format |
 | G28 | P0 | complete | Runtime Semantic Version Contract | `docs/semantic-contract.md`, `docs/versioning.md`, doctor/schema dump semantic contract version output, schema/golden coverage, and no runtime behavior change. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh schema`; `./scripts/goal_check.sh golden`; format |
 | G29 | P0 | complete | Scheduler v2 Design + Contract | Scheduler docs/concurrency docs, plan JSON lane capabilities, advisory diagnostics, registry/docs updates, graph tests, and golden drift coverage distinguish implemented/advisory/future scheduler behavior. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R test_graph`; format |
-| G30 | P1 | pending | Persistent Worker Pool v1 | 将 bounded `thread_pool` 从 batch-style MVP 推进到可解释的 persistent worker pool v1。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G30 | P1 | complete | Persistent Worker Pool v1 | `thread_pool` is now run-scoped persistent worker-pool v1 with bounded FIFO queue admission, worker-id trace attributes, stop/drain coverage, updated scheduler docs, and capability-summary evidence. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_runtime|test_graph'`; format |
 | G31 | P1 | pending | Fixed-Rate Lane v1 | 将 `fixed_rate` 从 simulated tick 推进为可选 wall-clock fixed-rate lane v1。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G32 | P1 | pending | Scheduler Priority and Admission Policy v1 | 实现轻量的 runtime-level priority/admission，不涉及 OS priority。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G33 | P1 | pending | Cooperative Cancellation and Timeout Semantics | 为 long-running component、task、CompositeLoop 提供 cooperative cancellation contract，而不是伪装为硬 preemption。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G30 Persistent Worker Pool v1 is the next unfinished P1 goal after G29.
+G31 Fixed-Rate Lane v1 is the next unfinished P1 goal after G30.
 
 ## Blockers
 

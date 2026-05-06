@@ -346,8 +346,10 @@ edges: []
   ASSERT_TRUE(result.ok) << result.errors.front();
   const auto plan_json = topoexec::graph_plan_json(graph, result.compiled_plan);
   EXPECT_NE(plan_json.find("\"lane_capabilities\""), std::string::npos);
-  EXPECT_NE(plan_json.find("\"bounded_batch_worker_width\""), std::string::npos);
   EXPECT_NE(plan_json.find("\"persistent_worker_lifecycle\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"bounded_fifo_queue\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"worker_id_trace\""), std::string::npos);
+  EXPECT_NE(plan_json.find("\"priority_queue\""), std::string::npos);
   EXPECT_NE(plan_json.find("\"scheduler_contract_version\": \"0.2\""), std::string::npos);
 }
 

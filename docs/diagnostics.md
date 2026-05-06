@@ -36,7 +36,7 @@ Current stable codes:
 | `trigger_missing_input` | Trigger input is missing or lacks an incoming edge. |
 | `incompatible_trigger_edge_mode` | Trigger/event-source declarations do not match incoming edge shape. |
 | `unsupported_error_policy` | Non-`fail_fast` execution error policy requested. |
-| `advisory_lane_field_ignored` | A scheduler lane field is parsed and preserved but not enforced by the current runtime. |
+| `advisory_lane_field_ignored` | A scheduler lane field is parsed and preserved but not enforced, or only applied best-effort, by the current runtime. |
 | `advisory_execution_field_ignored` | A component execution field is parsed and preserved but not enforced by the current runtime. |
 | `graph_validation_error` | Generic fallback validation error. |
 
