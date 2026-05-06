@@ -1831,6 +1831,126 @@ TEST(Runtime, TaskExecutorBudgetExceededIsReportedWithoutPreemption) {
   EXPECT_EQ(metrics.timeout_budget_exceeded_count, 1u);
 }
 
+TEST(Runtime, ThreadedTaskExecutorRunsBoundedWorkAndReportsCompletions) {
+  topoexec::ThreadedTaskExecutorConfig config;
+  config.max_workers = 2;
+  config.max_inflight = 2;
+  config.queue_capacity = 2;
+  topoexec::ThreadedTaskExecutor executor(config);
+
+  ASSERT_TRUE(executor.submit([]() { return topoexec::make_text_payload("one"); }).accepted);
+  ASSERT_TRUE(executor.submit([]() { return topoexec::make_text_payload("two"); }).accepted);
+
+  ASSERT_TRUE(executor.wait_for_idle(std::chrono::seconds(1)));
+  auto completions = executor.run_ready();
+  ASSERT_EQ(completions.size(), 2u);
+  std::set<std::string> payloads;
+  for (const auto& completion : completions) {
+    EXPECT_TRUE(completion.ok) << completion.error;
+    ASSERT_NE(completion.payload, nullptr);
+    payloads.insert(completion.payload->text());
+  }
+  EXPECT_EQ(payloads, (std::set<std::string>{"one", "two"}));
+
+  const auto metrics = executor.metrics();
+  EXPECT_EQ(metrics.submitted_count, 2u);
+  EXPECT_EQ(metrics.queued_count, 2u);
+  EXPECT_EQ(metrics.completed_count, 2u);
+  EXPECT_EQ(metrics.failed_count, 0u);
+  EXPECT_EQ(metrics.queue_depth, 0u);
+  EXPECT_GE(metrics.max_inflight_count, 1u);
+}
+
+TEST(Runtime, ThreadedTaskExecutorReportsFailuresWithoutThrowingFromRunReady) {
+  topoexec::ThreadedTaskExecutor executor;
+  ASSERT_TRUE(
+      executor.submit([]() -> topoexec::RuntimePayload { throw std::runtime_error("threaded task boom"); }).accepted);
+
+  ASSERT_TRUE(executor.wait_for_idle(std::chrono::seconds(1)));
+  const auto completions = executor.run_ready();
+
+  ASSERT_EQ(completions.size(), 1u);
+  EXPECT_FALSE(completions.front().ok);
+  EXPECT_EQ(completions.front().error, "threaded task boom");
+  EXPECT_EQ(executor.metrics().failed_count, 1u);
+}
+
+TEST(Runtime, ThreadedTaskExecutorCancellationRemovesOnlyPendingTasks) {
+  topoexec::ThreadedTaskExecutorConfig config;
+  config.max_workers = 1;
+  config.max_inflight = 1;
+  config.queue_capacity = 2;
+  topoexec::ThreadedTaskExecutor executor(config);
+  std::atomic_bool first_started{false};
+  std::atomic_bool release_first{false};
+
+  ASSERT_TRUE(executor
+                  .submit([&]() {
+                    first_started.store(true);
+                    while (!release_first.load()) {
+                      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    }
+                    return topoexec::make_text_payload("active");
+                  })
+                  .accepted);
+  ASSERT_TRUE(executor.submit([]() { return topoexec::make_text_payload("pending-1"); }).accepted);
+  ASSERT_TRUE(executor.submit([]() { return topoexec::make_text_payload("pending-2"); }).accepted);
+
+  for (int attempt = 0; attempt < 100 && !first_started.load(); ++attempt) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+  ASSERT_TRUE(first_started.load());
+
+  EXPECT_EQ(executor.cancel_pending(), 2u);
+  release_first.store(true);
+  ASSERT_TRUE(executor.wait_for_idle(std::chrono::seconds(1)));
+
+  const auto completions = executor.run_ready();
+  ASSERT_EQ(completions.size(), 1u);
+  ASSERT_NE(completions.front().payload, nullptr);
+  EXPECT_EQ(completions.front().payload->text(), "active");
+  const auto metrics = executor.metrics();
+  EXPECT_EQ(metrics.cancelled_count, 2u);
+  EXPECT_EQ(metrics.completed_count, 1u);
+  EXPECT_EQ(metrics.queue_depth, 0u);
+}
+
+TEST(Runtime, ThreadedTaskExecutorShutdownDrainsQueuedTasksByDefault) {
+  topoexec::ThreadedTaskExecutorConfig config;
+  config.max_workers = 1;
+  config.max_inflight = 1;
+  config.queue_capacity = 2;
+  topoexec::ThreadedTaskExecutor executor(config);
+
+  ASSERT_TRUE(executor.submit([]() { return topoexec::make_text_payload("one"); }).accepted);
+  ASSERT_TRUE(executor.submit([]() { return topoexec::make_text_payload("two"); }).accepted);
+  executor.shutdown();
+
+  const auto completions = executor.run_ready();
+  ASSERT_EQ(completions.size(), 2u);
+  EXPECT_EQ(executor.metrics().completed_count, 2u);
+}
+
+TEST(Runtime, ThreadedTaskExecutorGraphContextPublishesCompletionExactlyOnce) {
+  topoexec::ThreadedTaskExecutor executor;
+  topoexec::RuntimeChannelBus channels({runtime_edge("worker_join", "worker.done", "join.ready")});
+  topoexec::GraphContext context;
+  context.channels = &channels;
+  context.component_id = "worker";
+  context.task_executor = &executor;
+
+  const auto submitted = context.submit_task("done", []() { return topoexec::make_text_payload("complete"); });
+  ASSERT_TRUE(submitted.accepted) << submitted.reason;
+  ASSERT_TRUE(executor.wait_for_idle(std::chrono::seconds(1)));
+  const auto completed = executor.run_ready();
+  ASSERT_EQ(completed.size(), 1u);
+
+  const auto messages = channels.consume_for_component("join");
+  ASSERT_EQ(messages.size(), 1u);
+  EXPECT_EQ(*messages.front().payload, "complete");
+  EXPECT_TRUE(channels.consume_for_component("join").empty());
+}
+
 TEST(Runtime, TaskExecutorReportsFailureAndGraphContextPublishesCompletion) {
   topoexec::TaskExecutor executor;
   ASSERT_TRUE(executor.submit([]() -> topoexec::RuntimePayload { throw std::runtime_error("task boom"); }).accepted);

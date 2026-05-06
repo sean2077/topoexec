@@ -64,8 +64,8 @@
   - portable hard worker-name guarantee 未实现
   - advanced starvation aging 未实现
   - hard timeout preemption 未实现
-- `async policy.max_inflight` 已用于 async edge admission，但不是完整 async task/future executor。
-- `TaskExecutor` 当前仍是 deterministic helper，已有 cooperative pending-task cancellation 和 post-return task-budget metrics；threaded executor pool 仍是未来方向。
+- `async policy.max_inflight` 已用于 async edge admission；它与 optional task executor surfaces 分离。
+- `TaskExecutor` 当前仍是 deterministic helper，已有 cooperative pending-task cancellation 和 post-return task-budget metrics；`ThreadedTaskExecutor` 已作为 opt-in bounded preview 存在，但默认 runtime-owned task pool 和完整 service/future API 仍是未来方向。
 - deterministic fuzz smoke 已有，但 coverage-guided fuzzing 仍未完成。
 - TSAN 仍可保持 non-blocking，beta 前需要更强并发信心。
 - ROS 2、OpenTelemetry、Prometheus、Python、C API、dynamic plugin loading、external Perfetto adapter 仍 deferred。

@@ -102,7 +102,7 @@ RuntimeChannelPublishResult GraphContext::publish_shared(const std::string& port
   return {false, "graph context has no publisher"};
 }
 
-TaskSubmissionResult GraphContext::submit_task(const std::string& completion_port, TaskExecutor::Work work) const {
+TaskSubmissionResult GraphContext::submit_task(const std::string& completion_port, ITaskExecutor::Work work) const {
   if (task_executor == nullptr) {
     return {false, 0u, "graph context has no task executor"};
   }

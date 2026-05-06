@@ -91,7 +91,7 @@ Async admission metrics use the `runtime.async.*` namespace; channel metrics rep
 
 ## What Is Still Deferred
 
-- Threaded async task/future executor surface; deterministic `TaskExecutor` helper exists for bounded submission and tests.
+- Full service/future response API and default runtime-owned task pools; `ThreadedTaskExecutor` exists only as an opt-in bounded preview helper.
 - OS priority, affinity, and hard real-time policy enforcement.
 - Independent fixed-rate lane threads and OS jitter control.
 - Advanced starvation aging or OS-backed priority enforcement beyond runtime priority ordering.

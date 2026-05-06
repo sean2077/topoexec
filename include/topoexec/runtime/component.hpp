@@ -138,7 +138,7 @@ struct GraphContext {
   StructuredLogger* logger{nullptr};
   RuntimeChannelBus* channels{nullptr};
   GraphOutputPublisher* publisher{nullptr};
-  TaskExecutor* task_executor{nullptr};
+  ITaskExecutor* task_executor{nullptr};
   RuntimeStateStore* state_store{nullptr};
   ConfigSnapshotStore* config_store{nullptr};
   CancellationToken cancel_token;
@@ -153,7 +153,7 @@ struct GraphContext {
                                       std::optional<EventTimestamp> event_timestamp = std::nullopt) const;
   RuntimeChannelPublishResult publish_shared(const std::string& port, RuntimePayloadPtr payload,
                                              std::optional<EventTimestamp> event_timestamp = std::nullopt) const;
-  TaskSubmissionResult submit_task(const std::string& completion_port, TaskExecutor::Work work) const;
+  TaskSubmissionResult submit_task(const std::string& completion_port, ITaskExecutor::Work work) const;
   bool cancel_requested() const;
 };
 

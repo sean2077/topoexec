@@ -26,7 +26,7 @@ Yes, as a bounded persistent worker-pool v1. `RuntimeRunner` starts run-scoped l
 
 ## Is async max-inflight implemented?
 
-Yes for async edges. Set `policy.max_inflight` on an `async` edge to limit outstanding deferred completions before channel capacity is considered. It is not a general task executor; it controls admission of async completion events.
+Yes for async edges. Set `policy.max_inflight` on an `async` edge to limit outstanding deferred completions before channel capacity is considered. It is not itself a task executor; it controls admission of async completion events. Optional `TaskExecutor` / `ThreadedTaskExecutor` helpers are separate surfaces that publish completions back through normal graph edges.
 
 ## How do components report errors?
 

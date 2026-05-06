@@ -32,7 +32,7 @@ Every message-driven invocation carries:
 - `received_at` / `published_at` timestamps;
 - `deadline_missed` and optional event timestamp metadata from the source message.
 
-The correlation id is local to one runtime channel and intended for logs, diagnostics, and response routing plans. A full service/future response API remains deferred until the async task runtime goal.
+The correlation id is local to one runtime channel and intended for logs, diagnostics, and response routing plans. A full service/future response API remains deferred; the task-executor preview only routes completed task payloads back through normal graph edges.
 
 ## Metrics
 

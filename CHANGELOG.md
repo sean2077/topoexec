@@ -16,6 +16,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added opt-in `fixed_rate` wall-clock cadence v1 with `overrun_policy`, tick/skipped/max-lateness metrics, and fixed-rate trace events while keeping deterministic stepping as the default.
 - Added runtime-level scheduler priority/admission v1 with `execution.priority` classes, priority queue ordering, priority metrics, low-priority rejection metrics, schema validation, and starvation smoke coverage.
 - Added cooperative cancellation/timeout semantics v1 with `CancellationToken`, `GraphContext::cancel_requested()`, `Invocation::cancel_requested()`, component/loop/task cancellation metrics, and post-return timeout-budget reporting without hard preemption.
+- Added TaskExecutor v2 preview with `ITaskExecutor`, explicit `DeterministicTaskExecutor`, opt-in bounded `ThreadedTaskExecutor`, queued-task metrics, shutdown policy, and threaded completion-routing tests.
 - Added `OpaquePayload`/`make_custom_payload` and BufferPool loan/release/byte metrics with memory docs.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
@@ -46,6 +47,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Runtime docs now distinguish deterministic fixed-rate stepping from opt-in cooperative wall-clock cadence without claiming hard real-time scheduling or independent lane threads.
 - Runtime docs now distinguish component/invocation runtime priority from advisory lane/OS priority fields.
 - Runtime docs now describe cooperative cancellation and timeout-budget observation while keeping hard preemption deferred.
+- Runtime docs now distinguish async-edge admission from optional deterministic/threaded task executor helpers.
 - Current baseline and release checklist now record the post-alpha `main` commit, local CTest count, CI run, tag relationship, and remaining limitations.
 - Added an optional CMake `topoexec_format_check` target for local clang-format validation.
 - Expanded the public API map with stable, mixed, experimental, internal, schema, and CLI JSON compatibility boundaries.

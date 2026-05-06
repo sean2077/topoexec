@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B has started with G29, G30, G31, G32, and G33 complete.
-The next unfinished P1/P2 goal is G34 TaskExecutor v2: Threaded Executor Preview.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B has started with G29, G30, G31, G32, G33, and G34 complete.
+The next unfinished P1 goal is G36 Correlation, Causality, and Invocation Metadata; G35 remains pending P2 and is deferred by the active ordering rule.
 
 ## Active / Recent Goals
 
@@ -28,12 +28,28 @@ The next unfinished P1/P2 goal is G34 TaskExecutor v2: Threaded Executor Preview
 | G31 | complete | `include/topoexec/runtime/graph.hpp`, `include/topoexec/runtime/scheduler.hpp`, `schema/topoexec.schema.v1.json`, `src/event_runtime.cpp`, `src/graph.cpp`, `src/graph_io.cpp`, `src/runtime_runner.cpp`, `tests/test_runtime.cpp`, `tests/test_graph.cpp`, updated goldens, scheduler/concurrency/schema/trace docs, release docs, and `CHANGELOG.md`. | `fixed_rate` now keeps deterministic stepping by default and supports opt-in cooperative wall-clock cadence v1 with `overrun_policy`, tick/skipped/max-lateness/blocked metrics, and fixed-rate trace events without hard real-time claims. |
 | G32 | complete | `include/topoexec/runtime/scheduler.hpp`, `schema/topoexec.schema.v1.json`, `src/event_runtime.cpp`, `src/graph.cpp`, `src/graph_io.cpp`, `src/runtime_runner.cpp`, `src/diagnostics.cpp`, `tests/test_runtime.cpp`, `tests/test_graph.cpp`, updated goldens, scheduler/concurrency/schema/metrics/diagnostics docs, release docs, goal ledgers, and `CHANGELOG.md`. | `execution.priority` now accepts `background`/`low`/`normal`/`high`, orders independent ready regions and worker-queue items deterministically, reports priority/rejection/starvation metrics, rejects unknown runtime priority classes, and keeps lane/OS priority fields advisory. |
 | G33 | complete | `include/topoexec/runtime/cancellation.hpp`, `include/topoexec/runtime/component.hpp`, `include/topoexec/runtime/task_executor.hpp`, `src/event_runtime.cpp`, `src/runtime_runner.cpp`, `src/task_executor.cpp`, `tests/test_runtime.cpp`, updated goldens, scheduler/concurrency/runtime-semantics/metrics/trace/API docs, release docs, goal ledgers, and `CHANGELOG.md`. | Cooperative cancellation is now exposed through `CancellationToken`, `Invocation::cancel_requested()`, and `GraphContext::cancel_requested()`; component/task/CompositeLoop timeout and cancellation evidence is reported without hard preemption or forced thread termination. |
+| G34 | complete | `include/topoexec/runtime/task_executor.hpp`, `include/topoexec/runtime/component.hpp`, `src/task_executor.cpp`, `src/component.cpp`, `tests/test_runtime.cpp`, `docs/async-tasks.md`, public API/semantic/concurrency/baseline docs, goal ledgers, and `CHANGELOG.md`. | `TaskExecutor` remains the deterministic compatibility helper, `ITaskExecutor` is the attachable interface, and `ThreadedTaskExecutor` is an opt-in bounded worker preview with smoke, cancel-pending, shutdown-drain, failure, and exactly-once publication coverage. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+ctest --test-dir build --output-on-failure -R 'test_runtime|test_graph|cli_golden_outputs|schema_v1_contract_smoke'
+# G34 passed: deterministic compatibility, threaded executor smoke/failure/cancel/shutdown/publication coverage, graph/golden/schema drift checks
+
+./scripts/goal_check.sh quick
+# G34 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+cmake --build build --target topoexec_format_check
+# G34 passed
+
+./scripts/agent_check.sh
+# G34 passed: 51/51 CTest tests after threaded executor preview updates
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G34 passed: 51/51 CTest tests in the ASAN+UBSAN Debug build
+
 ctest --test-dir build --output-on-failure -R 'test_runtime|test_graph|cli_golden_outputs|schema_v1_contract_smoke'
 # G33 passed: cooperative component cancellation, ignored-cancel timeout reporting, CompositeLoop cancellation, TaskExecutor cancellation/budget coverage, graph/golden/schema drift checks
 

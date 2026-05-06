@@ -52,7 +52,7 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, channel read APIs, and channel metrics. Prefer `RuntimeRunner`/`GraphContext` for ordinary embedding. |
 | `topoexec/runtime/event_runtime.hpp` | Lower-level event runtime surface used by tests and advanced embedders. |
 | `topoexec/runtime/state.hpp` | Namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits. |
-| `topoexec/runtime/task_executor.hpp` | Deterministic async task helper; threaded executor v2 is future work. |
+| `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
 | `topoexec/common/metrics.hpp` | Small metrics registry/value helpers; exporter/cardinality/schema v2 contracts are not stable yet. |
 | `topoexec/common/logging.hpp` | Structured logging helper; adapter/exporter boundary is not stable yet. |
@@ -74,7 +74,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `RuntimeRunner::run()` and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, trace vectors, metric vectors, and error fields should keep meanings. |
 | `SchedulerStopSource`/`SchedulerStopToken` | stable-v0.2 through runner options | Direct scheduler registry/metrics internals remain experimental. |
 | `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | Snapshot/config transaction APIs may be reshaped by G43/G44. |
-| `TaskExecutor` | experimental | Threaded executor v2 may split the interface. |
+| `ITaskExecutor`, `DeterministicTaskExecutor`, `TaskExecutor`, `ThreadedTaskExecutor` | experimental | The deterministic compatibility name remains available; threaded executor preview shutdown/admission details may change before beta. |
 | `RuntimeChannelBus`, `RuntimePublicationRouter`, `TriggerPolicyEngine`, `EventRuntime` | experimental | Advanced runtime internals may change as scheduler/channel/trigger v2 goals land. |
 
 ## Compatibility Expectations

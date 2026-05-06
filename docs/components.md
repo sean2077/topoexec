@@ -47,8 +47,7 @@ is covered by `app_cpp_builder_minimal_runs`.
 - Components should be deterministic with respect to their invocation payload,
   config snapshot, and explicit state inputs.
 - Use `GraphContext::publish()` instead of touching downstream components.
-- Use `GraphContext::submit_task()` only for the deterministic async task surface
-  documented in [Async tasks](async-tasks.md).
+- Use `GraphContext::submit_task()` only with an attached bounded `ITaskExecutor`; deterministic `TaskExecutor` remains the default test-friendly helper, and opt-in `ThreadedTaskExecutor` behavior is documented in [Async tasks](async-tasks.md).
 - Return status or throw for failures; the runtime records structured errors.
 - Do not implement hidden global readiness logic; use trigger policies.
 
