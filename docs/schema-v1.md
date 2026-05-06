@@ -155,6 +155,25 @@ Allowed fields:
 
 For registry-backed `runnable` graphs, validation requires at least one input boundary and one output boundary.
 
+### Descriptor-backed ports
+
+Schema v1 does not add `ports` fields to YAML. Port typing remains a
+registry/descriptor contract so existing v1 graph files keep their shape and
+compatibility. When `validate_graph(graph, registry)` can instantiate component
+descriptors, it checks edge endpoints against descriptor inputs/outputs and
+validates:
+
+- non-empty source/target payload schemas match;
+- non-empty source/target `payload_type` names match;
+- `required` descriptor inputs have an incoming edge;
+- optional descriptor inputs may be unconnected, producing
+  `optional_input_unconnected` advisory diagnostics;
+- `PortMultiplicity::kSingle` inputs have at most one incoming edge;
+- graph `boundary.role` requirements are compatible with descriptor roles.
+
+These checks are semantic validation, not JSON Schema validation. Future schema
+v2 work may decide whether typed ports should become YAML fields.
+
 ## edges
 
 `edges` is a sequence. Every edge must declare an explicit kind.

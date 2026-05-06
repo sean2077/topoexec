@@ -42,6 +42,38 @@ is covered by `app_cpp_builder_minimal_runs`.
 - Port schemas should match payload types; use custom `OpaquePayload` schemas
   when built-ins are not enough.
 
+## Port contracts
+
+`PortDescriptor` is intentionally lightweight and descriptor-owned. YAML schema
+v1 still stores only endpoint strings such as `source.out` and `sink.in`; when a
+registry is provided, the graph validator uses component descriptors to enforce
+the semantic port contract before runtime:
+
+```cpp
+topoexec::PortDescriptor required_text{"in", topoexec::kTextPayloadSchema};
+required_text.payload_type = "TextPayload";
+required_text.required = true;
+
+topoexec::PortDescriptor optional_side{"side", topoexec::kTextPayloadSchema};
+optional_side.required = false;
+```
+
+Port fields:
+
+- `name`: endpoint suffix used by graph edges and trigger inputs.
+- `schema`: stable payload schema id such as `topoexec::kTextPayloadSchema`.
+- `payload_type`: optional embedder-owned type name. Empty means "schema-only".
+- `multiplicity`: `kSingle` by default; use `kMultiple` when several incoming
+  edges are valid for one input.
+- `required`: `false` by default to preserve existing examples; set `true` for
+  inputs that must be wired.
+
+Registry-backed validation rejects unknown endpoints, incompatible non-empty
+schemas or payload types, missing required inputs, single inputs with multiple
+incoming edges, and graph boundary roles that contradict the descriptor role.
+Unconnected optional inputs emit the advisory diagnostic
+`optional_input_unconnected` without failing validation.
+
 ## Execution rules
 
 - Components should be deterministic with respect to their invocation payload,

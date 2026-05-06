@@ -28,6 +28,18 @@ std::string diagnostic_code_for(const std::string& error) {
   if (error.find("unknown output port") != std::string::npos || error.find("unknown input port") != std::string::npos) {
     return "unknown_port";
   }
+  if (error.find("payload type mismatch") != std::string::npos) {
+    return "payload_type_mismatch";
+  }
+  if (error.find("missing required input") != std::string::npos) {
+    return "missing_required_input";
+  }
+  if (error.find("boundary role mismatch") != std::string::npos) {
+    return "boundary_role_mismatch";
+  }
+  if (error.find("multiplicity") != std::string::npos) {
+    return "port_multiplicity_mismatch";
+  }
   if (error.find("duplicate component") != std::string::npos || error.find("duplicate edge") != std::string::npos ||
       error.find("duplicate lane") != std::string::npos ||
       error.find("duplicate composite_loop") != std::string::npos) {
@@ -683,6 +695,31 @@ const PortDescriptor* find_port(const std::vector<PortDescriptor>& ports, const 
   return &*found;
 }
 
+bool port_contracts_compatible(const PortDescriptor& output, const PortDescriptor& input, std::string& reason) {
+  if (!output.schema.empty() && !input.schema.empty() && output.schema != input.schema) {
+    reason = "schema " + output.schema + " != " + input.schema;
+    return false;
+  }
+  if (!output.payload_type.empty() && !input.payload_type.empty() && output.payload_type != input.payload_type) {
+    reason = "payload_type " + output.payload_type + " != " + input.payload_type;
+    return false;
+  }
+  return true;
+}
+
+bool boundary_roles_compatible(ComponentRole graph_role, ComponentRole descriptor_role) {
+  if (graph_role == ComponentRole::kProcessing) {
+    return true;
+  }
+  if (component_role_has_input(graph_role) && !component_role_has_input(descriptor_role)) {
+    return false;
+  }
+  if (component_role_has_output(graph_role) && !component_role_has_output(descriptor_role)) {
+    return false;
+  }
+  return true;
+}
+
 GraphValidationResult validate_graph_impl(const GraphSpec& graph, const ComponentRegistry* registry) {
   GraphValidationResult result;
   if (graph.schema_version != kTopoExecSchemaVersion) {
@@ -831,6 +868,11 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
         has_input_boundary = has_input_boundary || component_role_has_input(descriptor.role);
         has_output_boundary = has_output_boundary || component_role_has_output(descriptor.role);
       }
+      if (!boundary_roles_compatible(component.boundary.role, descriptor.role)) {
+        add_error(result, "component " + component.id + " boundary role mismatch: graph " +
+                              to_string(component.boundary.role) + " is incompatible with descriptor " +
+                              to_string(descriptor.role));
+      }
       validate_component_config(component, descriptor, result);
       descriptors[component.id] = std::move(descriptor);
     } catch (const std::exception& error) {
@@ -855,6 +897,7 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
   std::set<std::string> edge_ids;
   std::set<std::string> source_endpoints;
   std::set<std::string> target_endpoints;
+  std::map<std::string, std::size_t> target_endpoint_counts;
   std::map<std::string, std::vector<std::string>> state_writers_by_target;
   for (const auto& edge : graph.edges) {
     if (edge.id.empty()) {
@@ -915,20 +958,35 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
       add_error(result, "source endpoint has multiple producer-owned edges: " + edge.from);
     }
     target_endpoints.insert(edge.to);
+    ++target_endpoint_counts[edge.to];
     if (edge.kind == EdgeKind::kState) {
       state_writers_by_target[edge.to].push_back(edge.id);
     }
 
+    const PortDescriptor* output_port = nullptr;
+    const PortDescriptor* input_port = nullptr;
     if (registry != nullptr && descriptors.count(from_component) != 0u) {
       const auto port = port_name_from_endpoint(edge.from);
-      if (!port.empty() && find_port(descriptors.at(from_component).outputs, port) == nullptr) {
-        add_error(result, "edge " + edge.id + " references missing output port " + edge.from);
+      if (!port.empty()) {
+        output_port = find_port(descriptors.at(from_component).outputs, port);
+        if (output_port == nullptr) {
+          add_error(result, "edge " + edge.id + " references missing output port " + edge.from);
+        }
       }
     }
     if (registry != nullptr && descriptors.count(to_component) != 0u) {
       const auto port = port_name_from_endpoint(edge.to);
-      if (!port.empty() && find_port(descriptors.at(to_component).inputs, port) == nullptr) {
-        add_error(result, "edge " + edge.id + " references missing input port " + edge.to);
+      if (!port.empty()) {
+        input_port = find_port(descriptors.at(to_component).inputs, port);
+        if (input_port == nullptr) {
+          add_error(result, "edge " + edge.id + " references missing input port " + edge.to);
+        }
+      }
+    }
+    if (output_port != nullptr && input_port != nullptr) {
+      std::string reason;
+      if (!port_contracts_compatible(*output_port, *input_port, reason)) {
+        add_error(result, "edge " + edge.id + " payload type mismatch: " + edge.from + " -> " + edge.to + " " + reason);
       }
     }
   }
@@ -936,6 +994,35 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
   for (const auto& [target, writers] : state_writers_by_target) {
     if (writers.size() > 1u) {
       add_error(result, "state edge target has multiple writers: " + target + " via " + join_ids(writers));
+    }
+  }
+
+  for (const auto& component : graph.components) {
+    const auto descriptor = descriptors.find(component.id);
+    if (descriptor == descriptors.end()) {
+      continue;
+    }
+    for (const auto& input : descriptor->second.inputs) {
+      if (input.name.empty()) {
+        continue;
+      }
+      const auto endpoint = component.id + "." + input.name;
+      const auto found_count = target_endpoint_counts.find(endpoint);
+      const auto incoming_count = found_count == target_endpoint_counts.end() ? 0u : found_count->second;
+      if (incoming_count == 0u) {
+        if (input.required) {
+          add_error(result, "component " + component.id + " missing required input " + input.name);
+        } else {
+          add_advisory(result, "optional_input_unconnected",
+                       "component " + component.id + " optional input " + input.name + " has no incoming edge",
+                       "components." + component.id + ".inputs." + input.name);
+        }
+        continue;
+      }
+      if (input.multiplicity == PortMultiplicity::kSingle && incoming_count > 1u) {
+        add_error(result, "component " + component.id + " input " + input.name +
+                              " multiplicity single has multiple incoming edges");
+      }
     }
   }
 

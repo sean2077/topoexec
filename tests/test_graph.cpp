@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <random>
 #include <sstream>
 #include <string>
@@ -63,6 +64,54 @@ std::vector<std::string> sorted(std::vector<std::string> values) {
 bool contains_set(const std::vector<std::vector<std::string>>& sets, std::vector<std::string> expected) {
   expected = sorted(std::move(expected));
   return std::any_of(sets.begin(), sets.end(), [&expected](const auto& value) { return sorted(value) == expected; });
+}
+
+class DescriptorComponent : public topoexec::Component {
+public:
+  explicit DescriptorComponent(topoexec::ComponentDescriptor descriptor) : descriptor_(std::move(descriptor)) {}
+
+  topoexec::ComponentDescriptor describe() const override {
+    return descriptor_;
+  }
+
+  void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+
+private:
+  topoexec::ComponentDescriptor descriptor_;
+};
+
+topoexec::PortDescriptor port(std::string name, std::string schema = topoexec::kTextPayloadSchema,
+                              std::string payload_type = {},
+                              topoexec::PortMultiplicity multiplicity = topoexec::PortMultiplicity::kSingle,
+                              bool required = false) {
+  topoexec::PortDescriptor descriptor;
+  descriptor.name = std::move(name);
+  descriptor.schema = std::move(schema);
+  descriptor.payload_type = std::move(payload_type);
+  descriptor.multiplicity = multiplicity;
+  descriptor.required = required;
+  return descriptor;
+}
+
+topoexec::ComponentDescriptor component_descriptor(std::string type, topoexec::ComponentRole role,
+                                                   std::vector<topoexec::PortDescriptor> inputs,
+                                                   std::vector<topoexec::PortDescriptor> outputs) {
+  topoexec::ComponentDescriptor descriptor;
+  descriptor.type = std::move(type);
+  descriptor.name = descriptor.type;
+  descriptor.role = role;
+  descriptor.inputs = std::move(inputs);
+  descriptor.outputs = std::move(outputs);
+  return descriptor;
+}
+
+topoexec::ComponentRegistry registry_for(std::vector<topoexec::ComponentDescriptor> descriptors) {
+  topoexec::ComponentRegistry registry;
+  for (auto descriptor : descriptors) {
+    const auto type = descriptor.type;
+    registry.register_component({type}, [descriptor]() { return std::make_unique<DescriptorComponent>(descriptor); });
+  }
+  return registry;
 }
 
 std::string graph_with_component_count(std::size_t count) {
@@ -265,6 +314,122 @@ TEST(Graph, LoadsAndValidatesSchemaVersionOne) {
   EXPECT_EQ(result.compiled_plan.region_order.size(), 2u);
   EXPECT_NE(topoexec::graph_plan_json(graph, result.compiled_plan).find("\"schema_version\": 1"), std::string::npos);
   EXPECT_NE(topoexec::graph_mermaid(graph, result.compiled_plan).find("flowchart TD"), std::string::npos);
+}
+
+TEST(Graph, PayloadTypeMismatchIsRejectedWithDiagnostic) {
+  auto graph = minimal_graph();
+  graph.edges.front().kind = topoexec::EdgeKind::kState;
+  const auto registry = registry_for({
+      component_descriptor("topoexec.test.Source", topoexec::ComponentRole::kInputBoundary, {},
+                           {port("out", topoexec::kTextPayloadSchema, "TextPayload")}),
+      component_descriptor("topoexec.test.Sink", topoexec::ComponentRole::kOutputBoundary,
+                           {port("in", topoexec::kTextPayloadSchema, "BinaryBlobPayload")}, {}),
+  });
+
+  const auto result = topoexec::validate_graph(graph, registry);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "payload type mismatch"));
+  EXPECT_TRUE(has_diagnostic(result.diagnostics, "payload_type_mismatch", "error", "edges.e"));
+}
+
+TEST(Graph, OptionalInputUnconnectedIsAdvisoryAndRequiredInputFails) {
+  const auto registry = registry_for({
+      component_descriptor("topoexec.test.Source", topoexec::ComponentRole::kInputBoundary, {},
+                           {port("out", topoexec::kTextPayloadSchema)}),
+      component_descriptor("topoexec.test.Sink", topoexec::ComponentRole::kOutputBoundary,
+                           {port("in", topoexec::kTextPayloadSchema, {}, topoexec::PortMultiplicity::kSingle, true),
+                            port("side", topoexec::kTextPayloadSchema)},
+                           {}),
+  });
+
+  auto graph = minimal_graph();
+  auto connected = topoexec::validate_graph(graph, registry);
+  ASSERT_TRUE(connected.ok) << (connected.errors.empty() ? "" : connected.errors.front());
+  EXPECT_TRUE(
+      has_diagnostic(connected.diagnostics, "optional_input_unconnected", "advisory", "components.b.inputs.side"));
+
+  graph.edges.clear();
+  const auto missing = topoexec::validate_graph(graph, registry);
+  EXPECT_FALSE(missing.ok);
+  EXPECT_TRUE(has_diagnostic(missing.diagnostics, "missing_required_input", "error", "components.b"));
+}
+
+TEST(Graph, MultiOutputDescriptorIsValidated) {
+  const auto graph = topoexec::load_graph_text(R"(
+schema_version: 1
+graph: {name: multi_output, kind: internal_test}
+lanes: {main: {type: event_loop}}
+components:
+  - id: source
+    type: topoexec.test.Source
+    boundary: {role: input, descriptor: test}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: sink
+    type: topoexec.test.Sink
+    boundary: {role: output, descriptor: test}
+    event_sources: [{type: message, inputs: [left, right]}]
+    trigger_policy: {type: all_inputs, inputs: [left, right]}
+    execution: {lane: main}
+edges:
+  - {id: left, kind: immediate, from: source.left, to: sink.left, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: right, kind: immediate, from: source.right, to: sink.right, policy: {mode: latest, copy_policy: shared_view}}
+)");
+  const auto registry = registry_for({
+      component_descriptor("topoexec.test.Source", topoexec::ComponentRole::kInputBoundary, {},
+                           {port("left"), port("right")}),
+      component_descriptor("topoexec.test.Sink", topoexec::ComponentRole::kOutputBoundary,
+                           {port("left", topoexec::kTextPayloadSchema, {}, topoexec::PortMultiplicity::kSingle, true),
+                            port("right", topoexec::kTextPayloadSchema, {}, topoexec::PortMultiplicity::kSingle, true)},
+                           {}),
+  });
+
+  const auto result = topoexec::validate_graph(graph, registry);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_FALSE(
+      has_diagnostic(result.diagnostics, "optional_input_unconnected", "advisory", "components.sink.inputs.left"));
+}
+
+TEST(Graph, BoundaryRoleMismatchIsRejected) {
+  const auto graph = minimal_graph();
+  const auto registry = registry_for({
+      component_descriptor("topoexec.test.Source", topoexec::ComponentRole::kOutputBoundary, {},
+                           {port("out", topoexec::kTextPayloadSchema)}),
+      component_descriptor("topoexec.test.Sink", topoexec::ComponentRole::kOutputBoundary,
+                           {port("in", topoexec::kTextPayloadSchema)}, {}),
+  });
+
+  const auto result = topoexec::validate_graph(graph, registry);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors, "boundary role mismatch"));
+  EXPECT_TRUE(has_diagnostic(result.diagnostics, "boundary_role_mismatch", "error", "components.a"));
+}
+
+TEST(Graph, SingleMultiplicityInputRejectsMultipleIncomingEdges) {
+  auto graph = minimal_graph();
+  topoexec::ComponentNodeSpec extra_source = graph.components.front();
+  extra_source.id = "c";
+  graph.components.push_back(extra_source);
+  topoexec::EdgeSpec extra_edge = graph.edges.front();
+  extra_edge.id = "extra";
+  extra_edge.from = "c.out";
+  graph.edges.push_back(extra_edge);
+  const auto registry = registry_for({
+      component_descriptor("topoexec.test.Source", topoexec::ComponentRole::kInputBoundary, {},
+                           {port("out", topoexec::kTextPayloadSchema)}),
+      component_descriptor("topoexec.test.Sink", topoexec::ComponentRole::kOutputBoundary,
+                           {port("in", topoexec::kTextPayloadSchema, {}, topoexec::PortMultiplicity::kSingle, true)},
+                           {}),
+  });
+
+  const auto result = topoexec::validate_graph(graph, registry);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_diagnostic(result.diagnostics, "port_multiplicity_mismatch", "error", "components.b"));
 }
 
 TEST(Graph, ParsesAndValidatesSchedulerLaneAdmissionFields) {

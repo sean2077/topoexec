@@ -32,7 +32,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 | G37 | P1 | complete | Channel v2: Explicit Backpressure Events | `HealthEvent` and a bounded non-waiting sink now expose channel overflow/stale/deadline/high-watermark, task reject, and scheduler reject paths through RuntimeRunnerResult, CLI JSON, doctor metadata, and trace events without recursive control flow. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_channel|test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G38 | P1 | complete | Channel v2: Multi-Reader and Move-Only Hardening | Multi-reader bounded-history cursor/drop tests, move-only multi-reader diagnostics/lint, plan/explain `readers`/`copy_policy`/`slow_reader_drop_risk`, shared/loaned/move no-copy evidence, ownership docs, and goldens are complete without changing ownership primitives. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_channel|test_graph|cli_lint_reject_move_only_multireader|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G39 | P1/P2 | complete | Payload and Memory v2 | `BufferPoolConfig`, bounded allocation/exhaustion/high-watermark/outstanding-loan stats, payload schema summaries, loaned-view pool-owner linting, docs, examples, and tests now make large in-process payload memory observable without claiming external SHM zero-copy. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_channel|test_runtime|cli_lint_loaned_view_without_pool_owner|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
-| G40 | P1 | pending | Graph Compiler v2: Typed Ports and Constraints | 从 string endpoint validation 走向 typed port contract，减少错误连接。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
+| G40 | P1 | complete | Graph Compiler v2: Typed Ports and Constraints | Descriptor-backed typed ports now validate schema/payload-type compatibility, required/optional inputs, input multiplicity, boundary role compatibility, and state-edge target type compatibility without adding schema v1 YAML port fields. | `./scripts/agent_check.sh`; `./scripts/goal_check.sh quick`; `ctest -R 'test_graph|test_runtime|cli_golden_outputs|schema_v1_contract_smoke'`; format; ASAN+UBSAN sanitizer |
 | G41 | P2 | pending | Hierarchical Graph / Subgraph Design | 支持复杂应用的层次化组织，但不要过早引入复杂 runtime nesting。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G42 | P2/P3 | pending | Graph Templates and Reusable Patterns | 为常见 patterns 提供可复用 graph snippets，而不是复制 YAML。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
 | G43 | P1/P2 | pending | Component Lifecycle v2: Reset, Snapshot, Restore | 支持真实应用中组件重置、状态快照和恢复，不只是 configure/activate/deactivate。 | `./scripts/agent_check.sh`; focused goal checks as applicable |
@@ -66,7 +66,7 @@ This backlog is now derived from `docs/plans/plan2.md` and starts at G26. The co
 
 ## Next goal
 
-G38 Channel v2: Multi-Reader and Move-Only Hardening is the next unfinished P1 goal after G37; G35 remains pending P2 and is intentionally deferred by the P0/P1 ordering rule.
+G43 Component Lifecycle v2: Reset, Snapshot, Restore is the next unfinished mixed P1/P2 goal in backlog order after G40; lower-priority G35, G41, G42, and G45 remain pending design/runtime work and are intentionally deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Blockers
 

@@ -940,6 +940,13 @@ Priority: P1
 - Type metadata remains lightweight and optional enough for existing examples.
 - Existing schema v1 examples still work.
 
+Implementation note: G40 keeps typed ports descriptor-owned for schema v1.
+`PortDescriptor` now carries optional `payload_type`, `multiplicity`, and
+`required` metadata. Registry-backed validation rejects payload contract
+mismatches, missing required inputs, single-input fan-in, and boundary role
+mismatches, while unconnected optional inputs produce advisory diagnostics. YAML
+`ports` fields remain deferred to a future schema-v2 decision.
+
 ---
 
 ## G41. Hierarchical Graph / Subgraph Design

@@ -25,6 +25,11 @@ Current stable codes:
 | --- | --- |
 | `unknown_component` | An edge, dependency, or CompositeLoop references a missing component. |
 | `unknown_port` | An edge endpoint references a port not exposed by the descriptor. |
+| `payload_type_mismatch` | An edge connects descriptor ports with incompatible non-empty schema or payload type metadata. |
+| `missing_required_input` | A descriptor-declared required input has no incoming edge. |
+| `optional_input_unconnected` | A descriptor-declared optional input has no incoming edge; validation continues with advisory severity. |
+| `boundary_role_mismatch` | A graph boundary role is incompatible with the component descriptor role. |
+| `port_multiplicity_mismatch` | A single-input descriptor port has multiple incoming edges. |
 | `duplicate_id` | A section contains duplicate ids. |
 | `immediate_cycle_without_loop` | Immediate edges form a cycle without an exact CompositeLoop owner. |
 | `partial_composite_loop` | A CompositeLoop partially matches an immediate SCC. |

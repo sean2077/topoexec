@@ -22,6 +22,7 @@ TopoExec follows the versioning policy in [docs/versioning.md](docs/versioning.m
 - Added edge reader/copy-policy explainability in plan/explain output, including `slow_reader_drop_risk`, plus lint surfacing for slow multi-reader drop risk and invalid `move_only` multi-reader edges.
 - Added `BufferPoolConfig`, bounded pool allocation stats, payload schema summaries, and loaned-view pool-owner lint coverage for in-process large-payload memory planning.
 - Added `OpaquePayload`/`make_custom_payload` and BufferPool loan/release/byte metrics with memory docs.
+- Added descriptor-backed typed port validation for schema/payload-type compatibility, required and optional inputs, input multiplicity, and boundary role mismatches without adding schema v1 port fields.
 - Added graph-level config parsing plus epoch-boundary state/config snapshot stores and state commit metrics.
 - Added the stable graph diagnostics registry and histogram p50/p95/p99 snapshot samples.
 - Added deterministic benchmark case YAMLs and richer `bench --format json` output with case, params, per-run latency percentiles, throughput, and environment summary.

@@ -75,9 +75,23 @@ struct ConfigView {
   }
 };
 
+enum class PortMultiplicity {
+  kSingle,
+  kMultiple,
+};
+
 struct PortDescriptor {
+  PortDescriptor() = default;
+  PortDescriptor(std::string name_value, std::string schema_value, std::string payload_type_value = {},
+                 PortMultiplicity multiplicity_value = PortMultiplicity::kSingle, bool required_value = false)
+      : name(std::move(name_value)), schema(std::move(schema_value)), payload_type(std::move(payload_type_value)),
+        multiplicity(multiplicity_value), required(required_value) {}
+
   std::string name;
   std::string schema;
+  std::string payload_type;
+  PortMultiplicity multiplicity{PortMultiplicity::kSingle};
+  bool required{false};
 };
 
 struct ServiceDescriptor {
