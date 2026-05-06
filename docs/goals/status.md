@@ -11,8 +11,8 @@ Last updated: 2026-05-06
 
 ## Current Stage
 
-Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, and G47 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
-The next unfinished P1 goal in backlog order is G48 Trace v2: Timeline and Causality. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
+Phase A is complete: G26 established the post-G25 release-candidate baseline, G27 completed the public API stability pass, G28 added the runtime semantic contract, and G66 enforced architecture boundaries. Phase B is complete through G34; Phase C has G36, G37, G38, G39, G40, G46, G47, and G48 complete; backlog-order lifecycle/config goals G43 and G44 are also complete.
+The next unfinished P1/P2 goal in backlog order is G49 Diagnostics v2: More Actionable Graph Errors. Lower-priority G35, G41, G42, and G45 remain pending P2/P3 work and are deferred by the active ordering rule unless the plan order is explicitly reopened.
 
 ## Active / Recent Goals
 
@@ -38,12 +38,34 @@ The next unfinished P1 goal in backlog order is G48 Trace v2: Timeline and Causa
 | G44 | complete | `include/topoexec/runtime/component.hpp`, `include/topoexec/runtime/state.hpp`, `src/component.cpp`, `src/event_runtime.cpp`, `src/runtime_runner.cpp`, `src/state.cpp`, `tests/test_state.cpp`, `tests/test_runtime.cpp`, state/lifecycle/runtime/metrics/trace/API/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Component config hot reload now stages versioned transactions, validates all pending configs, applies at epoch boundaries before execution, commits only after all apply hooks succeed, and rolls back/fail-fast with the old committed config active on invalid config or apply failure. |
 | G46 | complete | `include/topoexec/runtime/runtime_runner.hpp`, `src/runtime_runner.cpp`, `tests/test_runtime.cpp`, observer/API/runtime/metrics/adapter/baseline docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | `RuntimeRunnerOptions::observers` now delivers best-effort result/metric/trace/health/error records through stable-v0.2 observer/sink callbacks; no-op and bounded in-memory observers are available; observer callback failures and bounded drops are non-fatal and observable. |
 | G47 | complete | `include/topoexec/runtime/metric_schema.hpp`, `src/metric_schema.cpp`, `tools/topoexec/main.cpp`, `tests/test_runtime.cpp`, `tests/golden/metrics_minimal.json`, metrics/API/CLI/versioning/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Runtime metric schema version 1 now records descriptor name/kind/unit/labels/cardinality/stability, validates exported runtime samples, forbids high-cardinality default tags like correlation ids, and exposes the schema version in metrics JSON. |
+| G48 | complete | `include/topoexec/runtime/runtime_runner.hpp`, `src/runtime_runner.cpp`, `tools/topoexec/main.cpp`, `tests/test_runtime.cpp`, updated trace/metrics goldens, trace/API/CLI/runtime/semantic docs, `docs/plans/plan2.md`, goal ledgers, and `CHANGELOG.md`. | Trace schema version 1 now records ordered timeline events with explicit phase/component/channel/lane/worker/epoch/transaction/correlation/causation fields and Chrome trace phase tracks, while legacy `trace_events` remains a compatibility name list. |
 
 ## Validation Evidence
 
 Fresh checks in this working tree:
 
 ```bash
+cmake --build build -j
+# G48 passed: trace schema code/tests rebuilt successfully
+
+cmake --build build --target topoexec_format_check
+# G48 passed
+
+ctest --test-dir build --output-on-failure -R 'test_runtime|cli_golden_outputs|schema_v1_contract_smoke'
+# G48 passed: trace timeline ordering, legal durations, causality fields, updated trace/metrics goldens, schema smoke
+
+./scripts/goal_check.sh quick
+# G48 passed: cli_golden_outputs and schema_v1_contract_smoke
+
+./scripts/agent_check.sh
+# G48 passed: 53/53 CTest tests after trace schema updates
+
+TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer
+# G48 passed: 53/53 CTest tests in the ASAN+UBSAN Debug build
+
+git diff --check
+# G48 passed
+
 cmake --build build -j
 # G47 passed: metric schema descriptor code/tests rebuilt successfully
 

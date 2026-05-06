@@ -270,21 +270,85 @@ std::chrono::steady_clock::time_point earliest_trace_epoch(const std::vector<Spa
   return epoch;
 }
 
+std::string trace_phase_for_name(const std::string& name) {
+  if (name.rfind("component_", 0u) == 0u) {
+    return "component";
+  }
+  if (name.rfind("channel_", 0u) == 0u || name == "state_commit" || name == "async_admission") {
+    return "channel";
+  }
+  if (name.rfind("scheduler_", 0u) == 0u || name.rfind("fixed_rate_", 0u) == 0u || name == "thread_pool_batch") {
+    return "scheduler";
+  }
+  if (name.rfind("loop_", 0u) == 0u) {
+    return "loop";
+  }
+  if (name.rfind("config_transaction_", 0u) == 0u) {
+    return "config";
+  }
+  if (name == "health_event") {
+    return "health";
+  }
+  return "runtime";
+}
+
+std::string attribute_value(const std::map<std::string, std::string>& attributes, const std::string& key) {
+  const auto found = attributes.find(key);
+  return found == attributes.end() ? std::string{} : found->second;
+}
+
+RuntimeTraceEvent make_runtime_trace_event(std::string name, std::string trace_id, std::uint64_t start_offset_ns,
+                                           std::uint64_t duration_ns, std::map<std::string, std::string> attributes) {
+  RuntimeTraceEvent event;
+  event.name = std::move(name);
+  event.trace_id = std::move(trace_id);
+  event.phase = trace_phase_for_name(event.name);
+  event.component_id = attribute_value(attributes, "component_id");
+  if (event.component_id.empty()) {
+    event.component_id = attribute_value(attributes, "source_component");
+  }
+  event.channel_id = attribute_value(attributes, "channel_id");
+  event.lane = attribute_value(attributes, "lane");
+  event.worker_id = attribute_value(attributes, "worker_id");
+  event.epoch_id = attribute_value(attributes, "epoch_id");
+  event.transaction_id = attribute_value(attributes, "transaction_id");
+  event.correlation_id = attribute_value(attributes, "correlation_id");
+  event.causation_id = attribute_value(attributes, "causation_id");
+  event.start_offset_ns = start_offset_ns;
+  event.duration_ns = duration_ns;
+  event.attributes = std::move(attributes);
+  return event;
+}
+
 void copy_trace_to_result(const TraceCollector& trace, const std::vector<HealthEvent>& health_events,
                           RuntimeRunnerResult& result) {
   const auto spans = trace.spans();
   const auto trace_epoch = earliest_trace_epoch(spans, health_events);
+  std::vector<std::pair<std::size_t, RuntimeTraceEvent>> ordered_events;
+  ordered_events.reserve(spans.size() + health_events.size());
   for (const auto& span : spans) {
-    result.trace_events.push_back(span.name);
-    result.trace.push_back(
-        RuntimeTraceEvent{span.name, span.trace_id.value(), non_negative_duration_ns(span.started_at - trace_epoch),
-                          non_negative_duration_ns(span.finished_at - span.started_at), span.attributes});
+    ordered_events.emplace_back(ordered_events.size(),
+                                make_runtime_trace_event(span.name, span.trace_id.value(),
+                                                         non_negative_duration_ns(span.started_at - trace_epoch),
+                                                         non_negative_duration_ns(span.finished_at - span.started_at),
+                                                         span.attributes));
   }
   for (const auto& event : health_events) {
-    result.trace_events.push_back("health_event");
-    result.trace.push_back(RuntimeTraceEvent{"health_event", TraceId::generate().value(),
-                                             non_negative_duration_ns(event.observed_at - trace_epoch), 0u,
-                                             health_event_attributes(event)});
+    ordered_events.emplace_back(ordered_events.size(),
+                                make_runtime_trace_event("health_event", TraceId::generate().value(),
+                                                         non_negative_duration_ns(event.observed_at - trace_epoch), 0u,
+                                                         health_event_attributes(event)));
+  }
+  std::stable_sort(ordered_events.begin(), ordered_events.end(), [](const auto& left, const auto& right) {
+    if (left.second.start_offset_ns != right.second.start_offset_ns) {
+      return left.second.start_offset_ns < right.second.start_offset_ns;
+    }
+    return left.first < right.first;
+  });
+  for (auto& [order, event] : ordered_events) {
+    (void)order;
+    result.trace_events.push_back(event.name);
+    result.trace.push_back(std::move(event));
   }
   result.trace_event_count = result.trace_events.size();
 }

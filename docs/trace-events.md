@@ -1,6 +1,6 @@
 # Trace Events
 
-TopoExec trace events are in-memory runtime spans copied into `RuntimeRunnerResult::trace`. The legacy `trace_events` array remains a compatibility list of event names, but new integrations should use the structured `trace` array.
+TopoExec trace events are in-memory runtime spans copied into `RuntimeRunnerResult::trace`. The legacy `trace_events` array remains a compatibility list of event names, but new integrations should use the structured `trace` array and `trace_schema_version` contract.
 
 Run a structured trace:
 
@@ -14,26 +14,36 @@ Run a Chrome Trace / Perfetto-compatible export:
 topoexec graph trace examples/minimal.yaml --steps 1 --format chrome > topoexec-trace.json
 ```
 
-The Chrome output uses the standard `traceEvents` array and can be opened in Chrome trace viewers or Perfetto UI.
+The Chrome output uses the standard `traceEvents` array and can be opened in Chrome trace viewers or Perfetto UI. It also carries TopoExec `trace_schema_version` so future exporters can reject incompatible mappings before interpreting tracks.
 
 ## Structured JSON Shape
 
-Each structured event has this shape:
+Structured runner/CLI JSON includes top-level `trace_schema_version`. Version `1` events have this shape:
 
 ```json
 {
   "name": "component_execute",
   "trace_id": "trace-...",
+  "phase": "component",
+  "component_id": "source",
+  "channel_id": "",
+  "lane": "main",
+  "worker_id": "",
+  "epoch_id": "1",
+  "transaction_id": "source_to_transform#1",
+  "correlation_id": "source_to_transform#1",
+  "causation_id": "source_to_transform#1",
   "start_offset_ns": 1234,
   "duration_ns": 9200,
   "attributes": {
-    "component_id": "source",
-    "lane": "main"
+    "trigger_kind": "any_input"
   }
 }
 ```
 
-`start_offset_ns` is monotonic offset from the first recorded event in that run, not wall-clock time. `duration_ns` is currently zero for point events and positive for scoped spans.
+`start_offset_ns` is a monotonic offset from the first recorded event in that run, not wall-clock time. `duration_ns` is zero for point events and positive for scoped spans. The result trace is sorted by `start_offset_ns` with stable tie preservation, so consumers can reconstruct a timeline without reordering.
+
+`phase` is a bounded category derived from the event name: `component`, `channel`, `scheduler`, `loop`, `config`, `health`, or `runtime`. The explicit `component_id`, `channel_id`, `lane`, `worker_id`, `epoch_id`, `transaction_id`, `correlation_id`, and `causation_id` fields duplicate selected attributes into a stable schema; the original `attributes` map keeps event-specific details.
 
 ## Event Names
 
@@ -99,8 +109,8 @@ The runtime includes identifiers where the event source has them:
 - Health events appear as `health_event` trace entries with bounded observer attributes such as `kind`, `source`, `channel_id`/`edge_id`, `component_id`, `lane`, `policy`, `reason`, `depth`, `capacity`, and `occurrence_count`. They are emitted for channel overflow/stale/deadline/high-watermark, task reject, and scheduler reject paths when health events are enabled.
 - Loop events include `loop_id` and loop-local `iteration`.
 
-Future adapters may add OpenTelemetry, Prometheus, or richer Perfetto metadata, but those adapters are separate from the core runtime contract.
+Chrome trace export groups events onto stable tracks by phase plus lane/component/channel identity. Future adapters may add OpenTelemetry, Prometheus, or richer Perfetto metadata, but those adapters are separate from the core runtime contract and should map from trace schema version `1` instead of depending on private runtime internals.
 
 ## Error fields
 
-Trace JSON remains event-oriented. Runtime errors are exported through runner/metrics JSON as `runtime_errors[]`, with structured phase/component/code fields that can be correlated with component trace events by component id and future trace id fields.
+Trace JSON remains event-oriented. Runtime errors are exported through runner/metrics JSON as `runtime_errors[]`, with structured phase/component/code fields that can be correlated with component trace events by component id, trace id, or correlation id when present.

@@ -15,6 +15,7 @@
 #include <map>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace topoexec {
@@ -43,12 +44,29 @@ struct RuntimeRunnerOptions {
 };
 
 struct RuntimeTraceEvent {
+  RuntimeTraceEvent() = default;
+  RuntimeTraceEvent(std::string name_value, std::string trace_id_value, std::uint64_t start_offset_ns_value,
+                    std::uint64_t duration_ns_value, std::map<std::string, std::string> attributes_value)
+      : name(std::move(name_value)), trace_id(std::move(trace_id_value)), start_offset_ns(start_offset_ns_value),
+        duration_ns(duration_ns_value), attributes(std::move(attributes_value)) {}
+
   std::string name;
   std::string trace_id;
+  std::string phase;
+  std::string component_id;
+  std::string channel_id;
+  std::string lane;
+  std::string worker_id;
+  std::string epoch_id;
+  std::string transaction_id;
+  std::string correlation_id;
+  std::string causation_id;
   std::uint64_t start_offset_ns{0};
   std::uint64_t duration_ns{0};
   std::map<std::string, std::string> attributes;
 };
+
+inline constexpr const char* kRuntimeTraceSchemaVersion = "1";
 
 struct RuntimeError {
   std::string phase;

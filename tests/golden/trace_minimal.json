@@ -7,10 +7,59 @@
       "attributes": {
         "iteration": "1"
       },
+      "causation_id": "",
+      "channel_id": "",
+      "component_id": "",
+      "correlation_id": "",
       "duration_ns": 0,
-      "name": "scheduler_iteration_begin",
+      "epoch_id": "",
+      "lane": "",
+      "name": "scheduler_iteration",
+      "phase": "scheduler",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "",
+      "worker_id": ""
+    },
+    {
+      "attributes": {
+        "iteration": "1"
+      },
+      "causation_id": "",
+      "channel_id": "",
+      "component_id": "",
+      "correlation_id": "",
+      "duration_ns": 0,
+      "epoch_id": "",
+      "lane": "",
+      "name": "scheduler_iteration_begin",
+      "phase": "scheduler",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>",
+      "transaction_id": "",
+      "worker_id": ""
+    },
+    {
+      "attributes": {
+        "component_id": "source",
+        "epoch_id": "1",
+        "lane": "main",
+        "trigger": "8",
+        "trigger_kind": "manual"
+      },
+      "causation_id": "",
+      "channel_id": "",
+      "component_id": "source",
+      "correlation_id": "",
+      "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "main",
+      "name": "component_execute",
+      "phase": "component",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>",
+      "transaction_id": "",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -19,10 +68,19 @@
         "lane": "main",
         "trigger_kind": "manual"
       },
+      "causation_id": "",
+      "channel_id": "",
+      "component_id": "source",
+      "correlation_id": "",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "main",
       "name": "component_execute_begin",
+      "phase": "component",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -34,23 +92,19 @@
         "target_component": "transform",
         "trigger_kind": "manual"
       },
+      "causation_id": "",
+      "channel_id": "source_to_transform",
+      "component_id": "source",
+      "correlation_id": "",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "",
       "name": "channel_publish",
+      "phase": "channel",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
-    },
-    {
-      "attributes": {
-        "component_id": "source",
-        "epoch_id": "1",
-        "lane": "main",
-        "trigger": "8",
-        "trigger_kind": "manual"
-      },
-      "duration_ns": 0,
-      "name": "component_execute",
-      "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -59,10 +113,19 @@
         "lane": "main",
         "trigger_kind": "manual"
       },
+      "causation_id": "",
+      "channel_id": "",
+      "component_id": "source",
+      "correlation_id": "",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "main",
       "name": "component_execute_end",
+      "phase": "component",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -73,10 +136,46 @@
         "source_port": "out",
         "trigger_kind": "manual"
       },
+      "causation_id": "",
+      "channel_id": "source_to_transform",
+      "component_id": "source",
+      "correlation_id": "",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "",
       "name": "channel_commit",
+      "phase": "channel",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "",
+      "worker_id": ""
+    },
+    {
+      "attributes": {
+        "causation_id": "source_to_transform#1",
+        "component_id": "transform",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
+        "lane": "main",
+        "source_component": "source",
+        "source_port": "out",
+        "transaction_id": "source_to_transform#1",
+        "trigger": "3",
+        "trigger_kind": "any_input"
+      },
+      "causation_id": "source_to_transform#1",
+      "channel_id": "",
+      "component_id": "transform",
+      "correlation_id": "source_to_transform#1",
+      "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "main",
+      "name": "component_execute",
+      "phase": "component",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>",
+      "transaction_id": "source_to_transform#1",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -90,10 +189,19 @@
         "transaction_id": "source_to_transform#1",
         "trigger_kind": "any_input"
       },
+      "causation_id": "source_to_transform#1",
+      "channel_id": "",
+      "component_id": "transform",
+      "correlation_id": "source_to_transform#1",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "main",
       "name": "component_execute_begin",
+      "phase": "component",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "source_to_transform#1",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -108,28 +216,19 @@
         "transaction_id": "source_to_transform#1",
         "trigger_kind": "any_input"
       },
+      "causation_id": "source_to_transform#1",
+      "channel_id": "transform_to_sink",
+      "component_id": "transform",
+      "correlation_id": "source_to_transform#1",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "",
       "name": "channel_publish",
+      "phase": "channel",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
-    },
-    {
-      "attributes": {
-        "causation_id": "source_to_transform#1",
-        "component_id": "transform",
-        "correlation_id": "source_to_transform#1",
-        "epoch_id": "1",
-        "lane": "main",
-        "source_component": "source",
-        "source_port": "out",
-        "transaction_id": "source_to_transform#1",
-        "trigger": "3",
-        "trigger_kind": "any_input"
-      },
-      "duration_ns": 0,
-      "name": "component_execute",
-      "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "source_to_transform#1",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -143,10 +242,19 @@
         "transaction_id": "source_to_transform#1",
         "trigger_kind": "any_input"
       },
+      "causation_id": "source_to_transform#1",
+      "channel_id": "",
+      "component_id": "transform",
+      "correlation_id": "source_to_transform#1",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "main",
       "name": "component_execute_end",
+      "phase": "component",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "source_to_transform#1",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -160,27 +268,19 @@
         "transaction_id": "source_to_transform#1",
         "trigger_kind": "any_input"
       },
+      "causation_id": "source_to_transform#1",
+      "channel_id": "transform_to_sink",
+      "component_id": "transform",
+      "correlation_id": "source_to_transform#1",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "",
       "name": "channel_commit",
+      "phase": "channel",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
-    },
-    {
-      "attributes": {
-        "causation_id": "transform_to_sink#1",
-        "component_id": "sink",
-        "correlation_id": "source_to_transform#1",
-        "epoch_id": "1",
-        "lane": "main",
-        "source_component": "transform",
-        "source_port": "out",
-        "transaction_id": "source_to_transform#1",
-        "trigger_kind": "any_input"
-      },
-      "duration_ns": 0,
-      "name": "component_execute_begin",
-      "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "source_to_transform#1",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -195,10 +295,19 @@
         "trigger": "3",
         "trigger_kind": "any_input"
       },
+      "causation_id": "transform_to_sink#1",
+      "channel_id": "",
+      "component_id": "sink",
+      "correlation_id": "source_to_transform#1",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "main",
       "name": "component_execute",
+      "phase": "component",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "source_to_transform#1",
+      "worker_id": ""
     },
     {
       "attributes": {
@@ -212,47 +321,83 @@
         "transaction_id": "source_to_transform#1",
         "trigger_kind": "any_input"
       },
+      "causation_id": "transform_to_sink#1",
+      "channel_id": "",
+      "component_id": "sink",
+      "correlation_id": "source_to_transform#1",
       "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "main",
+      "name": "component_execute_begin",
+      "phase": "component",
+      "start_offset_ns": 0,
+      "trace_id": "<volatile>",
+      "transaction_id": "source_to_transform#1",
+      "worker_id": ""
+    },
+    {
+      "attributes": {
+        "causation_id": "transform_to_sink#1",
+        "component_id": "sink",
+        "correlation_id": "source_to_transform#1",
+        "epoch_id": "1",
+        "lane": "main",
+        "source_component": "transform",
+        "source_port": "out",
+        "transaction_id": "source_to_transform#1",
+        "trigger_kind": "any_input"
+      },
+      "causation_id": "transform_to_sink#1",
+      "channel_id": "",
+      "component_id": "sink",
+      "correlation_id": "source_to_transform#1",
+      "duration_ns": 0,
+      "epoch_id": "1",
+      "lane": "main",
       "name": "component_execute_end",
+      "phase": "component",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "source_to_transform#1",
+      "worker_id": ""
     },
     {
       "attributes": {
         "iteration": "1"
       },
+      "causation_id": "",
+      "channel_id": "",
+      "component_id": "",
+      "correlation_id": "",
       "duration_ns": 0,
-      "name": "scheduler_iteration",
-      "start_offset_ns": 0,
-      "trace_id": "<volatile>"
-    },
-    {
-      "attributes": {
-        "iteration": "1"
-      },
-      "duration_ns": 0,
+      "epoch_id": "",
+      "lane": "",
       "name": "scheduler_iteration_end",
+      "phase": "scheduler",
       "start_offset_ns": 0,
-      "trace_id": "<volatile>"
+      "trace_id": "<volatile>",
+      "transaction_id": "",
+      "worker_id": ""
     }
   ],
   "trace_event_count": 16,
   "trace_events": [
-    "scheduler_iteration_begin",
-    "component_execute_begin",
-    "channel_publish",
-    "component_execute",
-    "component_execute_end",
-    "channel_commit",
-    "component_execute_begin",
-    "channel_publish",
-    "component_execute",
-    "component_execute_end",
-    "channel_commit",
-    "component_execute_begin",
-    "component_execute",
-    "component_execute_end",
     "scheduler_iteration",
+    "scheduler_iteration_begin",
+    "component_execute",
+    "component_execute_begin",
+    "channel_publish",
+    "component_execute_end",
+    "channel_commit",
+    "component_execute",
+    "component_execute_begin",
+    "channel_publish",
+    "component_execute_end",
+    "channel_commit",
+    "component_execute",
+    "component_execute_begin",
+    "component_execute_end",
     "scheduler_iteration_end"
-  ]
+  ],
+  "trace_schema_version": "1"
 }

@@ -23,7 +23,9 @@ without CLI or YAML.
 
 `graph metrics --format json` includes `metric_schema_version` so scripts and
 future exporter adapters can verify the descriptor/cardinality contract they are
-mapping.
+mapping. `graph trace --format json` and `graph trace --format chrome` include
+`trace_schema_version` so trace consumers can verify the timeline/causality
+contract before mapping spans or tracks.
 
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --schema-only --format json -->
 <!-- topoexec-doc-test: ${TOPOEXEC} graph validate ${SOURCE_DIR}/examples/minimal.yaml --semantic --format json -->
@@ -52,8 +54,9 @@ runtime contract as `semantic_contract_version` alongside the graph
 
 - Text output is intended for humans and smoke tests.
 - JSON output is intended for scripts and golden tests.
-- Chrome trace output is compatible with Perfetto/Chrome trace viewers but does
-  not require an external Perfetto adapter.
+- Chrome trace output is compatible with Perfetto/Chrome trace viewers, carries
+  `trace_schema_version`, and groups events by stable phase/lane/component/channel
+  tracks without requiring an external Perfetto adapter.
 - Bench output is for local regression comparison only; do not compare absolute
   performance across machines without a controlled benchmark setup.
 

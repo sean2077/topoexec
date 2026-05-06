@@ -58,7 +58,7 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
 | `topoexec/common/metrics.hpp` | Small metrics registry/value helpers; runtime metric schema descriptors live in `topoexec/runtime/metric_schema.hpp`. |
 | `topoexec/common/logging.hpp` | Structured logging helper; adapter/exporter boundary is not stable yet. |
-| `topoexec/common/trace.hpp` | Trace collection helper; timeline/exporter mapping remains future work. |
+| `topoexec/common/trace.hpp` | Trace collection helper used by the runtime; public timeline fields are exposed through `RuntimeTraceEvent`. |
 
 No installed header is intentionally `internal-use-only`. If future work needs internal-only declarations, place them outside `include/` or stop installing them.
 
@@ -76,6 +76,7 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `RuntimeRunner::run()`, `RuntimeRunnerOptions`, and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, observer registration, trace vectors, metric vectors, health event vectors, and error fields should keep meanings. |
 | `RuntimeObserver`, `ResultSink`, `MetricSink`, `TraceSink`, `NoopRuntimeObserver`, `InMemoryRuntimeObserver` | stable-v0.2 | Observer callbacks are best-effort result/metric/trace/health/error delivery for adapters. Callback failures are reported as observer diagnostics, not runtime semantic failures. |
 | `RuntimeMetricDescriptor`, `runtime_metric_descriptors()`, `validate_runtime_metric_samples()` | stable-v0.2 | Metric names, kind/unit metadata, allowed labels, and descriptor schema version are the exporter-safe contract. Add names rather than changing meanings. |
+| `RuntimeTraceEvent` and `kRuntimeTraceSchemaVersion` | stable-v0.2 | Trace schema version `1` events expose ordered timeline fields plus phase/component/channel/lane/worker/epoch/transaction/correlation/causation identifiers. A compatibility constructor preserves the prior name/trace-id/timing/attributes shape; add fields or event names rather than changing existing meanings. |
 | `SchedulerStopSource`/`SchedulerStopToken` | stable-v0.2 through runner options | Direct scheduler registry/metrics internals remain experimental. |
 | `ComponentStateSnapshot`, reset/snapshot/restore runner options/results | experimental | Stateful lifecycle support is start/end-boundary only; pause/resume policy and hot live control may change before beta. |
 | `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | State snapshots and config transactions are epoch-boundary, observable APIs; transaction metadata and immediate-update escape hatches may be reshaped before beta. |
@@ -113,7 +114,7 @@ Additive optional fields with documented defaults can remain in schema v1.
 
 CLI JSON fields are part of the user-facing tooling contract even though the CLI implementation is not an embedder API.
 
-- Stable commands: `plan`, `metrics`, `trace`, `schema dump`, `schema check`, `doctor`, and `diff-plan` should keep existing field names and JSON value types within a minor release.
+- Stable commands: `plan`, `metrics`, `trace`, `schema dump`, `schema check`, `doctor`, and `diff-plan` should keep existing field names and JSON value types within a minor release. `metrics` and `trace` JSON include explicit schema-version fields for exporter compatibility.
 - `bench` JSON is machine-readable but still experimental; add fields instead of changing existing field meanings where practical.
 - New fields are allowed. Removing or renaming fields requires a changelog note and, when schema-related, a versioning note.
 - Human-readable text output is allowed to evolve more freely than JSON.

@@ -290,6 +290,13 @@ bool has_trace_event_attribute_key(const topoexec::RuntimeRunnerResult& result, 
   });
 }
 
+const topoexec::RuntimeTraceEvent* first_trace_event(const topoexec::RuntimeRunnerResult& result,
+                                                     const std::string& name) {
+  const auto found =
+      std::find_if(result.trace.begin(), result.trace.end(), [&](const auto& event) { return event.name == name; });
+  return found == result.trace.end() ? nullptr : &*found;
+}
+
 class FailingRuntimeObserver : public topoexec::RuntimeObserver {
 public:
   topoexec::Status on_metric(const topoexec::RuntimeMetricSample&) override {
@@ -1880,6 +1887,60 @@ TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {
   EXPECT_TRUE(has_metric(result, "runtime.trace.event_count"));
   EXPECT_NE(std::find(result.ticked_components.begin(), result.ticked_components.end(), "sink"),
             result.ticked_components.end());
+}
+
+TEST(Runtime, TraceSchemaAddsTimelineAndCausalityFields) {
+  EXPECT_EQ(std::string(topoexec::kRuntimeTraceSchemaVersion), "1");
+  const auto reg = delay_registry();
+  const auto spec = delay_visibility_graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  const auto execute =
+      std::find_if(result.trace.begin(), result.trace.end(), [](const topoexec::RuntimeTraceEvent& event) {
+        return event.name == "component_execute" && event.component_id == "publisher";
+      });
+  ASSERT_NE(execute, result.trace.end());
+  EXPECT_EQ(execute->phase, "component");
+  EXPECT_EQ(execute->lane, "main");
+  EXPECT_FALSE(execute->correlation_id.empty());
+  EXPECT_EQ(execute->causation_id, "source_publisher#1");
+
+  const auto* publish = first_trace_event(result, "channel_publish");
+  ASSERT_NE(publish, nullptr);
+  EXPECT_EQ(publish->phase, "channel");
+  EXPECT_EQ(publish->channel_id, "source_publisher");
+  EXPECT_EQ(publish->component_id, "source");
+}
+
+TEST(Runtime, TraceEventsAreOrderedAndDurationsAreLegal) {
+  const auto reg = registry();
+  const auto spec = graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_FALSE(result.trace.empty());
+  std::uint64_t previous_offset = 0;
+  for (const auto& event : result.trace) {
+    EXPECT_GE(event.start_offset_ns, previous_offset);
+    previous_offset = event.start_offset_ns;
+    EXPECT_FALSE(event.phase.empty());
+    EXPECT_FALSE(event.trace_id.empty());
+  }
+  const auto* execute = first_trace_event(result, "component_execute");
+  ASSERT_NE(execute, nullptr);
+  EXPECT_GT(execute->duration_ns, 0u);
 }
 
 TEST(Runtime, InMemoryObserverReceivesResultMetricTraceAndError) {

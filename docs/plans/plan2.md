@@ -1303,6 +1303,8 @@ Priority: P1
 - Trace can explain latency path through graph.
 - External Perfetto adapter can be built later without changing runtime events.
 
+Implementation note: the G48 pass adds trace schema version `1`, ordered `RuntimeTraceEvent` timeline fields, explicit phase/component/channel/lane/worker/epoch/transaction/correlation/causation identifiers, stable Chrome trace phase tracks, golden coverage, and runtime tests for ordering, legal durations, and causality fields. Optional `trace --component`/`--lane` filtering remains deferred because it is not required for the core runtime/exporter boundary.
+
 ---
 
 ## G49. Diagnostics v2: More Actionable Graph Errors

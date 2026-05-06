@@ -82,6 +82,16 @@ controller --immediate--> estimator
 
 Without a matching `composite_loops[]` entry, this graph is invalid. With `components: [estimator, controller]` and a `loop_policy`, the compiler condenses the SCC into one CompositeLoop region and the runtime executes that region through the loop owner.
 
+## Runtime Trace Timeline
+
+`RuntimeRunnerResult::trace` is an ordered timeline using trace schema version
+`1`. Each `RuntimeTraceEvent` includes bounded phase and identity fields
+(`component_id`, `channel_id`, `lane`, `worker_id`, `epoch_id`,
+`transaction_id`, `correlation_id`, and `causation_id`) in addition to
+event-specific attributes. The legacy `trace_events` vector remains a name-only
+compatibility list derived from the same ordered events. Metrics/trace remain
+observer output only and do not feed back into scheduling.
+
 ## Runtime Error Propagation
 
 Runtime execution reports failures in two compatible forms:

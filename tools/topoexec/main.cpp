@@ -357,6 +357,15 @@ nlohmann::json runtime_trace_json(const topoexec::RuntimeRunnerResult& result) {
   for (const auto& event : result.trace) {
     events.push_back({{"name", event.name},
                       {"trace_id", event.trace_id},
+                      {"phase", event.phase},
+                      {"component_id", event.component_id},
+                      {"channel_id", event.channel_id},
+                      {"lane", event.lane},
+                      {"worker_id", event.worker_id},
+                      {"epoch_id", event.epoch_id},
+                      {"transaction_id", event.transaction_id},
+                      {"correlation_id", event.correlation_id},
+                      {"causation_id", event.causation_id},
                       {"start_offset_ns", event.start_offset_ns},
                       {"duration_ns", event.duration_ns},
                       {"attributes", event.attributes}});
@@ -400,6 +409,24 @@ nlohmann::json runtime_health_events_json(const topoexec::RuntimeRunnerResult& r
 
 nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result) {
   nlohmann::json events = nlohmann::json::array();
+  std::map<std::string, std::size_t> track_ids;
+  auto track_id_for = [&](const topoexec::RuntimeTraceEvent& event) {
+    auto key = event.phase;
+    if (event.phase == "channel" && !event.channel_id.empty()) {
+      key += ":channel:" + event.channel_id;
+    } else if (!event.lane.empty()) {
+      key += ":lane:" + event.lane;
+    } else if (!event.component_id.empty()) {
+      key += ":component:" + event.component_id;
+    } else if (!event.channel_id.empty()) {
+      key += ":channel:" + event.channel_id;
+    } else {
+      key += ":runtime";
+    }
+    auto [found, inserted] = track_ids.emplace(std::move(key), track_ids.size());
+    (void)inserted;
+    return found->second;
+  };
   for (const auto& event : result.trace) {
     nlohmann::json chrome_event;
     chrome_event["name"] = event.name;
@@ -408,12 +435,18 @@ nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result) {
     chrome_event["ts"] = static_cast<double>(event.start_offset_ns) / 1000.0;
     chrome_event["dur"] = static_cast<double>(event.duration_ns) / 1000.0;
     chrome_event["pid"] = 1;
-    chrome_event["tid"] = 0;
+    chrome_event["tid"] = track_id_for(event);
     chrome_event["args"] = event.attributes;
     chrome_event["args"]["trace_id"] = event.trace_id;
+    chrome_event["args"]["phase"] = event.phase;
+    chrome_event["args"]["component_id"] = event.component_id;
+    chrome_event["args"]["channel_id"] = event.channel_id;
+    chrome_event["args"]["lane"] = event.lane;
     events.push_back(std::move(chrome_event));
   }
-  return {{"traceEvents", events}, {"displayTimeUnit", "ns"}};
+  return {{"traceEvents", events},
+          {"displayTimeUnit", "ns"},
+          {"trace_schema_version", topoexec::kRuntimeTraceSchemaVersion}};
 }
 
 nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
@@ -442,6 +475,7 @@ nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
           {"health_event_coalesced_count", result.health_event_coalesced_count},
           {"health_events", runtime_health_events_json(result)},
           {"trace_event_count", result.trace_event_count},
+          {"trace_schema_version", topoexec::kRuntimeTraceSchemaVersion},
           {"trace_events", result.trace_events},
           {"trace", runtime_trace_json(result)},
           {"loop_iteration_count", result.loop_iteration_count},
@@ -499,6 +533,7 @@ int print_trace_result(const topoexec::RuntimeRunnerResult& result, const std::s
     value["errors"] = result.errors;
     value["graph_name"] = result.graph_name;
     value["trace_event_count"] = result.trace_event_count;
+    value["trace_schema_version"] = topoexec::kRuntimeTraceSchemaVersion;
     value["trace_events"] = result.trace_events;
     value["trace"] = runtime_trace_json(result);
     std::cout << value.dump(2) << "\n";
