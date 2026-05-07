@@ -10,8 +10,8 @@ release-prep evidence, or git history.
 
 | Area | State |
 | --- | --- |
-| Historical goal sweeps | G0-G25 and G26-G70 are complete. |
-| Active implementation goal | None. Next-stage ultragoal G75-G85 and G99 final validation are complete. |
+| Historical goal sweeps | G0-G25, G26-G70, G71, and G73-G95 are complete. |
+| Active implementation goal | None. Next-stage ultragoal G75-G85 and trust-trial maintainability ultragoal G86-G95 plus G99 final validation are complete. |
 | Required repository gate | `scripts/agent_check.sh` before declaring repo changes complete. |
 | Focused docs gate | `scripts/goal_check.sh docs`. |
 | Focused live gates | `scripts/goal_check.sh live` and `scripts/goal_check.sh live-perf`. |
@@ -138,17 +138,42 @@ release-prep evidence, or git history.
 | Validation | `./scripts/goal_check.sh v1`, `./scripts/goal_check.sh docs`, and `git diff --check` passed on 2026-05-07. |
 | Blocker protocol | Active deferral, not an implementation blocker: v1.0 remains blocked on post-beta adoption evidence, G81/G82/G83 decisions, package-publication decision or source/archive-only statement, and owner acceptance of stable surfaces plus runtime limitations. |
 
+## Completed Goal Range: G86-G95-trust-trial-maintainability
+
+| Field | Value |
+| --- | --- |
+| Priority | P0/P1 mixed |
+| Status | complete |
+| Scope | Code-body maintainability sweeps only: audit and harden runtime/CLI/schema/YAML/package/public-doc surfaces, fix high-confidence bugs, add focused regression coverage, and make low-risk performance improvements without adding large tooling, ecosystem adapters, schema v2, or production-readiness claims. |
+| Allowed files | Core runtime sources, CLI/YAML loader sources, tests/goldens, validation scripts, examples/public docs, CHANGELOG, and goal ledgers. |
+| Acceptance | G86-G95 are checkpointed complete; confirmed issues have regression evidence; `topoexec doctor` graph inventory matches recursive graph YAML discovery; CLI/parser error paths are covered; channel queue drain avoids unnecessary copies without semantic change; public examples avoid internal goal-number wording; no new dependency, adapter, schema-v2, registry, or production claim is introduced. |
+| Validation | Per-goal logs live under `.omx/ultragoal/evidence/g86-*.log` through `g95-*.log`; final G99 validation reruns `./scripts/agent_check.sh`, focused docs/golden/schema/examples/showcase/package/policy/live/bench/live-perf/stress/fuzz/sanitizer gates, `git diff --check`, and `omx ultragoal status` on 2026-05-07. |
+| Blocker protocol | No new product/API blocker. Deferred ecosystem, package-publication, schema-v2, v1.0, and hard-real-time decisions remain governed by the existing G81/G82/G83/v1 deferrals. |
+
+| Goal | Outcome | Evidence |
+| --- | --- | --- |
+| G86 | Whole-project sweep fixed stale doctor YAML graph inventory and updated golden output. | `.omx/ultragoal/evidence/g86-agent-check-after-format.log`. |
+| G87 | Runtime correctness sweep found no additional confirmed semantic defect beyond already covered contracts. | `.omx/ultragoal/evidence/g87-runtime-correctness.log`. |
+| G88 | Concurrency/lifetime/sanitizer sweep found no reproduced ownership or sanitizer defect. | `.omx/ultragoal/evidence/g88-concurrency-lifetime-sanitizer.log`. |
+| G89 | CLI/schema/YAML error-path hardening added malformed-input and invalid-option regression coverage. | `.omx/ultragoal/evidence/g89-cli-schema-yaml-error.log`. |
+| G90 | Performance sweep moved drained channel queue messages into input batches without copying. | `.omx/ultragoal/evidence/g90-after.log`. |
+| G91 | Coverage gap closure reused the new doctor golden and parser/error-path tests across focused gates. | `.omx/ultragoal/evidence/g91-test-coverage-gap-closure.log`. |
+| G92 | API/package hardening revalidated package, policy, and golden surfaces without boundary changes. | `.omx/ultragoal/evidence/g92-api-package-hardening.log`. |
+| G93 | Reliability farming ran fuzz, stress, sanitizer, and diff checks with no crash/sanitizer reproduction. | `.omx/ultragoal/evidence/g93-reliability-farming.log`. |
+| G94 | Public consistency sweep removed internal goal-number wording from user-facing examples and rechecked license/tag/docs/showcase consistency. | `.omx/ultragoal/evidence/g94-public-consistency.log`. |
+| G95 | Release-candidate stabilization passed release/package/policy/docs/golden/schema/full-agent gates with pre-production honesty intact. | `.omx/ultragoal/evidence/g95-release-candidate-stabilization.log`. |
+
 ## Completed Goal: G99-final-validation-ultragoal-evidence
 
 | Field | Value |
 | --- | --- |
 | Priority | P0 validation |
 | Status | complete |
-| Scope | Final validation and durable evidence for the next-stage ultragoal: required full repository gate, focused goal gates, sanitizer/stress/fuzz/bench/live coverage, diff whitespace check, ultragoal status reconciliation, CHANGELOG, and goal ledgers. |
+| Scope | Final validation and durable evidence for both next-stage G75-G85 and trust-trial maintainability G86-G95 ultragoals: required full repository gate, focused goal gates, sanitizer/stress/fuzz/bench/live coverage, diff whitespace check, ultragoal status reconciliation, CHANGELOG, and goal ledgers. |
 | Allowed files | `.omx/ultragoal/`, `CHANGELOG.md`, `docs/31-planning-roadmap/goals/backlog.md`, and `docs/31-planning-roadmap/goals/status.md`. |
-| Acceptance | All next-stage executable goals are checkpointed complete; no pending implementation goal remains; required repository gate and focused checks pass on the final tree; validation gaps are recorded instead of hidden. |
-| Validation | `.omx/ultragoal/evidence/g99-final-validation.log` records passing `./scripts/agent_check.sh`, focused `docs`, `golden`, `package`, `release`, `compat`, `dogfood`, `reliability`, `adoption`, `ecosystem`, `conditional`, `beta`, `v1`, `examples`, `showcase`, `live`, `bench`, `stress`, `fuzz`, sanitizer, `git diff --check`, and `omx ultragoal status` checks on 2026-05-07. A final post-ledger `./scripts/agent_check.sh`, `./scripts/goal_check.sh docs`, and `git diff --check` also passed. |
-| Blocker protocol | No G99 blocker. Remaining blockers are intentional product/release-owner decisions for G81/G82/G83, package publication, schema v2, and v1.0 readiness. |
+| Acceptance | All executable goals through G95 plus G99 are checkpointed complete; no pending implementation goal remains; required repository gate and focused checks pass on the final tree; validation gaps are recorded instead of hidden. |
+| Validation | `.omx/ultragoal/evidence/g99-final-validation.log` records passing `./scripts/agent_check.sh`, focused `docs`, `golden`, `schema`, `examples`, `showcase`, `package`, `policy`, `live`, `bench`, `live-perf`, `stress`, `fuzz`, sanitizer, `git diff --check`, and `omx ultragoal status` checks on 2026-05-07. |
+| Blocker protocol | No G99 blocker. Remaining blockers are intentional product/release-owner decisions for G81/G82/G83, package publication, schema v2, v1.0 readiness, hard-real-time scope, and production ecosystem surfaces. |
 
 ## Completed Goal: G74-examples-showcase-and-readme-refresh
 
@@ -415,6 +440,8 @@ Doxygen, Pages, and release-ledger changes.
 | G35-G45 | Completed trigger, metadata, channel, payload, graph compiler, hierarchy, templates, lifecycle, config, and CompositeLoop work. | User guides, architecture docs, schema docs, runtime tests, graph tests, and goldens. |
 | G46-G54 | Completed observer, metric, trace, diagnostic, defensive-input, fuzz, stress, benchmark, and packaging surfaces. | Schema/protocol docs, testing docs, package docs, release docs, and focused goal checks. |
 | G55-G70 | Completed docs system, examples, adapter/FFI/Python/plugin previews, schema-v2 boundary, editor/schema UX, architecture policy, release automation, community readiness, robot-cell pilot, and beta-readiness review. | Docs tree, examples, integration docs, release docs, policy checks, and beta review. |
+| G71/G73-G85 | Completed post-alpha hardening, live observe, examples/showcase, release/adoption, dogfood, compatibility, package, reliability, adoption, ecosystem deferral, beta-readiness, and v1 deferral work. | Goal sections above, docs tree, focused gates, and `.omx/ultragoal/evidence/`. |
+| G86-G95 | Completed trust-trial maintainability sweeps over runtime correctness, concurrency/lifetime, CLI/schema/YAML error paths, performance, coverage, package/API, reliability farming, public consistency, and release-candidate stabilization. | G86-G95 section above, CHANGELOG, focused gates, and `.omx/ultragoal/evidence/`. |
 
 ## Deferred Scope
 

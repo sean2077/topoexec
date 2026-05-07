@@ -56,8 +56,8 @@ error_path=invalid_config_rejected
 
 ## YAML dogfood pilot
 
-G76 adds a YAML-first synthetic dogfood pilot that exercises the same release
-adoption story through the public CLI and examples metadata pipeline:
+The YAML-first synthetic dogfood pilot exercises the same release/adoption
+story through the public CLI and examples metadata pipeline:
 
 ```bash
 ./build/topoexec graph validate examples/90-dogfood-pilot/dogfood_robot_cell.yaml

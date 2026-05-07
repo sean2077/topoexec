@@ -1,6 +1,6 @@
 # Synthetic Robot-Cell Dogfood Pilot
 
-This G76 example is a deterministic, dependency-free pilot for release/adoption
+This example is a deterministic, dependency-free pilot for release/adoption
 validation. It is inspired by a robot-cell inspection/control slice, but it is
 not connected to hardware, ROS 2, camera SDKs, ML runtimes, production telemetry
 exporters, or hard-real-time scheduling.

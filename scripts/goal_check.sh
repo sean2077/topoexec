@@ -69,7 +69,7 @@ case "$MODE" in
     ;;
   schema)
     configure_build
-    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'schema_v1_contract_smoke|cli_validate_schema_only_minimal|cli_validate_semantic_minimal'
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'schema_v1_contract_smoke|cli_validate_schema_only_minimal|cli_validate_semantic_minimal|cli_validate_input_limit_override_fails_safely'
     ;;
   package)
     configure_build

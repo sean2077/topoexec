@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iterator>
 #include <stdexcept>
 #include <utility>
 
@@ -484,7 +485,7 @@ std::vector<RuntimeChannelMessage> RuntimeChannelBus::consume_for_component(cons
       }
     } else {
       auto drained = consume_from_state(state, component_id);
-      messages.insert(messages.end(), drained.begin(), drained.end());
+      messages.insert(messages.end(), std::make_move_iterator(drained.begin()), std::make_move_iterator(drained.end()));
     }
   }
   return messages;

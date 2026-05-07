@@ -571,32 +571,38 @@ std::string find_schema_path() {
   return {};
 }
 
-std::vector<std::string> existing_yaml_files(const std::string& directory) {
-  std::vector<std::string> values;
-  const std::vector<std::string> names = {
-      directory + "/minimal.yaml",
-      directory + "/control_feedback_delay.yaml",
-      directory + "/composite_loop.yaml",
-      directory + "/large_payload_copy.yaml",
-      directory + "/diagnostic_warnings.yaml",
-      directory + "/single_component.yaml",
-      directory + "/immediate_chain.yaml",
-      directory + "/fan_out.yaml",
-      directory + "/fan_in.yaml",
-      directory + "/latest_vs_queue.yaml",
-      directory + "/deferred_edges.yaml",
-      directory + "/thread_pool.yaml",
-      directory + "/composite_loop_iterations.yaml",
-      directory + "/payload_policies.yaml",
-      directory + "/channel_modes.yaml",
-      directory + "/trigger_policies.yaml",
-  };
-  for (const auto& name : names) {
-    std::ifstream input(name);
-    if (input) {
-      values.push_back(name);
+bool yaml_file_has_graph_schema(const std::filesystem::path& path) {
+  std::ifstream input(path);
+  std::string line;
+  while (std::getline(input, line)) {
+    if (line.find("assertion_schema_version:") != std::string::npos) {
+      return false;
+    }
+    if (line.find("schema_version:") != std::string::npos) {
+      return true;
     }
   }
+  return false;
+}
+
+std::vector<std::string> existing_yaml_files(const std::string& directory) {
+  std::vector<std::string> values;
+  std::error_code error;
+  if (!std::filesystem::exists(directory, error)) {
+    return values;
+  }
+  const auto options = std::filesystem::directory_options::skip_permission_denied;
+  std::filesystem::recursive_directory_iterator iterator(directory, options, error);
+  const std::filesystem::recursive_directory_iterator end;
+  while (!error && iterator != end) {
+    const auto path = iterator->path();
+    if (iterator->is_regular_file(error) && !error && (path.extension() == ".yaml" || path.extension() == ".yml") &&
+        yaml_file_has_graph_schema(path)) {
+      values.push_back(path.lexically_normal().generic_string());
+    }
+    iterator.increment(error);
+  }
+  std::sort(values.begin(), values.end());
   return values;
 }
 

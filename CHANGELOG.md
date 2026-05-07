@@ -6,6 +6,9 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Added
 
+- Added trust-trial maintainability sweep coverage for G86-G95, including
+  CLI/parser error-path regression checks and durable focused-gate evidence
+  without adding new workflow tooling or ecosystem surfaces.
 - Added G75 release/adoption readiness alignment for the `v0.2.0-alpha.0`
   candidate line: Apache-2.0 public metadata, `0.2.0` CMake/package draft
   version metadata, tracked adoption readiness notes, a tracked prerelease
@@ -197,8 +200,22 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 - Added a non-blocking GitHub Actions ThreadSanitizer job for the new concurrency surface.
 - Added concurrency docs and runtime tests for reentrant worker overlap, non-reentrant serialization, and async admission drops.
 
+### Fixed
+
+- Fixed `topoexec doctor --format json` graph inventory drift by discovering
+  schema-versioned YAML examples and benchmark graphs recursively while
+  excluding live-assertion YAML files from graph example lists.
+- Removed internal goal-number wording from user-facing example and dogfood
+  documentation so public guidance describes the examples by behavior rather
+  than maintenance-program history.
+
 ### Changed
 
+- Moved drained channel queue messages into component input batches instead
+  of copying them, preserving delivery order while reducing hot-path payload
+  churn.
+- Expanded the focused schema gate to include CLI parser-limit and
+  diagnostics error-path regression coverage.
 - Clarified `overflow: block` as alpha would-block rejection rather than true
   producer blocking; true blocking remains deferred until cancellation/deadline
   semantics are designed.

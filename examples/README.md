@@ -1,6 +1,6 @@
 # TopoExec Examples
 
-This directory contains the public example gallery for TopoExec. The G74
+This directory contains the public example gallery for TopoExec. The
 showcase path is generated from curated `example.json` metadata, while the
 legacy top-level YAML files remain in place as compatibility fixtures for
 existing tests, docs, and golden outputs.
@@ -62,8 +62,8 @@ Use `--check` on either script in CI to fail when generated content is stale.
 ## Legacy YAML and C++ apps
 
 The existing top-level YAML graphs and `apps/` C++ examples are still supported
-and continue to back tests and deeper docs. G74 showcase pages should link to
-the curated directories first, then to legacy fixtures where they explain an
+and continue to back tests and deeper docs. Showcase pages should link to the
+curated directories first, then to legacy fixtures where they explain an
 advanced or compatibility-specific contract.
 
 ## Quick smoke
