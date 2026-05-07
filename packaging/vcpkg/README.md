@@ -1,7 +1,7 @@
 # vcpkg Port Draft
 
 This folder contains a reviewable draft for a future upstream vcpkg port. It is
-not submitted to any registry yet and must not be treated as a published package.
+not submitted to any registry yet and must not be treated as a published package. The current draft manifest uses version `0.2.0` and Apache-2.0 license metadata for the `v0.2.0-alpha.0` candidate line.
 
 Files:
 

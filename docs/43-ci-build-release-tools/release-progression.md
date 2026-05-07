@@ -13,6 +13,7 @@ completed process artifacts; current release truth now lives in:
 - [`release-checklist.md`](release-checklist.md)
 - [`release-runbook.md`](release-runbook.md)
 - [`beta-readiness-review.md`](beta-readiness-review.md)
+- [`v1-readiness-program.md`](v1-readiness-program.md)
 - [`../31-planning-roadmap/goals/status.md`](../31-planning-roadmap/goals/status.md)
 - [`../31-planning-roadmap/goals/backlog.md`](../31-planning-roadmap/goals/backlog.md)
 
@@ -27,7 +28,7 @@ exact candidate commit is green.
 | `v0.2.0-alpha.0` | Recommended next prerelease candidate. | Runtime/API semantic contracts, package smokes, docs map, release automation, adapter/FFI/Python/plugin previews, robot-cell pilot, and beta-readiness audit exist. | Verify CI on exact tag commit, run the local release checklist, attach release-prep artifacts, and get human tag approval. |
 | `v0.3.0-alpha` | Possible future adapter-preview expansion. | RuntimeObserver v1 and dependency-free preview adapter mappings exist. | Add concrete production exporter/adapter targets before claiming adapter implementation readiness. |
 | `v0.5.0-beta` | Conditional core-runtime review only. | ASAN+UBSAN, fuzz smoke, bounded stress smoke, docs/examples, API/deprecation policy, release prep, community readiness, pilot app, and beta audit exist. | Human release owner must accept deferrals, run gates on the exact candidate commit, decide TSAN/soak/fuzz scope, and avoid adapter/ecosystem beta claims. |
-| `v1.0.0` | Not ready. | Core semantic direction is clear. | Stable schema/API/metric names, mature packages, adapter boundary stability, and no known MVP-only scheduler limitations. |
+| `v1.0.0` | Not ready. | Core semantic direction is clear, and [`v1-readiness-program.md`](v1-readiness-program.md) defines the deferred criteria. | post-beta adoption evidence, frozen stable surfaces, mature packages, package-publication decision, resolved/deferred G81-G83 blockers, and owner-accepted scheduler/runtime limitation policy. |
 
 ## Explicit Deferrals
 

@@ -1,0 +1,10 @@
+{
+  "channel_count": 8,
+  "channel_delivery_count": 3,
+  "channel_drop_count": 0,
+  "channel_publish_count": 3,
+  "component_count": 8,
+  "graph_name": "dogfood_robot_cell",
+  "health_event_count": 0,
+  "metric_schema_version": "1"
+}

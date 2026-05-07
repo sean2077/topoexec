@@ -1,7 +1,8 @@
 # Testing Strategy
 
 TopoExec uses a small test pyramid that favors semantic runtime coverage over
-large fixtures. The default local gate remains:
+large fixtures. The bounded reliability program is summarized in
+[Reliability, soak, and performance regression](reliability-program.md). The default local gate remains:
 
 ```bash
 ./scripts/agent_check.sh

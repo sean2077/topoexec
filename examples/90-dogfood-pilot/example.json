@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "id": "dogfood-robot-cell",
+  "title": "Synthetic robot-cell dogfood pilot",
+  "category": "Dogfood Pilot",
+  "summary": "A deterministic robot-cell-inspired pilot that composes time sync, async bounded inflight, delay feedback, state audit, metrics, trace, and live assertions.",
+  "difficulty": "advanced",
+  "graph": "dogfood_robot_cell.yaml",
+  "show_in_readme": false,
+  "readme_priority": 100,
+  "expected_exit": 0,
+  "commands": [
+    {
+      "label": "Validate",
+      "argv": ["graph", "validate", "examples/90-dogfood-pilot/dogfood_robot_cell.yaml"],
+      "expect_success": true
+    },
+    {
+      "label": "Run long smoke",
+      "argv": ["graph", "run", "examples/90-dogfood-pilot/dogfood_robot_cell.yaml", "--steps", "20"],
+      "expect_success": true
+    },
+    {
+      "label": "Metrics",
+      "argv": ["graph", "metrics", "examples/90-dogfood-pilot/dogfood_robot_cell.yaml", "--steps", "20", "--format", "json"],
+      "expect_success": true
+    },
+    {
+      "label": "Trace",
+      "argv": ["graph", "trace", "examples/90-dogfood-pilot/dogfood_robot_cell.yaml", "--steps", "20", "--format", "json"],
+      "expect_success": true
+    },
+    {
+      "label": "Observe with assertions",
+      "argv": ["graph", "observe", "examples/90-dogfood-pilot/dogfood_robot_cell.yaml", "--steps", "20", "--observe-level", "summary", "--assert", "examples/90-dogfood-pilot/assertions.yaml", "--format", "ndjson"],
+      "expect_success": true
+    },
+    {
+      "label": "Benchmark",
+      "argv": ["graph", "bench", "examples/90-dogfood-pilot/dogfood_robot_cell.yaml", "--steps", "3", "--runs", "2", "--format", "json"],
+      "expect_success": true
+    }
+  ],
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": true,
+    "generate_trace_summary": true
+  },
+  "ci": {
+    "validate": true,
+    "run": true,
+    "render": true,
+    "smoke": true
+  },
+  "related_docs": [
+    "docs/11-user-guide/case-study-robot-cell.md",
+    "docs/41-development-tools/live-runtime-validation.md",
+    "docs/43-ci-build-release-tools/adoption-readiness.md"
+  ],
+  "tags": ["dogfood", "robot-cell", "async", "live-observe", "benchmark"]
+}

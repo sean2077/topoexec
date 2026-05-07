@@ -1,7 +1,7 @@
 # Conan Recipe Draft
 
 This folder contains a reviewable draft for a future Conan recipe. It is not
-published to a Conan remote yet.
+published to a Conan remote yet. The current draft recipe uses version `0.2.0` and Apache-2.0 license metadata for the `v0.2.0-alpha.0` candidate line.
 
 Files:
 

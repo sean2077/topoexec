@@ -3,17 +3,25 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|examples|showcase|fuzz|stress|bench|live|live-perf|policy|adapters|ffi|python|plugins|release|sanitizer|format|tidy|debug]
+Usage: scripts/goal_check.sh [all|quick|compat|golden|schema|package|docs|examples|showcase|dogfood|reliability|adoption|ecosystem|conditional|beta|v1|fuzz|stress|bench|live|live-perf|policy|adapters|ffi|python|plugins|release|sanitizer|format|tidy|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
 - quick:  configure/build plus focused golden/schema checks
+- compat: stable-v0.2 header inventory, docs, CLI JSON, schema/metrics/trace/live contract checks
 - golden: normalized CLI golden output checks
 - schema: schema v1 contract smoke
-- package: install/export downstream smoke, runtime-only option smoke, CPack, and package draft checks
+- package: install/export downstream smoke, runtime-only option smoke, CPack, package matrix, and package draft checks
 - docs:   executable docs command smoke plus docs map contract
 - examples: curated example metadata, command, validate/run/render, index, and asset freshness smokes
 - showcase: README/showcase asset, link, generated-index, generated-asset, and quick-start smokes
+- dogfood: synthetic production-like pilot validate/run/metrics/trace/observe/replay/bench smoke
+- reliability: bounded reliability policy, stress/fuzz/bench CTest smokes, and soak-lite smoke
+- adoption: issue template, debug-pack, first-user path, and triage workflow checks
+- ecosystem: G81 ecosystem decision-gate and deferred-track blocker checks
+- conditional: G82x/G83 per-track blocker and entry-criteria ledger checks
+- beta: G84 core-runtime beta candidate readiness docs and release boundary checks
+- v1: G85 v1.0 readiness deferral criteria and release boundary checks
 - fuzz:   deterministic parser/compiler fuzz smoke plus optional fuzzer target corpus replay
 - stress: bounded runtime stress graph smoke plus task-executor overload stress
 - bench:  benchmark output-contract smoke plus local baseline generation without thresholds
@@ -50,6 +58,11 @@ case "$MODE" in
     configure_build
     ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'cli_golden_outputs|schema_v1_contract_smoke'
     ;;
+  compat)
+    configure_build
+    python3 tests/compat/check_compatibility_contract.py --source-dir . --topoexec "$BUILD_DIR/topoexec"
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'cli_golden_outputs|schema_v1_contract_smoke|cmake_package_runtime_smoke|cli_observe_ndjson_minimal'
+    ;;
   golden)
     configure_build
     ctest --test-dir "$BUILD_DIR" --output-on-failure -R cli_golden_outputs
@@ -60,6 +73,7 @@ case "$MODE" in
     ;;
   package)
     configure_build
+    python3 tests/package/check_package_matrix.py --source-dir .
     ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'cmake_package_runtime_smoke|cmake_runtime_only_options_smoke|cmake_cpack_smoke|package_draft_smoke'
     ;;
   docs)
@@ -75,6 +89,41 @@ case "$MODE" in
   showcase)
     configure_build
     TOPOEXEC="$BUILD_DIR/topoexec" ./scripts/check_readme_assets.sh
+    ;;
+  dogfood)
+    configure_build
+    TOPOEXEC="$BUILD_DIR/topoexec" ./scripts/dogfood_pilot_smoke.sh
+    ;;
+  reliability)
+    configure_build
+    python3 tests/reliability/check_reliability_program.py --source-dir .
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'stress_graph_smoke|fuzz_graph_input_smoke|bench_contract_smoke'
+    TOPOEXEC_BUILD_DIR="$BUILD_DIR" ./scripts/soak_lite_smoke.sh
+    ;;
+  adoption)
+    configure_build
+    python3 tests/docs/check_adoption_feedback.py --source-dir .
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'community_readiness_smoke|docs_command_smoke|cmake_package_runtime_smoke'
+    ;;
+  ecosystem)
+    configure_build
+    python3 tests/docs/check_ecosystem_gate.py --source-dir .
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'policy_.*|docs_command_smoke|package_draft_smoke'
+    ;;
+  conditional)
+    configure_build
+    python3 tests/docs/check_conditional_tracks.py --source-dir .
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'policy_.*|docs_command_smoke|schema_v1_contract_smoke'
+    ;;
+  beta)
+    configure_build
+    python3 tests/release/check_beta_candidate_readiness.py --source-dir .
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'release_prepare_smoke|docs_command_smoke|cli_golden_outputs'
+    ;;
+  v1)
+    configure_build
+    python3 tests/release/check_v1_readiness_deferral.py --source-dir .
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'release_prepare_smoke|docs_command_smoke|cli_golden_outputs'
     ;;
   fuzz)
     configure_build

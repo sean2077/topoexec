@@ -92,7 +92,27 @@ The metrics view answers "what happened," the trace view answers "when and in
 what order," and explain/lint output maps compiler/runtime semantics back to the
 graph authoring model.
 
-## 7. Next pages
+## 7. Install and consume from CMake
+
+For the external-adoption path, install into a temporary prefix and build the
+runtime-only downstream smoke:
+
+```bash
+cmake --install build --prefix /tmp/topoexec-install
+cmake -S tests/cmake/runtime_smoke -B /tmp/topoexec-runtime-smoke \
+  -DCMAKE_PREFIX_PATH=/tmp/topoexec-install
+cmake --build /tmp/topoexec-runtime-smoke -j
+/tmp/topoexec-runtime-smoke/topoexec_runtime_smoke
+```
+
+Applications should link the runtime target unless they need YAML or CLI tools:
+
+```cmake
+find_package(topoexec CONFIG REQUIRED)
+target_link_libraries(my_app PRIVATE topoexec::runtime)
+```
+
+## 8. Next pages
 
 - Learn the vocabulary in [Concepts](../10-user-overview/concepts.md).
 - Write a component with [Components](../11-user-guide/components.md).

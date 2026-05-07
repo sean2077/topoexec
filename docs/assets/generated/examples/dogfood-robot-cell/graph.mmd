@@ -1,0 +1,19 @@
+flowchart TD
+  %% graph: dogfood_robot_cell
+  camera_event["camera_event\ntopoexec.boundary.Input"]
+  force_event["force_event\ntopoexec.boundary.Input"]
+  fusion["fusion\ntopoexec.transforms.Join"]
+  estimator["estimator\ntopoexec.example.Estimator"]
+  planner_worker["planner_worker\ntopoexec.transforms.AsyncWorker"]
+  controller["controller\ntopoexec.example.Controller"]
+  actuator["actuator\ntopoexec.example.Actuator"]
+  audit_log["audit_log\ntopoexec.boundary.Output"]
+  camera_event -->|"camera_to_fusion:immediate/queue"| fusion
+  force_event -->|"force_to_fusion:immediate/queue"| fusion
+  fusion -->|"fusion_to_estimator:immediate/latest"| estimator
+  estimator -->|"estimator_to_planner:async/queue"| planner_worker
+  planner_worker -->|"planner_to_controller:immediate/latest"| controller
+  controller -->|"controller_to_actuator:immediate/latest"| actuator
+  controller -->|"controller_to_estimator_delay:delay/queue"| estimator
+  controller -->|"controller_to_audit_state:state/latest"| audit_log
+  %% region_order: camera_event,force_event,planner_worker,audit_log,fusion,controller,estimator,actuator

@@ -96,6 +96,7 @@ Start at [`examples/README.md`](examples/README.md) for the generated learning p
 | [`examples/60-testing-validation/`](examples/60-testing-validation/) | Clear validation diagnostics and golden-friendly output. |
 | [`examples/70-performance/`](examples/70-performance/) | Local benchmark smoke without cross-machine claims. |
 | [`examples/80-realistic-mini-scenario/`](examples/80-realistic-mini-scenario/) | Synthetic robot-cell-inspired mini pipeline. |
+| [`examples/90-dogfood-pilot/`](examples/90-dogfood-pilot/) | Synthetic dogfood pilot with metrics, trace, live assertions, and benchmark smoke. |
 
 ## Documentation
 
@@ -140,4 +141,4 @@ or production telemetry export.
 ## Contributing and License
 
 See [Contributing](CONTRIBUTING.md), the [code of conduct](CODE_OF_CONDUCT.md),
-and the [MIT license](LICENSE).
+and the [Apache-2.0 license](LICENSE).

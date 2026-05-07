@@ -11,12 +11,144 @@ release-prep evidence, or git history.
 | Area | State |
 | --- | --- |
 | Historical goal sweeps | G0-G25 and G26-G70 are complete. |
-| Active implementation goal | None. G74-examples-showcase-and-readme-refresh, G73-low-overhead-live-runtime-validation, and G71-post-alpha-hardening-docs-pages are complete. |
+| Active implementation goal | None. Next-stage ultragoal G75-G85 and G99 final validation are complete. |
 | Required repository gate | `scripts/agent_check.sh` before declaring repo changes complete. |
 | Focused docs gate | `scripts/goal_check.sh docs`. |
 | Focused live gates | `scripts/goal_check.sh live` and `scripts/goal_check.sh live-perf`. |
 | Focused G74 gates | `scripts/goal_check.sh examples` and `scripts/goal_check.sh showcase`. |
-| Blockers | None active. |
+| Blockers | G81/G82x/G83 ecosystem, integration, package-publication, schema-v2, and v1.0 readiness deferrals remain active until adoption signals and human owner decisions resolve them. |
+
+## Completed Goal: G75-release-adoption-readiness
+
+| Field | Value |
+| --- | --- |
+| Priority | P0 |
+| Status | complete |
+| Scope | Safe local release/adoption readiness only: public metadata consistency, Apache-2.0 license wording, `0.2.0` package/CMake metadata for the `v0.2.0-alpha.0` candidate line, release/adoption documentation, tracked prerelease notes draft, install/downstream onboarding guidance, CHANGELOG, and goal ledgers. |
+| Allowed files | `README.md`, `CMakeLists.txt`, package draft files, package/golden tests, `CHANGELOG.md`, `docs/01-quickstart/`, `docs/43-ci-build-release-tools/`, `docs/README.md`, and goal ledgers. |
+| Acceptance | README and package drafts match Apache-2.0; CMake/package draft version metadata aligns to `0.2.0`; docs explain clone/build/install/find_package/run-example/report-issue path; release notes for `v0.2.0-alpha.0` are ready for human release-owner review; no tag, publication, production-readiness, or public Pages URL claim is introduced. |
+| Validation | `./scripts/goal_check.sh docs`, `./scripts/goal_check.sh golden`, `./scripts/goal_check.sh package`, `./scripts/goal_check.sh release`, and `git diff --check` passed on 2026-05-07. |
+| Blocker protocol | No active code blocker. Human release owner must still choose the exact candidate commit, run full release gates, verify GitHub Pages deployment before advertising a public URL, and create/push any tag manually. |
+
+## Completed Goal: G76-production-like-dogfood-pilot
+
+| Field | Value |
+| --- | --- |
+| Priority | P0/P1 mixed |
+| Status | complete |
+| Scope | Synthetic production-like dogfood only: curated YAML example, live assertion file, generated example assets, benchmark graph, focused dogfood gate, README/examples index updates, case-study docs, CHANGELOG, and goal ledgers. |
+| Allowed files | `examples/90-dogfood-pilot/`, `docs/assets/generated/examples/dogfood-robot-cell/`, `benchmarks/dogfood_robot_cell.yaml`, `scripts/dogfood_pilot_smoke.sh`, `scripts/goal_check.sh`, `tests/bench/check_bench_contract.py`, README/examples/docs pages, CHANGELOG, and goal ledgers. |
+| Acceptance | The pilot validates, runs for a bounded long smoke, emits metrics/trace/Chrome trace/live observe, passes live assertions, replays recorded artifacts, and participates in benchmark contract smoke. Expected async/channel drops are visible and explained; runtime errors, assertion failures, and observer drops are not expected. The pilot remains synthetic and dependency-free. |
+| Validation | `./scripts/goal_check.sh dogfood` passed with `channel_drop_count=89`, `trace_event_count=1068`, `observe_records=834`, runtime ok, assertions ok, and zero observer drops. `./scripts/goal_check.sh examples`, `showcase`, `bench`, and `git diff --check` also passed on 2026-05-07. |
+| Blocker protocol | No active blocker. Hardware, real ROS 2, external ML runtime, production telemetry, remote dashboard/control, and hard-real-time claims remain deferred unless a future goal opens them with a product/API decision. |
+
+## Completed Goal: G77-compatibility-harness
+
+| Field | Value |
+| --- | --- |
+| Priority | P1 |
+| Status | complete |
+| Scope | Stable-v0.2 compatibility harnesses only: installed-header API marker/inventory checks, public API/versioning/deprecation docs, CLI JSON field checks for doctor/schema/metrics/trace/live observe, golden-file presence, schema/live/package smoke composition, quality-gate docs, CHANGELOG, and goal ledgers. |
+| Allowed files | `tests/compat/check_compatibility_contract.py`, `scripts/goal_check.sh`, `docs/61-api/public-api.md`, `docs/41-development-tools/quality-gates.md`, `CHANGELOG.md`, and goal ledgers. |
+| Acceptance | The focused `compat` gate proves stable-v0.2 surfaces without freezing preview/deferred APIs: installed headers stay inventoried, JSON contract fields stay present, schema v1/goldens/live observe/runtime-only package smokes compose successfully, and API change rules remain visible. |
+| Validation | `./scripts/goal_check.sh compat` passed on 2026-05-07, including `cli_golden_outputs`, `schema_v1_contract_smoke`, `cmake_package_runtime_smoke`, and `cli_observe_ndjson_minimal`; `git diff --check` passed. |
+| Blocker protocol | No active blocker. If a compatibility change would remove/rename stable-v0.2 API, schema, metric, trace, diagnostic, or CLI JSON fields, use the API change checklist and open a blocker/migration note before implementation. |
+
+## Completed Goal: G78-distribution-packaging-hardening
+
+| Field | Value |
+| --- | --- |
+| Priority | P1 |
+| Status | complete |
+| Scope | Local distribution and package hardening: package matrix docs, package matrix alignment check, package draft version/license docs, package/release gate wiring, build/package docs, docs map, CHANGELOG, and goal ledgers. |
+| Allowed files | `docs/43-ci-build-release-tools/package-matrix.md`, `docs/43-ci-build-release-tools/build-and-package.md`, `docs/README.md`, `packaging/*/README.md`, `tests/package/check_package_matrix.py`, `scripts/goal_check.sh`, CHANGELOG, and goal ledgers. |
+| Acceptance | Runtime-only, default, YAML/CLI, CPack/source archive, release-candidate, vcpkg draft, and Conan draft package forms are documented; package metadata is aligned to `0.2.0`/Apache-2.0; CMake options and package config variables are checked; registry publication remains deferred. |
+| Validation | `./scripts/goal_check.sh package` passed including package matrix check, runtime-only option smoke, downstream install smoke, CPack smoke, and package draft smoke. `./scripts/goal_check.sh release` and `git diff --check` also passed on 2026-05-07. |
+| Blocker protocol | No active blocker. Publishing to vcpkg/Conan/PyPI/system package registries requires a future human release-owner decision with exact artifacts, checksums, credentials, and clean-machine evidence. |
+
+## Completed Goal: G79-reliability-soak-perf-regression
+
+| Field | Value |
+| --- | --- |
+| Priority | P1 |
+| Status | complete |
+| Scope | Bounded reliability program only: test-tier docs, soak-lite script, reliability policy check/gate, fuzz corpus/perf/sanitizer/failure artifact conventions, testing docs map, CHANGELOG, and goal ledgers. |
+| Allowed files | `docs/24-testing/reliability-program.md`, `docs/24-testing/testing-strategy.md`, `scripts/soak_lite_smoke.sh`, `tests/reliability/check_reliability_program.py`, `scripts/goal_check.sh`, `docs/README.md`, CHANGELOG, and goal ledgers. |
+| Acceptance | Reliability tiers are explicit; soak-lite is bounded by duration, iteration, scale, steps, and timeout; benchmark thresholds remain opt-in per-machine; fuzz corpus and ASAN+UBSAN/TSAN policy are documented; failure artifacts use `/tmp/topoexec-<gate>-*`; no unbounded required gate is added. |
+| Validation | `./scripts/goal_check.sh reliability` passed, including policy check, stress/fuzz/bench CTest smokes, and soak-lite profile with 3 iterations. Focused `stress`, `fuzz`, `bench`, and `git diff --check` also passed on 2026-05-07. |
+| Blocker protocol | No active blocker. Longer soak, global perf thresholds, long fuzz campaigns, or TSAN-blocking promotion require explicit owner/release governance and environment-specific evidence. |
+
+## Completed Goal: G80-external-feedback-adoption-loop
+
+| Field | Value |
+| --- | --- |
+| Priority | P1/P2 mixed |
+| Status | complete |
+| Scope | Docs/templates/checks only: first-user path, debug-pack guidance, label taxonomy, triage states, issue-template prompts, adoption focused gate, docs map, CHANGELOG, and goal ledgers. |
+| Allowed files | `.github/ISSUE_TEMPLATE/*.md`, `docs/44-coding-standards/feedback-and-triage.md`, `tests/docs/check_adoption_feedback.py`, `scripts/goal_check.sh`, `docs/README.md`, CHANGELOG, and goal ledgers. |
+| Acceptance | Maintainers can triage early adopter reports using a documented first-user path, debug pack, labels, and states; templates ask for commit/tag, environment, commands, minimal graph/snippet, JSON/stdout/stderr, and focused gates; no production deployment, registry publication, or support SLA claim is added. |
+| Validation | `./scripts/goal_check.sh adoption` passed, including adoption feedback check, `community_readiness_smoke`, `docs_command_smoke`, and `cmake_package_runtime_smoke`. `./scripts/goal_check.sh docs` and `git diff --check` also passed on 2026-05-07. |
+| Blocker protocol | No active blocker. Real GitHub label creation, external user follow-up, support commitments, or release publication remain human maintainer/release-owner actions. |
+
+## Completed Goal: G81-ecosystem-decision-gate
+
+| Field | Value |
+| --- | --- |
+| Priority | P2 decision |
+| Status | complete |
+| Scope | Decision artifact only: compare G82a-e options, recommend a future track, record blocker/deferral, add focused check/gate, update docs map, CHANGELOG, and goal ledgers. |
+| Allowed files | `docs/31-planning-roadmap/ecosystem-decision-gate.md`, `docs/31-planning-roadmap/goals/blockers/g81-ecosystem-track-selection.md`, `tests/docs/check_ecosystem_gate.py`, `scripts/goal_check.sh`, `docs/README.md`, CHANGELOG, and goal ledgers. |
+| Acceptance | G82a-e are compared; all implementation remains deferred; recommendation is to prefer G82e package registry publication only after a human release owner and adoption signal exist; policy checks prove no production adapter/binding/editor/registry scope was added. |
+| Validation | `./scripts/goal_check.sh ecosystem`, `./scripts/goal_check.sh policy`, `./scripts/goal_check.sh docs`, and `git diff --check` passed on 2026-05-07. |
+| Blocker protocol | Active blocker: `docs/31-planning-roadmap/goals/blockers/g81-ecosystem-track-selection.md`. Do not implement G82a-e until a human owner resolves that blocker with adoption evidence and exact scope. |
+
+## Completed Goal: G82x-g83-conditional-tracks-ledger
+
+| Field | Value |
+| --- | --- |
+| Priority | P2/P3 conditional |
+| Status | complete |
+| Scope | Conditional documentation/ledger only: per-track blockers for G82a-e and G83, conditional tracks ledger, focused check/gate, docs map, CHANGELOG, and goal ledgers. |
+| Allowed files | `docs/31-planning-roadmap/conditional-tracks-ledger.md`, `docs/31-planning-roadmap/goals/blockers/g82*.md`, `docs/31-planning-roadmap/goals/blockers/g83-schema-v2-migration.md`, `tests/docs/check_conditional_tracks.py`, `scripts/goal_check.sh`, `docs/README.md`, CHANGELOG, and goal ledgers. |
+| Acceptance | Production telemetry exporter, native Python binding, real ROS 2 adapter, editor/LSP, package registry publication, and schema v2/migration implementation each have explicit blocked/deferred entry criteria and safe independent work; no implementation/dependency scope is opened. |
+| Validation | `./scripts/goal_check.sh conditional`, `./scripts/goal_check.sh policy`, `./scripts/goal_check.sh schema`, and `git diff --check` passed on 2026-05-07. |
+| Blocker protocol | Active blockers: `g82a-production-observability-exporter.md`, `g82b-native-python-binding.md`, `g82c-real-ros2-adapter.md`, `g82d-editor-lsp.md`, `g82e-package-registry-publication.md`, and `g83-schema-v2-migration.md`. Resolve the relevant blocker before opening implementation. |
+
+## Completed Goal: G84-core-runtime-beta-candidate-readiness
+
+| Field | Value |
+| --- | --- |
+| Priority | P1 release decision |
+| Status | complete |
+| Scope | Readiness review only: G75-G80 evidence synthesis, core-runtime beta candidate boundaries, beta gate checklist, beta-release notes boundaries, explicit non-beta-ready deferrals, docs map wiring, focused beta check/gate, CHANGELOG, and goal ledgers. |
+| Allowed files | `docs/43-ci-build-release-tools/core-runtime-beta-candidate-g84.md`, `docs/43-ci-build-release-tools/beta-readiness-review.md`, `tests/release/check_beta_candidate_readiness.py`, `scripts/goal_check.sh`, `docs/README.md`, CHANGELOG, and goal ledgers. |
+| Acceptance | TopoExec has a local core-runtime beta candidate review path that summarizes G75-G80 evidence while making clear that no tag, upload, production readiness, adapter/ecosystem beta readiness, package registry publication, or v1.0 stable-compatibility claim is made without a human release owner. |
+| Validation | `./scripts/goal_check.sh beta` passed, including beta-readiness policy checks plus `release_prepare_smoke`, `docs_command_smoke`, and `cli_golden_outputs`. `./scripts/goal_check.sh release`, `./scripts/goal_check.sh compat`, and `git diff --check` also passed on 2026-05-07. |
+| Blocker protocol | No new implementation blocker. A human release owner must choose the exact candidate commit, run the full beta-candidate gate, accept remaining deferrals, and perform any beta tag or publication manually. |
+
+## Completed Goal: G85-v1-readiness-deferral
+
+| Field | Value |
+| --- | --- |
+| Priority | P1 release decision |
+| Status | complete |
+| Scope | Criteria and deferral documentation only: v1 readiness program, post-beta adoption criteria, stable-surface expectations, scheduler/runtime limitation policy, package/adoption maturity criteria, owner decision path, focused v1 gate, release-doc wiring, CHANGELOG, and goal ledgers. |
+| Allowed files | `docs/43-ci-build-release-tools/v1-readiness-program.md`, `docs/43-ci-build-release-tools/release-progression.md`, `docs/43-ci-build-release-tools/release-checklist.md`, `tests/release/check_v1_readiness_deferral.py`, `scripts/goal_check.sh`, `docs/README.md`, CHANGELOG, and goal ledgers. |
+| Acceptance | TopoExec explicitly remains not v1.0 ready; future v1.0 requires post-beta adoption evidence, stable API/schema/CLI/metric/trace/diagnostic/package surfaces, scheduler/runtime limitation classification, package/adoption maturity, and a human release-owner decision. No tag, publication, stable-v1 language, or implementation scope is introduced. |
+| Validation | `./scripts/goal_check.sh v1`, `./scripts/goal_check.sh docs`, and `git diff --check` passed on 2026-05-07. |
+| Blocker protocol | Active deferral, not an implementation blocker: v1.0 remains blocked on post-beta adoption evidence, G81/G82/G83 decisions, package-publication decision or source/archive-only statement, and owner acceptance of stable surfaces plus runtime limitations. |
+
+## Completed Goal: G99-final-validation-ultragoal-evidence
+
+| Field | Value |
+| --- | --- |
+| Priority | P0 validation |
+| Status | complete |
+| Scope | Final validation and durable evidence for the next-stage ultragoal: required full repository gate, focused goal gates, sanitizer/stress/fuzz/bench/live coverage, diff whitespace check, ultragoal status reconciliation, CHANGELOG, and goal ledgers. |
+| Allowed files | `.omx/ultragoal/`, `CHANGELOG.md`, `docs/31-planning-roadmap/goals/backlog.md`, and `docs/31-planning-roadmap/goals/status.md`. |
+| Acceptance | All next-stage executable goals are checkpointed complete; no pending implementation goal remains; required repository gate and focused checks pass on the final tree; validation gaps are recorded instead of hidden. |
+| Validation | `.omx/ultragoal/evidence/g99-final-validation.log` records passing `./scripts/agent_check.sh`, focused `docs`, `golden`, `package`, `release`, `compat`, `dogfood`, `reliability`, `adoption`, `ecosystem`, `conditional`, `beta`, `v1`, `examples`, `showcase`, `live`, `bench`, `stress`, `fuzz`, sanitizer, `git diff --check`, and `omx ultragoal status` checks on 2026-05-07. A final post-ledger `./scripts/agent_check.sh`, `./scripts/goal_check.sh docs`, and `git diff --check` also passed. |
+| Blocker protocol | No G99 blocker. Remaining blockers are intentional product/release-owner decisions for G81/G82/G83, package publication, schema v2, and v1.0 readiness. |
 
 ## Completed Goal: G74-examples-showcase-and-readme-refresh
 

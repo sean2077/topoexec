@@ -28,8 +28,8 @@ def main() -> int:
     try:
         manifest = json.loads(vcpkg_json.read_text(encoding="utf-8"))
         require(manifest["name"] == "topoexec", "vcpkg name drifted")
-        require(manifest["version-string"] == "0.1.0", "vcpkg version drifted")
-        require(manifest["license"] == "MIT", "vcpkg license drifted")
+        require(manifest["version-string"] == "0.2.0", "vcpkg version drifted")
+        require(manifest["license"] == "Apache-2.0", "vcpkg license drifted")
         require("yaml" in manifest.get("features", {}), "vcpkg yaml feature missing")
         require("cli" in manifest.get("features", {}), "vcpkg cli feature missing")
         require("plugin-loader" in manifest.get("features", {}), "vcpkg plugin-loader feature missing")
@@ -58,7 +58,8 @@ def main() -> int:
         for token in [
             "class TopoExecConan",
             'name = "topoexec"',
-            'version = "0.1.0"',
+            'version = "0.2.0"',
+            'license = "Apache-2.0"',
             '"yaml": [True, False]',
             '"cli": [True, False]',
             'tc.variables["TOPOEXEC_BUILD_PLUGIN_LOADER"] = bool(self.options.plugin_loader)',

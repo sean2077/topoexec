@@ -18,3 +18,11 @@ labels: semantics
 ## Observed evidence
 
 ## Expected semantics
+
+## Debug pack
+
+- [ ] TopoExec commit/tag
+- [ ] Minimal graph or C++ builder
+- [ ] Exact command line
+- [ ] Focused gate tried
+- [ ] Contract/documentation link

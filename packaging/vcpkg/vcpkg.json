@@ -1,9 +1,9 @@
 {
   "name": "topoexec",
-  "version-string": "0.1.0",
+  "version-string": "0.2.0",
   "description": "Small embeddable C++20 semantic graph runtime",
   "homepage": "https://github.com/sean2077/topoexec",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": [
     {
       "name": "vcpkg-cmake",

@@ -50,5 +50,5 @@
   "schema_path": "schema/topoexec.schema.v1.json",
   "schema_version": 1,
   "semantic_contract_version": "0.2",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

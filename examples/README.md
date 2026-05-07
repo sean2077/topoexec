@@ -16,6 +16,7 @@ existing tests, docs, and golden outputs.
 7. [`60-testing-validation/`](60-testing-validation/) — A deterministic valid graph plus an invalid fixture for showing clear diagnostics and CI-friendly golden checks.
 8. [`70-performance/`](70-performance/) — Small graph bench command for local performance awareness without cross-machine timing claims.
 9. [`80-realistic-mini-scenario/`](80-realistic-mini-scenario/) — A small robot-cell-inspired event/data pipeline with time sync, detector stage, async planner, and output boundary.
+10. [`90-dogfood-pilot/`](90-dogfood-pilot/) — A deterministic robot-cell-inspired pilot that composes time sync, async bounded inflight, delay feedback, state audit, metrics, trace, and live assertions.
 
 ## Curated example matrix
 
@@ -30,6 +31,7 @@ existing tests, docs, and golden outputs.
 | [`60-testing-validation/`](60-testing-validation/) | `validation-and-golden` | Testing and Validation | A deterministic valid graph plus an invalid fixture for showing clear diagnostics and CI-friendly golden checks. |
 | [`70-performance/`](70-performance/) | `minimal-benchmark` | Performance | Small graph bench command for local performance awareness without cross-machine timing claims. |
 | [`80-realistic-mini-scenario/`](80-realistic-mini-scenario/) | `sensor-fusion-mini` | Realistic Scenario | A small robot-cell-inspired event/data pipeline with time sync, detector stage, async planner, and output boundary. |
+| [`90-dogfood-pilot/`](90-dogfood-pilot/) | `dogfood-robot-cell` | Dogfood Pilot | A deterministic robot-cell-inspired pilot that composes time sync, async bounded inflight, delay feedback, state audit, metrics, trace, and live assertions. |
 
 ## Metadata convention
 

@@ -79,5 +79,14 @@
     "show_in_readme": false,
     "summary": "A small robot-cell-inspired event/data pipeline with time sync, detector stage, async planner, and output boundary.",
     "title": "Robot-cell sensor fusion mini scenario"
+  },
+  {
+    "category": "Dogfood Pilot",
+    "graph_asset": "docs/assets/generated/examples/dogfood-robot-cell/graph.svg",
+    "id": "dogfood-robot-cell",
+    "readme_priority": 100,
+    "show_in_readme": false,
+    "summary": "A deterministic robot-cell-inspired pilot that composes time sync, async bounded inflight, delay feedback, state audit, metrics, trace, and live assertions.",
+    "title": "Synthetic robot-cell dogfood pilot"
   }
 ]

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="964" height="390" viewBox="0 0 964 390" role="img" aria-labelledby="title desc">
+<title id="title">Synthetic robot-cell dogfood pilot topology</title>
+<desc id="desc">Generated TopoExec graph visual with 8 components and 8 edges.</desc>
+<rect width="100%" height="100%" rx="18" fill="#f8fafc"/>
+<rect x="14" y="14" width="936" height="362" rx="16" fill="#ffffff" stroke="#dbeafe"/>
+<text x="36" y="50" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="700" fill="#0f172a">Synthetic robot-cell dogfood pilot</text>
+<text x="36" y="76" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#475569">A deterministic robot-cell-inspired pilot that composes time sync, async bounded inflight, delay feedback, state audit, metrics, trace, and live assertions.</text>
+<text x="36" y="100" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="600" fill="#2563eb">8 components · 8 edges · Dogfood Pilot</text>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L7,3 z" fill="#94a3b8"/></marker></defs>
+<path d="M143,200 C143,200 143,238 143,238" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M369,200 C256,200 256,238 143,238" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M238,274 C369,274 369,274 500,274" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M595,310 C595,310 595,128 595,128" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M595,200 C482,200 482,238 369,238" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M464,274 C595,274 595,274 726,274" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M464,274 C482,274 482,274 500,274" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.75"/>
+<path d="M464,274 C595,274 595,164 726,164" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.75"/>
+<rect x="48" y="128" width="190" height="72" rx="12" fill="#ecfdf5" stroke="#34d399" stroke-width="1.4"/>
+<text x="62" y="156" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#0f172a">camera_event</text>
+<text x="62" y="178" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" fill="#475569">topoexec.boundary.Input</text>
+<rect x="274" y="128" width="190" height="72" rx="12" fill="#ecfdf5" stroke="#34d399" stroke-width="1.4"/>
+<text x="288" y="156" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#0f172a">force_event</text>
+<text x="288" y="178" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" fill="#475569">topoexec.boundary.Input</text>
+<rect x="500" y="128" width="190" height="72" rx="12" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.4"/>
+<text x="514" y="156" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#0f172a">planner_worker</text>
+<text x="514" y="178" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" fill="#475569">topoexec.transforms.AsyncWo…</text>
+<rect x="726" y="128" width="190" height="72" rx="12" fill="#ecfdf5" stroke="#34d399" stroke-width="1.4"/>
+<text x="740" y="156" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#0f172a">audit_log</text>
+<text x="740" y="178" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" fill="#475569">topoexec.boundary.Output</text>
+<rect x="48" y="238" width="190" height="72" rx="12" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.4"/>
+<text x="62" y="266" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#0f172a">fusion</text>
+<text x="62" y="288" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" fill="#475569">topoexec.transforms.Join</text>
+<rect x="274" y="238" width="190" height="72" rx="12" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.4"/>
+<text x="288" y="266" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#0f172a">controller</text>
+<text x="288" y="288" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" fill="#475569">topoexec.example.Controller</text>
+<rect x="500" y="238" width="190" height="72" rx="12" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.4"/>
+<text x="514" y="266" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#0f172a">estimator</text>
+<text x="514" y="288" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" fill="#475569">topoexec.example.Estimator</text>
+<rect x="726" y="238" width="190" height="72" rx="12" fill="#ecfdf5" stroke="#34d399" stroke-width="1.4"/>
+<text x="740" y="266" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#0f172a">actuator</text>
+<text x="740" y="288" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" fill="#475569">topoexec.example.Actuator</text>
+<text x="36" y="360" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" font-weight="400" fill="#64748b">Generated from example metadata and `topoexec graph render/plan`; no hand-drawn diagram.</text>
+</svg>

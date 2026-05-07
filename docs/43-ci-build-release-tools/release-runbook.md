@@ -37,6 +37,11 @@ From a clean working tree on the exact candidate commit:
 ./scripts/release_prepare.sh --version v0.2.0-alpha.0
 ```
 
+The tracked draft notes in
+[`release-notes-v0.2.0-alpha.0.md`](release-notes-v0.2.0-alpha.0.md) describe
+the intended public message, but the generated notes from this command are the
+candidate-specific artifact because they include the exact commit.
+
 The script checks the clean tree, rejects an existing local tag of the same name,
 validates that release docs mention the requested version, runs the required
 local gates including `clang-format` and `clang-tidy`, writes a release notes

@@ -56,6 +56,16 @@ adapter or ecosystem beta.
 | CompositeLoop solver-style policy contract | `docs/11-user-guide/composite-loops.md`, schema-v1 docs, runtime/graph tests, metrics/trace docs, and invariant coverage. | Covered as bounded in-process residual reporting and partial-output policy, not external solver plugins |
 | Goal ledger | `docs/31-planning-roadmap/goals/backlog.md`, `docs/31-planning-roadmap/goals/status.md`, and this review. | Covered |
 
+
+## G75-G80 readiness refresh
+
+The next-stage G75-G80 evidence adds release/adoption readiness, a synthetic
+dogfood pilot, stable-v0.2 compatibility harness, package matrix hardening,
+bounded reliability tiers, and adoption feedback/triage checks. See
+[`core-runtime-beta-candidate-g84.md`](core-runtime-beta-candidate-g84.md) for
+the current G84 review surface. This does not change the human release-owner
+gate and does not create adapter/ecosystem beta readiness.
+
 ## Required beta-candidate gate
 
 Before any beta tag, attach fresh evidence for the exact candidate commit:

@@ -6,8 +6,8 @@ from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 
 class TopoExecConan(ConanFile):
     name = "topoexec"
-    version = "0.1.0"
-    license = "MIT"
+    version = "0.2.0"
+    license = "Apache-2.0"
     homepage = "https://github.com/sean2077/topoexec"
     description = "Small embeddable C++20 semantic graph runtime"
     package_type = "library"

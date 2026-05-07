@@ -21,7 +21,14 @@ Focused gates are available while iterating:
 ./scripts/goal_check.sh format
 ./scripts/goal_check.sh tidy
 ./scripts/goal_check.sh quick
+./scripts/goal_check.sh compat
 ```
+
+`compat` is the stable-v0.2 compatibility harness. It checks installed-header
+API stability markers and public API inventory, versioning/deprecation docs,
+doctor/schema/metrics/trace/live observe JSON fields, golden files, schema v1
+contract smoke, live observe NDJSON smoke, and runtime-only downstream package
+smoke.
 
 ## Local Setup
 

@@ -1,0 +1,112 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": true,
+    "generate_trace_summary": true
+  },
+  "category": "Dogfood Pilot",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/90-dogfood-pilot/dogfood_robot_cell.yaml"
+      ],
+      "expect_success": true,
+      "label": "Validate"
+    },
+    {
+      "argv": [
+        "graph",
+        "run",
+        "examples/90-dogfood-pilot/dogfood_robot_cell.yaml",
+        "--steps",
+        "20"
+      ],
+      "expect_success": true,
+      "label": "Run long smoke"
+    },
+    {
+      "argv": [
+        "graph",
+        "metrics",
+        "examples/90-dogfood-pilot/dogfood_robot_cell.yaml",
+        "--steps",
+        "20",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Metrics"
+    },
+    {
+      "argv": [
+        "graph",
+        "trace",
+        "examples/90-dogfood-pilot/dogfood_robot_cell.yaml",
+        "--steps",
+        "20",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Trace"
+    },
+    {
+      "argv": [
+        "graph",
+        "observe",
+        "examples/90-dogfood-pilot/dogfood_robot_cell.yaml",
+        "--steps",
+        "20",
+        "--observe-level",
+        "summary",
+        "--assert",
+        "examples/90-dogfood-pilot/assertions.yaml",
+        "--format",
+        "ndjson"
+      ],
+      "expect_success": true,
+      "label": "Observe with assertions"
+    },
+    {
+      "argv": [
+        "graph",
+        "bench",
+        "examples/90-dogfood-pilot/dogfood_robot_cell.yaml",
+        "--steps",
+        "3",
+        "--runs",
+        "2",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Benchmark"
+    }
+  ],
+  "component_count": 8,
+  "difficulty": "advanced",
+  "edge_count": 8,
+  "graph": "examples/90-dogfood-pilot/dogfood_robot_cell.yaml",
+  "id": "dogfood-robot-cell",
+  "region_order": [
+    "camera_event",
+    "force_event",
+    "planner_worker",
+    "audit_log",
+    "fusion",
+    "controller",
+    "estimator",
+    "actuator"
+  ],
+  "tags": [
+    "dogfood",
+    "robot-cell",
+    "async",
+    "live-observe",
+    "benchmark"
+  ],
+  "title": "Synthetic robot-cell dogfood pilot",
+  "validate_first_line": "ok"
+}

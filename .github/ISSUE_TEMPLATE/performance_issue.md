@@ -15,3 +15,10 @@ labels: performance
 ## Result
 
 ## Expected comparison or regression baseline
+
+## Debug pack
+
+- [ ] Benchmark JSON output
+- [ ] Machine context: OS, compiler, CMake, CPU model, build type
+- [ ] Exact command line and graph
+- [ ] Whether `./scripts/goal_check.sh bench` or `live-perf` reproduces

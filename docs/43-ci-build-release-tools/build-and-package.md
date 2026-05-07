@@ -4,6 +4,10 @@ TopoExec is packaged as CMake targets with a runtime-first boundary. The default
 build includes YAML loading, CLI tools, examples, and tests; runtime-only
 embedders can switch those surfaces off.
 
+Package-manager registry publication and production adapter distribution remain
+deferred until a human release owner approves exact artifacts and target
+registries.
+
 ## Build from source
 
 ```bash

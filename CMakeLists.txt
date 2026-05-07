@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(topoexec VERSION 0.1.0 LANGUAGES CXX)
+project(topoexec VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(TOPOEXEC_SCHEMA_VERSION 1)
@@ -277,7 +277,10 @@ if(TOPOEXEC_BUILD_CLI)
   else()
     target_compile_definitions(topoexec_cli PRIVATE TOPOEXEC_CMAKE_BUILD_TYPE="unknown")
   endif()
-  target_compile_definitions(topoexec_cli PRIVATE TOPOEXEC_GIT_COMMIT_DEFAULT="${TOPOEXEC_GIT_COMMIT_VALUE}")
+  target_compile_definitions(topoexec_cli PRIVATE
+    TOPOEXEC_VERSION_DEFAULT="${PROJECT_VERSION}"
+    TOPOEXEC_GIT_COMMIT_DEFAULT="${TOPOEXEC_GIT_COMMIT_VALUE}"
+  )
   set_target_properties(topoexec_cli PROPERTIES OUTPUT_NAME topoexec)
   list(APPEND TOPOEXEC_INSTALL_TARGETS topoexec_cli)
 endif()

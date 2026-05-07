@@ -12,4 +12,9 @@ labels: enhancement
 
 ## Proposed shape
 
+## Adoption impact
+
+- First-user path stage affected:
+- Existing workaround:
+
 ## Out of scope

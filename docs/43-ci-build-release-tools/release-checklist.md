@@ -31,6 +31,7 @@ v0.2.0-alpha.0
 - [ ] `TOPOEXEC_BUILD_DIR=build-asan-ubsan TOPOEXEC_SANITIZER_MODE=address-undefined ./scripts/goal_check.sh sanitizer` passes.
 - [ ] `docs/43-ci-build-release-tools/release-progression.md` names the intended stage and remaining limitations.
 - [ ] `docs/43-ci-build-release-tools/beta-readiness-review.md` is current if the intended stage is beta or release notes use beta language.
+- [ ] `docs/43-ci-build-release-tools/v1-readiness-program.md` is current if the intended stage is v1.0 or release notes use stable-v1 language.
 - [ ] `CHANGELOG.md` has the release section updated.
 - [ ] `docs/43-ci-build-release-tools/versioning.md` matches the intended tag.
 - [ ] `scripts/release_prepare.sh --version v0.2.0-alpha.0` completes on the clean candidate commit.

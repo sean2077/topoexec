@@ -463,6 +463,16 @@ std::string build_type() {
 #endif
 }
 
+std::string topoexec_version() {
+#ifdef TOPOEXEC_VERSION_DEFAULT
+  std::string configured = TOPOEXEC_VERSION_DEFAULT;
+  if (!configured.empty()) {
+    return configured;
+  }
+#endif
+  return "0.0.0";
+}
+
 std::string cpu_model() {
   std::ifstream input("/proc/cpuinfo");
   std::string line;
@@ -1842,7 +1852,7 @@ int print_doctor(const std::string& format) {
   if (format == "json") {
     nlohmann::json value;
     value["ok"] = ok;
-    value["version"] = "0.1.0";
+    value["version"] = topoexec_version();
     value["semantic_contract_version"] = topoexec::kTopoExecSemanticContractVersion;
     value["schema_version"] = topoexec::kTopoExecSchemaVersion;
     value["cxx_standard"] = static_cast<long>(__cplusplus);
@@ -1860,7 +1870,7 @@ int print_doctor(const std::string& format) {
     std::cout << value.dump(2) << "\n";
   } else {
     std::cout << (ok ? "ok" : "error") << "\n";
-    std::cout << "version: 0.1.0\n";
+    std::cout << "version: " << topoexec_version() << "\n";
     std::cout << "semantic_contract_version: " << topoexec::kTopoExecSemanticContractVersion << "\n";
     std::cout << "schema_version: " << topoexec::kTopoExecSchemaVersion << "\n";
     std::cout << "cxx_standard: " << __cplusplus << "\n";

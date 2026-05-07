@@ -5,7 +5,7 @@ TopoExec uses semantic versioning for release tags and CMake package versions.
 Current package version:
 
 ```text
-0.1.0
+0.2.0
 ```
 
 Current release target:

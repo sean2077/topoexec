@@ -75,6 +75,8 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/channel.hpp` | Low-level bounded channel bus, publication router, channel read APIs, and channel metrics. Prefer `RuntimeRunner`/`GraphContext` for ordinary embedding. |
 | `topoexec/runtime/event_runtime.hpp` | Lower-level event runtime surface used by tests and advanced embedders. |
 | `topoexec/runtime/health.hpp` | `HealthEvent` and bounded `HealthEventSink` helpers used by the runtime observer surface. |
+| `topoexec/runtime/live_event.hpp` | Low-level fixed-size live observe event records and numeric event identifiers. CLI/live observe JSON schema remains the user-facing contract. |
+| `topoexec/runtime/live_observe.hpp` | Low-level bounded live observe transport/session helpers. `RuntimeRunnerOptions::live_observe` and `topoexec graph observe` are the supported integration path. |
 | `topoexec/runtime/metric_schema.hpp` | Runtime metric descriptor registry, schema version, and sample validation helpers for exporter-safe cardinality. |
 | `topoexec/runtime/state.hpp` | Namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits and experimental config transaction metadata. |
 | `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |

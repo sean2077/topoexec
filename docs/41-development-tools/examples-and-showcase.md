@@ -35,7 +35,8 @@ path covers:
 6. metrics, trace, Chrome trace, and live observe;
 7. validation diagnostics and golden-friendly output;
 8. local benchmark smoke;
-9. a synthetic robot-cell-inspired mini scenario.
+9. a synthetic robot-cell-inspired mini scenario;
+10. a synthetic dogfood pilot with live assertions and benchmark smoke.
 
 Legacy top-level YAML files and `examples/apps/` remain supported because tests
 and deeper docs still use them. Public README links should prefer the curated
@@ -110,6 +111,7 @@ Use these goal-specific gates while working on examples or README assets:
 ```bash
 ./scripts/goal_check.sh examples
 ./scripts/goal_check.sh showcase
+./scripts/goal_check.sh dogfood
 ```
 
 `examples` checks:
@@ -126,6 +128,11 @@ Use these goal-specific gates while working on examples or README assets:
 - README status/quick-start phrases remain present;
 - README and example Markdown links/assets resolve locally;
 - quick-start validate/render/run commands still execute.
+
+`dogfood` checks the G76 pilot path: validate, plan, render, long bounded run,
+metrics, trace, Chrome trace, live observe assertions, replay artifact smoke,
+and benchmark JSON. It is still synthetic, dependency-free evidence rather than
+a production deployment claim.
 
 The required repository gate remains `./scripts/agent_check.sh` before declaring
 repository changes complete.

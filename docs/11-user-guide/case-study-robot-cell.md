@@ -54,6 +54,32 @@ delay_feedback_epoch=3
 error_path=invalid_config_rejected
 ```
 
+## YAML dogfood pilot
+
+G76 adds a YAML-first synthetic dogfood pilot that exercises the same release
+adoption story through the public CLI and examples metadata pipeline:
+
+```bash
+./build/topoexec graph validate examples/90-dogfood-pilot/dogfood_robot_cell.yaml
+./build/topoexec graph observe examples/90-dogfood-pilot/dogfood_robot_cell.yaml --steps 20 \
+  --observe-level summary \
+  --assert examples/90-dogfood-pilot/assertions.yaml \
+  --format ndjson
+./build/topoexec graph bench examples/90-dogfood-pilot/dogfood_robot_cell.yaml --steps 3 --runs 2 --format json
+```
+
+Generated topology, metrics, and trace cards live under
+`docs/assets/generated/examples/dogfood-robot-cell/`. The focused local gate is:
+
+```bash
+./scripts/goal_check.sh dogfood
+```
+
+The dogfood YAML is intentionally synthetic and dependency-free. Expected
+async/channel drops are allowed when they are visible in metrics and explained by
+bounded `max_inflight` and `drop_oldest` policy; runtime errors, assertion
+failures, and observer drops are not expected in the default smoke.
+
 ## Why this is not just another demo
 
 Earlier reference apps isolate one semantic at a time. This pilot composes them:

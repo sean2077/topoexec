@@ -6,6 +6,53 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Added
 
+- Added G75 release/adoption readiness alignment for the `v0.2.0-alpha.0`
+  candidate line: Apache-2.0 public metadata, `0.2.0` CMake/package draft
+  version metadata, tracked adoption readiness notes, a tracked prerelease
+  notes draft, install/downstream onboarding guidance, and focused
+  docs/golden/package/release gate evidence without tagging or publishing.
+- Added the G76 synthetic dogfood pilot under `examples/90-dogfood-pilot/`
+  with graph metadata, live assertion YAML, generated topology/metrics/trace
+  assets, a focused `./scripts/goal_check.sh dogfood` gate, benchmark coverage,
+  and case-study docs that keep hardware, ROS 2, ML runtime, production
+  telemetry, and hard-real-time claims out of scope.
+- Added the G77 stable-v0.2 compatibility harness through
+  `./scripts/goal_check.sh compat` and `tests/compat/check_compatibility_contract.py`,
+  covering installed-header API inventory, versioning/deprecation docs, doctor,
+  schema, metrics, trace, live observe JSON fields, golden files, schema smoke,
+  live observe smoke, and runtime-only package consumption.
+- Added G78 distribution/package hardening with a tracked package matrix,
+  package metadata alignment checks, package-draft version/license docs, and a
+  stronger `./scripts/goal_check.sh package` gate that validates package matrix,
+  CPack, package draft, runtime-only, and downstream install smokes while
+  keeping registry publication deferred.
+- Added G79 reliability program docs, bounded soak-lite smoke, a reliability
+  focused gate, and policy checks for test tiers, fuzz corpus, perf regression,
+  failure artifacts, ASAN/UBSAN, and non-blocking TSAN without adding unbounded
+  soak or machine-global timing thresholds.
+- Added G80 adoption feedback and triage workflow docs, debug-pack guidance,
+  issue-template adoption/debug-pack prompts, and `./scripts/goal_check.sh adoption`
+  checks for first-user path, community readiness, docs smoke, and downstream
+  package reproduction.
+- Added the G81 ecosystem decision gate and blocker note comparing G82a-e,
+  recommending package registry publication only as a future human-owned track
+  after release/adoption evidence, and validating that adapters/bindings/editor
+  and registry publication remain deferred.
+- Added the G82x/G83 conditional tracks ledger with per-track blocker notes for
+  production telemetry exporters, native Python bindings, real ROS 2 adapter,
+  editor/LSP, package registry publication, and schema v2/migration so deferred
+  implementation cannot open without adoption evidence and human decisions.
+- Added the G84 core-runtime beta candidate readiness review with a
+  core-runtime-only beta gate, G75-G80 evidence summary, explicit
+  adapter/ecosystem/v1.0 deferrals, and `./scripts/goal_check.sh beta` so beta
+  discussion stays local, owner-gated, and non-publishing.
+- Added the G85 v1.0 readiness program as deferred criteria only, with
+  post-beta adoption, stable-surface, scheduler/runtime limitation, package
+  maturity, and owner-decision requirements guarded by `./scripts/goal_check.sh v1`.
+- Added G99 final ultragoal evidence for the next-stage plan, including the
+  required full repository gate, focused release/adoption/dogfood/reliability/
+  compatibility/live/performance/fuzz/stress/sanitizer checks, diff whitespace
+  validation, and durable `.omx/ultragoal` checkpoint evidence.
 - Added G74 examples/showcase refresh with a generated README hero and visual
   showcase, 9 curated example directories with metadata/README pages, generated
   graph/metrics/trace assets under `docs/assets/generated`,

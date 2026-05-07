@@ -27,6 +27,7 @@ BENCHMARK_CASES = [
     "live_observe_trigger_stress.yaml",
     "live_observe_thread_pool.yaml",
     "live_observe_composite_loop.yaml",
+    "dogfood_robot_cell.yaml",
 ]
 
 ENVIRONMENT_KEYS = {
