@@ -1,8 +1,8 @@
 # Low-Overhead Live Runtime Validation
 
-G73 adds a local-first runtime validation workbench around `topoexec graph
-observe`. The goal is not a GUI editor or production observability platform. The
-workbench gives developers a low-disturbance event stream, live assertions,
+The local-first runtime validation workbench centers on `topoexec graph
+observe`. The goal is not a GUI editor or production observability platform.
+The workbench gives developers a low-disturbance event stream, live assertions,
 record/replay artifacts, and a local dashboard for reproducing runtime behavior.
 
 ## Boundary

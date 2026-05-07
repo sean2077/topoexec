@@ -6,69 +6,46 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Added
 
-- Added trust-trial maintainability sweep coverage for G86-G95, including
-  CLI/parser error-path regression checks and durable focused-gate evidence
-  without adding new workflow tooling or ecosystem surfaces.
-- Added G75 release/adoption readiness alignment for the `v0.2.0-alpha.0`
-  candidate line: Apache-2.0 public metadata, `0.2.0` CMake/package draft
-  version metadata, tracked adoption readiness notes, a tracked prerelease
-  notes draft, install/downstream onboarding guidance, and focused
-  docs/golden/package/release gate evidence without tagging or publishing.
-- Added the G76 synthetic dogfood pilot under `examples/90-dogfood-pilot/`
-  with graph metadata, live assertion YAML, generated topology/metrics/trace
-  assets, a focused `./scripts/goal_check.sh dogfood` gate, benchmark coverage,
-  and case-study docs that keep hardware, ROS 2, ML runtime, production
-  telemetry, and hard-real-time claims out of scope.
-- Added the G77 stable-v0.2 compatibility harness through
-  `./scripts/goal_check.sh compat` and `tests/compat/check_compatibility_contract.py`,
-  covering installed-header API inventory, versioning/deprecation docs, doctor,
-  schema, metrics, trace, live observe JSON fields, golden files, schema smoke,
-  live observe smoke, and runtime-only package consumption.
-- Added G78 distribution/package hardening with a tracked package matrix,
-  package metadata alignment checks, package-draft version/license docs, and a
-  stronger `./scripts/goal_check.sh package` gate that validates package matrix,
-  CPack, package draft, runtime-only, and downstream install smokes while
-  keeping registry publication deferred.
-- Added G79 reliability program docs, bounded soak-lite smoke, a reliability
-  focused gate, and policy checks for test tiers, fuzz corpus, perf regression,
-  failure artifacts, ASAN/UBSAN, and non-blocking TSAN without adding unbounded
-  soak or machine-global timing thresholds.
-- Added G80 adoption feedback and triage workflow docs, debug-pack guidance,
-  issue-template adoption/debug-pack prompts, and `./scripts/goal_check.sh adoption`
-  checks for first-user path, community readiness, docs smoke, and downstream
-  package reproduction.
-- Added the G81 ecosystem decision gate and blocker note comparing G82a-e,
-  recommending package registry publication only as a future human-owned track
-  after release/adoption evidence, and validating that adapters/bindings/editor
-  and registry publication remain deferred.
-- Added the G82x/G83 conditional tracks ledger with per-track blocker notes for
-  production telemetry exporters, native Python bindings, real ROS 2 adapter,
-  editor/LSP, package registry publication, and schema v2/migration so deferred
-  implementation cannot open without adoption evidence and human decisions.
-- Added the G84 core-runtime beta candidate readiness review with a
-  core-runtime-only beta gate, G75-G80 evidence summary, explicit
-  adapter/ecosystem/v1.0 deferrals, and `./scripts/goal_check.sh beta` so beta
-  discussion stays local, owner-gated, and non-publishing.
-- Added the G85 v1.0 readiness program as deferred criteria only, with
-  post-beta adoption, stable-surface, scheduler/runtime limitation, package
-  maturity, and owner-decision requirements guarded by `./scripts/goal_check.sh v1`.
-- Added G99 final ultragoal evidence for the next-stage plan, including the
-  required full repository gate, focused release/adoption/dogfood/reliability/
-  compatibility/live/performance/fuzz/stress/sanitizer checks, diff whitespace
-  validation, and durable `.omx/ultragoal` checkpoint evidence.
-- Added G74 examples/showcase refresh with a generated README hero and visual
+- Added release/adoption readiness for the `v0.2.0-alpha.0` candidate line:
+  Apache-2.0 public metadata, `0.2.0` CMake/package draft version metadata,
+  adoption guidance, prerelease notes, install/downstream onboarding, and
+  local release gates without tagging or publishing.
+- Added a synthetic dogfood pilot under `examples/90-dogfood-pilot/` with graph
+  metadata, live assertion YAML, generated topology/metrics/trace assets,
+  benchmark coverage, and case-study docs that keep hardware, ROS 2, ML runtime,
+  production telemetry, and hard-real-time claims out of scope.
+- Added a stable-v0.2 compatibility harness covering installed-header API
+  inventory, versioning/deprecation docs, doctor/schema/metrics/trace/live
+  observe JSON fields, golden files, schema smoke, live observe smoke, and
+  runtime-only package consumption.
+- Added distribution/package hardening with a package matrix, package metadata
+  alignment checks, package-draft version/license docs, CPack/package-draft
+  smokes, runtime-only smokes, downstream install smokes, and deferred registry
+  publication.
+- Added bounded reliability and adoption-readiness docs: soak-lite smoke,
+  reliability policy checks, fuzz corpus ownership, perf regression policy,
+  failure artifact conventions, non-blocking TSAN policy, debug-pack guidance,
+  issue-template prompts, and first-user triage checks.
+- Added ecosystem and release decision records that keep production telemetry
+  exporters, native Python bindings, real ROS 2 adapters, editor/LSP,
+  package-registry publication, schema v2/migration, beta readiness, and v1.0
+  readiness blocked on adoption evidence and human owner decisions.
+- Added final validation coverage for the prerelease candidate state, including
+  the full repository gate plus focused release/adoption/dogfood/reliability/
+  compatibility/live/performance/fuzz/stress/sanitizer checks.
+- Added examples/showcase refresh with a generated README hero and visual
   showcase, 9 curated example directories with metadata/README pages, generated
   graph/metrics/trace assets under `docs/assets/generated`,
   `scripts/update_examples_index.py`, `scripts/render_example_assets.py`,
   `scripts/examples_smoke.py`, `scripts/check_readme_assets.sh`, and focused
   `./scripts/goal_check.sh examples` / `showcase` anti-rot gates.
-- Added G73 low-overhead live runtime validation with compile-time optional
+- Added low-overhead live runtime validation with compile-time optional
   runtime live-observe transport, default-off `RuntimeRunnerOptions`
   activation, `topoexec graph observe` NDJSON/json-summary output,
   tooling-layer live assertions, replayable record artifacts, a local
   observe-only SSE dashboard, live/live-perf focused gates, and benchmark cases
   for live-observe overhead checks.
-- Added G71 post-alpha hardening evidence covering previous-tick wake behavior,
+- Added post-alpha hardening coverage for previous-tick wake behavior,
   bounded trigger pending queues, condition timestamp head handling, async
   in-flight accounting, CompositeLoop output visibility, benchmark expansion,
   optional Doxygen API reference generation, and GitHub Pages site wiring.
@@ -82,7 +59,8 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
   `/api/`.
 - Added CI preview-option smoke coverage for adapter, FFI, Python preview, and
   plugin-loader surfaces without making them runtime dependencies.
-- Added the post-G25 architecture-stabilization goal board and G26 release-candidate baseline docs for the next architecture-stabilization stage; completed goal-board details are now summarized under `docs/31-planning-roadmap/goals/`.
+- Added release-candidate baseline docs for the architecture-stabilization stage;
+  completed process details are summarized in the current goal ledgers.
 - Added normalized golden coverage for Chrome trace shape, schema dump JSON, and doctor JSON.
 - Added explicit stable-v0.2/mixed/experimental public API markers, an API change checklist, and stronger runtime-only downstream smoke coverage for result metrics/trace consumption.
 - Added `docs/21-architecture/semantic-contract.md` and exposed `semantic_contract_version` through doctor/schema dump outputs.
@@ -164,20 +142,20 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
   dynamic-loader dependency.
 - Added release automation with `scripts/release_prepare.sh`, `./scripts/goal_check.sh release`, manual CI dry-run artifact upload, release notes draft generation, annotated-tag/no-retag guardrails, source/CPack/schema artifacts, and checksum output without publishing or tagging automatically.
 - Added developer quality gates with blocking `clang-format`, `clang-tidy`, local pre-commit hooks, CMake presets, and shared CI/release-prep wiring.
-- Added the G69 robot-cell pilot app and case study, composing multiple lanes, async overload drops, state/delay feedback, BufferPool frames, config transactions/snapshots, metrics/trace evidence, and invalid-config rejection without adapter dependencies.
-- Added the G70 beta readiness review, beta-candidate gate checklist, explicit
+- Added the robot-cell pilot app and case study, composing multiple lanes, async overload drops, state/delay feedback, BufferPool frames, config transactions/snapshots, metrics/trace evidence, and invalid-config rejection without adapter dependencies.
+- Added the beta readiness review, beta-candidate gate checklist, explicit
   deferred-scope ledger, and pre-1.0 deprecation policy for stable-v0.2,
   experimental, schema, and CLI JSON surfaces.
-- Added `docs/33-specs-rfcs/schema-v2-notes.md` as the G64 schema-v2 decision boundary, with
+- Added `docs/33-specs-rfcs/schema-v2-notes.md` as the schema-v2 decision boundary, with
   candidate feature classification, additive-v1 vs breaking-v2 rules, migration
   guidance, docs-map coverage, and schema-contract coverage proving v1 remains
   strict and v2 sketches are not accepted by the v1 checker.
-- Added `docs/41-development-tools/editor-schema.md` as the G65 editor/schema UX guide, including
+- Added `docs/41-development-tools/editor-schema.md` as the editor/schema UX guide, including
   schema discovery, VS Code/YAML Language Server association examples, inline
   modeline guidance, editor diagnostic JSON expectations, installed-schema
   package smoke coverage, and `editor_schema_ux_smoke` without adding a runtime
   dependency or LSP implementation.
-- Added G68 community readiness surfaces: root `CONTRIBUTING.md`, expanded
+- Added community readiness surfaces: root `CONTRIBUTING.md`, expanded
   contributor/governance guidance, root `CODE_OF_CONDUCT.md`, richer issue and
   PR templates for semantic/API/schema/component/metric changes, and
   `community_readiness_smoke` so human and agent-generated PRs share the same
@@ -226,8 +204,8 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 - Optimized EventRuntime/RuntimeRunner hot paths by reusing run-scoped component,
   instance, spec, and region indexes instead of repeated vector scans while
   preserving deterministic output order.
-- Reorganized documentation into numbered `docs/` zones, added architecture/codebase maps, and moved old flat docs paths into a recorded migration map.
-- Cleaned up completed planning and process-ledger docs by deleting obsolete long-form plan files, compressing goal/release ledgers, and recording deletion evidence under `docs/94-doc-migrations/`.
+- Reorganized documentation into numbered `docs/` zones and added architecture/codebase maps.
+- Cleaned up completed planning docs by deleting obsolete long-form plan files and compressing goal/release ledgers.
 - Runtime docs now describe `thread_pool` and async max-inflight as implemented MVP behavior instead of alpha limitations.
 - Runtime docs now describe `thread_pool` as an experimental persistent worker-pool v1 while keeping OS priority/affinity/RT policy and hard timeout preemption deferred.
 - Runtime docs now distinguish deterministic fixed-rate stepping from opt-in cooperative wall-clock cadence without claiming hard real-time scheduling or independent lane threads.
@@ -256,7 +234,7 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Added
 
-- Added G74 examples/showcase refresh with a generated README hero and visual
+- Added examples/showcase refresh with a generated README hero and visual
   showcase, 9 curated example directories with metadata/README pages, generated
   graph/metrics/trace assets under `docs/assets/generated`,
   `scripts/update_examples_index.py`, `scripts/render_example_assets.py`,

@@ -1,6 +1,6 @@
 # Python Automation Preview
 
-G62 adds an unstable, default-off Python preview for configuration, testing, and
+This unstable, default-off Python preview covers configuration, testing, and
 CLI-like automation. It is a small stdlib-only package over the installed or
 build-tree `topoexec` CLI, not a native extension and not a high-throughput
 payload path.
@@ -17,10 +17,10 @@ payload path.
 
 ## Binding decision
 
-G62 deliberately does not add `pybind11`, `Python.h`, or a native extension.
+This preview deliberately does not add `pybind11`, `Python.h`, or a native extension.
 The preview chooses a CLI-backed client because the goal is config/test
 automation and deterministic graph inspection, not low-latency component or
-payload execution. A future native binding should build on the G61 C API/FFI
+payload execution. A future native binding should build on the C API/FFI
 surface after ABI, payload ownership, and packaging rules are clearer.
 
 ## Supported scope
@@ -73,7 +73,7 @@ assert trace.data["trace"]
 
 ## Validation
 
-G62 coverage:
+Coverage:
 
 - `python_preview_smoke` imports `topoexec_preview`, validates/plans/runs a
   graph, reads metrics and trace, and exercises in-memory YAML materialization

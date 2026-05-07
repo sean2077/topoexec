@@ -1,6 +1,6 @@
 # Schema v2 Notes
 
-G64 is an exploration and compatibility-boundary artifact. The repository still
+This is an exploration and compatibility-boundary artifact. The repository still
 implements only `schema_version: 1`: the v1 loader remains strict, the bundled
 JSON Schema remains `topoexec.schema.v1.json`, and no `topoexec schema migrate`
 command or v2 loader is introduced by this note.
@@ -64,7 +64,7 @@ when graph shape or accepted-file meaning changes incompatibly.
 | Health event sink config | v1 exposes observer-only health events through runtime options and edge `emit_health_events`. | Additions remain host-side runtime options or non-semantic documentation. | Graph files route health events, configure sinks/exporters, or let health events control runtime flow. |
 | Adapter boundary descriptors | v1 has generic `boundary.role` and `boundary.descriptor`; adapter details live outside core schema. | Metadata is generic, adapter-independent, and useful for in-process validation. | ROS/OTel/Prometheus/service-specific fields, QoS schemas, transport endpoints, or external resource discovery enter graph files. |
 | Config hot reload policy | Runtime/component hooks support staged config transactions outside schema fields. | Additions remain host-side runner options or descriptor metadata with identical graph execution meaning. | Graphs declare reload cadence, transaction isolation, failure policy, live mutation authority, or cross-component reload ordering. |
-| Plugin/component package refs | G63 loads trusted native plugins only from explicit host-provided paths. | Package metadata stays outside graph files or in host/plugin manifests. | Graphs name packages, versions, repositories, dynamic plugin paths, capability negotiation, or sandbox policy. |
+| Plugin/component package refs | The plugin loader loads trusted native plugins only from explicit host-provided paths. | Package metadata stays outside graph files or in host/plugin manifests. | Graphs name packages, versions, repositories, dynamic plugin paths, capability negotiation, or sandbox policy. |
 
 ## Breaking vs additive changes
 
@@ -105,10 +105,10 @@ Examples that are breaking and should wait for schema v2:
 
 ## Non-goals
 
-- No schema v2 implementation in G64.
-- No migration CLI in G64.
+- No schema v2 implementation.
+- No migration CLI.
 - No new adapter, package registry, plugin discovery, expression language, or
-  runtime nesting in G64.
+  runtime nesting.
 - No relaxation of strict schema v1 validation and no change to accepted v1 examples.
 
 ## Validation
@@ -122,7 +122,7 @@ Use these checks for any future schema v2 design slice:
 ./scripts/agent_check.sh
 ```
 
-For G64 specifically, the expected evidence is that v1 examples still pass, the
-schema v1 contract still rejects non-v1 `schema_version` values, and this page is
-covered by the docs map smoke. No v2 graph should be accepted as runnable until a
-reviewed v2 loader exists.
+For this design slice, the expected evidence is that v1 examples still pass, the
+schema v1 contract still rejects non-v1 `schema_version` values, and this page
+is covered by the docs map smoke. No v2 graph should be accepted as runnable
+until a reviewed v2 loader exists.

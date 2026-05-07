@@ -1,6 +1,6 @@
 # OTel Exporter Preview
 
-G58 adds a dependency-free exporter preview that validates the observer API and
+This dependency-free exporter preview validates the observer API and
 metric/trace schema mapping without linking an external telemetry SDK.
 
 ## Status
@@ -70,7 +70,7 @@ sample carried non-schema tag data without creating label explosion.
 
 ## Validation
 
-G58 coverage:
+Coverage:
 
 - `test_otel_adapter` proves descriptor-to-metric, trace-to-span,
   error/health-to-log, result export, and observer callback behavior.

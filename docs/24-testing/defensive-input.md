@@ -71,10 +71,11 @@ commands.
 
 TopoExec YAML declares graph structure. It is not an untrusted code execution
 engine: the loader parses data, validates semantics, and returns a `GraphSpec`;
-component instantiation still comes from an embedder-provided registry. G63 dynamic plugin loading remains a separate default-off trusted-native preview;
-plugin discovery, shared-library paths, signing/allowlists, sandboxing, and ABI
-compatibility stay outside graph YAML and must remain explicit before any broader
-plugin ecosystem can be enabled by default.
+component instantiation still comes from an embedder-provided registry. Dynamic
+plugin loading remains a separate default-off trusted-native preview; plugin
+discovery, shared-library paths, signing/allowlists, sandboxing, and ABI
+compatibility stay outside graph YAML and must remain explicit before any
+broader plugin ecosystem can be enabled by default.
 
 ## CLI output paths
 

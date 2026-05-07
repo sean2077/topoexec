@@ -92,7 +92,7 @@ registry.register_component({"my.Source"}, [] {
 });
 ```
 
-App-defined factory registration is the stable primary extension point. The G63
-`topoexec::plugin_loader` target can load trusted native plugins by explicit path
-when enabled, but package discovery, sandboxing, graph-driven loading, and stable
+App-defined factory registration is the stable primary extension point.
+`topoexec::plugin_loader` can load trusted native plugins by explicit path when
+enabled, but package discovery, sandboxing, graph-driven loading, and stable
 plugin ABI guarantees remain future adapter/plugin work.

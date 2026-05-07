@@ -55,6 +55,6 @@ Current stable codes:
 
 Editor integrations can consume the same JSON fields; see [Editor and Schema UX](../41-development-tools/editor-schema.md). Add new codes rather than changing existing meanings. If a code meaning must change, update `docs/43-ci-build-release-tools/versioning.md` and the changelog. `topoexec graph explain --format json` groups diagnostics by `category` under `diagnostic_groups`. `topoexec graph validate --strict-diagnostics` promotes `warning` diagnostics to validation failure; advisories and info remain non-failing guidance.
 
-Note: `execution.priority` is implemented runtime behavior in the G32 scheduler
+Note: `execution.priority` is implemented runtime behavior in the scheduler
 priority pass. Supported values do not emit `advisory_execution_field_ignored`;
 unknown priority values fail validation.

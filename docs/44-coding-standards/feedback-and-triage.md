@@ -1,8 +1,8 @@
 # Feedback and Triage Workflow
 
-Status: G80 external feedback loop for early adopters and maintainers. This is a
-lightweight docs-and-template process, not a support SLA, not a production deployment claim,
-and not package-registry publication.
+Status: external feedback loop for early adopters and maintainers. This is a
+lightweight docs-and-template process, not a support SLA, not a production
+deployment claim, and not package-registry publication.
 
 ## First-user path
 

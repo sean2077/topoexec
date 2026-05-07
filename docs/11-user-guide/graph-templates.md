@@ -1,8 +1,9 @@
 # Graph Templates
 
-G42 adds a small schema-v1 template surface for reusable YAML graph snippets.
-Templates are expanded while loading the graph; the runtime, scheduler, channel
-router, and validators only see the expanded flat `GraphSpec`.
+TopoExec provides a small schema-v1 template surface for reusable YAML graph
+snippets. Templates are expanded while loading the graph; the runtime,
+scheduler, channel router, and validators only see the expanded flat
+`GraphSpec`.
 
 ## Contract
 

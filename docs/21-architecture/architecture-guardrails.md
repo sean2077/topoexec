@@ -24,11 +24,11 @@ This document turns the plan's module-boundary rules into reviewable and testabl
   with `TOPOEXEC_BUILD_C_API=ON`, installs it, and proves downstream C source
   consumption of `topoexec::c_api` without YAML, CLI, adapters, Python, or
   dynamic plugins.
-- `tests/cmake/python_preview_options_smoke.cmake` proves the G62 Python
+- `tests/cmake/python_preview_options_smoke.cmake` proves the Python automation
   preview stays default-off: with it disabled, a runtime-only C++ build has no
   Python/CLI/YAML requirement; with it enabled, source and installed
   `topoexec_preview` drive the CLI for JSON automation.
-- `tests/cmake/plugin_loader_options_smoke.cmake` proves the G63 plugin loader
+- `tests/cmake/plugin_loader_options_smoke.cmake` proves the plugin loader
   preview stays default-off: with it disabled, a runtime-only C++ build has no
   dynamic-loader requirement; with it enabled, sample plugins, installed
   `topoexec::plugin_loader`, and package metadata are explicit.
@@ -80,10 +80,10 @@ This document turns the plan's module-boundary rules into reviewable and testabl
 - Channel owns capacity, overflow, and backpressure accounting.
 - Metrics and trace are observation surfaces, not control flow.
 - Concrete adapter-specific dependencies must remain in docs or optional adapter
-  targets. The G58 OTel, G59 Prometheus, and G60 ROS 2 previews remain
+  targets. The OTel, Prometheus, and ROS 2 previews remain
   dependency-free; production telemetry SDKs/servers or real ROS packages still
   require an explicit dependency decision and focused boundary tests.
-- The G63 plugin loader is an optional trusted-native preview target only. It
+- The plugin loader is an optional trusted-native preview target only. It
   may use dynamic-loader APIs internally, but runtime/core must not include or
   link those APIs, and no docs should imply sandboxing, graph discovery, or a
   stable plugin ABI.

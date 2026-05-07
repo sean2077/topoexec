@@ -12,8 +12,8 @@ available from git history, CI logs, and release-prep artifacts.
 | --- | --- |
 | Last public tag | `v0.1.0-alpha` |
 | Tag target | `201d3e0c75a4334f404085d57282415fa9678fe9` |
-| Post-G25 baseline commit | `b86a586d3a48d84bf4e03ccabde3d061e3073579` |
-| Completed local goal sweeps | G0-G25 and G26-G70 |
+| Historical baseline commit | `b86a586d3a48d84bf4e03ccabde3d061e3073579` |
+| Completed local stabilization sweeps | Runtime/API/docs/release hardening through the current baseline |
 | Recommended next prerelease line | `v0.2.0-alpha.0` until a human opens a beta tag |
 
 ## Release Decision Note
@@ -74,9 +74,9 @@ cmake --build build-docs --target topoexec_doxygen
 ./scripts/docs_build_site.sh
 ```
 
-## G71 Post-alpha Evidence
+## Post-alpha Evidence
 
-The 2026-05-06 G71 local sweep records post-alpha semantic and documentation
+The 2026-05-06 local sweep records post-alpha semantic and documentation
 hardening: previous-tick visibility wake behavior, alpha `overflow: block`
 would-block semantics, bounded trigger pending queues, condition timestamp
 head-item handling, async/CompositeLoop output accounting, expanded benchmark

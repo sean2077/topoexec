@@ -1,6 +1,6 @@
 # C API / FFI Preview
 
-G61 adds an unstable, default-off C API preview for future FFI consumers. It is a
+This unstable, default-off C API preview is for future FFI consumers. It is a
 small design/prototype surface for Python/Rust/C embedding paths, not an ABI
 freeze and not a dynamic plugin system.
 
@@ -18,7 +18,7 @@ before 1.0, and the ABI version is intentionally `0`.
 
 ## Design decisions
 
-| Topic | G61 decision |
+| Topic | Preview decision |
 | --- | --- |
 | Handles | Opaque C handles: `topoexec_runtime_t`, `topoexec_graph_builder_t`, and `topoexec_result_t`. |
 | Lifecycle | Every create function has an explicit destroy function; callers own returned handles. |
@@ -71,7 +71,7 @@ int main(void) {
 
 ## Validation
 
-G61 coverage:
+Coverage:
 
 - `test_c_api` creates runtime/builder/result handles, runs a no-op graph,
   iterates runtime metrics, and checks error-string behavior without throwing

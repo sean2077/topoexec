@@ -5,9 +5,9 @@ planning aid, not a tag announcement.
 
 ## Current Candidate State
 
-The project has completed the historical G0-G70 runtime/API/docs/release
-stabilization sweeps. The detailed plan files for those sweeps were deleted as
-completed process artifacts; current release truth now lives in:
+The project has completed the historical runtime/API/docs/release stabilization
+sweeps. Detailed plan files for those sweeps were deleted as completed process
+artifacts; current release truth now lives in:
 
 - [`current-baseline.md`](current-baseline.md)
 - [`release-checklist.md`](release-checklist.md)
@@ -28,7 +28,7 @@ exact candidate commit is green.
 | `v0.2.0-alpha.0` | Recommended next prerelease candidate. | Runtime/API semantic contracts, package smokes, docs map, release automation, adapter/FFI/Python/plugin previews, robot-cell pilot, and beta-readiness audit exist. | Verify CI on exact tag commit, run the local release checklist, attach release-prep artifacts, and get human tag approval. |
 | `v0.3.0-alpha` | Possible future adapter-preview expansion. | RuntimeObserver v1 and dependency-free preview adapter mappings exist. | Add concrete production exporter/adapter targets before claiming adapter implementation readiness. |
 | `v0.5.0-beta` | Conditional core-runtime review only. | ASAN+UBSAN, fuzz smoke, bounded stress smoke, docs/examples, API/deprecation policy, release prep, community readiness, pilot app, and beta audit exist. | Human release owner must accept deferrals, run gates on the exact candidate commit, decide TSAN/soak/fuzz scope, and avoid adapter/ecosystem beta claims. |
-| `v1.0.0` | Not ready. | Core semantic direction is clear, and [`v1-readiness-program.md`](v1-readiness-program.md) defines the deferred criteria. | post-beta adoption evidence, frozen stable surfaces, mature packages, package-publication decision, resolved/deferred G81-G83 blockers, and owner-accepted scheduler/runtime limitation policy. |
+| `v1.0.0` | Not ready. | Core semantic direction is clear, and [`v1-readiness-program.md`](v1-readiness-program.md) defines the deferred criteria. | post-beta adoption evidence, frozen stable surfaces, mature packages, package-publication decision, resolved/deferred ecosystem/schema blockers, and owner-accepted scheduler/runtime limitation policy. |
 
 ## Explicit Deferrals
 

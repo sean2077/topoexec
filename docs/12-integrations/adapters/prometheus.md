@@ -1,8 +1,8 @@
 # Prometheus Exporter Preview
 
-G59 adds a dependency-free Prometheus-style text exposition preview that proves
-the runtime metric schema can be consumed by another adapter style without
-turning core into an HTTP server or registry.
+This dependency-free Prometheus-style text exposition preview proves the runtime
+metric schema can be consumed by another adapter style without turning core into
+an HTTP server or registry.
 
 ## Status
 
@@ -84,7 +84,7 @@ by the preview.
 
 ## Validation
 
-G59 coverage:
+Coverage:
 
 - `test_prometheus_adapter` proves counter/gauge text mapping, custom histogram
   summary rendering, high-cardinality tag omission, unexpected-label rejection,

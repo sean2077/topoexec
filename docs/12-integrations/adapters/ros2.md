@@ -1,8 +1,8 @@
 # ROS 2 Adapter Preview
 
-G60 adds a dependency-free ROS 2 boundary-mapping preview. It proves that a
-future ROS package can embed TopoExec as an in-process semantic runtime while the
-core remains a normal C++ package with no ROS client-library dependency.
+This dependency-free ROS 2 boundary-mapping preview proves that a future ROS
+package can embed TopoExec as an in-process semantic runtime while the core
+remains a normal C++ package with no ROS client-library dependency.
 
 ## Status
 
@@ -173,7 +173,7 @@ issues back to graph definitions.
 
 ## Validation
 
-G60 coverage:
+Coverage:
 
 - `test_ros2_adapter` validates topic/service/action endpoint mapping, inbound
   and outbound boundary-role checks, fake subscription injection, fake publisher

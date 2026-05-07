@@ -22,7 +22,7 @@ This configures, builds, and runs all default CTest tests.
 | Editor schema UX | installed schema discovery, stable schema dump, and diagnostic JSON fields for editor problem lists | `ctest --test-dir build --output-on-failure -R editor_schema_ux_smoke` |
 | Docs | recursive `topoexec-doc-test` markers plus docs learning-map/section contract | `./scripts/goal_check.sh docs` |
 | Community readiness | contributor guide, code of conduct, issue templates, PR template, and unsafe-change guidance | `ctest --test-dir build --output-on-failure -R community_readiness_smoke` |
-| Example apps | dependency-free reference apps plus the G69 robot-cell pilot covering latest/drop, fixed-rate state feedback, task completion, CompositeLoop, payload ownership, multi-lane feedback, config snapshots, metrics/trace, and invalid-config rejection | `ctest --test-dir build --output-on-failure -R 'app_'` |
+| Example apps | dependency-free reference apps plus the robot-cell pilot covering latest/drop, fixed-rate state feedback, task completion, CompositeLoop, payload ownership, multi-lane feedback, config snapshots, metrics/trace, and invalid-config rejection | `ctest --test-dir build --output-on-failure -R 'app_'` |
 | Fuzz smoke | deterministic malformed, invalid-UTF-8, oversized, parser-limit corpus plus optional fuzzer target corpus replay | `./scripts/goal_check.sh fuzz` |
 | Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
 | Benchmark smoke | RuntimeRunner benchmark cases, task-executor benchmark output, schema v2 metadata, and optional local baseline generation | `./scripts/goal_check.sh bench` |
@@ -130,13 +130,14 @@ they do not establish hard real-time guarantees or production telemetry support.
 ## Docs smoke
 
 `docs_command_smoke` runs every `topoexec-doc-test` marker under `docs/` and
-verifies the G55/G69/G70 docs map: getting-started, concepts, the robot-cell
-case study, runtime semantics, API reference, schema, cookbook, adapters,
-testing/release pages, beta-readiness review, architecture diagrams, why-not
-comparisons, design principles, and community contribution entry points. It also executes the G56 reference-app
-binaries and the G69 pilot app listed from `docs/11-user-guide/examples.md`. Add a marker for
-commands that should remain executable, and update `tests/docs/check_docs.py`
-only when the documentation contract intentionally changes.
+verifies the docs map: getting-started, concepts, the robot-cell case study,
+runtime semantics, API reference, schema, cookbook, adapters, testing/release
+pages, beta-readiness review, architecture diagrams, why-not comparisons,
+design principles, and community contribution entry points. It also executes the
+reference-app binaries and the pilot app listed from
+`docs/11-user-guide/examples.md`. Add a marker for commands that should remain
+executable, and update `tests/docs/check_docs.py` only when the documentation
+contract intentionally changes.
 
 ## Release prep smoke
 

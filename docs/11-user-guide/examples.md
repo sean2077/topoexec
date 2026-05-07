@@ -3,10 +3,10 @@
 TopoExec examples are intentionally small and dependency-free. They teach the
 core runtime contracts without implying that production adapter packages,
 sandboxed/stable plugin ecosystems, production ROS 2 packages, production
-OpenTelemetry/Prometheus, or native Python bindings are implemented. The G58/G59
-telemetry targets, G60 ROS 2 target, G61 C API target, G62 Python automation
-package, and G63 plugin-loader target are dependency-free, CLI-backed,
-trusted-native, or unstable previews, not example app dependencies.
+OpenTelemetry/Prometheus, or native Python bindings are implemented. The current
+telemetry, ROS 2, C API, Python automation, and plugin-loader targets are
+dependency-free, CLI-backed, trusted-native, ABI-version-0, or unstable previews,
+not example app dependencies.
 
 Use this page as the learning path after the README quickstart.
 
@@ -57,10 +57,10 @@ component factories through `topoexec::ComponentRegistry`.
 | Reference app v2 | `examples/apps/payload_pool_pipeline` | BufferPool, copy/shared/loaned payload metrics, and in-process frame identity. | `app_payload_pool_pipeline_runs` |
 | Real-world pilot | `examples/apps/robot_cell_pilot` | Composes multiple lanes, async overload, state/delay feedback, BufferPool frames, config transactions, metrics/trace, and invalid-config rejection without adapters. | `app_robot_cell_pilot_runs` |
 
-## Reference applications v2
+## Reference Applications
 
-G56 adds closer-to-real application slices while preserving the project boundary:
-all apps are dependency-free C++20 examples and no production ROS 2,
+The reference applications provide closer-to-real slices while preserving the
+project boundary: all apps are dependency-free C++20 examples and no production ROS 2,
 OpenTelemetry, Prometheus, Python, dynamic plugin, external Perfetto, or shared-memory middleware adapter is
 implemented.
 
@@ -91,12 +91,13 @@ pilot_value=explicit_feedback_bounded_observable_cpp
 ```
 
 Hierarchical graph organization is covered by [Hierarchical graphs](hierarchical-graphs.md)
-and parser/runtime tests. G41 intentionally implements compile-time namespace
-expansion instead of adding a separate runtime-nesting reference app.
+and parser/runtime tests. The current implementation intentionally uses
+compile-time namespace expansion instead of adding a separate runtime-nesting
+reference app.
 
 ## Real-world pilot: robot cell
 
-G69 adds `examples/apps/robot_cell_pilot` as the first composed pilot. Unlike the
+`examples/apps/robot_cell_pilot` is the first composed pilot. Unlike the
 single-contract reference apps, it combines event-loop, thread-pool, and
 fixed-rate lanes with async frame delivery, bounded overload drops, state/delay
 feedback, pool-backed `FrameView` payloads, config transaction/snapshot evidence,
@@ -372,7 +373,7 @@ Semantic lesson: embedders can construct `GraphSpec` with
 `ComponentRegistry` while linking only the runtime target.
 
 Contrast invalid graph: dynamic plugin loading exists only through the separate
-default-off trusted-native G63 preview and package discovery is not implemented
+default-off trusted-native preview and package discovery is not implemented
 by this example; it demonstrates the stable in-process registry contract.
 
 ### 10. Boundary adapter pattern

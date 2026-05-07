@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check G85 keeps v1.0 readiness deferred and criteria-based."""
+"""Check v1.0 readiness remains deferred and criteria-based."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ REQUIRED = [
     "Scheduler and runtime limitation policy",
     "Package and adoption maturity criteria",
     "Owner decision path",
-    "G81/G82/G83 blockers",
+    "ecosystem, integration, package-publication, and schema blockers",
     "package registry publication decision",
     "./scripts/goal_check.sh v1",
     "./scripts/agent_check.sh",
@@ -46,8 +46,8 @@ def main() -> int:
         require("v1-readiness-program.md" in release_checklist, "release checklist must require v1 readiness program for v1 wording")
         docs_readme = (root / "docs/README.md").read_text(encoding="utf-8")
         require("v1-readiness-program.md" in docs_readme, "docs map must link v1 readiness program")
-        beta_page = (root / "docs/43-ci-build-release-tools/core-runtime-beta-candidate-g84.md").read_text(encoding="utf-8")
-        require("not a v1.0 readiness claim" in beta_page, "G84 page must keep v1 deferral wording")
+        beta_page = (root / "docs/43-ci-build-release-tools/core-runtime-beta-candidate.md").read_text(encoding="utf-8")
+        require("not a v1.0 readiness claim" in beta_page, "beta candidate page must keep v1 deferral wording")
     except Exception as exc:  # noqa: BLE001
         print(f"v1 readiness deferral check failed: {exc}", file=sys.stderr)
         return 1

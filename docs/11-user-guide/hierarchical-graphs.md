@@ -1,7 +1,7 @@
 # Hierarchical Graphs
 
-G41 adds a phase-1 hierarchy contract for organizing larger in-process graphs
-without introducing nested runtime schedulers.
+TopoExec provides a phase-1 hierarchy contract for organizing larger in-process
+graphs without introducing nested runtime schedulers.
 
 ## Phase-1 model
 

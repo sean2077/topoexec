@@ -1,7 +1,7 @@
 # Examples and Showcase Workflow
 
-G74 turns `examples/` and the root `README.md` into a short, runnable showcase
-for TopoExec. The goal is to make the project easy to understand and try without
+`examples/` and the root `README.md` form a short, runnable showcase for
+TopoExec. The goal is to make the project easy to understand and try without
 claiming production adoption or adding cosmetic runtime behavior.
 
 ## Scope and non-goals
@@ -129,10 +129,10 @@ Use these goal-specific gates while working on examples or README assets:
 - README and example Markdown links/assets resolve locally;
 - quick-start validate/render/run commands still execute.
 
-`dogfood` checks the G76 pilot path: validate, plan, render, long bounded run,
-metrics, trace, Chrome trace, live observe assertions, replay artifact smoke,
-and benchmark JSON. It is still synthetic, dependency-free evidence rather than
-a production deployment claim.
+`dogfood` checks the synthetic pilot path: validate, plan, render, long bounded
+run, metrics, trace, Chrome trace, live observe assertions, replay artifact
+smoke, and benchmark JSON. It is still synthetic, dependency-free evidence
+rather than a production deployment claim.
 
 The required repository gate remains `./scripts/agent_check.sh` before declaring
 repository changes complete.

@@ -79,7 +79,6 @@ not_in_nav: |
   44-coding-standards/**
   45-doc-standards/**
   61-api/api-change-checklist.md
-  94-doc-migrations/**
 theme:
   name: material
   features:

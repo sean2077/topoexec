@@ -97,13 +97,13 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 
 | Surface | Stability | Compatibility expectation |
 | --- | --- | --- |
-| `Component::configure/activate/execute/deactivate` plus status variants | stable-v0.2 | Existing hook meanings should not silently change. G43 reset/pause/resume/snapshot/restore hooks and G44 validate/apply config hooks are additive and experimental until lifecycle/config policy is stable. |
+| `Component::configure/activate/execute/deactivate` plus status variants | stable-v0.2 | Existing hook meanings should not silently change. Reset/pause/resume/snapshot/restore hooks and validate/apply config hooks are additive and experimental until lifecycle/config policy is stable. |
 | `GraphContext::publish()` and `publish_shared()` | stable-v0.2 | Publication remains staged/routed by runtime; no direct downstream calls. |
 | `GraphContext::loop_iteration` and `report_loop_convergence()` | experimental | In-process solver-style CompositeLoop hook. Components can report `converged`, optional `residual`, and a bounded reason string; dynamic solver plugins remain out of scope. |
 | `Invocation`, `InvocationMetadata`, `InputView`, typed payload helpers | stable-v0.2 | Existing payload lookup and typed access behavior should remain source-compatible; metadata fields are additive trace/debug context and `Invocation::cancel_requested()` is cooperative. |
 | `CancellationToken` / `CancellationSource` | stable-v0.2 | Cancellation requests are observable by components, tasks, and loops; observation is metric/trace evidence, not forced termination. |
 | `ComponentRegistry::register_component/create/metadata/types` | stable-v0.2 | Registration metadata can gain additive fields. |
-| `GraphSpec`, `LaneSpec`, `EdgeSpec`, `TriggerPolicySpec`, `CompositeLoopSpec`, `GraphHierarchyEntry` | stable-v0.2 for current fields | Additive fields are allowed only when schema/runtime meaning stays compatible. `LoopPolicySpec::solver_iteration`, residual threshold, and partial-success fields are experimental G45 additions. `GraphHierarchyEntry` records compile-time `subgraphs[]` expansion metadata only; it does not imply runtime nesting. Trigger v2 `watermark`, `condition`, `debounce`, and `rate_limit` policy fields are additive preview fields and may be refined before beta. |
+| `GraphSpec`, `LaneSpec`, `EdgeSpec`, `TriggerPolicySpec`, `CompositeLoopSpec`, `GraphHierarchyEntry` | stable-v0.2 for current fields | Additive fields are allowed only when schema/runtime meaning stays compatible. `LoopPolicySpec::solver_iteration`, residual threshold, and partial-success fields are experimental additions. `GraphHierarchyEntry` records compile-time `subgraphs[]` expansion metadata only; it does not imply runtime nesting. Trigger v2 `watermark`, `condition`, `debounce`, and `rate_limit` policy fields are additive preview fields and may be refined before beta. |
 | `GraphInputLimits`, `default_graph_input_limits()`, `load_graph_text(..., limits)`, `load_graph_file(..., limits)` | stable-v0.2 | Parser-limit fields can be tightened by embedders and CLI tooling; defaults should remain conservative and source-compatible. |
 | YAML `templates[]` / `template_instances[]` | stable-v0.2 schema-loader surface | Template definitions are not retained in `GraphSpec`; they expand through strict parameter substitution before validation/runtime execution. |
 | `validate_graph`, `compile_graph`, `GraphDiagnostic` | stable-v0.2 | New diagnostics may be added; existing codes should keep meanings. |
@@ -116,12 +116,12 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | State snapshots and config transactions are epoch-boundary, observable APIs; transaction metadata and immediate-update escape hatches may be reshaped before beta. |
 | `ITaskExecutor`, `DeterministicTaskExecutor`, `TaskExecutor`, `ThreadedTaskExecutor` | experimental | The deterministic compatibility name remains available; threaded executor preview shutdown/admission details may change before beta. |
 | `RuntimeChannelBus`, `RuntimePublicationRouter`, `TriggerPolicyEngine`, `EventRuntime` | experimental | Advanced runtime internals may change as scheduler/channel/trigger v2 goals land. |
-| `topoexec/c_api/topoexec.h` opaque handles and functions | experimental | G61 C API/FFI preview, ABI version `0`. Names, ownership details, and exported functions may change before any stable ABI promise. |
-| `topoexec::plugins::load_plugin`, `LoadedPlugin`, and manifest view structs | experimental | G63 plugin loader preview, plugin API version `0`. The loader requires explicit paths and trusted native code, validates manifest/schema/component descriptors, defaults to no `dlclose`, and may change before any stable plugin ABI. |
+| `topoexec/c_api/topoexec.h` opaque handles and functions | experimental | C API/FFI preview, ABI version `0`. Names, ownership details, and exported functions may change before any stable ABI promise. |
+| `topoexec::plugins::load_plugin`, `LoadedPlugin`, and manifest view structs | experimental | Plugin loader preview, plugin API version `0`. The loader requires explicit paths and trusted native code, validates manifest/schema/component descriptors, defaults to no `dlclose`, and may change before any stable plugin ABI. |
 | `topoexec::adapters::BoundaryBridge`, `BoundaryMessage`, `BoundaryPollResult`, `BoundaryBridgeStatus`, `ComponentFactoryProvider` | experimental | Adapter SDK v0 is a header-only boundary. Bridges are bounded/best-effort and providers register components explicitly; concrete adapter packages and dynamic discovery remain future work. |
-| `topoexec::adapters::otel::ExporterPreview` and preview record structs | experimental | G58 dependency-free OTel-shaped mapping over the observer API. Record names and options may change before production exporter work. |
-| `topoexec::adapters::prometheus::TextExporterPreview` | experimental | G59 dependency-free Prometheus text exposition mapping over metric descriptors and custom histogram summaries. Text names/options may change before production exporter work. |
-| `topoexec::adapters::ros2::*` preview endpoint and fake bridge types | experimental | G60 dependency-free ROS 2 boundary mapping preview. Names/options may change before any real ROS package or client-library integration. |
+| `topoexec::adapters::otel::ExporterPreview` and preview record structs | experimental | Dependency-free OTel-shaped mapping over the observer API. Record names and options may change before production exporter work. |
+| `topoexec::adapters::prometheus::TextExporterPreview` | experimental | Dependency-free Prometheus text exposition mapping over metric descriptors and custom histogram summaries. Text names/options may change before production exporter work. |
+| `topoexec::adapters::ros2::*` preview endpoint and fake bridge types | experimental | Dependency-free ROS 2 boundary mapping preview. Names/options may change before any real ROS package or client-library integration. |
 
 ## Compatibility Expectations
 
@@ -190,7 +190,7 @@ CLI JSON fields are part of the user-facing tooling contract even though the CLI
 
 ## Adapter-preview stability
 
-G57 establishes Adapter SDK v0 as a preview/dependency-free boundary:
+Adapter SDK v0 is a preview/dependency-free boundary:
 
 - Core/runtime headers must not include ROS 2 client-library, OpenTelemetry, Prometheus, Python, Perfetto, dynamic-loader APIs, plugin-loader headers, or `topoexec/adapters/*`.
 - `ResultSink`, `RuntimeObserver`, `MetricSink`, `TraceSink`, and `InMemoryRuntimeObserver` remain the stable-v0.2 in-process observer surface; `topoexec/adapters/sdk.hpp` re-exports them under `topoexec::adapters` for adapter authors.
@@ -210,7 +210,7 @@ G57 establishes Adapter SDK v0 as a preview/dependency-free boundary:
   discovery, or stable ABI promises.
 - `BoundaryBridge` is bounded/best-effort and must not directly affect runtime scheduling. Bridge failures are adapter health/diagnostic evidence unless represented as ordinary graph boundary input/output.
 - `ComponentFactoryProvider` registers explicit in-process factories into
-  `ComponentRegistry`. G63 dynamic loading is a preview alternative for trusted
+  `ComponentRegistry`. Dynamic loading is a preview alternative for trusted
   native components only; production package discovery, sandboxing, stable ABI,
   telemetry exporters, and network transports remain future work.
 

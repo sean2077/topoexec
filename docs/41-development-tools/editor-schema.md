@@ -1,8 +1,8 @@
 # Editor and Schema UX
 
 TopoExec graph authoring is supported through the existing Draft 2020-12 JSON
-Schema and machine-readable diagnostics. G65 does not add an editor extension,
-LSP server, schema v2 loader, runtime dependency, or new CLI command.
+Schema and machine-readable diagnostics. This guide does not add an editor
+extension, LSP server, schema v2 loader, runtime dependency, or new CLI command.
 
 ## Status
 
@@ -127,7 +127,7 @@ long-lived language server to `topoexec::runtime` for this preview.
 
 ## Validation
 
-The G65 gate checks:
+The focused gate checks:
 
 - source and installed schema discovery;
 - stable `schema dump` output;

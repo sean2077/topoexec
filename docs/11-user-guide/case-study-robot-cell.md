@@ -1,6 +1,6 @@
 # Case Study: Dependency-Free Robot Cell Pilot
 
-G69 chooses an in-process robotics-like inspection/control cell as the first
+TopoExec uses an in-process robotics-like inspection/control cell as the first
 real-world pilot. It deliberately avoids ROS 2, camera SDKs, native Python
 bindings, OpenTelemetry, Prometheus, dynamic plugins, and external shared-memory
 middleware. The point is
@@ -94,7 +94,6 @@ pulling in an adapter stack.
 This pilot is still dependency-free and in-process. It does not implement robot
 hardware I/O, ROS 2 executors, camera drivers, OpenTelemetry/Prometheus exporters,
 external Perfetto integration, native Python bindings, stable C ABI usage, or
-dynamic plugin loading. G63 now provides a separate default-off trusted-native
-loader preview, but this pilot intentionally stays on explicit in-process
-registration and does not claim plugin package discovery, sandboxing, or stable
-ABI support.
+dynamic plugin loading. A separate default-off trusted-native loader preview
+exists, but this pilot intentionally stays on explicit in-process registration
+and does not claim plugin package discovery, sandboxing, or stable ABI support.

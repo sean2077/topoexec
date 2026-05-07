@@ -6,11 +6,10 @@ This file is the human-readable entry point for continuing roadmap-goal work.
 
 Use `docs/31-planning-roadmap/goals/backlog.md` as the ordered source of truth and `docs/31-planning-roadmap/goals/status.md` as the current ledger.
 
-No active implementation queue remains: G0-G70 are complete. New work should
-open a concise goal entry instead of adding another generated long-form plan.
-Keep schema v2 implementation, migration tooling, full editor/LSP extension
-scope, package publication, and concrete production adapters deferred unless
-explicitly opened.
+No active implementation queue remains. New work should open a concise goal
+entry instead of adding another generated long-form plan. Keep schema v2
+implementation, migration tooling, full editor/LSP extension scope, package
+publication, and concrete production adapters deferred unless explicitly opened.
 
 ## Goal handoff template
 

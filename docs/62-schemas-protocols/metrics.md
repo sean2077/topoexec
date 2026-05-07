@@ -43,7 +43,7 @@ log records to avoid label explosion.
 
 ## OTel Preview Mapping
 
-The optional G58 `topoexec_adapters::otel` target maps runtime metric samples
+The optional `topoexec_adapters::otel` target maps runtime metric samples
 through `runtime_metric_descriptors()` before producing exporter-preview records:
 
 - descriptor `counter` -> OTel counter-shaped record;
@@ -61,7 +61,7 @@ does not require or link an external telemetry SDK.
 
 ## Prometheus Preview Mapping
 
-The optional G59 `topoexec_adapters::prometheus` target renders runtime metrics
+The optional `topoexec_adapters::prometheus` target renders runtime metrics
 as dependency-free text exposition:
 
 - descriptor `counter` -> sanitized metric name with `_total` and

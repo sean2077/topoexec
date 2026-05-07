@@ -1,17 +1,16 @@
 # Adapter Boundaries
 
 Concrete production adapters are intentionally deferred until the core runtime
-and API stabilize. G57 adds a dependency-free Adapter SDK v0 boundary so future
-adapter packages can consume stable runtime surfaces without leaking adapter
-assumptions into `topoexec::runtime`. G58 adds the first optional exporter
-preview target, `topoexec_adapters::otel`, as a dependency-free OTel-shaped
-mapping over the observer API; G59 adds `topoexec_adapters::prometheus` as a
-dependency-free text exposition preview over the metric schema. G60 adds
-`topoexec_adapters::ros2` as a dependency-free fake-boundary preview for
-topics, services, actions, and adapter-side QoS. G63 adds `topoexec::plugin_loader`
-as a separate default-off trusted-native component-loading preview. None of these
-targets is a production SDK/server/client-library, sandbox, or stable plugin ABI
-integration.
+and API stabilize. The dependency-free Adapter SDK v0 boundary lets future
+adapter packages consume stable runtime surfaces without leaking adapter
+assumptions into `topoexec::runtime`. The optional `topoexec_adapters::otel`
+target is a dependency-free OTel-shaped mapping over the observer API,
+`topoexec_adapters::prometheus` is a dependency-free text exposition preview
+over the metric schema, and `topoexec_adapters::ros2` is a dependency-free
+fake-boundary preview for topics, services, actions, and adapter-side QoS.
+`topoexec::plugin_loader` is a separate default-off trusted-native
+component-loading preview. None of these targets is a production
+SDK/server/client-library, sandbox, or stable plugin ABI integration.
 
 ## Core boundary
 
@@ -26,8 +25,8 @@ The core/runtime layer owns:
 
 The core/runtime layer must not depend on ROS, OpenTelemetry, Prometheus,
 Python, Perfetto SDKs, service-specific client libraries, or dynamic plugin
-loader frameworks. The optional G63 loader depends outward on `topoexec::runtime`
-and is not linked by the runtime target.
+loader frameworks. The optional plugin loader depends outward on
+`topoexec::runtime` and is not linked by the runtime target.
 
 ## Future namespace and targets
 
@@ -40,10 +39,10 @@ topoexec_adapters::ros2    # optional fake-boundary preview, default OFF
 topoexec_adapters::perfetto
 topoexec_adapters::python
 topoexec_adapters::c_api
-topoexec::plugins             # G63 loader preview helper namespace
+topoexec::plugins             # loader preview helper namespace
 ```
 
-CMake shape after G63:
+CMake shape:
 
 ```text
 topoexec::runtime          # no adapter dependencies
@@ -104,15 +103,15 @@ semantics.
 
 Metrics exporters should also read `runtime_metric_descriptors()` and verify
 `metric_schema_version` before mapping names, units, and bounded labels. The
-G58 `topoexec/adapters/otel.hpp` preview demonstrates this rule by translating
-metric descriptors, trace events, health events, and runtime errors into
-bounded in-memory records without linking a telemetry SDK.
-G59 `topoexec/adapters/prometheus.hpp` demonstrates the metrics-only style by
+`topoexec/adapters/otel.hpp` preview demonstrates this rule by translating
+metric descriptors, trace events, health events, and runtime errors into bounded
+in-memory records without linking a telemetry SDK.
+`topoexec/adapters/prometheus.hpp` demonstrates the metrics-only style by
 rendering counter, gauge, and custom histogram summary samples into bounded text
-exposition without starting an HTTP server. G60
-`topoexec/adapters/ros2.hpp` demonstrates the boundary-bridge style by mapping
-topics, services, actions, and QoS into adapter-owned endpoint descriptors and
-fake boundary messages without linking ROS libraries.
+exposition without starting an HTTP server. `topoexec/adapters/ros2.hpp`
+demonstrates the boundary-bridge style by mapping topics, services, actions, and
+QoS into adapter-owned endpoint descriptors and fake boundary messages without
+linking ROS libraries.
 
 ### Boundary bridge
 
@@ -140,10 +139,10 @@ Registers app or plugin factories into a `ComponentRegistry` through
 topoexec::Status register_components(topoexec::ComponentRegistry& registry);
 ```
 
-G63 provides a preview-only dynamic loader with manifest, plugin API version,
-schema version, descriptor matching, and structured load errors. Plugins are
-trusted native code and are not sandboxed. The current stable path remains
-explicit in-process factory registration.
+The plugin loader provides a preview-only dynamic loader with manifest, plugin
+API version, schema version, descriptor matching, and structured load errors.
+Plugins are trusted native code and are not sandboxed. The current stable path
+remains explicit in-process factory registration.
 
 ## Schema policy
 
@@ -163,29 +162,29 @@ not core schema and belongs in a ROS adapter config layer.
 
 | Adapter | Contract | Explicit non-goal for core |
 | --- | --- | --- |
-| OpenTelemetry | G58 preview maps existing metrics/trace/error/health data from `RuntimeRunnerResult` or observer events through `topoexec_adapters::otel`. | No OTel SDK dependency in core/runtime; no OTel-specific schema fields; no network exporter. |
-| Prometheus | G59 preview renders existing metrics and custom histogram summaries as text exposition through `topoexec_adapters::prometheus`. | Core does not run HTTP servers or Prometheus registries; no unbounded labels. |
+| OpenTelemetry | Preview maps existing metrics/trace/error/health data from `RuntimeRunnerResult` or observer events through `topoexec_adapters::otel`. | No OTel SDK dependency in core/runtime; no OTel-specific schema fields; no network exporter. |
+| Prometheus | Preview renders existing metrics and custom histogram summaries as text exposition through `topoexec_adapters::prometheus`. | Core does not run HTTP servers or Prometheus registries; no unbounded labels. |
 | Perfetto | Convert trace events to richer Perfetto output. | Core keeps Chrome trace JSON as dependency-free output. |
-| ROS 2 | G60 preview maps topics/services/actions and adapter-side QoS through `topoexec_adapters::ros2` fake boundary bridges. | Core does not include ROS client libraries, ROS executors, or ROS QoS fields. |
-| Python | G62 preview provides `topoexec_preview`, a stdlib-only CLI-backed automation package for validation, plan, run, metrics, and trace JSON. | Python is not a native component implementation or high-performance payload path. |
-| C API | G61 preview exposes `topoexec::c_api` opaque handles, create/run/destroy, error strings, and metric iteration. | ABI version remains `0`; no Python binding, dynamic plugin, or stable ABI promise. |
-| Plugin loader | G63 `topoexec::plugin_loader` loads trusted native components by explicit path with manifest/version/schema checks. | No default runtime dependency, no graph-driven discovery, no sandbox, no stable ABI, and explicit `ComponentRegistry` factories remain the stable path. |
+| ROS 2 | Preview maps topics/services/actions and adapter-side QoS through `topoexec_adapters::ros2` fake boundary bridges. | Core does not include ROS client libraries, ROS executors, or ROS QoS fields. |
+| Python | Preview provides `topoexec_preview`, a stdlib-only CLI-backed automation package for validation, plan, run, metrics, and trace JSON. | Python is not a native component implementation or high-performance payload path. |
+| C API | Preview exposes `topoexec::c_api` opaque handles, create/run/destroy, error strings, and metric iteration. | ABI version remains `0`; no Python binding, dynamic plugin, or stable ABI promise. |
+| Plugin loader | `topoexec::plugin_loader` loads trusted native components by explicit path with manifest/version/schema checks. | No default runtime dependency, no graph-driven discovery, no sandbox, no stable ABI, and explicit `ComponentRegistry` factories remain the stable path. |
 
 ## Detailed adapter plans
 
-- [OTel exporter preview](adapters/otel.md) documents the dependency-free G58
+- [OTel exporter preview](adapters/otel.md) documents the dependency-free
   mapping target, build option, package metadata, and cardinality rules.
 - [Prometheus exporter preview](adapters/prometheus.md) documents the
-  dependency-free G59 text exposition target, build option, package metadata,
+  dependency-free text exposition target, build option, package metadata,
   and label/cardinality rules.
 - [ROS 2 adapter preview](adapters/ros2.md) documents the dependency-free
-  G60 fake-boundary target, topic/service/action mapping, QoS separation,
+  fake-boundary target, topic/service/action mapping, QoS separation,
   executor interaction, lifecycle, diagnostics, tracing, and package smoke.
-- [C API / FFI preview](../61-api/c-api.md) documents the unstable G61 ABI-version-0
+- [C API / FFI preview](../61-api/c-api.md) documents the unstable ABI-version-0
   target, opaque handles, ownership, error-string, and metric iteration rules.
-- [Python automation preview](python-preview.md) documents the G62 default-off
+- [Python automation preview](python-preview.md) documents the default-off
   CLI-backed package, stdlib-only dependency model, and non-goals.
-- [Dynamic plugin loader preview](plugin-loader.md) documents the G63 default-off
+- [Dynamic plugin loader preview](plugin-loader.md) documents the default-off
   trusted-native loader, manifest/export symbols, version checks, unload rules,
   and no-sandbox security model.
 

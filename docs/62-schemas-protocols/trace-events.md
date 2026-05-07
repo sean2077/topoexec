@@ -117,7 +117,7 @@ The runtime includes identifiers where the event source has them:
 - Loop events include `loop_id` and loop-local `iteration`.
 
 Chrome trace export groups events onto stable tracks by phase plus
-lane/component/channel identity. The optional G58 OTel preview maps
+lane/component/channel identity. The optional OTel preview maps
 `RuntimeTraceEvent` values to in-memory span records with the same schema version,
 phase, identifiers, monotonic offsets, duration, and bounded attributes. Future
 production exporters or richer Perfetto metadata remain separate from the core

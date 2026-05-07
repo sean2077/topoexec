@@ -1,4 +1,4 @@
-# G85 v1.0 Readiness Program
+# v1.0 Readiness Program
 
 Status: deferred criteria only. This page does not declare TopoExec ready for
 `v1.0.0`, does not tag, does not publish, and does not weaken the current
@@ -25,9 +25,9 @@ A v1.0 readiness review can start only after all of these are true:
 4. Compatibility evidence shows no unplanned breaking changes to stable-v0.2
    C++ headers, schema v1 semantics, CLI JSON, metrics, trace events,
    diagnostics, or package config outputs.
-5. All active G81/G82/G83 blockers are either resolved, intentionally kept out
-   of v1.0 scope, or converted into explicit post-v1 roadmap items by a human
-   owner.
+5. All active ecosystem, integration, package-publication, and schema blockers
+   are either resolved, intentionally kept out of v1.0 scope, or converted into
+   explicit post-v1 roadmap items by a human owner.
 
 ## Stable-surface expectations
 
@@ -130,7 +130,7 @@ replacement evidence.
 As of 2026-05-07, v1.0 is deferred by:
 
 - missing post-beta adoption evidence;
-- unresolved G81/G82/G83 ecosystem and schema blockers;
+- unresolved ecosystem, integration, package-publication, and schema blockers;
 - package-registry publication undecided;
 - preview adapter/binding/plugin/editor/schema-v2 surfaces not stable;
 - scheduler/runtime limitation classification not yet owner-accepted for a

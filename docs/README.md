@@ -1,6 +1,6 @@
 # TopoExec Documentation
 
-This directory is the canonical documentation root. The project is complex enough to use numbered zones: first contact and user learning paths come first, developer and architecture material live in `2x`, planning and decision history in `3x`, tools and standards in `4x`, reference material in `6x`, and documentation-system records in `9x`.
+This directory is the canonical documentation root. The project is complex enough to use numbered zones: first contact and user learning paths come first, developer and architecture material live in `2x`, planning and decision history in `3x`, tools and standards in `4x`, and reference material in `6x`.
 
 ## Reader Paths
 
@@ -25,12 +25,11 @@ This directory is the canonical documentation root. The project is complex enoug
 | `31-planning-roadmap` | Current backlog, goal status, active blockers, and roadmap records. | [Goal backlog](31-planning-roadmap/goals/backlog.md) / [Ecosystem decision gate](31-planning-roadmap/ecosystem-decision-gate.md) / [Conditional tracks ledger](31-planning-roadmap/conditional-tracks-ledger.md) |
 | `33-specs-rfcs` | Schema and proposal-like design notes. | [Schema v1](33-specs-rfcs/schema-v1.md) |
 | `41-development-tools` | CLI, quality gates, editor/schema tooling, live validation, examples/showcase workflow, and agent helpers. | [Quality gates](41-development-tools/quality-gates.md) / [CLI](41-development-tools/cli.md) / [Examples and showcase](41-development-tools/examples-and-showcase.md) / [Live runtime validation](41-development-tools/live-runtime-validation.md) |
-| `43-ci-build-release-tools` | Build, package, release, versioning, adoption readiness, and baseline evidence. | [Build and package](43-ci-build-release-tools/build-and-package.md) / [Package matrix](43-ci-build-release-tools/package-matrix.md) / [Release and adoption readiness](43-ci-build-release-tools/adoption-readiness.md) / [G84 beta candidate readiness](43-ci-build-release-tools/core-runtime-beta-candidate-g84.md) / [G85 v1 readiness program](43-ci-build-release-tools/v1-readiness-program.md) |
+| `43-ci-build-release-tools` | Build, package, release, versioning, adoption readiness, and baseline evidence. | [Build and package](43-ci-build-release-tools/build-and-package.md) / [Package matrix](43-ci-build-release-tools/package-matrix.md) / [Release and adoption readiness](43-ci-build-release-tools/adoption-readiness.md) / [Core runtime beta candidate](43-ci-build-release-tools/core-runtime-beta-candidate.md) / [v1 readiness program](43-ci-build-release-tools/v1-readiness-program.md) |
 | `44-coding-standards` | Contribution and coding process standards. | [Contributing](44-coding-standards/contributing.md) / [Feedback and triage](44-coding-standards/feedback-and-triage.md) |
 | `45-doc-standards` | Documentation conventions, Pages publishing, and maintenance rules. | [Documentation system](45-doc-standards/documentation-system.md) / [GitHub Pages](45-doc-standards/github-pages.md) |
 | `61-api` | Public C++/C API, compatibility, and generated reference entry points. | [API overview](61-api/api-overview.md) / [Doxygen](61-api/doxygen.md) |
 | `62-schemas-protocols` | Metrics, trace, diagnostic, and live observe output schemas. | [Metrics](62-schemas-protocols/metrics.md) / [Live observe events](62-schemas-protocols/live-observe-events.md) |
-| `94-doc-migrations` | Documentation migration records, deletion evidence, and old-to-new maps. | [2026 process-ledger cleanup](94-doc-migrations/2026-05-process-ledger-cleanup.md) |
 
 ## Stability Notes
 
@@ -51,8 +50,3 @@ The optional Pages build uses MkDocs plus Doxygen through
 `scripts/docs_build_site.sh`. It publishes the Markdown site and copies
 generated API HTML under `/api/`; normal runtime builds do not require docs
 tooling.
-
-## Migration Records
-
-- [2026 documentation reorganization](94-doc-migrations/2026-05-doc-reorganization.md)
-- [2026 process-ledger cleanup](94-doc-migrations/2026-05-process-ledger-cleanup.md)

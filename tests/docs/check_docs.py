@@ -42,8 +42,6 @@ REQUIRED_DOCS = [
     "61-api/api-overview.md",
     "61-api/c-api.md",
     "61-api/public-api.md",
-    "94-doc-migrations/2026-05-doc-reorganization.md",
-    "94-doc-migrations/2026-05-process-ledger-cleanup.md",
 ]
 
 REQUIRED_SECTIONS = {
@@ -144,8 +142,28 @@ README_REQUIRED_LINKS = [
     "(45-doc-standards/documentation-system.md)",
     "(61-api/api-overview.md)",
     "(62-schemas-protocols/metrics.md)",
-    "(94-doc-migrations/2026-05-doc-reorganization.md)",
-    "(94-doc-migrations/2026-05-process-ledger-cleanup.md)",
+]
+
+FORBIDDEN_DOC_REFERENCES = [
+    "94-doc-migrations",
+    "Migration Records",
+    ".omx/ultragoal",
+    "process-ledger",
+    "process ledger",
+    "recorded migration",
+    "migration map",
+    "core-runtime-beta-candidate-g84",
+]
+
+COMPACT_LEDGER_DOCS = [
+    "31-planning-roadmap/goals/status.md",
+    "31-planning-roadmap/goals/backlog.md",
+]
+
+COMPACT_LEDGER_FORBIDDEN = [
+    (re.compile(r"^###\s+G\d+\s+M\d+", re.MULTILINE), "milestone evidence section"),
+    (re.compile(r"\.omx/ultragoal"), "local OMX evidence path"),
+    (re.compile(r"^\|\s*Command\s*\|\s*Result\s*\|", re.MULTILINE), "command/result evidence table"),
 ]
 
 
@@ -168,6 +186,12 @@ def validate_docs_map(docs_dir: Path) -> list[str]:
         if link not in readme:
             failures.append(f"docs/README.md missing required link {link}")
 
+    for path in sorted(docs_dir.rglob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        for forbidden in FORBIDDEN_DOC_REFERENCES:
+            if forbidden in text:
+                failures.append(f"{path.relative_to(docs_dir)} contains forbidden docs reference {forbidden}")
+
     for relative, sections in REQUIRED_SECTIONS.items():
         path = docs_dir / relative
         if not path.exists():
@@ -176,6 +200,15 @@ def validate_docs_map(docs_dir: Path) -> list[str]:
         for section in sections:
             if section not in text:
                 failures.append(f"docs/{relative} missing required section {section}")
+
+    for relative in COMPACT_LEDGER_DOCS:
+        path = docs_dir / relative
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for pattern, description in COMPACT_LEDGER_FORBIDDEN:
+            if pattern.search(text):
+                failures.append(f"docs/{relative} contains forbidden {description}")
     return failures
 
 

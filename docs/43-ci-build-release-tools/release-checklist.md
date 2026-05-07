@@ -1,7 +1,7 @@
 # Release Checklist
 
-Target: next prerelease candidate after the completed G0-G70 stabilization
-sweeps.
+Target: next prerelease candidate after the completed runtime/API/docs/release
+stabilization sweeps.
 
 Do not retag `v0.1.0-alpha`; if a published release is wrong, fix forward with a
 new prerelease tag.

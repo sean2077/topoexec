@@ -1,8 +1,8 @@
 # Live Observe Performance Policy
 
-G73 turns "low overhead" into a validation target for the live runtime
-workbench. The targets are per-machine comparisons against a local baseline, not
-portable absolute latency guarantees.
+The live runtime workbench treats "low overhead" as a validation target. The
+targets are per-machine comparisons against a local baseline, not portable
+absolute latency guarantees.
 
 ## Budget
 

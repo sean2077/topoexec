@@ -20,8 +20,8 @@ Goal-specific validation dispatcher for TopoExec agents.
 - adoption: issue template, debug-pack, first-user path, and triage workflow checks
 - ecosystem: G81 ecosystem decision-gate and deferred-track blocker checks
 - conditional: G82x/G83 per-track blocker and entry-criteria ledger checks
-- beta: G84 core-runtime beta candidate readiness docs and release boundary checks
-- v1: G85 v1.0 readiness deferral criteria and release boundary checks
+- beta: core-runtime beta candidate readiness docs and release boundary checks
+- v1: v1.0 readiness deferral criteria and release boundary checks
 - fuzz:   deterministic parser/compiler fuzz smoke plus optional fuzzer target corpus replay
 - stress: bounded runtime stress graph smoke plus task-executor overload stress
 - bench:  benchmark output-contract smoke plus local baseline generation without thresholds

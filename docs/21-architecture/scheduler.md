@@ -93,8 +93,9 @@ Runtime ordering rules:
   dropped or rejected; low/background drops increment
   `runtime.scheduler.low_priority_rejected_count`.
 - `runtime.scheduler.starvation_guard_count` exists as an explicit future
-  intervention metric. G32 v1 has bounded priority ordering and starvation smoke
-  coverage, but no aging intervention that would make this counter non-zero.
+  intervention metric. The current scheduler has bounded priority ordering and
+  starvation smoke coverage, but no aging intervention that would make this
+  counter non-zero.
 
 ## Persistent Thread Pool v1
 

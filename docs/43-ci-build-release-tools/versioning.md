@@ -59,7 +59,7 @@ The next prerelease line should treat these as stable-v0.2 source surfaces:
 - Compile-time `subgraphs[]` namespace expansion metadata in `GraphHierarchyEntry`.
 - CompositeLoop ownership requirements and fixed-point runtime metrics.
 - CMake package target names: `topoexec::core`, `topoexec::runtime`, and `topoexec::yaml`.
-- CLI JSON field names documented in [metrics.md](../62-schemas-protocols/metrics.md), [trace-events.md](../62-schemas-protocols/trace-events.md), schema tooling docs, and G26 goldens.
+- CLI JSON field names documented in [metrics.md](../62-schemas-protocols/metrics.md), [trace-events.md](../62-schemas-protocols/trace-events.md), schema tooling docs, and golden outputs.
 
 ### Subject To Change Before 1.0
 
@@ -141,6 +141,6 @@ client-library packages, production OpenTelemetry/Prometheus, native Python
 bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems, graph-driven
 plugin discovery, schema v2 implementation/migration tooling, and external
 Perfetto integrations remain docs-only/deferred.
-G58/G59 telemetry targets, the G60 ROS 2 target, the G61 C API target, the G62
-Python automation package, and the G63 plugin loader target are only
-dependency-free, CLI-backed, ABI-version-0, or trusted-native previews.
+Telemetry targets, the ROS 2 preview target, the C API target, the Python
+automation package, and the plugin loader target are only dependency-free,
+CLI-backed, ABI-version-0, or trusted-native previews.

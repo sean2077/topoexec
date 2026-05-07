@@ -2,19 +2,19 @@
 
 Date: 2026-05-06
 
-G70 is a review gate, not a tag operation. The current tree has enough evidence
+This is a review gate, not a tag operation. The current tree has enough evidence
 for an honest **core-runtime beta candidate review**, but a human release owner
-must still choose the tag, run release preparation on the exact candidate commit,
-and copy the explicit deferrals into release notes. This is not an adapter,
-hardware, package-registry, or 1.0 readiness claim.
+must still choose the tag, run release preparation on the exact candidate
+commit, and copy the explicit deferrals into release notes. This is not an
+adapter, hardware, package-registry, or 1.0 readiness claim.
 
 ## Verdict
 
 | Question | Verdict |
 | --- | --- |
-| Are all completed goal sweeps closed? | Yes. G0-G70 are complete; schema v2 implementation remains deferred beyond the G64 design note, and a full editor/LSP extension remains beyond the G65 guide. |
+| Are historical stabilization sweeps closed? | Yes. Runtime/API/docs/release stabilization is complete; schema v2 implementation remains deferred beyond the design note, and a full editor/LSP extension remains beyond the setup guide. |
 | Can TopoExec honestly prepare a core-runtime beta candidate? | Yes, if release notes keep the deferred features and alpha/experimental surfaces explicit and CI/release-prep evidence is attached for the exact candidate commit. |
-| Can TopoExec claim adapter/ecosystem beta readiness? | No. G58/G59 add dependency-free telemetry mapping/text previews and G60 adds only a dependency-free ROS 2 fake-boundary preview; concrete ROS 2 client-library packages, production OpenTelemetry/Prometheus, stable C ABI, native Python bindings, sandboxed/stable plugin ecosystems, graph-driven plugin discovery, external Perfetto, and package-registry surfaces remain deferred or draft-only. |
+| Can TopoExec claim adapter/ecosystem beta readiness? | No. Telemetry adapters are dependency-free mapping/text previews, and the ROS 2 surface is only a dependency-free fake-boundary preview; concrete ROS 2 client-library packages, production OpenTelemetry/Prometheus, stable C ABI, native Python bindings, sandboxed/stable plugin ecosystems, graph-driven plugin discovery, external Perfetto, and package-registry surfaces remain deferred or draft-only. |
 | Can TopoExec claim hard real-time or external scheduling guarantees? | No. Fixed-rate/thread-pool behavior is cooperative and observable; OS RT policy, CPU affinity guarantees, independent lane threads, hard preemption, and advanced starvation aging remain future work. |
 
 Recommended public line remains `v0.2.0-alpha.0` until a human explicitly opens a
@@ -23,7 +23,7 @@ adapter or ecosystem beta.
 
 ## Prompt-to-artifact checklist
 
-| G70 requirement | Evidence | Result |
+| Requirement | Evidence | Result |
 | --- | --- | --- |
 | Public API matrix updated | `docs/61-api/public-api.md` classifies targets, installed headers, stable/mixed/experimental surfaces, Adapter SDK v0, examples, and CLI JSON compatibility. | Covered |
 | Deprecation policy | `docs/61-api/public-api.md` and `docs/43-ci-build-release-tools/versioning.md` now define pre-1.0 deprecation expectations for stable-v0.2, mixed, experimental, schema, and CLI JSON surfaces. | Covered |
@@ -57,14 +57,14 @@ adapter or ecosystem beta.
 | Goal ledger | `docs/31-planning-roadmap/goals/backlog.md`, `docs/31-planning-roadmap/goals/status.md`, and this review. | Covered |
 
 
-## G75-G80 readiness refresh
+## Release And Adoption Refresh
 
-The next-stage G75-G80 evidence adds release/adoption readiness, a synthetic
-dogfood pilot, stable-v0.2 compatibility harness, package matrix hardening,
-bounded reliability tiers, and adoption feedback/triage checks. See
-[`core-runtime-beta-candidate-g84.md`](core-runtime-beta-candidate-g84.md) for
-the current G84 review surface. This does not change the human release-owner
-gate and does not create adapter/ecosystem beta readiness.
+The next-stage evidence adds release/adoption readiness, a synthetic dogfood
+pilot, stable-v0.2 compatibility harness, package matrix hardening, bounded
+reliability tiers, and adoption feedback/triage checks. See
+[`core-runtime-beta-candidate.md`](core-runtime-beta-candidate.md) for the
+current review surface. This does not change the human release-owner gate and
+does not create adapter/ecosystem beta readiness.
 
 ## Required beta-candidate gate
 
@@ -101,9 +101,14 @@ blocking for a beta tag, record that decision in release notes.
 ## Explicitly deferred from beta scope unless completed first
 
 - Production OpenTelemetry SDK/network exporter and Prometheus HTTP/scrape
-  service. G58/G59 cover only dependency-free mapping/text previews.
-- Real ROS 2 client-library package beyond the G60 fake-boundary preview.
-- Stable C ABI beyond the G61 ABI-version-0 preview, native Python bindings beyond the G62 CLI-backed automation preview, sandboxed/stable plugin ecosystems beyond the G63 trusted-native loader preview, actual schema v2 implementation/migration tooling beyond the G64 design note, and a full editor extension or LSP server beyond the G65 setup guide.
+  service. Current telemetry targets cover only dependency-free mapping/text
+  previews.
+- Real ROS 2 client-library package beyond the fake-boundary preview.
+- Stable C ABI beyond the ABI-version-0 preview, native Python bindings beyond
+  the CLI-backed automation preview, sandboxed/stable plugin ecosystems beyond
+  the trusted-native loader preview, actual schema v2 implementation/migration
+  tooling beyond the design note, and a full editor extension or LSP server
+  beyond the setup guide.
 - Maintainer SLA, private vulnerability-reporting process, and community forum/support channels beyond the checked-in contribution templates and code-of-conduct surface.
 
 ## Human release decision

@@ -1,8 +1,8 @@
 # Reliability, Soak, and Performance Regression Program
 
-Status: G79 bounded local reliability program for the `v0.2.0-alpha.0` candidate
-line. It layers existing tests into tiers and keeps longer evidence opt-in so CI
-and agent runs do not become flaky or unbounded.
+Status: bounded local reliability program for the `v0.2.0-alpha.0` candidate
+line. It layers existing tests into tiers and keeps longer evidence opt-in so
+CI and agent runs do not become flaky or unbounded.
 
 ## Test tiers
 

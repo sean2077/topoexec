@@ -2,7 +2,7 @@
 
 ## Status
 
-The G63 dynamic plugin loader is an optional, default-off, trusted-native-code
+The dynamic plugin loader is an optional, default-off, trusted-native-code
 preview target. Enable it with:
 
 ```bash
@@ -65,7 +65,7 @@ before the handle closes.
 
 ## Non-goals
 
-G63 does not freeze a stable plugin ABI, provide package discovery, load plugins
+This preview does not freeze a stable plugin ABI, provide package discovery, load plugins
 from graph schema fields, implement sandboxing, add Python/Rust/native callback
 bindings, or make dynamic plugins a default runtime dependency. It also does not
 replace the stable explicit `ComponentRegistry` path.

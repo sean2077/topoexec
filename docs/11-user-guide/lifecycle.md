@@ -19,7 +19,7 @@ can start, execute, stop, and diagnose graphs predictably.
 
 ## Extended lifecycle hooks
 
-G43 adds experimental stateful lifecycle hooks on `Component`:
+TopoExec provides experimental stateful lifecycle hooks on `Component`:
 
 - `reset(GraphContext&)` / `reset_status(...)`: clear component-local state at a
   controlled epoch boundary.
@@ -49,7 +49,7 @@ execution or violate transaction visibility.
 
 ## Config reload hooks
 
-G44 adds experimental config reload hooks on `Component`:
+TopoExec provides experimental config reload hooks on `Component`:
 
 - `validate_config(const ConfigView&)`: reject a pending component config before
   any component in the transaction is changed.

@@ -1,4 +1,4 @@
-# G84 Core Runtime Beta Candidate Readiness
+# Core Runtime Beta Candidate Readiness
 
 Status: readiness review only. This page does not tag, publish, upload, or claim
 production readiness. A human release owner must accept the exact candidate
@@ -6,12 +6,13 @@ commit and remaining deferrals before any beta tag.
 
 ## Verdict
 
-TopoExec can prepare a **core-runtime beta candidate review** after the G75-G80
-local evidence, but the public line should remain `v0.2.0-alpha.0` unless a
-human release owner explicitly opens a beta tag. This is not adapter/ecosystem
-beta readiness and not a v1.0 readiness claim. Scope label: not adapter/ecosystem beta readiness.
+TopoExec can prepare a **core-runtime beta candidate review** after the local
+release, adoption, package, compatibility, and reliability evidence, but the
+public line should remain `v0.2.0-alpha.0` unless a human release owner
+explicitly opens a beta tag. This is not adapter/ecosystem beta readiness and
+not a v1.0 readiness claim. Scope label: not adapter/ecosystem beta readiness.
 
-## G75-G80 evidence summary
+## Evidence Summary
 
 | Area | Evidence |
 | --- | --- |
@@ -21,7 +22,7 @@ beta readiness and not a v1.0 readiness claim. Scope label: not adapter/ecosyste
 | Packaging | Package matrix covers runtime-only/default/YAML/CLI/CPack/release/vcpkg/Conan local forms; registry publication blocked. |
 | Reliability | Bounded reliability tiers, soak-lite, stress, fuzz, bench, ASAN+UBSAN policy, non-blocking TSAN policy. |
 | Adoption loop | Debug pack, triage labels, first-user path, and adoption feedback checks exist. |
-| Ecosystem conditionals | G81/G82x/G83 blockers keep adapters/bindings/editor/package publication/schema v2 deferred. |
+| Ecosystem conditionals | Blocker records keep production adapters, native bindings, editor tooling, package publication, and schema v2 deferred. |
 
 ## Required beta-candidate gate
 
