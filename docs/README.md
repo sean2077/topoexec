@@ -6,7 +6,7 @@ This directory is the canonical documentation root. The project is complex enoug
 
 - New user: [project map](00-start-here/project-map.md) -> [getting started](01-quickstart/getting-started.md) -> [concepts](10-user-overview/concepts.md) -> [cookbook](11-user-guide/cookbook.md).
 - Embedder: [API overview](61-api/api-overview.md) -> [public API stability](61-api/public-api.md) -> [runtime architecture](21-architecture/runtime-architecture.md).
-- Maintainer: [maintainer map](20-development-overview/maintainer-map.md) -> [codebase map](22-codebase/codebase-map.md) -> [testing strategy](24-testing/testing-strategy.md).
+- Maintainer: [maintainer map](20-development-overview/maintainer-map.md) -> [codebase map](22-codebase/codebase-map.md) -> [testing strategy](24-testing/testing-strategy.md) -> [live observe performance](24-testing/live-observe-performance.md).
 - Planner or release owner: [goal backlog](31-planning-roadmap/goals/backlog.md) -> [goal status](31-planning-roadmap/goals/status.md) -> [release runbook](43-ci-build-release-tools/release-runbook.md) -> [beta readiness review](43-ci-build-release-tools/beta-readiness-review.md).
 
 ## Zones
@@ -24,19 +24,24 @@ This directory is the canonical documentation root. The project is complex enoug
 | `24-testing` | Test strategy, fuzz/stress/bench evidence, and defensive input checks. | [Testing strategy](24-testing/testing-strategy.md) |
 | `31-planning-roadmap` | Current backlog, goal status, active blockers, and roadmap records. | [Goal backlog](31-planning-roadmap/goals/backlog.md) |
 | `33-specs-rfcs` | Schema and proposal-like design notes. | [Schema v1](33-specs-rfcs/schema-v1.md) |
-| `41-development-tools` | CLI, quality gates, editor/schema tooling, and agent workflow helpers. | [Quality gates](41-development-tools/quality-gates.md) / [CLI](41-development-tools/cli.md) |
+| `41-development-tools` | CLI, quality gates, editor/schema tooling, live validation, and agent workflow helpers. | [Quality gates](41-development-tools/quality-gates.md) / [CLI](41-development-tools/cli.md) / [Live runtime validation](41-development-tools/live-runtime-validation.md) |
 | `43-ci-build-release-tools` | Build, package, release, versioning, and baseline evidence. | [Build and package](43-ci-build-release-tools/build-and-package.md) |
 | `44-coding-standards` | Contribution and coding process standards. | [Contributing](44-coding-standards/contributing.md) |
 | `45-doc-standards` | Documentation conventions, Pages publishing, and maintenance rules. | [Documentation system](45-doc-standards/documentation-system.md) / [GitHub Pages](45-doc-standards/github-pages.md) |
 | `61-api` | Public C++/C API, compatibility, and generated reference entry points. | [API overview](61-api/api-overview.md) / [Doxygen](61-api/doxygen.md) |
-| `62-schemas-protocols` | Metrics, trace, and diagnostic output schemas. | [Metrics](62-schemas-protocols/metrics.md) |
+| `62-schemas-protocols` | Metrics, trace, diagnostic, and live observe output schemas. | [Metrics](62-schemas-protocols/metrics.md) / [Live observe events](62-schemas-protocols/live-observe-events.md) |
 | `94-doc-migrations` | Documentation migration records, deletion evidence, and old-to-new maps. | [2026 process-ledger cleanup](94-doc-migrations/2026-05-process-ledger-cleanup.md) |
 
 ## Stability Notes
 
 Stable guidance describes current runtime, API, schema, test, and release behavior. Planning docs under `31-planning-roadmap` are compact status surfaces and should not duplicate implementation docs, CI logs, or release artifacts.
 
-Adapter, C API, Python, editor, and plugin docs are explicit preview or boundary surfaces unless their page says otherwise. Do not infer production ROS 2, production OpenTelemetry/Prometheus, native Python bindings, stable ABI, schema v2 implementation, migration CLI, or sandbox support from preview docs.
+Adapter, C API, Python, editor, plugin, and live dashboard docs are explicit
+preview or boundary surfaces unless their page says otherwise. Live observe is
+an observability/test-validation path, not a runtime control path. Do not infer
+production ROS 2, production OpenTelemetry/Prometheus, native Python bindings,
+stable ABI, schema v2 implementation, migration CLI, remote dashboard access,
+pause/resume/step/fault injection, or sandbox support from preview docs.
 
 ## Docs Validation
 

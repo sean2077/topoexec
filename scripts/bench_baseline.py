@@ -27,6 +27,11 @@ BENCHMARK_CASES = [
     "payload_policies.yaml",
     "channel_modes.yaml",
     "trigger_policies.yaml",
+    "live_observe_minimal.yaml",
+    "live_observe_high_frequency_channels.yaml",
+    "live_observe_trigger_stress.yaml",
+    "live_observe_thread_pool.yaml",
+    "live_observe_composite_loop.yaml",
 ]
 
 

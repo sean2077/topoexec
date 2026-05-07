@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|policy|adapters|ffi|python|plugins|release|sanitizer|format|tidy|debug]
+Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|live|live-perf|policy|adapters|ffi|python|plugins|release|sanitizer|format|tidy|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
@@ -15,6 +15,8 @@ Goal-specific validation dispatcher for TopoExec agents.
 - fuzz:   deterministic parser/compiler fuzz smoke plus optional fuzzer target corpus replay
 - stress: bounded runtime stress graph smoke plus task-executor overload stress
 - bench:  benchmark output-contract smoke plus local baseline generation without thresholds
+- live:   live observe schema, CLI, assertion, record, replay, dashboard, and drop-summary smoke
+- live-perf: live observe overhead smoke against local per-machine baseline policy
 - policy: architecture/dependency policy smokes
 - adapters: optional adapter-preview target/package smokes
 - ffi: optional C API/FFI preview target/package smoke
@@ -80,6 +82,20 @@ case "$MODE" in
       TOPOEXEC_BENCH_TASKS="${TOPOEXEC_BENCH_TASKS:-8}" \
       TOPOEXEC_BENCH_BASELINE_OUTPUT="${TOPOEXEC_BENCH_BASELINE_OUTPUT:-/tmp/topoexec-bench-baseline.json}" \
       ./scripts/bench_baseline.sh
+    ;;
+  live)
+    configure_build
+    ctest --test-dir "$BUILD_DIR" --output-on-failure -R 'cli_observe|live_'
+    TOPOEXEC="${TOPOEXEC:-$BUILD_DIR/topoexec}" ./scripts/live_smoke.sh
+    ;;
+  live-perf)
+    configure_build
+    python3 scripts/live_perf_check.py \
+      --topoexec "$BUILD_DIR/topoexec" \
+      --graph "${TOPOEXEC_LIVE_PERF_GRAPH:-benchmarks/live_observe_high_frequency_channels.yaml}" \
+      --steps "${TOPOEXEC_LIVE_PERF_STEPS:-20}" \
+      --runs "${TOPOEXEC_LIVE_PERF_RUNS:-3}" \
+      --output "${TOPOEXEC_LIVE_PERF_OUTPUT:-/tmp/topoexec-live-perf.json}"
     ;;
   policy)
     configure_build

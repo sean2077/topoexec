@@ -281,6 +281,12 @@ bool has_trace_event(const topoexec::RuntimeRunnerResult& result, const std::str
   return std::find(result.trace_events.begin(), result.trace_events.end(), name) != result.trace_events.end();
 }
 
+bool has_live_event(const topoexec::RuntimeRunnerResult& result, topoexec::runtime_observe::LiveEventKind kind) {
+  const auto encoded = topoexec::runtime_observe::encode_kind(kind);
+  return std::any_of(result.live_events.begin(), result.live_events.end(),
+                     [&](const auto& event) { return event.kind == encoded; });
+}
+
 bool has_trace_event_attribute(const topoexec::RuntimeRunnerResult& result, const std::string& name,
                                const std::string& key, const std::string& value) {
   return std::any_of(result.trace.begin(), result.trace.end(), [&](const auto& event) {
@@ -2139,6 +2145,70 @@ TEST(Runtime, InMemoryObserverDropsBoundedRecordsAndReportsDrops) {
   EXPECT_LE(observer.metrics().size(), 1u);
   EXPECT_LE(observer.trace_events().size(), 1u);
   EXPECT_LE(observer.results().size(), 1u);
+}
+
+TEST(Runtime, LiveObserveDisabledByDefaultProducesNoEvents) {
+  const auto reg = registry();
+  const auto spec = graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_TRUE(result.live_events.empty());
+  EXPECT_EQ(result.live_observe_dropped_event_count, 0u);
+}
+
+TEST(Runtime, LiveObserveEnabledEmitsLifecycleAndRuntimeEventsWithoutChangingSemantics) {
+  const auto reg = registry();
+  const auto spec = graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions baseline_options;
+  baseline_options.mode = topoexec::RuntimeRunMode::kRun;
+  baseline_options.tick_iterations = 1;
+  const auto baseline = runner.run(spec, baseline_options);
+
+  topoexec::RuntimeRunnerOptions live_options = baseline_options;
+  live_options.live_observe.level = topoexec::runtime_observe::LiveObserveLevel::kSummary;
+  live_options.live_observe.event_buffer_capacity = 128;
+  live_options.live_observe.stream_id = 4;
+  const auto observed = runner.run(spec, live_options);
+
+  ASSERT_TRUE(baseline.ok) << (baseline.errors.empty() ? "" : baseline.errors.front());
+  ASSERT_TRUE(observed.ok) << (observed.errors.empty() ? "" : observed.errors.front());
+  EXPECT_EQ(observed.tick_calls, baseline.tick_calls);
+  EXPECT_EQ(observed.channel_publish_count, baseline.channel_publish_count);
+  EXPECT_EQ(observed.channel_delivery_count, baseline.channel_delivery_count);
+  EXPECT_EQ(observed.channel_drop_count, baseline.channel_drop_count);
+  EXPECT_EQ(observed.trace_events, baseline.trace_events);
+  EXPECT_EQ(observed.live_observe_dropped_event_count, 0u);
+  EXPECT_TRUE(has_live_event(observed, topoexec::runtime_observe::LiveEventKind::kRunStarted));
+  EXPECT_TRUE(has_live_event(observed, topoexec::runtime_observe::LiveEventKind::kRunFinished));
+  EXPECT_TRUE(has_live_event(observed, topoexec::runtime_observe::LiveEventKind::kComponentBegin));
+  EXPECT_TRUE(has_live_event(observed, topoexec::runtime_observe::LiveEventKind::kComponentEnd));
+  ASSERT_FALSE(observed.live_events.empty());
+  EXPECT_EQ(observed.live_events.front().stream_id, 4u);
+}
+
+TEST(Runtime, LiveObserveOverflowReportsDropSummaryWithoutChangingRuntimeResult) {
+  const auto reg = registry();
+  const auto spec = graph();
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+  options.live_observe.level = topoexec::runtime_observe::LiveObserveLevel::kDetailed;
+  options.live_observe.event_buffer_capacity = 1;
+
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  EXPECT_GT(result.live_observe_dropped_event_count, 0u);
+  EXPECT_TRUE(has_live_event(result, topoexec::runtime_observe::LiveEventKind::kRunStarted));
+  EXPECT_TRUE(has_live_event(result, topoexec::runtime_observe::LiveEventKind::kObserverDropSummary));
 }
 
 TEST(Runtime, CorrelationMetadataStaysStableThroughImmediateChain) {

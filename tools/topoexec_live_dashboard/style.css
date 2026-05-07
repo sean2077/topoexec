@@ -1,0 +1,7 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+body { margin: 0; padding: 1rem; background: Canvas; color: CanvasText; }
+header { margin-bottom: 1rem; }
+main { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; }
+section { border: 1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius: .5rem; padding: .75rem; min-height: 10rem; }
+h2 { margin-top: 0; font-size: 1rem; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 20rem; overflow: auto; }

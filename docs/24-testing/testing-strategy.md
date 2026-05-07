@@ -25,6 +25,8 @@ This configures, builds, and runs all default CTest tests.
 | Fuzz smoke | deterministic malformed, invalid-UTF-8, oversized, parser-limit corpus plus optional fuzzer target corpus replay | `./scripts/goal_check.sh fuzz` |
 | Stress smoke | generated scheduler/channel graph workloads plus task-executor/thread-pool overload stress | `./scripts/goal_check.sh stress` |
 | Benchmark smoke | RuntimeRunner benchmark cases, task-executor benchmark output, schema v2 metadata, and optional local baseline generation | `./scripts/goal_check.sh bench` |
+| Live observe smoke | `graph observe` schema, CLI output, live assertions, record/replay artifacts, local dashboard assets, and observer-drop summaries | `./scripts/goal_check.sh live` |
+| Live observe performance | disabled/summary/detailed/debug mode overhead smoke with opt-in per-machine thresholds and overflow/drop visibility | `./scripts/goal_check.sh live-perf` |
 | Package | install/export/downstream `find_package(topoexec)` runtime-only, adapter SDK, YAML, CLI, and installed-schema discovery smokes | `./scripts/goal_check.sh package` |
 | Adapter previews | optional adapter targets, package exports, and dependency-boundary policy | `./scripts/goal_check.sh adapters` |
 | Release prep | non-publishing release_prepare dry run, release notes draft, and human-only tag-command contract | `./scripts/goal_check.sh release` |
@@ -96,6 +98,33 @@ TOPOEXEC_BENCH_THRESHOLD_PERCENT=15 \
 See [Performance baselines](performance-baselines.md) for interpretation and
 policy. Benchmark success proves output-contract and workload health, not a
 portable performance guarantee.
+
+## Live observe smoke and performance
+
+`./scripts/goal_check.sh live` validates the local live runtime validation
+surface without treating it as a runtime control plane. It runs the CTest live
+smokes, `scripts/live_smoke.sh`, the observe NDJSON schema checker, assertion
+pass/fail/pending checks, record/replay artifact checks, static dashboard
+checks, and an observer-overflow smoke proving drops are reported without
+changing runtime success.
+
+`./scripts/goal_check.sh live-perf` runs `scripts/live_perf_check.py` against
+the live-observe benchmark cases. The default gate is CI-safe: it verifies
+command success, `runtime_ok`, observer overflow visibility, and reports
+disabled/summary/detailed/debug median and p95 timings as JSON. Timing
+thresholds are intentionally opt-in and per-machine:
+
+```bash
+TOPOEXEC_LIVE_PERF_ENFORCE=1 \
+TOPOEXEC_LIVE_SUMMARY_OVERHEAD_PERCENT=2 \
+TOPOEXEC_LIVE_DETAILED_OVERHEAD_PERCENT=5 \
+./scripts/goal_check.sh live-perf
+```
+
+See [Live observe performance](live-observe-performance.md) for the low
+overhead policy. Debug mode is explicitly intrusive and has no hard default
+threshold. Successful live gates prove observability/test-validation behavior;
+they do not establish hard real-time guarantees or production telemetry support.
 
 ## Docs smoke
 

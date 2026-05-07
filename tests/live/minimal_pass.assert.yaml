@@ -1,0 +1,16 @@
+assertion_schema_version: "1"
+assertions:
+  - id: no_runtime_errors
+    type: counter_equals
+    source: runtime_errors
+    value: 0
+  - id: source_eventually_ends
+    type: eventually
+    event: component_end
+    where:
+      component_id: source
+    within_events: 20
+  - id: no_observer_drops
+    type: counter_equals
+    source: observer_drops
+    value: 0

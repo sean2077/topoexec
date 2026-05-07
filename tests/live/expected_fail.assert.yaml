@@ -1,0 +1,8 @@
+assertion_schema_version: "1"
+assertions:
+  - id: impossible_component
+    type: eventually
+    event: component_end
+    where:
+      component_id: does_not_exist
+    within_events: 5

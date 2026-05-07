@@ -1,0 +1,7 @@
+assertion_schema_version: "1"
+assertions:
+  - id: pending_future_event
+    type: eventually
+    event: component_error
+    where:
+      component_id: source

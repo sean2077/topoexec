@@ -6,6 +6,12 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Added
 
+- Added G73 low-overhead live runtime validation with compile-time optional
+  runtime live-observe transport, default-off `RuntimeRunnerOptions`
+  activation, `topoexec graph observe` NDJSON/json-summary output,
+  tooling-layer live assertions, replayable record artifacts, a local
+  observe-only SSE dashboard, live/live-perf focused gates, and benchmark cases
+  for live-observe overhead checks.
 - Added G71 post-alpha hardening evidence covering previous-tick wake behavior,
   bounded trigger pending queues, condition timestamp head handling, async
   in-flight accounting, CompositeLoop output visibility, benchmark expansion,

@@ -1,6 +1,6 @@
 # Goal Backlog
 
-Last updated: 2026-05-06
+Last updated: 2026-05-07
 
 This is the current roadmap entry point. It replaces the completed long-form
 plan boards with a compact status-oriented backlog.
@@ -34,6 +34,7 @@ for deletion evidence and replacement surfaces.
 | ID | Priority | Status | Scope | Acceptance | Validation | Blocker handling |
 | --- | --- | --- | --- | --- | --- | --- |
 | G71-post-alpha-hardening-docs-pages | P0/P1 mixed | complete | `src/channel.cpp`, `src/trigger_policy.cpp`, `src/event_runtime.cpp`, related runtime headers/tests/docs, `CMakeLists.txt`, docs-site/Doxygen/Pages files, release and goal ledgers. | Baseline evidence recorded; P0 runtime semantic regressions covered; intentional alpha limitations documented; benchmark baseline evidence captured; optional Doxygen target added; Pages docs workflow added; README/CHANGELOG/release docs aligned. | `./scripts/agent_check.sh`, sanitizer/stress/fuzz/bench/docs-site/Doxygen checks passed locally on 2026-05-06; see `status.md`. | No product/API blockers. Repository owner still must enable GitHub Pages source as GitHub Actions before a public URL is advertised. |
+| G73-low-overhead-live-runtime-validation | P0/P1 mixed | complete | `include/topoexec/runtime/`, `src/`, `tools/topoexec/`, `tests/`, `benchmarks/`, `tools/topoexec_live_*`, `scripts/`, docs, README, CHANGELOG, and goal ledgers for a local-first low-overhead live runtime validation workbench. | `graph observe` emits `observe_schema_version=1` NDJSON; observe defaults off; hot path remains bounded/non-blocking/allocation-light and free of JSON/file/socket/UI/payload body work; observer drops are observable and non-fatal; assertions run outside runtime internals; record artifacts replay; dashboard is observe-only; live/live-perf focused gates exist. | Baseline `cmake`/build/80-test CTest/format/agent/docs/golden/bench gates passed on 2026-05-07; M8 `live`, `live-perf`, `bench`, and format gates passed locally; final `./scripts/agent_check.sh`, focused `docs`, `golden`, `bench`, `live`, `live-perf`, `stress`, `fuzz`, `sanitizer`, and `git diff --check` passed on 2026-05-07. | No active blocker. If low-overhead transport, assertion DSL, or dashboard scope needs a product/API decision, add `docs/31-planning-roadmap/goals/blockers/g73-*.md`, recommend one option, and continue only with safe independent work. |
 
 ## Deferred Backlog
 

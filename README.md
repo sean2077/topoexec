@@ -34,6 +34,7 @@ flowchart LR
   PublicationRouter --> RuntimeChannels
   RuntimeChannels --> TriggerPolicy
   EventRuntime --> MetricsTrace[Metrics + Trace]
+  RuntimeRunner --> LiveObserve[Live observe stream]
 ```
 
 The core vocabulary is in [Concepts](docs/10-user-overview/concepts.md). The implementation-level architecture is in [Runtime architecture](docs/21-architecture/runtime-architecture.md) and [Codebase map](docs/22-codebase/codebase-map.md).
@@ -53,6 +54,7 @@ Use `GraphSpec` directly or the convenience builder in `topoexec/runtime/graph_b
 
 - Learn and run: [Getting started](docs/01-quickstart/getting-started.md), [Cookbook](docs/11-user-guide/cookbook.md), [Examples](docs/11-user-guide/examples.md).
 - Understand semantics: [Runtime semantics](docs/21-architecture/runtime-semantics.md), [Runtime semantic contract](docs/21-architecture/semantic-contract.md), [Schema v1](docs/33-specs-rfcs/schema-v1.md).
+- Validate live behavior locally: [Live runtime validation](docs/41-development-tools/live-runtime-validation.md), [Live observe events](docs/62-schemas-protocols/live-observe-events.md), [Live observe performance](docs/24-testing/live-observe-performance.md).
 - Embed or extend: [API overview](docs/61-api/api-overview.md), [Public API stability](docs/61-api/public-api.md), [Adapter boundaries](docs/12-integrations/adapter-boundaries.md).
 - Maintain the project: [Maintainer map](docs/20-development-overview/maintainer-map.md), [Testing strategy](docs/24-testing/testing-strategy.md), [Build and package](docs/43-ci-build-release-tools/build-and-package.md), [Contributing](docs/44-coding-standards/contributing.md).
 - Generated docs: the repository now includes optional Doxygen API-reference and GitHub Pages site wiring, documented in [Doxygen](docs/61-api/doxygen.md) and [GitHub Pages](docs/45-doc-standards/github-pages.md). A public Pages URL is intentionally omitted until the workflow deploys successfully.
@@ -65,5 +67,6 @@ Release planning and goal history live under [planning and roadmap](docs/31-plan
 - Async `policy.max_inflight` admission is implemented for `async` edges; it is an admission limit for deferred completions, while optional `TaskExecutor` / `ThreadedTaskExecutor` helpers are separate bounded task-execution surfaces.
 - CompositeLoop `solver_iteration` supports in-process residual/convergence reporting and explicit partial-success output policy; external solver plugins and optimizer dependencies are not implemented.
 - Trigger v2 `watermark`, `condition`, `debounce`, and `rate_limit` policies are declarative previews; arbitrary trigger scripts and wall-clock debounce timers are not implemented.
+- `graph observe` is a local observability and test-validation surface. It is disabled by default at runtime, bounded when enabled, and does not provide runtime control, pause/resume/step, fault injection, remote multi-user access, or production telemetry export.
 - Production ROS 2 packages, production OpenTelemetry/Prometheus, native Python bindings, stable C ABI, sandboxed/stable dynamic plugin ecosystems, schema v2 implementation/migration tooling, and external Perfetto adapters are deferred.
 - The beta readiness review covers only a possible core-runtime beta candidate; adapter/ecosystem beta readiness, hard real-time scheduling, signed release uploads, and package-registry publication remain deferred.

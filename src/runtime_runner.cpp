@@ -320,6 +320,169 @@ RuntimeTraceEvent make_runtime_trace_event(std::string name, std::string trace_i
   return event;
 }
 
+struct LiveIdMaps {
+  std::map<std::string, std::uint32_t> components;
+  std::map<std::string, std::uint32_t> channels;
+  std::map<std::string, std::uint32_t> lanes;
+  std::map<std::string, std::uint32_t> loops;
+};
+
+LiveIdMaps make_live_id_maps(const GraphSpec& graph) {
+  LiveIdMaps maps;
+  std::uint32_t next_component = 1;
+  for (const auto& component : graph.components) {
+    maps.components.emplace(component.id, next_component++);
+  }
+  std::uint32_t next_channel = 1;
+  for (const auto& edge : graph.edges) {
+    maps.channels.emplace(edge.id, next_channel++);
+  }
+  std::uint32_t next_lane = 1;
+  for (const auto& lane : graph.lanes) {
+    maps.lanes.emplace(lane.id, next_lane++);
+  }
+  std::uint32_t next_loop = 1;
+  for (const auto& loop : graph.composite_loops) {
+    maps.loops.emplace(loop.id, next_loop++);
+  }
+  return maps;
+}
+
+std::uint32_t live_id_for(const std::map<std::string, std::uint32_t>& ids, const std::string& key) {
+  const auto found = ids.find(key);
+  return found == ids.end() ? 0u : found->second;
+}
+
+std::uint32_t parse_live_u32(const std::string& value) {
+  if (value.empty() || value.front() == '-') {
+    return 0u;
+  }
+  try {
+    return static_cast<std::uint32_t>(std::stoull(value));
+  } catch (const std::exception&) {
+    return 0u;
+  }
+}
+
+std::optional<runtime_observe::LiveEventKind> live_kind_for_trace(const RuntimeTraceEvent& event) {
+  if (event.name == "component_execute_begin") {
+    return runtime_observe::LiveEventKind::kComponentBegin;
+  }
+  if (event.name == "component_execute_end" || event.name == "component_execute") {
+    return runtime_observe::LiveEventKind::kComponentEnd;
+  }
+  if (event.name == "channel_publish") {
+    return runtime_observe::LiveEventKind::kChannelPublishSummary;
+  }
+  if (event.name == "state_commit") {
+    return runtime_observe::LiveEventKind::kChannelCommitSummary;
+  }
+  if (event.name == "async_admission") {
+    return runtime_observe::LiveEventKind::kAsyncAdmission;
+  }
+  if (event.name == "loop_iteration_begin") {
+    return runtime_observe::LiveEventKind::kLoopIterationBegin;
+  }
+  if (event.name == "loop_iteration_end" || event.name == "loop_iteration") {
+    return runtime_observe::LiveEventKind::kLoopIterationEnd;
+  }
+  if (event.name == "loop_converged") {
+    return runtime_observe::LiveEventKind::kLoopConverged;
+  }
+  if (event.name == "loop_budget_overrun") {
+    return runtime_observe::LiveEventKind::kLoopBudgetOverrun;
+  }
+  if (event.name == "loop_max_iterations_hit") {
+    return runtime_observe::LiveEventKind::kLoopMaxIterationsHit;
+  }
+  if (event.name == "loop_error") {
+    return runtime_observe::LiveEventKind::kLoopError;
+  }
+  if (event.name == "health_event") {
+    return runtime_observe::LiveEventKind::kHealthEvent;
+  }
+  return std::nullopt;
+}
+
+runtime_observe::LiveEvent make_live_event(runtime_observe::LiveEventKind kind, const LiveIdMaps& ids,
+                                           std::uint64_t mono_ns = 0) {
+  runtime_observe::LiveEvent event;
+  event.mono_ns = mono_ns == 0u ? runtime_observe::live_observe_steady_time_ns() : mono_ns;
+  event.kind = runtime_observe::encode_kind(kind);
+  event.flags = runtime_observe::encode_exactness(runtime_observe::LiveEventExactness::kExact);
+  event.reason_id = runtime_observe::encode_severity(runtime_observe::LiveEventSeverity::kInfo);
+  (void)ids;
+  return event;
+}
+
+void publish_live_trace_events(runtime_observe::LiveObserveSession& live_observe, const LiveIdMaps& ids,
+                               const RuntimeRunnerResult& result) {
+  if (!live_observe.enabled()) {
+    return;
+  }
+  for (const auto& trace_event : result.trace) {
+    const auto kind = live_kind_for_trace(trace_event);
+    if (!kind.has_value()) {
+      continue;
+    }
+    auto event = make_live_event(*kind, ids, trace_event.start_offset_ns);
+    event.epoch_id = parse_live_u32(trace_event.epoch_id);
+    event.component_id = live_id_for(ids.components, trace_event.component_id);
+    event.channel_id = live_id_for(ids.channels, trace_event.channel_id);
+    event.lane_id = live_id_for(ids.lanes, trace_event.lane);
+    event.worker_id = parse_live_u32(trace_event.worker_id);
+    event.loop_id = live_id_for(ids.loops, attribute_value(trace_event.attributes, "loop_id"));
+    event.value0 = trace_event.duration_ns;
+    if (event.kind == runtime_observe::encode_kind(runtime_observe::LiveEventKind::kChannelPublishSummary) ||
+        event.kind == runtime_observe::encode_kind(runtime_observe::LiveEventKind::kChannelCommitSummary)) {
+      event.flags = runtime_observe::encode_exactness(runtime_observe::LiveEventExactness::kAggregated);
+    }
+    (void)live_observe.try_publish(event);
+  }
+}
+
+void publish_live_error_events(runtime_observe::LiveObserveSession& live_observe, const LiveIdMaps& ids,
+                               const RuntimeRunnerResult& result) {
+  if (!live_observe.enabled()) {
+    return;
+  }
+  for (const auto& error : result.runtime_errors) {
+    auto event = make_live_event(error.component_id.empty() ? runtime_observe::LiveEventKind::kRuntimeError
+                                                            : runtime_observe::LiveEventKind::kComponentError,
+                                 ids);
+    event.component_id = live_id_for(ids.components, error.component_id);
+    event.lane_id = live_id_for(ids.lanes, error.lane);
+    event.reason_id = runtime_observe::encode_severity(error.fatal ? runtime_observe::LiveEventSeverity::kError
+                                                                   : runtime_observe::LiveEventSeverity::kWarning);
+    (void)live_observe.try_publish(event);
+  }
+}
+
+void finish_live_observe(runtime_observe::LiveObserveSession& live_observe, const LiveIdMaps& ids,
+                         RuntimeRunnerResult& result) {
+  if (!live_observe.enabled()) {
+    return;
+  }
+  publish_live_trace_events(live_observe, ids, result);
+  publish_live_error_events(live_observe, ids, result);
+  auto finished = make_live_event(runtime_observe::LiveEventKind::kRunFinished, ids);
+  finished.value0 = result.ok ? 1u : 0u;
+  finished.value1 = static_cast<std::uint64_t>(result.tick_calls);
+  finished.value2 = static_cast<std::uint64_t>(result.errors.size());
+  (void)live_observe.try_publish(finished);
+
+  result.live_events = live_observe.drain();
+  if (auto summary = live_observe.take_drop_summary(runtime_observe::live_observe_steady_time_ns())) {
+    result.live_events.push_back(*summary);
+  }
+  result.live_observe_dropped_event_count = static_cast<std::size_t>(live_observe.dropped_event_count());
+  if (result.live_observe_dropped_event_count != 0u) {
+    append_runtime_metric(result, "runtime.live_observe.dropped_event_count",
+                          static_cast<double>(result.live_observe_dropped_event_count));
+  }
+  result.metric_samples = result.runtime_metrics.size();
+}
+
 void copy_trace_to_result(const TraceCollector& trace, const std::vector<HealthEvent>& health_events,
                           RuntimeRunnerResult& result) {
   const auto spans = trace.spans();
@@ -477,7 +640,11 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
   result.graph_name = graph.name;
   result.component_count = graph.components.size();
   result.channel_count = graph.edges.size();
+  const auto live_ids = make_live_id_maps(graph);
+  runtime_observe::LiveObserveSession live_observe(options.live_observe);
+  (void)live_observe.try_publish(make_live_event(runtime_observe::LiveEventKind::kRunStarted, live_ids));
   auto finish_result = [&]() {
+    finish_live_observe(live_observe, live_ids, result);
     notify_runtime_observers(options, result);
     return result;
   };

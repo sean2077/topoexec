@@ -1,0 +1,40 @@
+schema_version: 1
+graph: {name: live_observe_high_frequency_channels, kind: runnable}
+lanes: {main: {type: event_loop}}
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: stage_a
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: stage_b
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: stage_c
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: stage_d
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: source_stage_a, kind: immediate, from: source.out, to: stage_a.in, policy: {mode: queue, capacity: 64, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: stage_a_stage_b, kind: immediate, from: stage_a.out, to: stage_b.in, policy: {mode: queue, capacity: 64, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: stage_b_stage_c, kind: immediate, from: stage_b.out, to: stage_c.in, policy: {mode: queue, capacity: 64, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: stage_c_stage_d, kind: immediate, from: stage_c.out, to: stage_d.in, policy: {mode: queue, capacity: 64, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: stage_d_sink, kind: immediate, from: stage_d.out, to: sink.in, policy: {mode: latest, copy_policy: shared_view}}

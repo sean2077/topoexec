@@ -24,6 +24,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <yaml-cpp/yaml.h>
 
 namespace {
 
@@ -353,8 +354,10 @@ nlohmann::json edge_policy_json(const topoexec::EdgeSpec& edge) {
           {"slow_reader_drop_risk", slow_reader_drop_risk(edge.policy)}};
 }
 
-topoexec::RuntimeRunnerResult run_graph_file(const std::string& path, std::size_t steps, std::uint64_t duration_ms,
-                                             bool until_idle, const topoexec::GraphInputLimits& limits) {
+topoexec::RuntimeRunnerResult
+run_graph_file(const std::string& path, std::size_t steps, std::uint64_t duration_ms, bool until_idle,
+               const topoexec::GraphInputLimits& limits,
+               std::optional<topoexec::runtime_observe::LiveObserveOptions> live_observe_options = std::nullopt) {
   const auto registry = demo_registry();
   topoexec::RuntimeRunner runner(registry);
   topoexec::RuntimeRunnerOptions options;
@@ -362,6 +365,9 @@ topoexec::RuntimeRunnerResult run_graph_file(const std::string& path, std::size_
   options.tick_iterations = steps;
   options.run_duration_ms = duration_ms;
   options.run_until_idle = until_idle;
+  if (live_observe_options.has_value()) {
+    options.live_observe = *live_observe_options;
+  }
   return runner.run(topoexec::load_graph_file(path, limits), options);
 }
 
@@ -665,6 +671,717 @@ nlohmann::json runtime_health_events_json(const topoexec::RuntimeRunnerResult& r
                       {"attributes", event.attributes}});
   }
   return events;
+}
+
+std::string live_kind_name(std::uint32_t kind) {
+  using Kind = topoexec::runtime_observe::LiveEventKind;
+  switch (static_cast<Kind>(kind)) {
+  case Kind::kRunStarted:
+    return "run_started";
+  case Kind::kRunFinished:
+    return "run_finished";
+  case Kind::kSchedulerEpochBegin:
+    return "scheduler_epoch_begin";
+  case Kind::kSchedulerEpochEnd:
+    return "scheduler_epoch_end";
+  case Kind::kComponentBegin:
+    return "component_begin";
+  case Kind::kComponentEnd:
+    return "component_end";
+  case Kind::kComponentError:
+    return "component_error";
+  case Kind::kChannelPublishSummary:
+    return "channel_publish_summary";
+  case Kind::kChannelCommitSummary:
+    return "channel_commit_summary";
+  case Kind::kChannelDrop:
+    return "channel_drop";
+  case Kind::kChannelReject:
+    return "channel_reject";
+  case Kind::kChannelOverwrite:
+    return "channel_overwrite";
+  case Kind::kTriggerReadySummary:
+    return "trigger_ready_summary";
+  case Kind::kTriggerSuppressedSummary:
+    return "trigger_suppressed_summary";
+  case Kind::kAsyncAdmission:
+    return "async_admission";
+  case Kind::kAsyncReject:
+    return "async_reject";
+  case Kind::kAsyncDrop:
+    return "async_drop";
+  case Kind::kLoopIterationBegin:
+    return "loop_iteration_begin";
+  case Kind::kLoopIterationEnd:
+    return "loop_iteration_end";
+  case Kind::kLoopConverged:
+    return "loop_converged";
+  case Kind::kLoopBudgetOverrun:
+    return "loop_budget_overrun";
+  case Kind::kLoopMaxIterationsHit:
+    return "loop_max_iterations_hit";
+  case Kind::kLoopError:
+    return "loop_error";
+  case Kind::kHealthEvent:
+    return "health_event";
+  case Kind::kRuntimeError:
+    return "runtime_error";
+  case Kind::kObserverDropSummary:
+    return "observer_drop_summary";
+  }
+  return "unknown";
+}
+
+std::string live_exactness_name(std::uint32_t exactness) {
+  using Exactness = topoexec::runtime_observe::LiveEventExactness;
+  switch (static_cast<Exactness>(exactness)) {
+  case Exactness::kExact:
+    return "exact";
+  case Exactness::kAggregated:
+    return "aggregated";
+  case Exactness::kSampled:
+    return "sampled";
+  case Exactness::kLossy:
+    return "lossy";
+  case Exactness::kPartial:
+    return "partial";
+  }
+  return "partial";
+}
+
+std::string live_severity_name(std::uint32_t severity) {
+  using Severity = topoexec::runtime_observe::LiveEventSeverity;
+  switch (static_cast<Severity>(severity)) {
+  case Severity::kTrace:
+    return "trace";
+  case Severity::kDebug:
+    return "debug";
+  case Severity::kInfo:
+    return "info";
+  case Severity::kWarning:
+    return "warning";
+  case Severity::kError:
+    return "error";
+  }
+  return "info";
+}
+
+nlohmann::json live_symbol_table_json(const topoexec::GraphSpec& graph, const std::string& run_id) {
+  auto component_id_map = [](const std::vector<topoexec::ComponentNodeSpec>& records) {
+    nlohmann::json values = nlohmann::json::object();
+    std::uint32_t id = 1;
+    for (const auto& record : records) {
+      values[std::to_string(id++)] = record.id;
+    }
+    return values;
+  };
+  auto edge_id_map = [](const std::vector<topoexec::EdgeSpec>& records) {
+    nlohmann::json values = nlohmann::json::object();
+    std::uint32_t id = 1;
+    for (const auto& record : records) {
+      values[std::to_string(id++)] = record.id;
+    }
+    return values;
+  };
+  auto lane_id_map = [](const std::vector<topoexec::LaneSpec>& records) {
+    nlohmann::json values = nlohmann::json::object();
+    std::uint32_t id = 1;
+    for (const auto& record : records) {
+      values[std::to_string(id++)] = record.id;
+    }
+    return values;
+  };
+  nlohmann::json loops = nlohmann::json::object();
+  std::uint32_t loop_id = 1;
+  for (const auto& loop : graph.composite_loops) {
+    loops[std::to_string(loop_id++)] = loop.id;
+  }
+  return {{"observe_schema_version", "1"},
+          {"kind", "symbol_table"},
+          {"run_id", run_id},
+          {"components", component_id_map(graph.components)},
+          {"channels", edge_id_map(graph.edges)},
+          {"lanes", lane_id_map(graph.lanes)},
+          {"loops", loops},
+          {"policies", nlohmann::json::object()},
+          {"reasons", nlohmann::json::object()}};
+}
+
+std::map<std::uint32_t, std::string> reverse_live_ids(const nlohmann::json& table, const std::string& key) {
+  std::map<std::uint32_t, std::string> values;
+  if (!table.contains(key) || !table.at(key).is_object()) {
+    return values;
+  }
+  for (const auto& [id, name] : table.at(key).items()) {
+    values[static_cast<std::uint32_t>(std::stoul(id))] = name.get<std::string>();
+  }
+  return values;
+}
+
+std::string live_name_for(const std::map<std::uint32_t, std::string>& names, std::uint32_t id) {
+  const auto found = names.find(id);
+  return found == names.end() ? std::string{} : found->second;
+}
+
+nlohmann::json live_event_json(const topoexec::runtime_observe::LiveEvent& event, const std::string& run_id,
+                               std::uint64_t display_seq, const std::map<std::uint32_t, std::string>& component_names,
+                               const std::map<std::uint32_t, std::string>& channel_names,
+                               const std::map<std::uint32_t, std::string>& lane_names,
+                               const std::map<std::uint32_t, std::string>& loop_names) {
+  nlohmann::json value = {
+      {"observe_schema_version", "1"},
+      {"run_id", run_id},
+      {"display_seq", display_seq},
+      {"stream_id", "stream:" + std::to_string(event.stream_id)},
+      {"local_seq", event.local_seq},
+      {"kind", live_kind_name(event.kind)},
+      {"severity", live_severity_name(event.reason_id)},
+      {"exactness", live_exactness_name(event.flags)},
+      {"mono_ns", event.mono_ns},
+      {"epoch_id", event.epoch_id == 0u ? "" : std::to_string(event.epoch_id)},
+      {"lane", live_name_for(lane_names, event.lane_id)},
+      {"worker_id", event.worker_id == 0u ? "" : std::to_string(event.worker_id)},
+      {"component_id", live_name_for(component_names, event.component_id)},
+      {"channel_id", live_name_for(channel_names, event.channel_id)},
+      {"loop_id", live_name_for(loop_names, event.loop_id)},
+      {"trace_id", ""},
+      {"transaction_id", ""},
+      {"correlation_id", ""},
+      {"causation_id", ""},
+      {"attributes",
+       {{"value0", event.value0}, {"value1", event.value1}, {"value2", event.value2}, {"value3", event.value3}}}};
+  if (event.kind ==
+      topoexec::runtime_observe::encode_kind(topoexec::runtime_observe::LiveEventKind::kObserverDropSummary)) {
+    value["dropped_event_count"] = event.value0;
+    value["total_dropped_event_count"] = event.value1;
+    value["affected_kind"] = event.value2 == 0u ? "" : live_kind_name(static_cast<std::uint32_t>(event.value2));
+  }
+  return value;
+}
+
+topoexec::runtime_observe::LiveObserveLevel parse_live_observe_level(const std::string& level) {
+  if (level == "off") {
+    return topoexec::runtime_observe::LiveObserveLevel::kOff;
+  }
+  if (level == "summary") {
+    return topoexec::runtime_observe::LiveObserveLevel::kSummary;
+  }
+  if (level == "detailed") {
+    return topoexec::runtime_observe::LiveObserveLevel::kDetailed;
+  }
+  if (level == "debug") {
+    return topoexec::runtime_observe::LiveObserveLevel::kDebug;
+  }
+  throw std::runtime_error("unknown observe level: " + level);
+}
+
+std::string observe_run_id(const std::string& graph_path) {
+  const auto hash = fnv1a64_hex(read_text_file(graph_path));
+  return "run-" + hash.substr(0, 12);
+}
+
+bool json_event_matches_where(const nlohmann::json& event, const YAML::Node& where) {
+  if (!where || !where.IsMap()) {
+    return true;
+  }
+  for (const auto& item : where) {
+    const auto key = item.first.as<std::string>();
+    const auto expected = item.second.as<std::string>();
+    if (event.contains(key)) {
+      if (event.at(key).is_string() && event.at(key).get<std::string>() == expected) {
+        continue;
+      }
+      if (!event.at(key).is_string() && event.at(key).dump() == expected) {
+        continue;
+      }
+    }
+    if (event.contains("attributes") && event.at("attributes").contains(key)) {
+      const auto& value = event.at("attributes").at(key);
+      if ((value.is_string() && value.get<std::string>() == expected) ||
+          (!value.is_string() && value.dump() == expected)) {
+        continue;
+      }
+    }
+    return false;
+  }
+  return true;
+}
+
+bool json_event_matches_assertion(const nlohmann::json& event, const YAML::Node& assertion) {
+  if (assertion["event"] && event.value("kind", "") != assertion["event"].as<std::string>()) {
+    return false;
+  }
+  return json_event_matches_where(event, assertion["where"]);
+}
+
+double metric_value_for_assertion(const topoexec::RuntimeRunnerResult& result, const std::string& metric_name) {
+  double value = 0.0;
+  for (const auto& sample : result.runtime_metrics) {
+    if (sample.name == metric_name) {
+      value += sample.value;
+    }
+  }
+  return value;
+}
+
+std::size_t counter_value_for_assertion(const topoexec::RuntimeRunnerResult& result, const std::string& source) {
+  if (source == "runtime_errors") {
+    return result.runtime_errors.size();
+  }
+  if (source == "observer_drops" || source == "runtime.observer.dropped_event_count") {
+    return result.live_observe_dropped_event_count;
+  }
+  if (source == "events") {
+    return result.live_events.size();
+  }
+  return static_cast<std::size_t>(metric_value_for_assertion(result, source));
+}
+
+struct LiveAssertionEvaluation {
+  bool ok{true};
+  nlohmann::json events = nlohmann::json::array();
+  nlohmann::json result = nlohmann::json::object();
+};
+
+LiveAssertionEvaluation evaluate_live_assertions(const std::string& assert_file,
+                                                 const topoexec::RuntimeRunnerResult& result,
+                                                 const nlohmann::json& observe_events) {
+  LiveAssertionEvaluation evaluation;
+  evaluation.result["assertion_schema_version"] = "1";
+  evaluation.result["kind"] = "assertion_result";
+  evaluation.result["ok"] = true;
+  evaluation.result["passed"] = 0;
+  evaluation.result["failed"] = 0;
+  evaluation.result["pending"] = 0;
+  evaluation.result["failures"] = nlohmann::json::array();
+  if (assert_file.empty()) {
+    return evaluation;
+  }
+
+  const auto root = YAML::LoadFile(assert_file);
+  if (!root["assertion_schema_version"] || root["assertion_schema_version"].as<std::string>() != "1") {
+    throw std::runtime_error("assertion file must set assertion_schema_version: \"1\"");
+  }
+  const auto assertions = root["assertions"];
+  if (!assertions || !assertions.IsSequence()) {
+    throw std::runtime_error("assertion file must contain assertions list");
+  }
+
+  for (const auto& assertion : assertions) {
+    const auto id = assertion["id"] ? assertion["id"].as<std::string>() : std::string{"unnamed"};
+    const auto type = assertion["type"] ? assertion["type"].as<std::string>() : std::string{};
+    evaluation.events.push_back({{"kind", "assertion_registered"},
+                                 {"assertion_schema_version", "1"},
+                                 {"assertion_id", id},
+                                 {"exactness", "exact"}});
+
+    bool passed = false;
+    bool pending = false;
+    std::string reason;
+    if (type == "counter_equals") {
+      const auto source = assertion["source"] ? assertion["source"].as<std::string>() : std::string{};
+      const auto expected = assertion["value"].as<std::size_t>();
+      const auto actual = counter_value_for_assertion(result, source);
+      passed = actual == expected;
+      if (!passed) {
+        reason = "counter " + source + " expected " + std::to_string(expected) + " got " + std::to_string(actual);
+      }
+    } else if (type == "metric_equals" || type == "metric_lte" || type == "metric_gte") {
+      const auto metric = assertion["metric"].as<std::string>();
+      const auto expected = assertion["value"].as<double>();
+      const auto actual = metric_value_for_assertion(result, metric);
+      if (type == "metric_equals") {
+        passed = std::fabs(actual - expected) < 0.000001;
+      } else if (type == "metric_lte") {
+        passed = actual <= expected;
+      } else {
+        passed = actual >= expected;
+      }
+      if (!passed) {
+        reason = "metric " + metric + " check failed";
+      }
+    } else if (type == "eventually" || type == "within_events" || type == "within_epochs") {
+      std::size_t limit = observe_events.size();
+      if (assertion["within_events"]) {
+        limit = std::min(limit, assertion["within_events"].as<std::size_t>());
+      }
+      if (type == "within_events" && assertion["value"]) {
+        limit = std::min(limit, assertion["value"].as<std::size_t>());
+      }
+      for (std::size_t index = 0; index < limit; ++index) {
+        if (json_event_matches_assertion(observe_events.at(index), assertion)) {
+          passed = true;
+          break;
+        }
+      }
+      if (!passed && type == "eventually" && !assertion["within_events"] && !assertion["within_epochs"]) {
+        pending = true;
+        reason = "eventually condition still pending";
+      } else if (!passed) {
+        reason = "event condition not satisfied";
+      }
+    } else if (type == "never" || type == "always") {
+      bool any_match = false;
+      bool any_mismatch = false;
+      for (const auto& event : observe_events) {
+        const bool matches = json_event_matches_assertion(event, assertion);
+        any_match = any_match || matches;
+        any_mismatch = any_mismatch || !matches;
+      }
+      passed = type == "never" ? !any_match : !any_mismatch;
+      if (!passed) {
+        reason = type == "never" ? "forbidden event observed" : "not all events matched";
+      }
+    } else if (type == "sequence") {
+      const auto sequence = assertion["sequence"];
+      if (!sequence || !sequence.IsSequence()) {
+        reason = "sequence assertion requires sequence list";
+      } else {
+        std::size_t cursor = 0;
+        passed = true;
+        for (const auto& step : sequence) {
+          bool found = false;
+          for (; cursor < observe_events.size(); ++cursor) {
+            if (json_event_matches_assertion(observe_events.at(cursor), step)) {
+              found = true;
+              ++cursor;
+              break;
+            }
+          }
+          if (!found) {
+            passed = false;
+            reason = "sequence step not observed";
+            break;
+          }
+        }
+      }
+    } else {
+      reason = "unsupported assertion type: " + type;
+    }
+
+    if (passed) {
+      evaluation.result["passed"] = evaluation.result["passed"].get<int>() + 1;
+      evaluation.events.push_back({{"kind", "assertion_pass"},
+                                   {"assertion_schema_version", "1"},
+                                   {"assertion_id", id},
+                                   {"exactness", "exact"}});
+    } else if (pending) {
+      evaluation.ok = false;
+      evaluation.result["pending"] = evaluation.result["pending"].get<int>() + 1;
+      evaluation.events.push_back({{"kind", "assertion_pending"},
+                                   {"assertion_schema_version", "1"},
+                                   {"assertion_id", id},
+                                   {"reason", reason},
+                                   {"exactness", "exact"}});
+    } else {
+      evaluation.ok = false;
+      evaluation.result["failed"] = evaluation.result["failed"].get<int>() + 1;
+      evaluation.result["failures"].push_back({{"id", id}, {"reason", reason}});
+      evaluation.events.push_back({{"kind", "assertion_fail"},
+                                   {"assertion_schema_version", "1"},
+                                   {"assertion_id", id},
+                                   {"reason", reason},
+                                   {"exactness", "exact"}});
+    }
+  }
+  evaluation.result["ok"] = evaluation.ok;
+  return evaluation;
+}
+
+struct ObserveOutputFilter {
+  std::vector<std::string> include_components;
+  std::vector<std::string> include_channels;
+  std::vector<std::string> include_events;
+  std::vector<std::string> exclude_events;
+  std::vector<std::string> sample_events;
+};
+
+bool contains_string(const std::vector<std::string>& values, const std::string& value) {
+  return std::find(values.begin(), values.end(), value) != values.end();
+}
+
+std::map<std::string, std::size_t> parse_sample_rules(const std::vector<std::string>& rules) {
+  std::map<std::string, std::size_t> parsed;
+  for (const auto& rule : rules) {
+    const auto separator = rule.find(':');
+    if (separator == std::string::npos || separator == 0u || separator + 1u >= rule.size()) {
+      throw std::runtime_error("--sample-event must use KIND:RATIO");
+    }
+    auto ratio = static_cast<std::size_t>(std::stoull(rule.substr(separator + 1u)));
+    if (ratio == 0u) {
+      throw std::runtime_error("--sample-event ratio must be positive");
+    }
+    parsed[rule.substr(0, separator)] = ratio;
+  }
+  return parsed;
+}
+
+bool observe_event_selected(const nlohmann::json& event, const ObserveOutputFilter& filter,
+                            const std::map<std::string, std::size_t>& sample_rules,
+                            std::map<std::string, std::size_t>& sample_counts) {
+  const auto kind = event.value("kind", std::string{});
+  if (!filter.include_events.empty() && !contains_string(filter.include_events, kind)) {
+    return false;
+  }
+  if (contains_string(filter.exclude_events, kind)) {
+    return false;
+  }
+  if (!filter.include_components.empty()) {
+    const auto component = event.value("component_id", std::string{});
+    if (component.empty() || !contains_string(filter.include_components, component)) {
+      return false;
+    }
+  }
+  if (!filter.include_channels.empty()) {
+    const auto channel = event.value("channel_id", std::string{});
+    if (channel.empty() || !contains_string(filter.include_channels, channel)) {
+      return false;
+    }
+  }
+  const auto sample_rule = sample_rules.find(kind);
+  if (sample_rule != sample_rules.end()) {
+    const auto count = ++sample_counts[kind];
+    return (count - 1u) % sample_rule->second == 0u;
+  }
+  return true;
+}
+
+void write_text_file(const std::filesystem::path& path, const std::string& text) {
+  std::ofstream output(path);
+  if (!output) {
+    throw std::runtime_error("failed to write file: " + path.string());
+  }
+  output << text;
+}
+
+nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result);
+
+nlohmann::json normalized_graph_json(const topoexec::GraphSpec& graph) {
+  nlohmann::json components = nlohmann::json::array();
+  for (const auto& component : graph.components) {
+    components.push_back({{"id", component.id}, {"type", component.type}, {"lane", component.execution.lane}});
+  }
+  nlohmann::json edges = nlohmann::json::array();
+  for (const auto& edge : graph.edges) {
+    edges.push_back({{"id", edge.id},
+                     {"from", edge.from},
+                     {"to", edge.to},
+                     {"kind", topoexec::to_string(edge.kind)},
+                     {"mode", edge.policy.mode},
+                     {"capacity", edge.policy.capacity},
+                     {"overflow", edge.policy.overflow}});
+  }
+  nlohmann::json lanes = nlohmann::json::array();
+  for (const auto& lane : graph.lanes) {
+    lanes.push_back({{"id", lane.id}, {"type", lane.type}, {"hz", lane.hz}, {"max_threads", lane.max_threads}});
+  }
+  nlohmann::json loops = nlohmann::json::array();
+  for (const auto& loop : graph.composite_loops) {
+    loops.push_back({{"id", loop.id}, {"components", loop.components}, {"policy", loop.loop_policy.type}});
+  }
+  return {{"graph_schema_version", topoexec::kTopoExecSchemaVersion},
+          {"graph_name", graph.name},
+          {"components", components},
+          {"edges", edges},
+          {"lanes", lanes},
+          {"composite_loops", loops}};
+}
+
+void write_record_artifact(const std::string& record_dir, const std::string& graph_path,
+                           const topoexec::GraphSpec& graph, const topoexec::GraphValidationResult& validation,
+                           const topoexec::RuntimeRunnerResult& result, const std::string& run_id,
+                           const std::string& observe_level, const nlohmann::json& ndjson_records,
+                           const nlohmann::json& final_summary, const nlohmann::json& assertion_result,
+                           const std::string& assert_file) {
+  if (record_dir.empty()) {
+    return;
+  }
+  const std::filesystem::path dir(record_dir);
+  std::filesystem::create_directories(dir);
+  std::error_code error;
+  std::filesystem::copy_file(graph_path, dir / "graph.yaml", std::filesystem::copy_options::overwrite_existing, error);
+  if (error) {
+    throw std::runtime_error("failed to copy graph into record artifact: " + error.message());
+  }
+  write_text_file(dir / "graph.normalized.json", normalized_graph_json(graph).dump(2) + "\n");
+  write_text_file(dir / "plan.json", topoexec::graph_plan_json(graph, validation.compiled_plan) + "\n");
+  write_text_file(dir / "render.mmd", topoexec::graph_mermaid(graph, validation.compiled_plan));
+
+  std::ostringstream observe_stream;
+  for (const auto& record : ndjson_records) {
+    observe_stream << record.dump() << "\n";
+  }
+  write_text_file(dir / "observe.ndjson", observe_stream.str());
+  write_text_file(dir / "observe.summary.json", final_summary.dump(2) + "\n");
+  if (!assert_file.empty()) {
+    std::filesystem::copy_file(assert_file, dir / "assertions.yaml", std::filesystem::copy_options::overwrite_existing,
+                               error);
+    if (error) {
+      throw std::runtime_error("failed to copy assertions into record artifact: " + error.message());
+    }
+  } else {
+    write_text_file(dir / "assertions.yaml", "assertion_schema_version: \"1\"\nassertions: []\n");
+  }
+  write_text_file(dir / "assertion_result.json", assertion_result.dump(2) + "\n");
+  write_text_file(dir / "metrics.final.json",
+                  nlohmann::json{{"metric_schema_version", topoexec::kRuntimeMetricSchemaVersion},
+                                 {"metrics", runtime_metrics_json(result)}}
+                          .dump(2) +
+                      "\n");
+  write_text_file(dir / "trace.final.json",
+                  nlohmann::json{{"trace_schema_version", topoexec::kRuntimeTraceSchemaVersion},
+                                 {"trace", runtime_trace_json(result)}}
+                          .dump(2) +
+                      "\n");
+  write_text_file(dir / "trace.chrome.json", chrome_trace_json(result).dump(2) + "\n");
+  write_text_file(dir / "health.final.json",
+                  nlohmann::json{{"health_events", runtime_health_events_json(result)}}.dump(2) + "\n");
+  write_text_file(dir / "dashboard.html",
+                  "<!doctype html><meta charset=\"utf-8\"><title>TopoExec Live Artifact</title>"
+                  "<h1>TopoExec Live Artifact</h1><p>Replay this directory with tools/topoexec_live_server.py.</p>\n");
+  const nlohmann::json manifest = {{"artifact_schema_version", "1"},
+                                   {"run_id", run_id},
+                                   {"graph_name", graph.name},
+                                   {"observe_schema_version", "1"},
+                                   {"assertion_schema_version", "1"},
+                                   {"observe_level", observe_level},
+                                   {"files",
+                                    {{"graph", "graph.yaml"},
+                                     {"graph_normalized", "graph.normalized.json"},
+                                     {"plan", "plan.json"},
+                                     {"render", "render.mmd"},
+                                     {"observe", "observe.ndjson"},
+                                     {"observe_summary", "observe.summary.json"},
+                                     {"assertions", "assertions.yaml"},
+                                     {"assertion_result", "assertion_result.json"},
+                                     {"metrics", "metrics.final.json"},
+                                     {"trace", "trace.final.json"},
+                                     {"chrome_trace", "trace.chrome.json"},
+                                     {"health", "health.final.json"},
+                                     {"dashboard", "dashboard.html"}}},
+                                   {"summary",
+                                    {{"runtime_ok", result.ok},
+                                     {"assertions_ok", assertion_result.value("ok", true)},
+                                     {"observer_dropped_event_count", result.live_observe_dropped_event_count}}}};
+  write_text_file(dir / "manifest.json", manifest.dump(2) + "\n");
+}
+
+int print_observe_result(const std::string& path, const topoexec::GraphSpec& graph,
+                         const topoexec::GraphValidationResult& validation, const topoexec::RuntimeRunnerResult& result,
+                         const std::string& observe_level, const std::string& format, std::uint64_t ui_frame_ms,
+                         const std::string& assert_file, const std::string& record_dir, bool fail_on_assertion_fail,
+                         const ObserveOutputFilter& output_filter = {}) {
+  const auto run_id = observe_run_id(path);
+  const auto symbols = live_symbol_table_json(graph, run_id);
+  const auto component_names = reverse_live_ids(symbols, "components");
+  const auto channel_names = reverse_live_ids(symbols, "channels");
+  const auto lane_names = reverse_live_ids(symbols, "lanes");
+  const auto loop_names = reverse_live_ids(symbols, "loops");
+  const bool has_output_filter = !output_filter.include_components.empty() || !output_filter.include_channels.empty() ||
+                                 !output_filter.include_events.empty() || !output_filter.exclude_events.empty() ||
+                                 !output_filter.sample_events.empty();
+  const bool need_full_event_records =
+      format != "json-summary" || !assert_file.empty() || !record_dir.empty() || has_output_filter;
+  nlohmann::json event_lines = nlohmann::json::array();
+  nlohmann::json event_kind_counts = nlohmann::json::object();
+  auto sample_rules = parse_sample_rules(output_filter.sample_events);
+  std::map<std::string, std::size_t> sample_counts;
+  std::uint64_t display_seq = 1;
+  for (const auto& event : result.live_events) {
+    const auto kind = live_kind_name(event.kind);
+    event_kind_counts[kind] = event_kind_counts.value(kind, 0u) + 1u;
+    if (need_full_event_records) {
+      auto json_event =
+          live_event_json(event, run_id, display_seq, component_names, channel_names, lane_names, loop_names);
+      if (observe_event_selected(json_event, output_filter, sample_rules, sample_counts)) {
+        event_lines.push_back(std::move(json_event));
+        ++display_seq;
+      }
+    }
+  }
+  auto assertion_evaluation = evaluate_live_assertions(assert_file, result, event_lines);
+  for (auto& assertion_event : assertion_evaluation.events) {
+    assertion_event["observe_schema_version"] = "1";
+    assertion_event["run_id"] = run_id;
+  }
+  assertion_evaluation.result["observe_schema_version"] = "1";
+  assertion_evaluation.result["run_id"] = run_id;
+
+  const nlohmann::json final_summary = {
+      {"observe_schema_version", "1"},
+      {"kind", "final_summary"},
+      {"run_id", run_id},
+      {"runtime_ok", result.ok},
+      {"assertions_ok", assertion_evaluation.ok},
+      {"tick_calls", result.tick_calls},
+      {"runtime_error_count", result.runtime_errors.size()},
+      {"observer_dropped_event_count", result.live_observe_dropped_event_count},
+      {"observe_level", observe_level},
+      {"ui_frame_ms", ui_frame_ms},
+      {"exactness", result.live_observe_dropped_event_count == 0u ? "exact" : "lossy"}};
+  nlohmann::json ndjson_records = nlohmann::json::array();
+  ndjson_records.push_back(symbols);
+  ndjson_records.push_back({{"observe_schema_version", "1"},
+                            {"kind", "graph_validated"},
+                            {"run_id", run_id},
+                            {"ok", validation.ok},
+                            {"errors", validation.errors},
+                            {"exactness", "exact"}});
+  ndjson_records.push_back({{"observe_schema_version", "1"},
+                            {"kind", "plan_ready"},
+                            {"run_id", run_id},
+                            {"ok", validation.ok},
+                            {"region_order", validation.compiled_plan.region_order},
+                            {"exactness", "exact"}});
+  for (const auto& event : event_lines) {
+    ndjson_records.push_back(event);
+  }
+  for (const auto& event : assertion_evaluation.events) {
+    ndjson_records.push_back(event);
+  }
+  if (!assert_file.empty()) {
+    ndjson_records.push_back(assertion_evaluation.result);
+  }
+  ndjson_records.push_back(final_summary);
+  write_record_artifact(record_dir, path, graph, validation, result, run_id, observe_level, ndjson_records,
+                        final_summary, assertion_evaluation.result, assert_file);
+  if (format == "json-summary") {
+    std::cout << nlohmann::json{{"observe_schema_version", "1"},
+                                {"run_id", run_id},
+                                {"symbol_table", symbols},
+                                {"graph_validated", validation.ok},
+                                {"plan_ready", validation.ok},
+                                {"event_count", result.live_events.size()},
+                                {"event_kind_counts", event_kind_counts},
+                                {"events", need_full_event_records ? event_lines : nlohmann::json::array()},
+                                {"assertion_events", assertion_evaluation.events},
+                                {"assertion_result", assertion_evaluation.result},
+                                {"final_summary", final_summary}}
+                     .dump(2)
+              << "\n";
+    if (!result.ok) {
+      return 1;
+    }
+    return (!assertion_evaluation.ok && fail_on_assertion_fail) ? 3 : 0;
+  }
+
+  std::cout << symbols.dump() << "\n";
+  std::cout << ndjson_records.at(1).dump() << "\n";
+  std::cout << ndjson_records.at(2).dump() << "\n";
+  for (const auto& event : event_lines) {
+    std::cout << event.dump() << "\n";
+  }
+  for (const auto& event : assertion_evaluation.events) {
+    std::cout << event.dump() << "\n";
+  }
+  if (!assert_file.empty()) {
+    std::cout << assertion_evaluation.result.dump() << "\n";
+  }
+  std::cout << final_summary.dump() << "\n";
+  if (!result.ok) {
+    return 1;
+  }
+  return (!assertion_evaluation.ok && fail_on_assertion_fail) ? 3 : 0;
 }
 
 nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result) {
@@ -1289,6 +2006,51 @@ int main(int argc, char** argv) {
   trace->add_option("--format", trace_format, "Output format")->check(CLI::IsMember({"text", "json", "chrome"}));
   add_input_limit_options(trace, input_limits);
 
+  std::string observe_path;
+  std::string observe_format{"ndjson"};
+  std::string observe_level{"summary"};
+  std::size_t observe_steps{1};
+  std::uint64_t observe_duration_ms{0};
+  bool observe_until_idle{false};
+  std::size_t observe_event_buffer_capacity{1024};
+  std::uint64_t observe_ui_frame_ms{50};
+  std::vector<std::string> observe_include_components;
+  std::vector<std::string> observe_include_channels;
+  std::vector<std::string> observe_include_events;
+  std::vector<std::string> observe_exclude_events;
+  std::vector<std::string> observe_sample_events;
+  std::size_t observe_payload_preview_bytes{0};
+  std::string observe_assert_file;
+  std::string observe_record_dir;
+  bool observe_fail_on_assertion_fail{true};
+  bool observe_fail_on_observer_drop{false};
+  auto* observe = graph_cmd->add_subcommand("observe", "Run a graph and emit live observe NDJSON");
+  observe->add_option("file", observe_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
+  observe->add_option("--steps", observe_steps, "Bounded event-loop steps");
+  observe->add_option("--duration-ms", observe_duration_ms, "Optional duration bound in milliseconds");
+  observe->add_flag("--until-idle", observe_until_idle,
+                    "Stop early after an event-loop iteration executes no components");
+  observe->add_option("--observe-level", observe_level, "Observe level")
+      ->check(CLI::IsMember({"off", "summary", "detailed", "debug"}));
+  observe->add_option("--event-buffer-capacity", observe_event_buffer_capacity,
+                      "Bounded per-stream live event buffer capacity");
+  observe->add_option("--ui-frame-ms", observe_ui_frame_ms, "Collector/UI frame window in milliseconds");
+  observe->add_option("--include-component", observe_include_components, "Component id to observe in detail");
+  observe->add_option("--include-channel", observe_include_channels, "Channel id to observe in detail");
+  observe->add_option("--include-event", observe_include_events, "Event kind to include");
+  observe->add_option("--exclude-event", observe_exclude_events, "Event kind to exclude");
+  observe->add_option("--sample-event", observe_sample_events, "Event sampling rule KIND:RATIO");
+  observe->add_option("--payload-preview-bytes", observe_payload_preview_bytes,
+                      "Debug-only bounded payload preview byte count");
+  observe->add_option("--assert", observe_assert_file, "Live assertion YAML file");
+  observe->add_option("--record", observe_record_dir, "Record artifact directory");
+  observe->add_flag("--fail-on-assertion-fail,!--no-fail-on-assertion-fail", observe_fail_on_assertion_fail,
+                    "Return exit code 3 when live assertions fail");
+  observe->add_flag("--fail-on-observer-drop", observe_fail_on_observer_drop,
+                    "Return non-zero when the live observe stream drops events");
+  observe->add_option("--format", observe_format, "Output format")->check(CLI::IsMember({"ndjson", "json-summary"}));
+  add_input_limit_options(observe, input_limits);
+
   std::string lint_path;
   std::string lint_format{"text"};
   auto* lint = graph_cmd->add_subcommand("lint", "Lint a graph for suspicious runtime contracts");
@@ -1390,6 +2152,43 @@ int main(int argc, char** argv) {
     if (*trace) {
       return print_trace_result(
           run_graph_file(trace_path, trace_steps, trace_duration_ms, trace_until_idle, input_limits), trace_format);
+    }
+    if (*observe) {
+      if (observe_payload_preview_bytes > 0u && observe_level != "debug") {
+        throw std::runtime_error("--payload-preview-bytes requires --observe-level debug");
+      }
+      topoexec::GraphSpec graph;
+      auto validation = load_graph_file_result(observe_path, graph, input_limits);
+      if (validation.ok) {
+        validation = topoexec::validate_graph(graph, demo_registry());
+      }
+      if (!validation.ok) {
+        topoexec::RuntimeRunnerResult invalid_result;
+        invalid_result.ok = false;
+        invalid_result.graph_name = graph.name;
+        invalid_result.component_count = graph.components.size();
+        invalid_result.channel_count = graph.edges.size();
+        invalid_result.errors = validation.errors;
+        (void)print_observe_result(observe_path, graph, validation, invalid_result, observe_level, observe_format,
+                                   observe_ui_frame_ms, {}, {}, false);
+        return 2;
+      }
+      topoexec::runtime_observe::LiveObserveOptions live_options;
+      live_options.level = parse_live_observe_level(observe_level);
+      live_options.event_buffer_capacity = observe_event_buffer_capacity;
+      live_options.stream_id = 1;
+      const auto result = run_graph_file(observe_path, observe_steps, observe_duration_ms, observe_until_idle,
+                                         input_limits, live_options);
+      const ObserveOutputFilter observe_output_filter{observe_include_components, observe_include_channels,
+                                                      observe_include_events, observe_exclude_events,
+                                                      observe_sample_events};
+      const auto exit_code = print_observe_result(
+          observe_path, graph, validation, result, observe_level, observe_format, observe_ui_frame_ms,
+          observe_assert_file, observe_record_dir, observe_fail_on_assertion_fail, observe_output_filter);
+      if (observe_fail_on_observer_drop && result.live_observe_dropped_event_count != 0u) {
+        return 4;
+      }
+      return exit_code;
     }
     if (*lint) {
       const auto registry = demo_registry();

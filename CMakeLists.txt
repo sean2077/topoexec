@@ -17,6 +17,7 @@ option(TOPOEXEC_BUILD_OTEL_ADAPTER "Build optional OTel exporter preview target"
 option(TOPOEXEC_BUILD_PROMETHEUS_ADAPTER "Build optional Prometheus text exporter preview target" OFF)
 option(TOPOEXEC_BUILD_ROS2_ADAPTER "Build optional dependency-free ROS 2 adapter preview target" OFF)
 option(TOPOEXEC_BUILD_DOCS "Build optional generated documentation targets" OFF)
+option(TOPOEXEC_ENABLE_LIVE_OBSERVE "Compile low-overhead live observe transport support" ON)
 set(TOPOEXEC_FUZZER_ENGINE "AUTO" CACHE STRING "Fuzzer engine: AUTO, LIBFUZZER, or STANDALONE")
 set_property(CACHE TOPOEXEC_FUZZER_ENGINE PROPERTY STRINGS AUTO LIBFUZZER STANDALONE)
 option(TOPOEXEC_ENABLE_ASAN "Build TopoExec with AddressSanitizer instrumentation" OFF)
@@ -138,6 +139,12 @@ target_include_directories(topoexec_core INTERFACE
 target_compile_features(topoexec_core INTERFACE cxx_std_20)
 add_library(topoexec::core ALIAS topoexec_core)
 
+if(TOPOEXEC_ENABLE_LIVE_OBSERVE)
+  target_compile_definitions(topoexec_core INTERFACE TOPOEXEC_ENABLE_LIVE_OBSERVE=1)
+else()
+  target_compile_definitions(topoexec_core INTERFACE TOPOEXEC_ENABLE_LIVE_OBSERVE=0)
+endif()
+
 add_library(topoexec_runtime
   src/buffer.cpp
   src/channel.cpp
@@ -147,6 +154,7 @@ add_library(topoexec_runtime
   src/diagnostics.cpp
   src/event_runtime.cpp
   src/graph.cpp
+  src/live_observe.cpp
   src/logging.cpp
   src/metric_schema.cpp
   src/metrics.cpp
@@ -263,7 +271,7 @@ endif()
 
 if(TOPOEXEC_BUILD_CLI)
   add_executable(topoexec_cli tools/topoexec/main.cpp)
-  target_link_libraries(topoexec_cli PRIVATE topoexec_yaml CLI11::CLI11 nlohmann_json::nlohmann_json)
+  target_link_libraries(topoexec_cli PRIVATE topoexec_yaml CLI11::CLI11 PkgConfig::YAML_CPP nlohmann_json::nlohmann_json)
   if(CMAKE_BUILD_TYPE)
     target_compile_definitions(topoexec_cli PRIVATE TOPOEXEC_CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
   else()
@@ -437,6 +445,7 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   topoexec_add_test(test_state tests/test_state.cpp)
   topoexec_add_test(test_runtime tests/test_runtime.cpp)
   topoexec_add_test(test_stress tests/test_stress.cpp)
+  topoexec_add_test(test_live_observe tests/test_live_observe.cpp)
 
   add_executable(test_adapter_sdk tests/test_adapter_sdk.cpp)
   target_link_libraries(test_adapter_sdk PRIVATE topoexec_adapter_sdk GTest::gtest_main)
@@ -592,6 +601,29 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
     COMMAND topoexec graph trace ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 1 --format chrome
   )
   set_tests_properties(cli_trace_chrome_minimal PROPERTIES PASS_REGULAR_EXPRESSION "\"traceEvents\"")
+  add_test(NAME cli_observe_ndjson_minimal
+    COMMAND /usr/bin/env bash -c
+      "$<TARGET_FILE:topoexec_cli> graph observe ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 3 --observe-level summary --format ndjson > ${CMAKE_CURRENT_BINARY_DIR}/observe-minimal.ndjson && ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/live/check_observe_schema.py ${CMAKE_CURRENT_BINARY_DIR}/observe-minimal.ndjson"
+  )
+  add_test(NAME live_assertions_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/live/check_live_assertions.py
+      $<TARGET_FILE:topoexec_cli> ${CMAKE_CURRENT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+  add_test(NAME live_record_artifact_smoke
+    COMMAND /usr/bin/env bash -c
+      "rm -rf ${CMAKE_CURRENT_BINARY_DIR}/live-record-minimal && $<TARGET_FILE:topoexec_cli> graph observe ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 3 --assert ${CMAKE_CURRENT_SOURCE_DIR}/tests/live/minimal_pass.assert.yaml --record ${CMAKE_CURRENT_BINARY_DIR}/live-record-minimal --format ndjson > ${CMAKE_CURRENT_BINARY_DIR}/live-record-minimal.ndjson && ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/live/check_live_artifact.py ${CMAKE_CURRENT_BINARY_DIR}/live-record-minimal"
+  )
+  add_test(NAME live_replay_smoke
+    COMMAND /usr/bin/env bash -c
+      "rm -rf ${CMAKE_CURRENT_BINARY_DIR}/live-replay-minimal && $<TARGET_FILE:topoexec_cli> graph observe ${CMAKE_CURRENT_SOURCE_DIR}/examples/minimal.yaml --steps 3 --record ${CMAKE_CURRENT_BINARY_DIR}/live-replay-minimal --format ndjson > ${CMAKE_CURRENT_BINARY_DIR}/live-replay-minimal.ndjson && ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/live/check_live_replay.py ${CMAKE_CURRENT_BINARY_DIR}/live-replay-minimal"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+  add_test(NAME live_dashboard_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/live/check_live_dashboard.py
+      $<TARGET_FILE:topoexec_cli> ${CMAKE_CURRENT_BINARY_DIR}/live-dashboard-run
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )
   add_test(NAME cli_lint_control_feedback_delay
     COMMAND topoexec graph lint ${CMAKE_CURRENT_SOURCE_DIR}/examples/control_feedback_delay.yaml
   )

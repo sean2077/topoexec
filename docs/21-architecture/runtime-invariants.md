@@ -42,6 +42,7 @@ This document maps runtime invariants to concrete CI tests. Add a row here whene
 | 35 | Schema v2 remains a design boundary until a reviewed v2 loader exists; schema v1 stays strict and rejects `schema_version: 2`. | `schema_v1_contract_smoke`; `docs_command_smoke`; `docs/33-specs-rfcs/schema-v2-notes.md`. |
 | 36 | Editor/schema UX uses installed schema discovery and diagnostic JSON without adding a runtime editor/LSP dependency. | `editor_schema_ux_smoke`; `cmake_package_runtime_smoke`; `docs_command_smoke`; `docs/41-development-tools/editor-schema.md`. |
 | 37 | Community contribution surfaces keep unsafe semantic/API/schema/adapter changes behind explicit proposal, review, and validation lanes. | `community_readiness_smoke`; `docs/44-coding-standards/contributing.md`; `.github/PULL_REQUEST_TEMPLATE.md`; `.github/ISSUE_TEMPLATE/*`. |
+| 38 | Live observe is an output-only validation surface: disabled by default, bounded and non-blocking when enabled, lossy on observer overflow, and unable to change runtime semantics or existing metrics/trace/health contracts. | `LiveObserve.DisabledSessionProducesNoEvents`; `Runtime.LiveObserveDisabledByDefaultProducesNoEvents`; `Runtime.LiveObserveEnabledEmitsLifecycleAndRuntimeEventsWithoutChangingSemantics`; `Runtime.LiveObserveOverflowReportsDropSummaryWithoutChangingRuntimeResult`; `cli_observe_ndjson_minimal`; `live_assertions_smoke`; `live_record_artifact_smoke`; `live_replay_smoke`; `live_dashboard_smoke`; `./scripts/goal_check.sh live`; `./scripts/goal_check.sh live-perf`. |
 
 ## Maintenance rule
 

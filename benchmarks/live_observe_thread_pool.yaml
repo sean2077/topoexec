@@ -1,0 +1,24 @@
+schema_version: 1
+graph: {name: live_observe_thread_pool, kind: runnable}
+lanes:
+  main: {type: event_loop}
+  pool: {type: thread_pool, max_threads: 2, queue_capacity: 4, overflow: drop_newest}
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: worker
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: pool, reentrant: true}
+  - id: sink
+    type: topoexec.boundary.Output
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: source_worker, kind: immediate, from: source.out, to: worker.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: worker_sink, kind: immediate, from: worker.out, to: sink.in, policy: {mode: latest, copy_policy: shared_view}}

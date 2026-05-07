@@ -5,6 +5,7 @@
 #include "topoexec/runtime/component_registry.hpp"
 #include "topoexec/runtime/graph.hpp"
 #include "topoexec/runtime/health.hpp"
+#include "topoexec/runtime/live_observe.hpp"
 #include "topoexec/runtime/scheduler.hpp"
 #include "topoexec/runtime/status.hpp"
 
@@ -40,6 +41,7 @@ struct RuntimeRunnerOptions {
   std::vector<std::string> reset_component_ids;
   std::map<std::string, ComponentStateSnapshot> restore_component_states;
   bool capture_component_state_snapshots{false};
+  runtime_observe::LiveObserveOptions live_observe;
   std::vector<RuntimeObserver*> observers;
 };
 
@@ -124,10 +126,12 @@ struct RuntimeRunnerResult {
   std::size_t lifecycle_snapshot_bytes{0};
   std::size_t observer_failure_count{0};
   std::size_t observer_dropped_event_count{0};
+  std::size_t live_observe_dropped_event_count{0};
   SchedulerStopReason scheduler_stop_reason{SchedulerStopReason::kNotStarted};
   std::vector<std::string> ticked_components;
   std::vector<std::string> trace_events;
   std::vector<RuntimeTraceEvent> trace;
+  std::vector<runtime_observe::LiveEvent> live_events;
   std::vector<HealthEvent> health_events;
   std::vector<RuntimeMetricSample> runtime_metrics;
   std::vector<RuntimeError> runtime_errors;

@@ -34,6 +34,11 @@ by git. Set `TOPOEXEC_BENCH_BASELINE_OUTPUT` to write elsewhere.
 | `payload_policies.yaml` | text payload copy/shared/loaned policy branches without external zero-copy claims |
 | `channel_modes.yaml` | latest, queue, latched, previous-tick, and barrier channel modes in one run |
 | `trigger_policies.yaml` | any/all/time-sync/batch/watermark/condition/debounce/rate-limit trigger paths |
+| `live_observe_minimal.yaml` | minimal live-observe runtime path for focused overhead smoke |
+| `live_observe_high_frequency_channels.yaml` | high-frequency component/channel publish and commit live-observe workload |
+| `live_observe_trigger_stress.yaml` | trigger-policy live-observe workload |
+| `live_observe_thread_pool.yaml` | thread-pool lane live-observe workload |
+| `live_observe_composite_loop.yaml` | CompositeLoop live-observe workload |
 
 ## Task executor case
 

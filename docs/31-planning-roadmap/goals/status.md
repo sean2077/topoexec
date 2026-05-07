@@ -1,6 +1,6 @@
 # Goal Status
 
-Last updated: 2026-05-06
+Last updated: 2026-05-07
 
 This is the current goal ledger. It records live state and high-signal release
 facts only; detailed per-goal command transcripts belong in CI artifacts,
@@ -11,12 +11,13 @@ release-prep evidence, or git history.
 | Area | State |
 | --- | --- |
 | Historical goal sweeps | G0-G25 and G26-G70 are complete. |
-| Active implementation goal | None. G71-post-alpha-hardening-docs-pages is complete. |
+| Active implementation goal | None. G73-low-overhead-live-runtime-validation and G71-post-alpha-hardening-docs-pages are complete. |
 | Required repository gate | `scripts/agent_check.sh` before declaring repo changes complete. |
 | Focused docs gate | `scripts/goal_check.sh docs`. |
+| Focused live gates | `scripts/goal_check.sh live` and `scripts/goal_check.sh live-perf`. |
 | Blockers | None active. |
 
-## Active Goal: G71-post-alpha-hardening-docs-pages
+## Completed Goal: G71-post-alpha-hardening-docs-pages
 
 | Field | Value |
 | --- | --- |
@@ -26,6 +27,89 @@ release-prep evidence, or git history.
 | Acceptance | Previous-tick wake/update behavior, `overflow: block` alpha semantics, bounded trigger pending behavior, condition timestamp handling, async `max_inflight`, and CompositeLoop output visibility are tested and documented; benchmark evidence exists; optional Doxygen and Pages docs builds exist; release/readme/changelog/goal docs are aligned. |
 | Validation | Baseline and final `cmake`/`ctest`/format/agent gates, sanitizer/stress/fuzz/bench smokes where locally supported, plus docs-site and Doxygen targets after those surfaces are added. |
 | Blocker protocol | No product/API blockers were opened. GitHub Pages repository settings remain an external owner action before a public URL can be advertised. |
+
+## Completed Goal: G73-low-overhead-live-runtime-validation
+
+| Field | Value |
+| --- | --- |
+| Priority | P0/P1 mixed |
+| Status | complete |
+| Scope | Low-overhead live runtime validation workbench: live observe schema/docs, fixed-size bounded runtime event transport, runtime instrumentation, `graph observe`, live assertions, record/replay artifacts, local SSE dashboard, focused live/live-perf gates, and release/roadmap docs. |
+| Allowed files | Runtime headers and sources under `include/topoexec/runtime/` and `src/`; CLI sources under `tools/topoexec/`; tests under `tests/`; benchmark examples under `benchmarks/`; local tooling under `tools/topoexec_live_*`; validation scripts under `scripts/`; docs/README/CHANGELOG/goal ledgers. |
+| Acceptance | `graph observe` emits `observe_schema_version=1` NDJSON; observe is disabled by default; enabled hot paths are bounded, non-blocking, allocation-light, and free of JSON/file/socket/UI/payload-body work; observer overflow reports drop summaries without changing runtime semantics; live assertions pass/fail/pending outside graph schema v1; record artifacts replay; local dashboard is observe-only; existing metrics/trace/golden/schema/docs contracts remain stable; live and live-perf focused gates exist. |
+| Validation | Baseline and final `cmake`/`ctest`/format/agent gates, focused `docs`, `golden`, `bench`, `live`, and `live-perf` gates, plus stress/fuzz/sanitizer where locally supported and `git diff --check`. |
+| Blocker protocol | No product/API blocker is active. If low-overhead transport, assertion DSL, or dashboard scope requires a product/API decision, write `docs/31-planning-roadmap/goals/blockers/g73-*.md`, recommend one option, and continue only with safe independent work. |
+
+### G73 M0 baseline evidence
+
+Baseline captured on 2026-05-07 from the current working tree before G73 runtime
+behavior edits. The only tracked change present at baseline was the requested
+added plan file
+`docs/32-plans/topoexec_g73_low_overhead_live_runtime_validation_plan_zh.md`.
+Detailed logs are intentionally kept outside this ledger in the local OMX
+evidence artifact `.omx/ultragoal/evidence/g73-m0-baseline.log`.
+
+| Command | Result |
+| --- | --- |
+| `git status --short` | pass; reported the requested added G73 plan file. |
+| `cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo` | pass |
+| `cmake --build build -j` | pass |
+| `ctest --test-dir build --output-on-failure` | pass; 80/80 tests passed. |
+| `cmake --build build --target topoexec_format_check` | pass |
+| `./scripts/agent_check.sh` | pass; includes configure, format, tidy, build, and 80/80 tests. |
+| `./scripts/goal_check.sh docs` | pass; `docs_command_smoke` passed. |
+| `./scripts/goal_check.sh golden` | pass; `cli_golden_outputs` passed. |
+| `./scripts/goal_check.sh bench` | pass; bench focused smoke passed and wrote `/tmp/topoexec-bench-baseline.json`. |
+
+### G73 M1-M8 implementation evidence
+
+| Area | Evidence |
+| --- | --- |
+| Live observe schema/docs | Added `docs/62-schemas-protocols/live-observe-events.md`, `docs/41-development-tools/live-runtime-validation.md`, and `docs/24-testing/live-observe-performance.md`; docs map links these pages as schema/tooling/performance references. |
+| Low-overhead transport | Added fixed-size `runtime_observe::LiveEvent`, bounded non-blocking `LiveEventRingBuffer`, `LiveEventStream`, and `LiveObserveSession` under `include/topoexec/runtime/` and `src/live_observe.cpp`; `TOPOEXEC_ENABLE_LIVE_OBSERVE=OFF` build smoke passed during M2. |
+| Runtime instrumentation | `RuntimeRunnerOptions::live_observe` defaults off; enabled runs emit lifecycle/component/channel/async/loop/health/error/drop-summary events into `RuntimeRunnerResult::live_events`; observer overflow reports drops without changing `RuntimeRunnerResult::ok`, metrics, trace, or health contracts. |
+| `graph observe` CLI | Added `topoexec graph observe` with `observe_schema_version=1` NDJSON and `json-summary`, deterministic symbol table/run id, run validation/plan/final-summary records, collector-side include/exclude/sample filters, debug-only payload preview guard, and observer-drop fail option. |
+| Live assertions | Added CLI/tooling-layer assertion YAML schema v1 with pass/fail/pending/result events and exit code 3 for failing assertions unless `--no-fail-on-assertion-fail` is set; assertions are not graph schema v1 fields and do not run inside runtime internals. |
+| Record/replay artifacts | `--record DIR` writes replayable local artifacts including manifest, graph, normalized graph, plan, Mermaid render, observe NDJSON/summary, assertions/result, metrics, trace, Chrome trace, health, and dashboard HTML; `tools/topoexec_live_server.py replay --smoke` validates artifacts. |
+| Local dashboard | Added static dashboard assets and `tools/topoexec_live_server.py` with local `127.0.0.1` SSE `/events`, `/snapshot`, `/bundle`, one-time token URLs, bounded raw events, smoke mode, and no runtime control endpoint. |
+| Focused gates/performance | Added `scripts/live_smoke.sh`, `scripts/live_perf_check.py`, `./scripts/goal_check.sh live`, `./scripts/goal_check.sh live-perf`, and live-observe benchmark cases for minimal, high-frequency channels, trigger stress, thread-pool, and CompositeLoop workloads. |
+
+### G73 M8 focused-gate evidence
+
+| Command | Result |
+| --- | --- |
+| `./scripts/goal_check.sh live` | pass; CTest live smokes plus observe schema, assertion, record, replay, dashboard, filter, and drop-summary smoke passed. |
+| `./scripts/goal_check.sh live-perf` | pass; default non-enforcing per-machine smoke reported disabled/summary/detailed/debug medians, runtime_ok=true, and overflow drop visibility. |
+| `./scripts/goal_check.sh bench` | pass; benchmark contract and local baseline generation include the new live-observe workloads. |
+| `cmake --build build --target topoexec_format_check` | pass. |
+
+### G73 M9 docs and release alignment evidence
+
+Docs, README, CHANGELOG, runtime architecture, runtime invariants, testing strategy,
+performance policy, and docs map now describe live observe as an output-only
+observability/test-validation tool. Deferred/non-goal scope remains explicit:
+no runtime control, pause/resume/step, fault injection, remote multi-user UI,
+WebSocket control, payload-body streaming, production telemetry exporter, schema
+v2 assertion embedding, native Python binding, or hard real-time guarantee.
+Final G73 completion remains gated on the M10 validation suite below.
+
+### G73 M10 final validation evidence
+
+Final validation on 2026-05-07 completed after G73 runtime, CLI, tooling, docs, benchmark, and ledger changes. No unsupported local gates remain.
+
+| Command | Result |
+| --- | --- |
+| `./scripts/agent_check.sh` | pass; configure, format, tidy, build, and 86/86 CTest passed. |
+| `./scripts/goal_check.sh docs` | pass; `docs_command_smoke` passed. |
+| `./scripts/goal_check.sh golden` | pass; `cli_golden_outputs` passed. |
+| `./scripts/goal_check.sh live` | pass; CTest live smokes plus observe schema, filter, assertion, record, replay, dashboard, and drop-summary smoke passed. |
+| `./scripts/goal_check.sh bench` | pass; benchmark contract passed and local baseline generation wrote `/tmp/topoexec-bench-baseline.json`. |
+| `./scripts/goal_check.sh live-perf` | pass; default per-machine smoke reported runtime_ok=true, observer overflow visibility, and summary median overhead within the opt-in 2% target on this run. |
+| `./scripts/goal_check.sh stress` | pass; `test_stress` and generated stress smoke passed. |
+| `./scripts/goal_check.sh fuzz` | pass; parser/compiler fuzz CTest, standalone fuzz smoke, and optional fuzzer target corpus replay passed. |
+| `./scripts/goal_check.sh sanitizer` | pass; ASAN+UBSAN build and 86/86 CTest passed. |
+| `git diff --check` | pass. |
+| `omx ultragoal status` | pass after checkpoint; expected 11/11 complete. |
 
 ### G71 M0 baseline evidence
 
