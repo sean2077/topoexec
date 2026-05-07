@@ -186,8 +186,8 @@ int main() {
   options.tick_iterations = 2;
   const auto result = runner.run(graph(), options);
   if (!result.ok) {
-    for (const auto& error : result.errors) {
-      std::cerr << "error: " << error << "\n";
+    for (const auto& error : result.runtime_errors) {
+      std::cerr << "error: " << error.message << "\n";
     }
     return 1;
   }

@@ -125,6 +125,7 @@ struct RuntimePublicationRouterMetrics {
   std::size_t async_admission_accepted_count{0};
   std::size_t async_admission_rejected_count{0};
   std::size_t async_admission_dropped_count{0};
+  std::size_t async_admission_overwrite_count{0};
   std::size_t async_completion_count{0};
   std::size_t async_in_flight_count{0};
   std::size_t async_max_in_flight_count{0};

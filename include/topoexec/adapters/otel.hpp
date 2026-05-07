@@ -137,7 +137,7 @@ public:
     record.attributes["ok"] = result.ok ? "true" : "false";
     record.attributes["tick_calls"] = std::to_string(result.tick_calls);
     record.attributes["metric_samples"] = std::to_string(result.runtime_metrics.size());
-    record.attributes["trace_events"] = std::to_string(result.trace.size());
+    record.attributes["trace_event_count"] = std::to_string(result.trace.size());
     record.attributes["runtime_errors"] = std::to_string(result.runtime_errors.size());
     return push_bounded(logs_, std::move(record));
   }

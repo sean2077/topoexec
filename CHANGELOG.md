@@ -6,6 +6,10 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Added
 
+- Added aggregate channel overwrite/reject/stale/deadline fields beside
+  `channel_drop_count` so CLI output and dashboards can distinguish real drops
+  from intentional latest-value overwrite.
+
 - Added release/adoption readiness for the `v0.2.0-alpha.0` candidate line:
   Apache-2.0 public metadata, `0.2.0` CMake/package draft version metadata,
   adoption guidance, prerelease notes, install/downstream onboarding, and
@@ -70,7 +74,7 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 - Added opt-in `fixed_rate` wall-clock cadence v1 with `overrun_policy`, tick/skipped/max-lateness metrics, and fixed-rate trace events while keeping deterministic stepping as the default.
 - Added runtime-level scheduler priority/admission v1 with `execution.priority` classes, priority queue ordering, priority metrics, low-priority rejection metrics, schema validation, and starvation smoke coverage.
 - Added cooperative cancellation/timeout semantics v1 with `CancellationToken`, `GraphContext::cancel_requested()`, `Invocation::cancel_requested()`, component/loop/task cancellation metrics, and post-return timeout-budget reporting without hard preemption.
-- Added TaskExecutor v2 preview with `ITaskExecutor`, explicit `DeterministicTaskExecutor`, opt-in bounded `ThreadedTaskExecutor`, queued-task metrics, shutdown policy, and threaded completion-routing tests.
+- Added task-executor v2 preview with `ITaskExecutor`, explicit `DeterministicTaskExecutor`, opt-in bounded `ThreadedTaskExecutor`, queued-task metrics, shutdown policy, and threaded completion-routing tests.
 - Added Trigger Engine v2 preview policies: `watermark`, `condition`,
   `debounce`, and `rate_limit`, with declarative schema fields, late/drop and
   suppression metrics, and runtime/graph coverage without arbitrary scripting.
@@ -168,7 +172,7 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 - Added adapter-boundary preview contracts, dependency-free adapter stub notes, and a policy smoke for accidental core adapter SDK dependencies.
 - Added a ROS 2 adapter preview design covering boundary mapping, QoS separation, executor interaction, lifecycle, diagnostics, and fake-boundary-first tests.
 - Added release progression docs that map completed goals to prerelease stages and refresh the release checklist evidence.
-- Added optional deterministic `TaskExecutor`, `GraphContext::submit_task`, bounded task admission metrics, cancellation, and failure completions.
+- Added optional deterministic task execution, `GraphContext::submit_task`, bounded task admission metrics, cancellation, and failure completions.
 - Added CompositeLoop internal failure accounting, `runtime.loop.error`, `loop_error` trace events, and docs for external-output commit isolation.
 - Added trigger timeout-drop, batch-flush, and time-sync-drop metrics plus local message correlation ids on `Invocation`.
 - Added channel snapshot, bounded-drain, explicit per-reader queue drain, multi-reader cursor semantics, and channel health metrics for stale/drop/reject/overwrite/deadline paths.
@@ -258,7 +262,12 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 ### Changed
 
 - CI now runs GCC and Clang across Debug and RelWithDebInfo builds.
-- CLI trace JSON keeps the legacy `trace_events` name list and adds structured `trace` events.
+- CLI trace JSON now uses structured `trace` events directly and omits the legacy `trace_events` name list.
+- Runtime runner failures now use structured `runtime_errors[]` only; the legacy
+  runner `errors[]` string list was removed from runtime JSON and C++ API.
+- `runtime.channel.drop_count` / `channel_drop_count` now count real drops only;
+  latest, previous-tick, queue `drop_oldest`, and async admission overwrite
+  paths increment overwrite counters instead.
 - `RuntimeRunner` now rejects `thread_pool` lanes in `run` mode instead of silently executing them as event-loop work.
 
 ### Known Limitations

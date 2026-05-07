@@ -67,10 +67,10 @@ int main() {
   }
 
   std::cout << "latest_payloads=" << latest_payloads << "\n";
-  std::cout << "latest_drop_count=" << latest_metrics.drop_count << "\n";
+  std::cout << "latest_overwrite_count=" << latest_metrics.overwrite_count << "\n";
   std::cout << "latest_max_depth=" << latest_metrics.max_depth << "\n";
   std::cout << "queue_payloads=" << queue_payloads << "\n";
-  std::cout << "queue_drop_count=" << queue_metrics.drop_count << "\n";
+  std::cout << "queue_overwrite_count=" << queue_metrics.overwrite_count << "\n";
   std::cout << "queue_max_depth=" << queue_metrics.max_depth << "\n";
   return 0;
 }

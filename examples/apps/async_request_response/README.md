@@ -21,7 +21,7 @@ response_payload=accepted:req-1
 executor_completed_count=1
 ```
 
-The validator uses `GraphContext::submit_task()` with the deterministic
-`TaskExecutor`. The completion callback publishes through a normal TopoExec
+The validator uses `GraphContext::submit_task()` with
+`DeterministicTaskExecutor`. The completion callback publishes through a normal TopoExec
 channel; it does not call the response boundary directly and does not require an
 external service adapter.

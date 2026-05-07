@@ -54,7 +54,8 @@ detector_latest_frame=4
 payload_pool_detached_count=6
 payload_address_preserved=true
 async_publication_count=6
-bounded_overload_drop_count=5
+bounded_async_overwrite_count=3
+channel_overwrite_count=5
 state_feedback_epoch=3
 delay_feedback_epoch=3
 config_apply=controller.speed=0.40
@@ -68,7 +69,7 @@ freezing volatile trace detail.
 
 ## Failure and overload scenario
 
-The normal run verifies bounded overload by dropping older burst frames and still
+The normal run verifies bounded async overload by dropping older burst frames and still
 commanding the latest detected frame. The same binary then runs an error scenario
 where `config_tuner` stages an invalid controller speed. Runtime config
 validation rejects the transaction at an epoch boundary, and the app prints

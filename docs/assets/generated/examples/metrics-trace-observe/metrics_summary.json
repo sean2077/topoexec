@@ -1,8 +1,12 @@
 {
   "channel_count": 2,
+  "channel_deadline_miss_count": 0,
   "channel_delivery_count": 2,
   "channel_drop_count": 0,
+  "channel_overwrite_count": 0,
   "channel_publish_count": 2,
+  "channel_reject_count": 0,
+  "channel_stale_drop_count": 0,
   "component_count": 3,
   "graph_name": "minimal_observability",
   "health_event_count": 0,

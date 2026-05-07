@@ -190,6 +190,10 @@ def metrics_summary(topoexec: Path, graph: Path) -> tuple[dict[str, Any], str]:
         "channel_publish_count": data.get("channel_publish_count"),
         "channel_delivery_count": data.get("channel_delivery_count"),
         "channel_drop_count": data.get("channel_drop_count"),
+        "channel_overwrite_count": data.get("channel_overwrite_count"),
+        "channel_reject_count": data.get("channel_reject_count"),
+        "channel_stale_drop_count": data.get("channel_stale_drop_count"),
+        "channel_deadline_miss_count": data.get("channel_deadline_miss_count"),
         "health_event_count": data.get("health_event_count"),
     }
     lines = [f"{key}: {value}" for key, value in summary.items()]
@@ -200,8 +204,6 @@ def trace_summary(topoexec: Path, graph: Path) -> tuple[dict[str, Any], str]:
     proc = run_command([str(topoexec), "graph", "trace", repo_path(graph), "--steps", "1", "--format", "json"])
     data = json.loads(proc.stdout)
     events = data.get("trace", []) or []
-    if not events and data.get("trace_events"):
-        events = data.get("trace_events", [])
     kinds: dict[str, int] = {}
     for event in events:
         if isinstance(event, dict):

@@ -669,6 +669,15 @@ nlohmann::json runtime_errors_json(const topoexec::RuntimeRunnerResult& result) 
   return errors;
 }
 
+std::vector<std::string> runtime_error_messages(const topoexec::RuntimeRunnerResult& result) {
+  std::vector<std::string> messages;
+  messages.reserve(result.runtime_errors.size());
+  for (const auto& error : result.runtime_errors) {
+    messages.push_back(error.message);
+  }
+  return messages;
+}
+
 nlohmann::json runtime_health_events_json(const topoexec::RuntimeRunnerResult& result) {
   nlohmann::json events = nlohmann::json::array();
   for (const auto& event : result.health_events) {
@@ -1442,7 +1451,6 @@ nlohmann::json chrome_trace_json(const topoexec::RuntimeRunnerResult& result) {
 
 nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
   return {{"ok", result.ok},
-          {"errors", result.errors},
           {"runtime_errors", runtime_errors_json(result)},
           {"graph_name", result.graph_name},
           {"component_count", result.component_count},
@@ -1453,6 +1461,10 @@ nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
           {"channel_publish_count", result.channel_publish_count},
           {"channel_delivery_count", result.channel_delivery_count},
           {"channel_drop_count", result.channel_drop_count},
+          {"channel_overwrite_count", result.channel_overwrite_count},
+          {"channel_reject_count", result.channel_reject_count},
+          {"channel_stale_drop_count", result.channel_stale_drop_count},
+          {"channel_deadline_miss_count", result.channel_deadline_miss_count},
           {"payload_copy_count", result.payload_copy_count},
           {"staged_publication_count", result.staged_publication_count},
           {"committed_publication_count", result.committed_publication_count},
@@ -1467,7 +1479,6 @@ nlohmann::json runner_result_json(const topoexec::RuntimeRunnerResult& result) {
           {"health_events", runtime_health_events_json(result)},
           {"trace_event_count", result.trace_event_count},
           {"trace_schema_version", topoexec::kRuntimeTraceSchemaVersion},
-          {"trace_events", result.trace_events},
           {"trace", runtime_trace_json(result)},
           {"loop_iteration_count", result.loop_iteration_count},
           {"loop_converged_count", result.loop_converged_count},
@@ -1492,10 +1503,14 @@ int print_runner_result(const topoexec::RuntimeRunnerResult& result, const std::
     std::cout << "channel_publish_count: " << result.channel_publish_count << "\n";
     std::cout << "channel_delivery_count: " << result.channel_delivery_count << "\n";
     std::cout << "channel_drop_count: " << result.channel_drop_count << "\n";
+    std::cout << "channel_overwrite_count: " << result.channel_overwrite_count << "\n";
+    std::cout << "channel_reject_count: " << result.channel_reject_count << "\n";
+    std::cout << "channel_stale_drop_count: " << result.channel_stale_drop_count << "\n";
+    std::cout << "channel_deadline_miss_count: " << result.channel_deadline_miss_count << "\n";
     std::cout << "health_event_count: " << result.health_event_count << "\n";
     std::cout << "runtime_publication_committed: " << result.committed_publication_count << "\n";
-    for (const auto& error : result.errors) {
-      std::cout << "- " << error << "\n";
+    for (const auto& error : result.runtime_errors) {
+      std::cout << "- " << error.message << "\n";
     }
   }
   return result.ok ? 0 : 1;
@@ -1512,6 +1527,10 @@ int print_metrics_result(const topoexec::RuntimeRunnerResult& result, const std:
     std::cout << "channel_publish_count=" << result.channel_publish_count << "\n";
     std::cout << "channel_delivery_count=" << result.channel_delivery_count << "\n";
     std::cout << "channel_drop_count=" << result.channel_drop_count << "\n";
+    std::cout << "channel_overwrite_count=" << result.channel_overwrite_count << "\n";
+    std::cout << "channel_reject_count=" << result.channel_reject_count << "\n";
+    std::cout << "channel_stale_drop_count=" << result.channel_stale_drop_count << "\n";
+    std::cout << "channel_deadline_miss_count=" << result.channel_deadline_miss_count << "\n";
     std::cout << "health_event_count=" << result.health_event_count << "\n";
     std::cout << "health_event_dropped_count=" << result.health_event_dropped_count << "\n";
   }
@@ -1524,20 +1543,19 @@ int print_trace_result(const topoexec::RuntimeRunnerResult& result, const std::s
   } else if (format == "json") {
     nlohmann::json value;
     value["ok"] = result.ok;
-    value["errors"] = result.errors;
+    value["runtime_errors"] = runtime_errors_json(result);
     value["graph_name"] = result.graph_name;
     value["trace_event_count"] = result.trace_event_count;
     value["trace_schema_version"] = topoexec::kRuntimeTraceSchemaVersion;
-    value["trace_events"] = result.trace_events;
     value["trace"] = runtime_trace_json(result);
     std::cout << value.dump(2) << "\n";
   } else {
     std::cout << (result.ok ? "ok" : "error") << "\n";
-    for (const auto& event : result.trace_events) {
-      std::cout << event << "\n";
+    for (const auto& event : result.trace) {
+      std::cout << event.name << "\n";
     }
-    for (const auto& error : result.errors) {
-      std::cout << "- " << error << "\n";
+    for (const auto& error : result.runtime_errors) {
+      std::cout << "- " << error.message << "\n";
     }
   }
   return result.ok ? 0 : 1;
@@ -1785,7 +1803,8 @@ int print_bench_result(const std::string& path, std::size_t steps, std::size_t r
       ++ok_runs;
       tick_calls += result.tick_calls;
     } else {
-      errors.insert(errors.end(), result.errors.begin(), result.errors.end());
+      const auto messages = runtime_error_messages(result);
+      errors.insert(errors.end(), messages.begin(), messages.end());
     }
   }
   const auto elapsed = std::chrono::steady_clock::now() - started;
@@ -2184,7 +2203,6 @@ int main(int argc, char** argv) {
         invalid_result.graph_name = graph.name;
         invalid_result.component_count = graph.components.size();
         invalid_result.channel_count = graph.edges.size();
-        invalid_result.errors = validation.errors;
         (void)print_observe_result(observe_path, graph, validation, invalid_result, observe_level, observe_format,
                                    observe_ui_frame_ms, {}, {}, false);
         return 2;

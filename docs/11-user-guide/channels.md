@@ -18,19 +18,21 @@ All modes have finite `capacity`. `capacity <= 0` is invalid.
 
 Overflow policy is explicit:
 
-- `overwrite` / `drop_oldest`: accept the new publication and drop older stored work where needed.
+- `overwrite` / `drop_oldest`: accept the new publication and replace older stored work where needed.
 - `drop_newest`: reject the new publication and preserve existing queued work.
 - `reject` / `fail_fast`: reject capacity overflow; `fail_fast` uses the channel-capacity error path.
 - `block`: reports `would block producer` in the current non-blocking runtime. It does not block an event-loop thread.
 
 Channel metrics distinguish common causes:
 
-- `runtime.channel.drop_count`: all dropped or failed-overflow messages.
+- `runtime.channel.drop_count`: messages that did not enter a consumable path or expired before delivery.
 - `runtime.channel.overwrite_count`: stored work overwritten or oldest queued work discarded to accept newer work.
 - `runtime.channel.reject_count`: publications rejected or would-blocked by capacity policy.
 - `runtime.channel.stale_drop_count`: messages dropped because `lifespan_ms` expired before delivery.
 - `runtime.channel.deadline_miss_count`: delivered messages older than `deadline_ms`.
 - `runtime.channel.health_event_count`: aggregate health/degradation events from overwrite, reject, stale, or deadline paths.
+
+`RuntimeRunnerResult::channel_drop_count` is the aggregate real-drop count. Use `channel_overwrite_count`, `channel_reject_count`, `channel_stale_drop_count`, and `channel_deadline_miss_count`, or the per-channel `runtime.channel.*` metrics, when explaining overwrite, rejection, stale expiry, or deadline degradation separately.
 
 `RuntimeChannelMetrics::degradation_reason` stores the latest human-readable reason for a degradation path.
 

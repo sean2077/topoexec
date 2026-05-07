@@ -1,8 +1,12 @@
 {
   "channel_count": 5,
+  "channel_deadline_miss_count": 0,
   "channel_delivery_count": 3,
   "channel_drop_count": 0,
+  "channel_overwrite_count": 0,
   "channel_publish_count": 3,
+  "channel_reject_count": 0,
+  "channel_stale_drop_count": 0,
   "component_count": 6,
   "graph_name": "sensor_fusion_mini",
   "health_event_count": 0,

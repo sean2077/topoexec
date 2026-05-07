@@ -162,8 +162,8 @@ int main() {
 
   const auto converged = run_graph(runner, solver_graph());
   if (!converged.ok) {
-    for (const auto& error : converged.errors) {
-      std::cerr << "error: " << error << "\n";
+    for (const auto& error : converged.runtime_errors) {
+      std::cerr << "error: " << error.message << "\n";
     }
     return 1;
   }
@@ -179,8 +179,8 @@ int main() {
 
   const auto budget = run_graph(runner, budget_graph());
   if (!budget.ok) {
-    for (const auto& error : budget.errors) {
-      std::cerr << "error: " << error << "\n";
+    for (const auto& error : budget.runtime_errors) {
+      std::cerr << "error: " << error.message << "\n";
     }
     return 3;
   }

@@ -257,6 +257,26 @@ bool has_metric_at_least(const topoexec::RuntimeRunnerResult& result, const std:
                      [&](const auto& metric) { return metric.name == name && metric.value >= value; });
 }
 
+std::string first_runtime_error_message(const topoexec::RuntimeRunnerResult& result) {
+  return result.runtime_errors.empty() ? std::string{} : result.runtime_errors.front().message;
+}
+
+std::string first_error_message(const topoexec::RuntimeRunnerResult& result) {
+  return first_runtime_error_message(result);
+}
+
+template <typename Result> std::string first_error_message(const Result& result) {
+  return result.errors.empty() ? std::string{} : result.errors.front();
+}
+
+bool has_result_errors(const topoexec::RuntimeRunnerResult& result) {
+  return !result.runtime_errors.empty();
+}
+
+template <typename Result> bool has_result_errors(const Result& result) {
+  return !result.errors.empty();
+}
+
 std::optional<double> metric_value(const topoexec::RuntimeRunnerResult& result, const std::string& name) {
   const auto found = std::find_if(result.runtime_metrics.begin(), result.runtime_metrics.end(),
                                   [&](const auto& metric) { return metric.name == name; });
@@ -278,7 +298,16 @@ std::optional<double> component_metric_value(const topoexec::RuntimeRunnerResult
 }
 
 bool has_trace_event(const topoexec::RuntimeRunnerResult& result, const std::string& name) {
-  return std::find(result.trace_events.begin(), result.trace_events.end(), name) != result.trace_events.end();
+  return std::any_of(result.trace.begin(), result.trace.end(), [&](const auto& event) { return event.name == name; });
+}
+
+std::vector<std::string> trace_event_names(const topoexec::RuntimeRunnerResult& result) {
+  std::vector<std::string> names;
+  names.reserve(result.trace.size());
+  for (const auto& event : result.trace) {
+    names.push_back(event.name);
+  }
+  return names;
 }
 
 bool has_live_event(const topoexec::RuntimeRunnerResult& result, topoexec::runtime_observe::LiveEventKind kind) {
@@ -1891,14 +1920,14 @@ TEST(Runtime, StaticRegistryValidationAndDryRunPass) {
   const auto reg = registry();
   const auto spec = graph();
   const auto validation = topoexec::validate_graph(spec, reg);
-  ASSERT_TRUE(validation.ok) << validation.errors.front();
+  ASSERT_TRUE(validation.ok) << first_error_message(validation);
 
   topoexec::RuntimeRunner runner(reg);
   topoexec::RuntimeRunnerOptions options;
   options.mode = topoexec::RuntimeRunMode::kDryRun;
   options.tick_iterations = 2;
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.instantiated_components, 3u);
   EXPECT_EQ(result.tick_calls, 6u);
 }
@@ -1931,8 +1960,8 @@ TEST(Metrics, RuntimeMetricSchemaRejectsHighCardinalityDefaultTags) {
   const auto validation = topoexec::validate_runtime_metric_samples({sample});
 
   EXPECT_FALSE(validation.ok);
-  ASSERT_FALSE(validation.errors.empty());
-  EXPECT_NE(validation.errors.front().find("forbidden default tag correlation_id"), std::string::npos);
+  ASSERT_TRUE(has_result_errors(validation));
+  EXPECT_NE(first_error_message(validation).find("forbidden default tag correlation_id"), std::string::npos);
 }
 
 TEST(Metrics, ExportedRuntimeMetricsMatchDescriptorSchema) {
@@ -1944,10 +1973,10 @@ TEST(Metrics, ExportedRuntimeMetricsMatchDescriptorSchema) {
   options.tick_iterations = 1;
 
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   const auto validation = topoexec::validate_runtime_metric_samples(result.runtime_metrics);
 
-  EXPECT_TRUE(validation.ok) << (validation.errors.empty() ? "" : validation.errors.front());
+  EXPECT_TRUE(validation.ok) << first_error_message(validation);
 }
 
 TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {
@@ -1958,9 +1987,14 @@ TEST(Runtime, RunModeExecutesEventRuntimeAndRoutesChannels) {
   options.mode = topoexec::RuntimeRunMode::kRun;
   options.tick_iterations = 2;
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_GE(result.channel_publish_count, 2u);
   EXPECT_GE(result.channel_delivery_count, 2u);
+  EXPECT_EQ(result.channel_drop_count, 0u);
+  EXPECT_EQ(result.channel_overwrite_count, 2u);
+  EXPECT_EQ(result.channel_reject_count, 0u);
+  EXPECT_EQ(result.channel_stale_drop_count, 0u);
+  EXPECT_EQ(result.channel_deadline_miss_count, 0u);
   EXPECT_TRUE(has_metric(result, "runtime.scheduler.completed_count"));
   EXPECT_TRUE(has_metric(result, "runtime.channel.publish_count", "source_echo"));
   EXPECT_TRUE(has_metric(result, "runtime.channel.delivery_count", "echo_sink"));
@@ -1989,7 +2023,7 @@ TEST(Runtime, HierarchicalGraphMetricsPreserveExpandedComponentPath) {
   const auto reg = registry();
   const auto spec = hierarchical_runtime_graph();
   const auto validation = topoexec::validate_graph(spec, reg);
-  ASSERT_TRUE(validation.ok) << (validation.errors.empty() ? "" : validation.errors.front());
+  ASSERT_TRUE(validation.ok) << first_error_message(validation);
 
   topoexec::RuntimeRunner runner(reg);
   topoexec::RuntimeRunnerOptions options;
@@ -1997,7 +2031,7 @@ TEST(Runtime, HierarchicalGraphMetricsPreserveExpandedComponentPath) {
   options.tick_iterations = 1;
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_metric(result, "runtime.channel.publish_count", "cell.source_echo"));
   EXPECT_TRUE(has_metric(result, "runtime.channel.delivery_count", "cell.echo_sink"));
   EXPECT_TRUE(has_component_metric(result, "runtime.component.execution_count", "cell.source"));
@@ -2021,7 +2055,7 @@ TEST(Runtime, TraceSchemaAddsTimelineAndCausalityFields) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   const auto execute =
       std::find_if(result.trace.begin(), result.trace.end(), [](const topoexec::RuntimeTraceEvent& event) {
         return event.name == "component_execute" && event.component_id == "publisher";
@@ -2049,7 +2083,7 @@ TEST(Runtime, TraceEventsAreOrderedAndDurationsAreLegal) {
 
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   ASSERT_FALSE(result.trace.empty());
   std::uint64_t previous_offset = 0;
   for (const auto& event : result.trace) {
@@ -2098,7 +2132,7 @@ TEST(Runtime, InMemoryObserverReceivesHealthEvents) {
 
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(observer.health_events().empty());
   EXPECT_TRUE(has_metric_at_least(result, "runtime.health.event_count", 1.0));
 }
@@ -2115,7 +2149,7 @@ TEST(Runtime, ObserverFailureIsRecordedButDoesNotChangeRuntimeSemantics) {
 
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_GT(observer.metric_calls, 0u);
   EXPECT_EQ(observer.result_calls, 1u);
   EXPECT_GT(result.observer_failure_count, 0u);
@@ -2137,7 +2171,7 @@ TEST(Runtime, InMemoryObserverDropsBoundedRecordsAndReportsDrops) {
 
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   const auto observer_status = observer.status();
   EXPECT_GT(observer_status.dropped_event_count, 0u);
   EXPECT_EQ(result.observer_dropped_event_count, observer_status.dropped_event_count);
@@ -2157,7 +2191,7 @@ TEST(Runtime, LiveObserveDisabledByDefaultProducesNoEvents) {
 
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(result.live_events.empty());
   EXPECT_EQ(result.live_observe_dropped_event_count, 0u);
 }
@@ -2177,13 +2211,13 @@ TEST(Runtime, LiveObserveEnabledEmitsLifecycleAndRuntimeEventsWithoutChangingSem
   live_options.live_observe.stream_id = 4;
   const auto observed = runner.run(spec, live_options);
 
-  ASSERT_TRUE(baseline.ok) << (baseline.errors.empty() ? "" : baseline.errors.front());
-  ASSERT_TRUE(observed.ok) << (observed.errors.empty() ? "" : observed.errors.front());
+  ASSERT_TRUE(baseline.ok) << first_error_message(baseline);
+  ASSERT_TRUE(observed.ok) << first_error_message(observed);
   EXPECT_EQ(observed.tick_calls, baseline.tick_calls);
   EXPECT_EQ(observed.channel_publish_count, baseline.channel_publish_count);
   EXPECT_EQ(observed.channel_delivery_count, baseline.channel_delivery_count);
   EXPECT_EQ(observed.channel_drop_count, baseline.channel_drop_count);
-  EXPECT_EQ(observed.trace_events, baseline.trace_events);
+  EXPECT_EQ(trace_event_names(observed), trace_event_names(baseline));
   EXPECT_EQ(observed.live_observe_dropped_event_count, 0u);
   EXPECT_TRUE(has_live_event(observed, topoexec::runtime_observe::LiveEventKind::kRunStarted));
   EXPECT_TRUE(has_live_event(observed, topoexec::runtime_observe::LiveEventKind::kRunFinished));
@@ -2205,7 +2239,7 @@ TEST(Runtime, LiveObserveOverflowReportsDropSummaryWithoutChangingRuntimeResult)
 
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_GT(result.live_observe_dropped_event_count, 0u);
   EXPECT_TRUE(has_live_event(result, topoexec::runtime_observe::LiveEventKind::kRunStarted));
   EXPECT_TRUE(has_live_event(result, topoexec::runtime_observe::LiveEventKind::kObserverDropSummary));
@@ -2221,7 +2255,7 @@ TEST(Runtime, CorrelationMetadataStaysStableThroughImmediateChain) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   const auto publisher = find_record_snapshot(1, "publisher", "in");
   const auto gate = find_record_snapshot(1, "gate", "in");
   const auto target = find_record_snapshot(1, "target", "main");
@@ -2258,7 +2292,7 @@ TEST(Runtime, PublishStagesWithoutRecursiveDownstreamExecute) {
   reset_publication_probe_state();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   const auto& state = publication_probe_state();
   EXPECT_TRUE(state.publish_accepted) << state.publish_reason;
   EXPECT_FALSE(state.sink_seen_before_publish_return);
@@ -2281,7 +2315,7 @@ TEST(Runtime, ImmediateFeedForwardIsVisibleInSameEpochAndMetricsMatch) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "publisher", "in", "tick-1"));
   EXPECT_TRUE(has_record(1, "gate", "in", "tick-1"));
   EXPECT_TRUE(has_record(1, "target", "main", "tick-1"));
@@ -2312,7 +2346,7 @@ TEST(Runtime, DelayEdgeCommitsAtNextEpochBoundary) {
   reset_runtime_records();
   options.tick_iterations = 1;
   auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "target", "main", "tick-1"));
   EXPECT_FALSE(has_record(1, "target", "delayed"));
   EXPECT_EQ(result.staged_publication_count, 4u);
@@ -2322,7 +2356,7 @@ TEST(Runtime, DelayEdgeCommitsAtNextEpochBoundary) {
   reset_runtime_records();
   options.tick_iterations = 2;
   result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_record(1, "target", "delayed"));
   EXPECT_TRUE(has_record(2, "target", "delayed", "tick-1"));
   EXPECT_TRUE(has_record(2, "target", "main", "tick-2"));
@@ -2341,7 +2375,7 @@ TEST(Runtime, DelayEdgeCarriesCausationAcrossEpoch) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   const auto delayed = find_record_snapshot(2, "target", "delayed");
   ASSERT_TRUE(delayed.has_value());
   EXPECT_EQ(delayed->causation_id, "publisher_target_delay#1");
@@ -2360,7 +2394,11 @@ TEST(Runtime, HealthEventsExposeChannelBackpressureInRunnerResultAndTrace) {
   options.tick_iterations = 1;
 
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
+  EXPECT_EQ(result.channel_drop_count, 0u);
+  EXPECT_EQ(result.channel_overwrite_count, 2u);
+  EXPECT_EQ(result.channel_reject_count, 0u);
+  EXPECT_EQ(result.channel_stale_drop_count, 0u);
   EXPECT_TRUE(has_health_event(result, topoexec::HealthEventKind::kBackpressureHighWatermark, "source_target"));
   EXPECT_TRUE(has_health_event(result, topoexec::HealthEventKind::kChannelOverflow, "source_target"));
   EXPECT_GE(result.health_event_count, 2u);
@@ -2375,6 +2413,25 @@ TEST(Runtime, HealthEventsExposeChannelBackpressureInRunnerResultAndTrace) {
   EXPECT_EQ(overflow->occurrence_count, 2u);
 }
 
+TEST(Runtime, ChannelDropAggregateBreaksOutRejectedPublications) {
+  const auto reg = delay_registry();
+  auto spec = health_event_graph();
+  spec.edges.front().policy.overflow = "drop_newest";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  const auto result = runner.run(spec, options);
+  ASSERT_FALSE(result.ok);
+  ASSERT_TRUE(has_result_errors(result));
+  EXPECT_NE(first_error_message(result).find("dropped newest payload"), std::string::npos);
+  EXPECT_EQ(result.channel_drop_count, 1u);
+  EXPECT_EQ(result.channel_overwrite_count, 0u);
+  EXPECT_EQ(result.channel_reject_count, 1u);
+  EXPECT_EQ(result.channel_stale_drop_count, 0u);
+}
+
 TEST(Runtime, HealthEventsCanBeDisabledByGraphConfig) {
   const auto reg = delay_registry();
   auto spec = health_event_graph();
@@ -2385,7 +2442,7 @@ TEST(Runtime, HealthEventsCanBeDisabledByGraphConfig) {
   options.tick_iterations = 1;
 
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.health_event_count, 0u);
   EXPECT_TRUE(result.health_events.empty());
   EXPECT_FALSE(has_trace_event_attribute(result, "health_event", "kind", "channel_overflow"));
@@ -2402,7 +2459,7 @@ TEST(Runtime, HealthEventCapacityBoundsRunnerResult) {
   options.tick_iterations = 1;
 
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_LE(result.health_events.size(), 1u);
   EXPECT_EQ(result.health_event_count, result.health_events.size());
   EXPECT_GE(result.health_event_dropped_count, 1u);
@@ -2421,7 +2478,7 @@ TEST(Runtime, StateAndAsyncEdgesCommitAfterCurrentEpoch) {
     reset_runtime_records();
     options.tick_iterations = 1;
     auto result = runner.run(spec, options);
-    ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+    ASSERT_TRUE(result.ok) << first_error_message(result);
     EXPECT_TRUE(has_record(1, "target", "main", "tick-1"));
     EXPECT_FALSE(has_record(1, "target", "delayed"));
     EXPECT_EQ(result.staged_publication_count, 4u);
@@ -2430,7 +2487,7 @@ TEST(Runtime, StateAndAsyncEdgesCommitAfterCurrentEpoch) {
     reset_runtime_records();
     options.tick_iterations = 2;
     result = runner.run(spec, options);
-    ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+    ASSERT_TRUE(result.ok) << first_error_message(result);
     EXPECT_FALSE(has_record(1, "target", "delayed"));
     EXPECT_TRUE(has_record(2, "target", "delayed", "tick-1"));
     EXPECT_EQ(result.staged_publication_count, 8u);
@@ -2496,7 +2553,7 @@ TEST(Runtime, ComponentConfigUpdatesApplyOnEpochBoundary) {
   reset_config_observations();
   const auto result = runner.run(config_snapshot_graph(), options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   ASSERT_EQ(config_observations().size(), 2u);
   EXPECT_EQ(config_observations()[0], "initial");
   EXPECT_EQ(config_observations()[1], "updated-1");
@@ -2519,8 +2576,8 @@ TEST(Runtime, InvalidComponentConfigTransactionIsRejectedBeforeApply) {
   const auto result = runner.run(invalid_config_transaction_graph(), options);
 
   ASSERT_FALSE(result.ok);
-  ASSERT_FALSE(result.errors.empty());
-  EXPECT_NE(result.errors.front().find("config transaction validation failed for component observer"),
+  ASSERT_TRUE(has_result_errors(result));
+  EXPECT_NE(first_error_message(result).find("config transaction validation failed for component observer"),
             std::string::npos);
   EXPECT_EQ(config_observations(), std::vector<std::string>({"initial"}));
   EXPECT_TRUE(config_apply_events().empty());
@@ -2541,8 +2598,9 @@ TEST(Runtime, ComponentConfigApplyFailureRollsBackAppliedComponents) {
   const auto result = runner.run(apply_failure_config_transaction_graph(), options);
 
   ASSERT_FALSE(result.ok);
-  ASSERT_FALSE(result.errors.empty());
-  EXPECT_NE(result.errors.front().find("config transaction apply failed for component observer_b"), std::string::npos);
+  ASSERT_TRUE(has_result_errors(result));
+  EXPECT_NE(first_error_message(result).find("config transaction apply failed for component observer_b"),
+            std::string::npos);
   EXPECT_EQ(config_observations(), (std::vector<std::string>{"initial-a", "initial-b"}));
   EXPECT_EQ(config_apply_events(),
             (std::vector<std::string>{"observer_a.apply.updated-a", "observer_b.apply.apply-fail",
@@ -2553,10 +2611,10 @@ TEST(Runtime, ComponentConfigApplyFailureRollsBackAppliedComponents) {
   EXPECT_EQ(metric_value(result, "runtime.config.rejected_update_count").value_or(-1.0), 2.0);
 }
 
-TEST(Runtime, TaskExecutorCompletesDeterministicTasksInOrder) {
+TEST(Runtime, DeterministicTaskExecutorCompletesTasksInOrder) {
   topoexec::TaskExecutorConfig config;
   config.max_inflight = 2;
-  topoexec::TaskExecutor executor(config);
+  topoexec::DeterministicTaskExecutor executor(config);
 
   const auto first = executor.submit([]() { return topoexec::make_text_payload("one"); });
   const auto second = executor.submit([]() { return topoexec::make_text_payload("two"); });
@@ -2575,11 +2633,11 @@ TEST(Runtime, TaskExecutorCompletesDeterministicTasksInOrder) {
   EXPECT_EQ(metrics.max_inflight_count, 2u);
 }
 
-TEST(Runtime, TaskExecutorRejectsAndCancelsBoundedBacklog) {
+TEST(Runtime, DeterministicTaskExecutorRejectsAndCancelsBoundedBacklog) {
   topoexec::TaskExecutorConfig config;
   config.max_inflight = 1;
   config.overflow = "reject";
-  topoexec::TaskExecutor executor(config);
+  topoexec::DeterministicTaskExecutor executor(config);
   topoexec::HealthEventSink sink(4);
   executor.set_health_event_sink(&sink);
 
@@ -2599,11 +2657,11 @@ TEST(Runtime, TaskExecutorRejectsAndCancelsBoundedBacklog) {
   EXPECT_EQ(events.front().reason, "task executor queue full");
 }
 
-TEST(Runtime, TaskExecutorCancellationTokenCancelsPendingTasks) {
+TEST(Runtime, DeterministicTaskExecutorCancellationTokenCancelsPendingTasks) {
   topoexec::TaskExecutorConfig config;
   config.max_inflight = 1;
   config.queue_capacity = 2;
-  topoexec::TaskExecutor executor(config);
+  topoexec::DeterministicTaskExecutor executor(config);
   topoexec::CancellationSource cancellation;
 
   EXPECT_TRUE(executor.submit([]() { return topoexec::make_text_payload("one"); }).accepted);
@@ -2619,11 +2677,11 @@ TEST(Runtime, TaskExecutorCancellationTokenCancelsPendingTasks) {
   EXPECT_EQ(metrics.cancellation_observed_count, 1u);
 }
 
-TEST(Runtime, TaskExecutorBudgetExceededIsReportedWithoutPreemption) {
+TEST(Runtime, DeterministicTaskExecutorBudgetExceededIsReportedWithoutPreemption) {
   topoexec::TaskExecutorConfig config;
   config.max_inflight = 1;
   config.task_budget = std::chrono::milliseconds(1);
-  topoexec::TaskExecutor executor(config);
+  topoexec::DeterministicTaskExecutor executor(config);
 
   ASSERT_TRUE(executor
                   .submit([]() {
@@ -2760,8 +2818,8 @@ TEST(Runtime, ThreadedTaskExecutorGraphContextPublishesCompletionExactlyOnce) {
   EXPECT_TRUE(channels.consume_for_component("join").empty());
 }
 
-TEST(Runtime, TaskExecutorReportsFailureAndGraphContextPublishesCompletion) {
-  topoexec::TaskExecutor executor;
+TEST(Runtime, DeterministicTaskExecutorReportsFailureAndGraphContextPublishesCompletion) {
+  topoexec::DeterministicTaskExecutor executor;
   ASSERT_TRUE(executor.submit([]() -> topoexec::RuntimePayload { throw std::runtime_error("task boom"); }).accepted);
   const auto failed = executor.run_ready();
   ASSERT_EQ(failed.size(), 1u);
@@ -2794,7 +2852,7 @@ TEST(Runtime, AsyncTaskReadyTriggersDownstreamOnLaterEpoch) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_record(1, "join", "ready"));
   EXPECT_TRUE(has_record(2, "join", "ready", "tick-1"));
   EXPECT_TRUE(has_trigger_record(2, "join", topoexec::EventKind::kTaskReady, topoexec::TriggerKind::kTaskReady));
@@ -2811,7 +2869,7 @@ TEST(Runtime, AsyncCompletionMaintainsOriginalRequestCorrelation) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   const auto worker = find_record_snapshot(1, "worker", "in");
   const auto join = find_record_snapshot(2, "join", "ready");
   ASSERT_TRUE(worker.has_value());
@@ -2833,7 +2891,7 @@ TEST(Runtime, FutureReadyEventSourceUsesFutureReadyEventKind) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(2, "join", "ready", "tick-1"));
   EXPECT_TRUE(has_trigger_record(2, "join", topoexec::EventKind::kFutureReady, topoexec::TriggerKind::kAnyInput));
 }
@@ -2848,7 +2906,7 @@ TEST(Runtime, RequestTriggerUsesRequestInvocationKind) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "service", "request", "tick-1"));
   EXPECT_TRUE(has_trigger_record(1, "service", topoexec::EventKind::kRequest, topoexec::TriggerKind::kRequest));
   EXPECT_TRUE(has_correlation_record(1, "service", "source_service#1"));
@@ -2886,7 +2944,7 @@ TEST(Runtime, RequestTriggerDropsTimedOutPendingMessage) {
   reset_runtime_records();
   const auto result = runtime.run(options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_component_record(1, "service"));
   ASSERT_NE(result.trigger_metrics.find("service"), result.trigger_metrics.end());
   EXPECT_EQ(result.trigger_metrics.at("service").timeout_drop_count, 1u);
@@ -2903,7 +2961,7 @@ TEST(Runtime, AllInputsWaitsForEveryRequiredPort) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "join", "main", "tick-1"));
   EXPECT_TRUE(has_record(1, "join", "delayed", "tick-1"));
 }
@@ -2918,7 +2976,7 @@ TEST(Runtime, TimeSyncWaitsForInputsAndUsesTimeSyncTriggerKind) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "join", "main", "tick-1"));
   EXPECT_TRUE(has_record(1, "join", "delayed", "tick-1"));
   EXPECT_TRUE(has_trigger_record(1, "join", topoexec::EventKind::kMessage, topoexec::TriggerKind::kTimeSync));
@@ -2975,7 +3033,7 @@ TEST(Runtime, TimeSyncDropsOldestOutOfSlopSampleUntilInputsAlign) {
   const auto result = runtime.run(options);
 
   EXPECT_TRUE(aligned_publish_accepted) << aligned_publish_reason;
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_record(1, "join", "main"));
   EXPECT_FALSE(has_record(1, "join", "delayed"));
   EXPECT_TRUE(has_record(2, "join", "main", "left-aligned"));
@@ -2995,14 +3053,14 @@ TEST(Runtime, BatchTriggerPreservesPartialBatchUntilThreshold) {
   reset_runtime_records();
   options.tick_iterations = 2;
   auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_component_record(1, "batch"));
   EXPECT_FALSE(has_component_record(2, "batch"));
 
   reset_runtime_records();
   options.tick_iterations = 3;
   result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_batch_record(3, "batch", {"tick-1", "tick-2", "tick-3"}));
 }
 
@@ -3045,7 +3103,7 @@ TEST(Runtime, BatchTriggerFlushesPartialBatchAfterWindowExpires) {
 
     const auto result = runtime.run(options);
 
-    ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+    ASSERT_TRUE(result.ok) << first_error_message(result);
     EXPECT_FALSE(has_component_record(1, "batch"));
   }
 
@@ -3063,7 +3121,7 @@ TEST(Runtime, BatchTriggerFlushesPartialBatchAfterWindowExpires) {
 
     const auto result = runtime.run(options);
 
-    ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+    ASSERT_TRUE(result.ok) << first_error_message(result);
     EXPECT_TRUE(has_batch_record(1, "batch", {"one", "two"}));
     EXPECT_TRUE(has_trigger_record(1, "batch", topoexec::EventKind::kMessage, topoexec::TriggerKind::kBatch));
     ASSERT_NE(result.trigger_metrics.find("batch"), result.trigger_metrics.end());
@@ -3081,7 +3139,7 @@ TEST(Runtime, TimerTriggerRunsOncePerSimulatedStep) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_component_record(1, "timer"));
   EXPECT_TRUE(has_component_record(2, "timer"));
   EXPECT_TRUE(has_component_record(3, "timer"));
@@ -3099,7 +3157,7 @@ TEST(Runtime, FixedRateSimulatedLaneReportsOverrunMetric) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.tick_calls, 1u);
   EXPECT_TRUE(std::any_of(result.runtime_metrics.begin(), result.runtime_metrics.end(), [](const auto& metric) {
     return metric.name == "runtime.scheduler.tick_overrun_count" && metric.lane == "main" && metric.value >= 1.0;
@@ -3124,7 +3182,7 @@ TEST(Runtime, FixedRateWallClockModeSleepsBetweenTicksWhenOptedIn) {
   const auto result = runner.run(spec, options);
   const auto elapsed = std::chrono::steady_clock::now() - started_at;
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.tick_calls, 3u);
   EXPECT_TRUE(has_component_record(1, "slow"));
   EXPECT_TRUE(has_component_record(2, "slow"));
@@ -3147,7 +3205,7 @@ TEST(Runtime, RuntimePriorityOrdersIndependentReadyComponentsAndDoesNotStarveLow
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   const auto high_first = first_record_index(1, "high");
   const auto low_first = first_record_index(1, "low");
   ASSERT_TRUE(high_first.has_value());
@@ -3175,7 +3233,7 @@ TEST(Runtime, ComponentObservesCooperativeCancellationToken) {
   const auto result = runner.run(spec, options);
   reset_cancellation_request_hook();
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_component_record(1, "worker"));
   EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.cancellation_requested_count", "worker", 1.0));
   EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.cancellation_observed_count", "worker", 1.0));
@@ -3200,7 +3258,7 @@ TEST(Runtime, ComponentIgnoringCancellationReportsBudgetWithoutForcedKill) {
   const auto result = runner.run(spec, options);
   reset_cancellation_request_hook();
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_component_record(1, "worker"));
   EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.cancellation_requested_count", "worker", 1.0));
   const auto observed = component_metric_value(result, "runtime.component.cancellation_observed_count", "worker");
@@ -3219,14 +3277,14 @@ TEST(Runtime, CoalesceMergesMultiplePendingUpdatesIntoOneInvocation) {
 
   reset_runtime_records();
   auto result = runner.run(coalesce_graph(false), options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "target", "in", "burst-1-1"));
   EXPECT_TRUE(has_record(1, "target", "in", "burst-1-2"));
   EXPECT_TRUE(has_record(1, "target", "in", "burst-1-3"));
 
   reset_runtime_records();
   result = runner.run(coalesce_graph(true), options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_record(1, "target", "in", "burst-1-1"));
   EXPECT_FALSE(has_record(1, "target", "in", "burst-1-2"));
   EXPECT_TRUE(has_record(1, "target", "in", "burst-1-3"));
@@ -3242,7 +3300,7 @@ TEST(Runtime, MinIntervalSuppressesRepeatedInvocationsInsideInterval) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "target", "in", "burst-1-1"));
   EXPECT_FALSE(has_record(1, "target", "in", "burst-1-2"));
   EXPECT_FALSE(has_record(1, "target", "in", "burst-1-3"));
@@ -3262,7 +3320,7 @@ TEST(Runtime, DebounceTriggerCoalescesPendingEventsWithoutCoalesceFlag) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_record(1, "target", "in", "burst-1-1"));
   EXPECT_FALSE(has_record(1, "target", "in", "burst-1-2"));
   EXPECT_TRUE(has_record(1, "target", "in", "burst-1-3"));
@@ -3283,7 +3341,7 @@ TEST(Runtime, RateLimitTriggerSuppressesRepeatedReadyChecksWithReasonMetric) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "target", "in", "burst-1-1"));
   EXPECT_FALSE(has_record(1, "target", "in", "burst-1-2"));
   EXPECT_FALSE(has_record(2, "target", "in"));
@@ -3306,7 +3364,7 @@ TEST(Runtime, RateLimitTriggerBoundsSuppressedPendingMessages) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "target", "in", "burst-1-2"));
   EXPECT_FALSE(has_component_record(2, "target"));
   EXPECT_FALSE(has_component_record(3, "target"));
@@ -3359,7 +3417,7 @@ TEST(Runtime, WatermarkTriggerDropsLateSamplesAndReportsMetrics) {
   options.tick_iterations = 1;
   const auto result = runtime.run(options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "target", "in", "new"));
   EXPECT_FALSE(has_record(1, "target", "in", "late"));
   EXPECT_TRUE(has_record(1, "target", "in", "newer"));
@@ -3407,7 +3465,7 @@ TEST(Runtime, ConditionTriggerWaitsForDeclarativeReadinessWithoutScripting) {
   const auto result = runtime.run(options);
 
   EXPECT_TRUE(right_publish_accepted);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_record(1, "join", "main"));
   EXPECT_TRUE(has_record(2, "join", "main", "left"));
   EXPECT_TRUE(has_record(2, "join", "delayed", "right"));
@@ -3451,7 +3509,7 @@ TEST(Runtime, ConditionTimestampTriggerDropsMissingTimestampHeadItem) {
   options.tick_iterations = 1;
   const auto result = runtime.run(options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_record(1, "target", "in", "missing-ts"));
   EXPECT_TRUE(has_record(1, "target", "in", "timestamped"));
   EXPECT_TRUE(has_trigger_record(1, "target", topoexec::EventKind::kMessage, topoexec::TriggerKind::kCondition));
@@ -3470,7 +3528,7 @@ TEST(Runtime, CompositeLoopRegionOwnsInternalFixedPointIterations) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.loop_iteration_count, 2u);
   EXPECT_EQ(result.loop_max_iteration_hit_count, 1u);
   EXPECT_TRUE(has_component_record(1, "estimator"));
@@ -3492,7 +3550,7 @@ TEST(Runtime, CompositeLoopExternalOutputKeepsCausationMetadata) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   const auto sink = find_record_snapshot(1, "sink", "in");
   ASSERT_TRUE(sink.has_value());
   EXPECT_EQ(sink->causation_id, "controller_sink#1");
@@ -3511,7 +3569,7 @@ TEST(Runtime, CompositeLoopConvergenceStopsBeforeMaxIterations) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.loop_iteration_count, 1u);
   EXPECT_EQ(result.loop_converged_count, 1u);
   EXPECT_EQ(result.loop_max_iteration_hit_count, 0u);
@@ -3529,7 +3587,7 @@ TEST(Runtime, CompositeLoopSolverIterationConvergesByTypedReportAndResidualMetri
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.loop_iteration_count, 2u);
   EXPECT_EQ(result.loop_converged_count, 1u);
   EXPECT_EQ(result.loop_max_iteration_hit_count, 0u);
@@ -3560,7 +3618,7 @@ TEST(Runtime, CompositeLoopSolverIterationConvergesByResidualThreshold) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.loop_iteration_count, 2u);
   EXPECT_EQ(result.loop_converged_count, 1u);
   ASSERT_TRUE(result.loop_stop_reason.contains("estimator_controller_loop"));
@@ -3582,7 +3640,7 @@ TEST(Runtime, CompositeLoopSolverIterationDiscardsPartialOutputsByDefault) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.loop_iteration_count, 2u);
   EXPECT_EQ(result.loop_converged_count, 0u);
   EXPECT_EQ(result.loop_max_iteration_hit_count, 1u);
@@ -3609,7 +3667,7 @@ TEST(Runtime, CompositeLoopSolverIterationCanCommitPartialOutputsWhenPolicyAllow
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.loop_iteration_count, 2u);
   EXPECT_EQ(result.loop_converged_count, 0u);
   EXPECT_EQ(result.loop_max_iteration_hit_count, 1u);
@@ -3636,8 +3694,8 @@ TEST(Runtime, CompositeLoopSolverIterationCanFailOnPartialSuccessPolicy) {
 
   EXPECT_FALSE(result.ok);
   EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kError);
-  ASSERT_FALSE(result.errors.empty());
-  EXPECT_NE(result.errors.front().find("stopped without convergence"), std::string::npos);
+  ASSERT_TRUE(has_result_errors(result));
+  EXPECT_NE(first_error_message(result).find("stopped without convergence"), std::string::npos);
   EXPECT_EQ(result.loop_output_discarded_count, 1u);
   EXPECT_FALSE(has_component_record(1, "sink"));
 }
@@ -3664,7 +3722,7 @@ TEST(Runtime, CompositeLoopDiscardedAsyncOutputsReleaseInflightAccounting) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.loop_output_discarded_count, 2u);
   EXPECT_FALSE(has_component_record(1, "sink"));
   EXPECT_FALSE(has_component_record(2, "sink"));
@@ -3684,7 +3742,7 @@ TEST(Runtime, CompositeLoopBudgetOverrunStopsLoopAndReportsMetric) {
 
   reset_runtime_records();
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.loop_iteration_count, 1u);
   EXPECT_EQ(result.loop_budget_overrun_count, 1u);
   EXPECT_EQ(result.loop_max_iteration_hit_count, 0u);
@@ -3707,7 +3765,7 @@ TEST(Runtime, CompositeLoopCancellationStopsBetweenIterations) {
   const auto result = runner.run(spec, options);
   reset_cancellation_request_hook();
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kStopRequested);
   EXPECT_LT(result.loop_iteration_count, 5u);
   EXPECT_EQ(result.loop_cancellation_requested_count, 1u);
@@ -3772,7 +3830,7 @@ TEST(Runtime, RunUntilIdleStopsAfterMessageDrivenInputsDrain) {
   options.run_until_idle = true;
   const auto result = runtime.run(options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.tick_calls, 1u);
   EXPECT_EQ(result.iterations, 2u);
   EXPECT_EQ(result.stop_reason, topoexec::SchedulerStopReason::kIdle);
@@ -3792,7 +3850,7 @@ TEST(Runtime, StopTokenStopsBeforeExecutingComponentsAndCleansUp) {
   options.stop_token = stop_source.token();
 
   const auto result = runner.run(spec, options);
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kStopRequested);
   EXPECT_EQ(result.tick_calls, 0u);
   EXPECT_EQ(result.started_components, 3u);
@@ -3810,9 +3868,9 @@ TEST(Runtime, ComponentErrorStopsRuntimeAndDeactivatesStartedComponents) {
   reset_throwing_component_state();
   const auto result = runner.run(spec, options);
   EXPECT_FALSE(result.ok);
-  ASSERT_FALSE(result.errors.empty());
+  ASSERT_TRUE(has_result_errors(result));
   ASSERT_FALSE(result.runtime_errors.empty());
-  EXPECT_NE(result.errors.front().find("component throwing failed: boom"), std::string::npos);
+  EXPECT_NE(first_error_message(result).find("component throwing failed: boom"), std::string::npos);
   EXPECT_EQ(result.runtime_errors.front().phase, "execute");
   EXPECT_EQ(result.runtime_errors.front().component_id, "throwing");
   EXPECT_EQ(result.runtime_errors.front().code, "component_execute");
@@ -3835,10 +3893,9 @@ TEST(Runtime, ConfigureStatusFailureIsObservableWithoutThrowing) {
   const auto result = runner.run(spec, options);
 
   EXPECT_FALSE(result.ok);
-  ASSERT_FALSE(result.errors.empty());
+  ASSERT_TRUE(has_result_errors(result));
   ASSERT_FALSE(result.runtime_errors.empty());
-  EXPECT_NE(result.errors.front().find("component failing configure failed: configure status failed"),
-            std::string::npos);
+  EXPECT_NE(first_error_message(result).find("configure status failed"), std::string::npos);
   EXPECT_EQ(result.runtime_errors.front().phase, "configure");
   EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
   EXPECT_EQ(result.runtime_errors.front().code, "component_configure");
@@ -3860,9 +3917,9 @@ TEST(Runtime, ExecuteStatusFailureStopsRuntimeAndDeactivatesStartedComponents) {
   const auto result = runner.run(spec, options);
 
   EXPECT_FALSE(result.ok);
-  ASSERT_FALSE(result.errors.empty());
+  ASSERT_TRUE(has_result_errors(result));
   ASSERT_FALSE(result.runtime_errors.empty());
-  EXPECT_NE(result.errors.front().find("component failing failed: execute status failed"), std::string::npos);
+  EXPECT_NE(first_error_message(result).find("component failing failed: execute status failed"), std::string::npos);
   EXPECT_EQ(result.runtime_errors.front().phase, "execute");
   EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
   EXPECT_EQ(result.runtime_errors.front().code, "component_execute");
@@ -3909,9 +3966,9 @@ TEST(Runtime, ActivateStatusFailureCleansUpStartedComponentsInReverseOrder) {
   const auto result = runner.run(spec, options);
 
   EXPECT_FALSE(result.ok);
-  ASSERT_FALSE(result.errors.empty());
+  ASSERT_TRUE(has_result_errors(result));
   ASSERT_FALSE(result.runtime_errors.empty());
-  EXPECT_NE(result.errors.front().find("component failing activate failed: activate status failed"), std::string::npos);
+  EXPECT_NE(first_error_message(result).find("activate status failed"), std::string::npos);
   EXPECT_EQ(result.runtime_errors.front().phase, "activate");
   EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
   EXPECT_EQ(result.runtime_errors.front().code, "component_activate");
@@ -3937,7 +3994,7 @@ TEST(Runtime, SuccessfulRunDeactivatesComponentsInReverseStartupOrder) {
   reset_lifecycle_events();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.started_components, 3u);
   EXPECT_EQ(result.stopped_components, 3u);
   EXPECT_EQ(lifecycle_events(),
@@ -3958,10 +4015,9 @@ TEST(Runtime, DeactivateStatusFailureIsReportedWithComponentAndPhase) {
   const auto result = runner.run(spec, options);
 
   EXPECT_FALSE(result.ok);
-  ASSERT_FALSE(result.errors.empty());
+  ASSERT_TRUE(has_result_errors(result));
   ASSERT_FALSE(result.runtime_errors.empty());
-  EXPECT_NE(result.errors.front().find("component failing deactivate failed: deactivate status failed"),
-            std::string::npos);
+  EXPECT_NE(first_error_message(result).find("deactivate status failed"), std::string::npos);
   EXPECT_EQ(result.runtime_errors.front().phase, "deactivate");
   EXPECT_EQ(result.runtime_errors.front().component_id, "failing");
   EXPECT_EQ(result.runtime_errors.front().code, "component_deactivate");
@@ -3985,7 +4041,7 @@ TEST(Runtime, ResetAtEpochStartClearsStateBeforeExecution) {
   reset_lifecycle_events();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   ASSERT_EQ(result.component_state_snapshots.size(), 1u);
   const auto& snapshot = result.component_state_snapshots.at("counter");
   ASSERT_NE(snapshot.payload, nullptr);
@@ -4014,7 +4070,7 @@ TEST(Runtime, SnapshotRestoreAppliesBeforeNextExecution) {
   reset_lifecycle_events();
   const auto first = runner.run(spec, first_options);
 
-  ASSERT_TRUE(first.ok) << (first.errors.empty() ? "" : first.errors.front());
+  ASSERT_TRUE(first.ok) << first_error_message(first);
   ASSERT_EQ(first.component_state_snapshots.size(), 1u);
   EXPECT_EQ(topoexec::require_text_payload(*first.component_state_snapshots.at("counter").payload), "7");
 
@@ -4027,7 +4083,7 @@ TEST(Runtime, SnapshotRestoreAppliesBeforeNextExecution) {
   reset_lifecycle_events();
   const auto second = runner.run(spec, second_options);
 
-  ASSERT_TRUE(second.ok) << (second.errors.empty() ? "" : second.errors.front());
+  ASSERT_TRUE(second.ok) << first_error_message(second);
   ASSERT_EQ(second.component_state_snapshots.size(), 1u);
   EXPECT_EQ(topoexec::require_text_payload(*second.component_state_snapshots.at("counter").payload), "8");
   EXPECT_EQ(second.lifecycle_restore_count, 1u);
@@ -4098,7 +4154,7 @@ TEST(Runtime, ThreadPoolLaneExecutesReentrantInvocationsConcurrently) {
   const auto reg = delay_registry();
   const auto spec = thread_pool_graph(true);
   const auto validation = topoexec::validate_graph(spec, reg);
-  ASSERT_TRUE(validation.ok) << validation.errors.front();
+  ASSERT_TRUE(validation.ok) << first_error_message(validation);
 
   topoexec::RuntimeRunner runner(reg);
   topoexec::RuntimeRunnerOptions options;
@@ -4109,7 +4165,7 @@ TEST(Runtime, ThreadPoolLaneExecutesReentrantInvocationsConcurrently) {
   reset_thread_pool_probe_state();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_GE(thread_pool_max_invocations().load(), 2);
   EXPECT_LE(thread_pool_max_invocations().load(), 3);
   EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.max_in_flight_count", "worker", 2.0));
@@ -4133,7 +4189,7 @@ TEST(Runtime, ThreadPoolWorkersPersistAcrossMultipleRuntimeSteps) {
   reset_thread_pool_probe_state();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
   EXPECT_TRUE(has_record(2, "worker", "in", "burst-2-1"));
   std::lock_guard lock(thread_pool_probe_mutex());
@@ -4155,7 +4211,7 @@ TEST(Runtime, ThreadPoolLaneSerializesNonReentrantInvocations) {
   reset_thread_pool_probe_state();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(thread_pool_max_invocations().load(), 1);
   EXPECT_TRUE(has_component_metric_at_least(result, "runtime.component.max_in_flight_count", "worker", 1.0));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
@@ -4181,7 +4237,7 @@ TEST(Runtime, ThreadPoolLaneQueueCapacityRejectsNewestWhenFull) {
   reset_thread_pool_probe_state();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(thread_pool_max_invocations().load(), 1);
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
@@ -4210,7 +4266,7 @@ TEST(Runtime, ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured) {
   reset_thread_pool_probe_state();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_record(1, "worker", "in", "burst-1-1"));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-3"));
@@ -4244,7 +4300,7 @@ TEST(Runtime, ThreadPoolStopWhileQueueNonEmptyDrainsAdmittedWork) {
   run_done.store(true);
   stopper.join();
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kStopRequested);
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
   EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
@@ -4264,14 +4320,15 @@ TEST(Runtime, AsyncMaxInflightDropsOldestBeforeChannelCapacity) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_FALSE(has_record(2, "join", "ready", "burst-1-1"));
   EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-2"));
   EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-3"));
   EXPECT_EQ(result.channel_publish_count, 2u);
   EXPECT_EQ(result.async_publication_count, 6u);
   EXPECT_TRUE(has_metric_at_least(result, "runtime.async.accepted_count", 6.0));
-  EXPECT_TRUE(has_metric_at_least(result, "runtime.async.dropped_count", 2.0));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.async.overwrite_count", 2.0));
+  EXPECT_EQ(*metric_value(result, "runtime.async.dropped_count"), 0.0);
   EXPECT_TRUE(has_metric_at_least(result, "runtime.async.completed_count", 2.0));
   EXPECT_TRUE(has_metric_at_least(result, "runtime.async.max_in_flight_count", 2.0));
   EXPECT_LE(*metric_value(result, "runtime.async.in_flight_count"), 2.0);
@@ -4289,7 +4346,7 @@ TEST(Runtime, AsyncMaxInflightAcceptsWithinLimitBeforeChannelCapacity) {
   reset_runtime_records();
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << first_error_message(result);
   EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-1"));
   EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-2"));
   EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-3"));
@@ -4298,6 +4355,7 @@ TEST(Runtime, AsyncMaxInflightAcceptsWithinLimitBeforeChannelCapacity) {
   EXPECT_EQ(*metric_value(result, "runtime.async.accepted_count"), 6.0);
   EXPECT_EQ(*metric_value(result, "runtime.async.rejected_count"), 0.0);
   EXPECT_EQ(*metric_value(result, "runtime.async.dropped_count"), 0.0);
+  EXPECT_EQ(*metric_value(result, "runtime.async.overwrite_count"), 0.0);
   EXPECT_EQ(*metric_value(result, "runtime.async.completed_count"), 3.0);
   EXPECT_EQ(*metric_value(result, "runtime.async.max_in_flight_count"), 3.0);
   EXPECT_LE(*metric_value(result, "runtime.async.in_flight_count"), 3.0);
@@ -4316,7 +4374,7 @@ TEST(Runtime, AsyncMaxInflightRejectPoliciesDoNotCommitRejectedCompletions) {
     reset_runtime_records();
     const auto result = runner.run(spec, options);
 
-    ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+    ASSERT_TRUE(result.ok) << first_error_message(result);
     EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-1"));
     EXPECT_TRUE(has_record(2, "join", "ready", "burst-1-2"));
     EXPECT_FALSE(has_record(2, "join", "ready", "burst-1-3"));
@@ -4332,5 +4390,6 @@ TEST(Runtime, AsyncMaxInflightRejectPoliciesDoNotCommitRejectedCompletions) {
     } else {
       EXPECT_EQ(*metric_value(result, "runtime.async.dropped_count"), 0.0);
     }
+    EXPECT_EQ(*metric_value(result, "runtime.async.overwrite_count"), 0.0);
   }
 }

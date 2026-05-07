@@ -4,7 +4,7 @@ Async edges and async task execution are separate concepts in TopoExec.
 
 - `async` edges are graph semantics: a completion/event publication is deferred to a later epoch and is admitted through `policy.max_inflight` plus channel capacity.
 - `ITaskExecutor` is the optional task-executor interface for bounded task submission, cancellation, completion callbacks, and metrics.
-- `TaskExecutor` remains a source-compatible alias for the deterministic executor path; `DeterministicTaskExecutor` is the explicit deterministic implementation.
+- `DeterministicTaskExecutor` is the explicit deterministic implementation.
 - `ThreadedTaskExecutor` is an opt-in preview for bounded worker-backed task execution. It is not used unless an embedder attaches it to `GraphContext::task_executor`.
 
 The core runtime does not require a task executor. Applications can attach any `ITaskExecutor` implementation to `GraphContext::task_executor` and call `GraphContext::submit_task(port, work)` from a component. The completion callback publishes the returned payload to `component_id.port`, so normal async-edge routing can carry the completion to downstream `task_ready` / `future_ready` triggers. Completion callbacks route through the runtime publisher or channel bus; they do not call downstream components directly. Task completions inherit the submitting invocation metadata so downstream `task_ready` / `future_ready` invocations keep the original correlation id and receive a new channel-message causation id.
@@ -29,7 +29,7 @@ Rejected task submissions increment `TaskExecutorMetrics::rejected_count` and, w
 
 ## Deterministic execution
 
-`DeterministicTaskExecutor::run_ready(max_tasks, cancel_token)` runs pending work synchronously in FIFO order on the caller thread. If the token is already requested before the next task starts, the executor cancels pending tasks and returns without forced termination. This remains the default test-friendly mode. `TaskExecutor` is kept as the compatibility name for this deterministic implementation.
+`DeterministicTaskExecutor::run_ready(max_tasks, cancel_token)` runs pending work synchronously in FIFO order on the caller thread. If the token is already requested before the next task starts, the executor cancels pending tasks and returns without forced termination. This remains the default test-friendly mode.
 
 ## Threaded preview
 

@@ -685,6 +685,12 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
       --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
       --golden-dir ${CMAKE_CURRENT_SOURCE_DIR}/tests/golden
   )
+  add_test(NAME cli_channel_breakdown
+    COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/check_channel_breakdown.py
+      --topoexec $<TARGET_FILE:topoexec_cli>
+      --source-dir ${CMAKE_CURRENT_SOURCE_DIR}
+  )
   add_test(NAME schema_v1_contract_smoke
     COMMAND ${Python3_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/schema/check_schema_contract.py
@@ -851,7 +857,7 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   add_test(NAME app_overload_latest_vs_queue_runs
     COMMAND topoexec_app_overload_latest_vs_queue
   )
-  set_tests_properties(app_overload_latest_vs_queue_runs PROPERTIES PASS_REGULAR_EXPRESSION "queue_drop_count=1")
+  set_tests_properties(app_overload_latest_vs_queue_runs PROPERTIES PASS_REGULAR_EXPRESSION "queue_overwrite_count=1")
   add_test(NAME app_control_feedback_delay_runs
     COMMAND topoexec_app_control_feedback_delay
   )
@@ -863,7 +869,7 @@ if(TOPOEXEC_BUILD_TESTING AND BUILD_TESTING)
   add_test(NAME app_async_worker_runs
     COMMAND topoexec_app_async_worker
   )
-  set_tests_properties(app_async_worker_runs PROPERTIES PASS_REGULAR_EXPRESSION "async_drop_count=1")
+  set_tests_properties(app_async_worker_runs PROPERTIES PASS_REGULAR_EXPRESSION "async_overwrite_count=2")
   add_test(NAME app_cpp_builder_minimal_runs
     COMMAND topoexec_app_cpp_builder_minimal
   )

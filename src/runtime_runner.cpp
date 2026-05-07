@@ -61,6 +61,9 @@ void copy_dry_run_to_runner(const GraphDryRunResult& dry_run, RuntimeRunnerResul
   result.channel_publish_count = dry_run.channel_publish_count;
   result.channel_delivery_count = dry_run.channel_delivery_count;
   result.channel_drop_count = dry_run.channel_drop_count;
+  result.channel_overwrite_count = dry_run.channel_overwrite_count;
+  result.channel_reject_count = dry_run.channel_reject_count;
+  result.channel_stale_drop_count = dry_run.channel_stale_drop_count;
   result.channel_deadline_miss_count = dry_run.channel_deadline_miss_count;
   result.payload_copy_count = dry_run.payload_copy_count;
   result.ticked_components = dry_run.ticked_components;
@@ -73,15 +76,8 @@ void append_runtime_metric(RuntimeRunnerResult& result, std::string name, double
       RuntimeMetricSample{std::move(name), value, std::move(component_id), std::move(lane), std::move(channel_id), {}});
 }
 
-void append_runtime_error(RuntimeRunnerResult& result, RuntimeError error, std::string legacy_message = {}) {
-  if (legacy_message.empty()) {
-    legacy_message = error.message;
-    if (!error.component_id.empty()) {
-      legacy_message = "component " + error.component_id + " " + error.phase + " failed: " + error.message;
-    }
-  }
+void append_runtime_error(RuntimeRunnerResult& result, RuntimeError error) {
   result.runtime_errors.push_back(std::move(error));
-  result.errors.push_back(std::move(legacy_message));
 }
 
 RuntimeError make_runtime_error(std::string phase, std::string component_id, std::string lane, std::string message,
@@ -94,6 +90,11 @@ RuntimeError make_runtime_error(std::string phase, std::string component_id, std
   error.code = std::move(code);
   error.fatal = fatal;
   return error;
+}
+
+bool has_fatal_runtime_error(const RuntimeRunnerResult& result) {
+  return std::any_of(result.runtime_errors.begin(), result.runtime_errors.end(),
+                     [](const auto& error) { return error.fatal; });
 }
 
 void notify_runtime_observers(const RuntimeRunnerOptions& options, RuntimeRunnerResult& result) {
@@ -468,7 +469,7 @@ void finish_live_observe(runtime_observe::LiveObserveSession& live_observe, cons
   auto finished = make_live_event(runtime_observe::LiveEventKind::kRunFinished, ids);
   finished.value0 = result.ok ? 1u : 0u;
   finished.value1 = static_cast<std::uint64_t>(result.tick_calls);
-  finished.value2 = static_cast<std::uint64_t>(result.errors.size());
+  finished.value2 = static_cast<std::uint64_t>(result.runtime_errors.size());
   (void)live_observe.try_publish(finished);
 
   result.live_events = live_observe.drain();
@@ -510,10 +511,9 @@ void copy_trace_to_result(const TraceCollector& trace, const std::vector<HealthE
   });
   for (auto& [order, event] : ordered_events) {
     (void)order;
-    result.trace_events.push_back(event.name);
     result.trace.push_back(std::move(event));
   }
-  result.trace_event_count = result.trace_events.size();
+  result.trace_event_count = result.trace.size();
 }
 
 } // namespace
@@ -791,7 +791,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
         std::count_if(instances.begin(), instances.end(), [](const auto& instance) { return instance.configured; }));
     result.started_components = static_cast<std::size_t>(
         std::count_if(instances.begin(), instances.end(), [](const auto& instance) { return instance.started; }));
-    if (!result.errors.empty()) {
+    if (has_fatal_runtime_error(result)) {
       deactivate_started_components();
       return finish_result();
     }
@@ -865,7 +865,7 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       record_runner_trace_event(trace, "component_reset", {{"component_id", component_id}, {"status", "ok"}});
     }
 
-    if (!result.errors.empty()) {
+    if (has_fatal_runtime_error(result)) {
       finish_early_after_lifecycle_error();
       return finish_result();
     }
@@ -899,10 +899,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
     result.ticked_components = run_result.ticked_tasks;
     for (const auto& error : run_result.errors) {
       const auto component_id = component_id_from_legacy_error(error);
-      append_runtime_error(result,
-                           make_runtime_error(component_id.empty() ? "runtime" : "execute", component_id, {}, error,
-                                              component_id.empty() ? "runtime" : "component_execute"),
-                           error);
+      append_runtime_error(result, make_runtime_error(component_id.empty() ? "runtime" : "execute", component_id, {},
+                                                      error, component_id.empty() ? "runtime" : "component_execute"));
     }
     for (const auto& [lane_id, metrics] : run_result.group_metrics) {
       append_runtime_metric(result, "runtime.scheduler.tick_count", static_cast<double>(metrics.tick_count), {},
@@ -1068,6 +1066,9 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
       result.channel_publish_count += metric.published_count;
       result.channel_delivery_count += metric.delivered_count;
       result.channel_drop_count += metric.drop_count;
+      result.channel_overwrite_count += metric.overwrite_count;
+      result.channel_reject_count += metric.reject_count;
+      result.channel_stale_drop_count += metric.stale_drop_count;
       result.channel_deadline_miss_count += metric.deadline_miss_count;
       result.payload_copy_count += metric.payload_copy_count;
       append_runtime_metric(result, "runtime.channel.publish_count", static_cast<double>(metric.published_count), {},
@@ -1121,6 +1122,8 @@ RuntimeRunnerResult RuntimeRunner::run(const GraphSpec& graph, RuntimeRunnerOpti
                           static_cast<double>(publication_metrics.async_admission_rejected_count));
     append_runtime_metric(result, "runtime.async.dropped_count",
                           static_cast<double>(publication_metrics.async_admission_dropped_count));
+    append_runtime_metric(result, "runtime.async.overwrite_count",
+                          static_cast<double>(publication_metrics.async_admission_overwrite_count));
     append_runtime_metric(result, "runtime.async.in_flight_count",
                           static_cast<double>(publication_metrics.async_in_flight_count));
     append_runtime_metric(result, "runtime.async.max_in_flight_count",

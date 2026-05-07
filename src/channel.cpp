@@ -582,7 +582,6 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
   auto accept_message = [&]() {
     if (state.config.type == ChannelType::kPreviousTick) {
       if (state.pending_previous_tick.has_value()) {
-        ++state.metrics.drop_count;
         ++state.metrics.overwrite_count;
         ++state.metrics.health_event_count;
         emit_channel_health_event(state, HealthEventKind::kChannelOverflow, message.sequence,
@@ -597,7 +596,6 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
     state.latest = message;
     if (is_latest_style(state.config.type)) {
       if (state.config.type == ChannelType::kLatestOnly && state.metrics.depth > 0u) {
-        ++state.metrics.drop_count;
         ++state.metrics.overwrite_count;
         ++state.metrics.health_event_count;
         emit_channel_health_event(state, HealthEventKind::kChannelOverflow, message.sequence, 1u,
@@ -608,7 +606,6 @@ RuntimeChannelPublishResult RuntimeChannelBus::publish_to_state(ChannelState& st
       state.queue.push_back(message);
       while (state.queue.size() > state.config.capacity) {
         state.queue.pop_front();
-        ++state.metrics.drop_count;
         ++state.metrics.overwrite_count;
         ++state.metrics.health_event_count;
         emit_channel_health_event(state, HealthEventKind::kChannelOverflow, message.sequence, state.queue.size(),
@@ -908,7 +905,7 @@ RuntimeChannelPublishResult RuntimePublicationRouter::admit_async_locked(const R
     if (edge.overflow == "drop_oldest" || edge.overflow == "overwrite") {
       if (drop_oldest_pending_async_locked(edge.channel_id)) {
         --pending;
-        ++metrics_.async_admission_dropped_count;
+        ++metrics_.async_admission_overwrite_count;
       }
     } else if (edge.overflow == "drop_newest") {
       ++metrics_.async_admission_dropped_count;

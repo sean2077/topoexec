@@ -151,9 +151,4 @@ private:
   bool stopping_{false};
 };
 
-class TaskExecutor : public DeterministicTaskExecutor {
-public:
-  explicit TaskExecutor(TaskExecutorConfig config = {}) : DeterministicTaskExecutor(std::move(config)) {}
-};
-
 } // namespace topoexec

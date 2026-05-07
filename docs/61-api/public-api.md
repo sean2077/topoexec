@@ -79,7 +79,7 @@ These headers are safe for ordinary runtime users to include directly.
 | `topoexec/runtime/live_observe.hpp` | Low-level bounded live observe transport/session helpers. `RuntimeRunnerOptions::live_observe` and `topoexec graph observe` are the supported integration path. |
 | `topoexec/runtime/metric_schema.hpp` | Runtime metric descriptor registry, schema version, and sample validation helpers for exporter-safe cardinality. |
 | `topoexec/runtime/state.hpp` | Namespaced blackboard and graph/component config snapshot stores with epoch-boundary commits and experimental config transaction metadata. |
-| `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, compatibility `TaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |
+| `topoexec/runtime/task_executor.hpp` | `ITaskExecutor`, `DeterministicTaskExecutor`, and opt-in `ThreadedTaskExecutor` preview. |
 | `topoexec/runtime/trigger_policy.hpp` | Trigger engine internals and readiness helpers. |
 | `topoexec/c_api/topoexec.h` | C API/FFI preview: opaque handles, create/run/destroy, borrowed error strings, and metric iteration for downstream C smoke tests. |
 | `topoexec/plugins/loader.hpp` | Dynamic plugin loader preview: manifest/version/schema views, load options/result errors, and trusted native loader entry point. |
@@ -107,14 +107,14 @@ No installed header is intentionally `internal-use-only`. If future work needs i
 | `GraphInputLimits`, `default_graph_input_limits()`, `load_graph_text(..., limits)`, `load_graph_file(..., limits)` | stable-v0.2 | Parser-limit fields can be tightened by embedders and CLI tooling; defaults should remain conservative and source-compatible. |
 | YAML `templates[]` / `template_instances[]` | stable-v0.2 schema-loader surface | Template definitions are not retained in `GraphSpec`; they expand through strict parameter substitution before validation/runtime execution. |
 | `validate_graph`, `compile_graph`, `GraphDiagnostic` | stable-v0.2 | New diagnostics may be added; existing codes should keep meanings. |
-| `RuntimeRunner::run()`, `RuntimeRunnerOptions`, and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, observer registration, trace vectors, metric vectors, health event vectors, and error fields should keep meanings. |
+| `RuntimeRunner::run()`, `RuntimeRunnerOptions`, and `RuntimeRunnerResult` | stable-v0.2 | New result fields may be added; existing counters, observer registration, trace vectors, metric vectors, health event vectors, and structured runtime error fields should keep meanings. `channel_drop_count` is real drops only; use `channel_overwrite_count`, `channel_reject_count`, `channel_stale_drop_count`, and `channel_deadline_miss_count` when explaining channel degradation. |
 | `RuntimeObserver`, `ResultSink`, `MetricSink`, `TraceSink`, `NoopRuntimeObserver`, `InMemoryRuntimeObserver` | stable-v0.2 | Observer callbacks are best-effort result/metric/trace/health/error delivery for adapters. Callback failures are reported as observer diagnostics, not runtime semantic failures. |
 | `RuntimeMetricDescriptor`, `runtime_metric_descriptors()`, `validate_runtime_metric_samples()` | stable-v0.2 | Metric names, kind/unit metadata, allowed labels, and descriptor schema version are the exporter-safe contract. Add names rather than changing meanings. |
 | `RuntimeTraceEvent` and `kRuntimeTraceSchemaVersion` | stable-v0.2 | Trace schema version `1` events expose ordered timeline fields plus phase/component/channel/lane/worker/epoch/transaction/correlation/causation identifiers. A compatibility constructor preserves the prior name/trace-id/timing/attributes shape; add fields or event names rather than changing existing meanings. |
 | `SchedulerStopSource`/`SchedulerStopToken` | stable-v0.2 through runner options | Direct scheduler registry/metrics internals remain experimental. |
 | `ComponentStateSnapshot`, reset/snapshot/restore runner options/results | experimental | Stateful lifecycle support is start/end-boundary only; pause/resume policy and hot live control may change before beta. |
 | `RuntimeStateStore`, `ConfigSnapshotStore` | experimental | State snapshots and config transactions are epoch-boundary, observable APIs; transaction metadata and immediate-update escape hatches may be reshaped before beta. |
-| `ITaskExecutor`, `DeterministicTaskExecutor`, `TaskExecutor`, `ThreadedTaskExecutor` | experimental | The deterministic compatibility name remains available; threaded executor preview shutdown/admission details may change before beta. |
+| `ITaskExecutor`, `DeterministicTaskExecutor`, `ThreadedTaskExecutor` | experimental | Deterministic and threaded executor shutdown/admission details may change before beta. |
 | `RuntimeChannelBus`, `RuntimePublicationRouter`, `TriggerPolicyEngine`, `EventRuntime` | experimental | Advanced runtime internals may change as scheduler/channel/trigger v2 goals land. |
 | `topoexec/c_api/topoexec.h` opaque handles and functions | experimental | C API/FFI preview, ABI version `0`. Names, ownership details, and exported functions may change before any stable ABI promise. |
 | `topoexec::plugins::load_plugin`, `LoadedPlugin`, and manifest view structs | experimental | Plugin loader preview, plugin API version `0`. The loader requires explicit paths and trusted native code, validates manifest/schema/component descriptors, defaults to no `dlclose`, and may change before any stable plugin ABI. |
@@ -268,7 +268,7 @@ topoexec::Status execute_status(const topoexec::Invocation& invocation,
 }
 ```
 
-`RuntimeRunnerResult::errors` preserves legacy human-readable configure, activate, execute, and deactivate failure strings. `RuntimeRunnerResult::runtime_errors` is the structured API for new callers and records phase, component id, lane when known, message, code, trace id when known, and fatality. The runner deactivates already-started components after stop-token shutdown and component errors.
+`RuntimeRunnerResult::runtime_errors` records runtime failure entries with phase, component id, lane when known, message, code, trace id when known, and fatality. The runner deactivates already-started components after stop-token shutdown and component errors.
 
 ## Graph diagnostics
 

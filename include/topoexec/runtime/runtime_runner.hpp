@@ -96,6 +96,9 @@ struct RuntimeRunnerResult {
   std::size_t channel_publish_count{0};
   std::size_t channel_delivery_count{0};
   std::size_t channel_drop_count{0};
+  std::size_t channel_overwrite_count{0};
+  std::size_t channel_reject_count{0};
+  std::size_t channel_stale_drop_count{0};
   std::size_t channel_deadline_miss_count{0};
   std::size_t payload_copy_count{0};
   std::size_t staged_publication_count{0};
@@ -129,13 +132,11 @@ struct RuntimeRunnerResult {
   std::size_t live_observe_dropped_event_count{0};
   SchedulerStopReason scheduler_stop_reason{SchedulerStopReason::kNotStarted};
   std::vector<std::string> ticked_components;
-  std::vector<std::string> trace_events;
   std::vector<RuntimeTraceEvent> trace;
   std::vector<runtime_observe::LiveEvent> live_events;
   std::vector<HealthEvent> health_events;
   std::vector<RuntimeMetricSample> runtime_metrics;
   std::vector<RuntimeError> runtime_errors;
-  std::vector<std::string> errors;
   std::map<std::string, double> loop_last_residual;
   std::map<std::string, std::string> loop_stop_reason;
   std::map<std::string, ComponentStateSnapshot> component_state_snapshots;

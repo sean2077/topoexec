@@ -161,7 +161,9 @@ topoexec_result_t* topoexec_runtime_run(topoexec_runtime_t* runtime, const topoe
     options.tick_iterations = tick_iterations;
     auto* output = new topoexec_result{};
     output->result = runner.run(builder->graph, options);
-    runtime->last_error = output->result.ok || output->result.errors.empty() ? std::string{} : output->result.errors[0];
+    runtime->last_error = output->result.ok || output->result.runtime_errors.empty()
+                              ? std::string{}
+                              : output->result.runtime_errors[0].message;
     return output;
   } catch (const std::exception& error) {
     set_error(runtime->last_error, error);
@@ -178,14 +180,14 @@ int topoexec_result_ok(const topoexec_result_t* result) {
 }
 
 size_t topoexec_result_error_count(const topoexec_result_t* result) {
-  return result == nullptr ? 0u : result->result.errors.size();
+  return result == nullptr ? 0u : result->result.runtime_errors.size();
 }
 
 const char* topoexec_result_error_at(const topoexec_result_t* result, size_t index) {
-  if (result == nullptr || index >= result->result.errors.size()) {
+  if (result == nullptr || index >= result->result.runtime_errors.size()) {
     return "";
   }
-  return stable_c_str(result->result.errors[index]);
+  return stable_c_str(result->result.runtime_errors[index].message);
 }
 
 size_t topoexec_result_metric_count(const topoexec_result_t* result) {

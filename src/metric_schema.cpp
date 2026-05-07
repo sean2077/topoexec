@@ -108,8 +108,8 @@ const std::vector<RuntimeMetricDescriptor>& runtime_metric_descriptors() {
          {"runtime.publication.staged", "runtime.publication.committed", "runtime.publication.delayed",
           "runtime.publication.state", "runtime.publication.state_committed", "runtime.publication.async",
           "runtime.publication.failed_commit", "runtime.async.accepted_count", "runtime.async.rejected_count",
-          "runtime.async.dropped_count", "runtime.async.completed_count", "runtime.async.cancelled_count",
-          "runtime.publication.composite_discarded"}) {
+          "runtime.async.dropped_count", "runtime.async.overwrite_count", "runtime.async.completed_count",
+          "runtime.async.cancelled_count", "runtime.publication.composite_discarded"}) {
       add_descriptor(values, name, "counter", "count", no_labels, "none");
     }
     for (const auto& name : {"runtime.async.in_flight_count", "runtime.async.max_in_flight_count"}) {

@@ -21,7 +21,17 @@ STABLE_DOC_SECTIONS = [
 REQUIRED_JSON_FIELDS = {
     "doctor": ["version", "schema_version", "semantic_contract_version", "features", "graph_input_limits"],
     "schema": ["$id", "title", "properties"],
-    "metrics": ["ok", "metric_schema_version", "trace_schema_version", "channel_publish_count"],
+    "metrics": [
+        "ok",
+        "metric_schema_version",
+        "trace_schema_version",
+        "channel_publish_count",
+        "channel_drop_count",
+        "channel_overwrite_count",
+        "channel_reject_count",
+        "channel_stale_drop_count",
+        "channel_deadline_miss_count",
+    ],
     "trace": ["ok", "trace_schema_version", "trace_event_count", "trace"],
     "observe": ["observe_schema_version", "final_summary", "event_kind_counts", "graph_validated"],
 }
@@ -80,10 +90,17 @@ def check_cli_json(root: Path, topoexec: Path) -> None:
         "trace": [str(topoexec), "graph", "trace", "examples/minimal.yaml", "--steps", "1", "--format", "json"],
         "observe": [str(topoexec), "graph", "observe", "examples/minimal.yaml", "--steps", "3", "--observe-level", "summary", "--format", "json-summary"],
     }
+    results: dict[str, dict[str, Any]] = {}
     for name, argv in commands.items():
         data = run_json(argv, cwd=root)
+        results[name] = data
         for field in REQUIRED_JSON_FIELDS[name]:
             require(field in data, f"{name} JSON missing stable field {field}")
+    for name in ("metrics", "trace"):
+        require("errors" not in results[name], f"{name} JSON must not expose legacy runner errors")
+        require("trace_events" not in results[name], f"{name} JSON must not expose legacy trace_events")
+    metric_names = {sample.get("name") for sample in results["metrics"].get("metrics", []) if isinstance(sample, dict)}
+    require("runtime.async.overwrite_count" in metric_names, "metrics JSON missing async overwrite metric")
     require(run_json(commands["doctor"], cwd=root)["version"] == "0.2.0", "doctor version must match package metadata")
 
 

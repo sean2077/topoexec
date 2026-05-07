@@ -43,7 +43,7 @@ TEST(Channel, LatestChannelDeliversOnlyNewestPayload) {
   ASSERT_EQ(messages.size(), 1u);
   EXPECT_EQ(*messages.front().payload, "two");
   const auto metrics = bus.metrics("frames");
-  EXPECT_EQ(metrics.drop_count, 1u);
+  EXPECT_EQ(metrics.drop_count, 0u);
   EXPECT_EQ(metrics.overwrite_count, 1u);
   EXPECT_EQ(metrics.health_event_count, 1u);
 }
@@ -58,7 +58,10 @@ TEST(Channel, QueueDropsOldestWhenFull) {
   ASSERT_EQ(messages.size(), 2u);
   EXPECT_EQ(*messages[0].payload, "two");
   EXPECT_EQ(*messages[1].payload, "three");
-  EXPECT_EQ(bus.metrics("events").drop_count, 1u);
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.drop_count, 0u);
+  EXPECT_EQ(metrics.overwrite_count, 1u);
+  EXPECT_EQ(metrics.reject_count, 0u);
 }
 
 TEST(Channel, HealthEventsReportHighWatermarkOnceAndCoalesceOverflow) {
@@ -142,6 +145,7 @@ TEST(Channel, QueueDropNewestRejectsIncomingPayloadWhenFull) {
   const auto metrics = bus.metrics("events");
   EXPECT_EQ(metrics.drop_count, 1u);
   EXPECT_EQ(metrics.reject_count, 1u);
+  EXPECT_EQ(metrics.overwrite_count, 0u);
   EXPECT_EQ(metrics.health_event_count, 1u);
 }
 
@@ -161,6 +165,7 @@ TEST(Channel, QueueBlockReturnsWouldBlockWithoutDroppingExistingPayload) {
   const auto metrics = bus.metrics("events");
   EXPECT_EQ(metrics.drop_count, 0u);
   EXPECT_EQ(metrics.reject_count, 1u);
+  EXPECT_EQ(metrics.overwrite_count, 0u);
   EXPECT_EQ(metrics.health_event_count, 1u);
 }
 
@@ -176,6 +181,7 @@ TEST(Channel, QueueFailFastReturnsCapacityError) {
   const auto metrics = bus.metrics("events");
   EXPECT_EQ(metrics.drop_count, 1u);
   EXPECT_EQ(metrics.reject_count, 1u);
+  EXPECT_EQ(metrics.overwrite_count, 0u);
   EXPECT_EQ(metrics.health_event_count, 1u);
 }
 
@@ -250,7 +256,8 @@ TEST(Channel, QueueMultiReaderSlowReaderMissesDroppedHistory) {
   EXPECT_EQ(*slow[0].payload, "three");
   EXPECT_EQ(*slow[1].payload, "four");
   const auto metrics = bus.metrics("events");
-  EXPECT_EQ(metrics.drop_count, 2u);
+  EXPECT_EQ(metrics.drop_count, 0u);
+  EXPECT_EQ(metrics.overwrite_count, 2u);
   EXPECT_EQ(metrics.depth, 2u);
 }
 
@@ -277,7 +284,8 @@ TEST(Channel, QueueMultiReaderCursorSurvivesOverflow) {
   EXPECT_EQ(*reader_b[0].payload, "two");
   EXPECT_EQ(*reader_b[1].payload, "three");
   const auto metrics = bus.metrics("events");
-  EXPECT_EQ(metrics.drop_count, 1u);
+  EXPECT_EQ(metrics.drop_count, 0u);
+  EXPECT_EQ(metrics.overwrite_count, 1u);
   EXPECT_EQ(metrics.delivered_count, 5u);
 }
 
@@ -324,6 +332,7 @@ TEST(Channel, LifespanDropsStaleMessageBeforeDelivery) {
 TEST(Channel, PreviousTickExposesPayloadOnlyAfterEpochAdvance) {
   topoexec::RuntimeChannelBus bus({edge("previous", "previous_tick", 1)});
   ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
 
   auto before = bus.read_latest_update_for_component_port("consumer", "in");
   ASSERT_TRUE(before.ok);
@@ -334,7 +343,10 @@ TEST(Channel, PreviousTickExposesPayloadOnlyAfterEpochAdvance) {
   auto after = bus.read_latest_update_for_component_port("consumer", "in");
   ASSERT_TRUE(after.ok);
   ASSERT_TRUE(after.message.has_value());
-  EXPECT_EQ(*after.message->payload, "one");
+  EXPECT_EQ(*after.message->payload, "two");
+  const auto metrics = bus.metrics("previous");
+  EXPECT_EQ(metrics.drop_count, 0u);
+  EXPECT_EQ(metrics.overwrite_count, 1u);
 }
 
 TEST(Channel, PreviousTickNotifiesWaitersExactlyOnceWhenPendingValueBecomesVisible) {

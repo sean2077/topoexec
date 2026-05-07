@@ -35,6 +35,8 @@ assert metrics.get('runtime_error_count', 0) == 0
 assert metrics.get('channel_publish_count', 0) > 0
 assert metrics.get('channel_delivery_count', 0) > 0
 assert metrics.get('channel_drop_count', 0) >= 0
+assert metrics.get('channel_overwrite_count', 0) >= 0
+assert metrics.get('channel_reject_count', 0) == 0
 assert trace.get('ok') is True
 assert trace.get('trace_event_count', 0) > 0
 assert observe[-1].get('runtime_ok') is True
@@ -45,6 +47,8 @@ print(json.dumps({
   'graph': 'examples/90-dogfood-pilot/dogfood_robot_cell.yaml',
   'steps': 20,
   'channel_drop_count': metrics.get('channel_drop_count'),
+  'channel_overwrite_count': metrics.get('channel_overwrite_count'),
+  'channel_reject_count': metrics.get('channel_reject_count'),
   'trace_event_count': trace.get('trace_event_count'),
   'observe_records': len(observe),
 }))

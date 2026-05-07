@@ -45,7 +45,7 @@ int main() {
       edge("validator_to_response", "validator.accepted", "response_boundary.ready", topoexec::EdgeKind::kAsync),
   });
 
-  topoexec::TaskExecutor executor;
+  topoexec::DeterministicTaskExecutor executor;
   topoexec::GraphContext validator_context;
   validator_context.channels = &bus;
   validator_context.task_executor = &executor;

@@ -194,8 +194,8 @@ edges:
 
   const auto result = runner.run(spec, options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
-  EXPECT_TRUE(result.errors.empty());
+  ASSERT_TRUE(result.ok) << (result.runtime_errors.empty() ? "" : result.runtime_errors.front().message);
+  EXPECT_TRUE(result.runtime_errors.empty());
   EXPECT_TRUE(result.runtime_errors.empty());
   EXPECT_EQ(result.channel_drop_count, 0u);
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.rejected_count", "pool", 4.0 * 13.0));

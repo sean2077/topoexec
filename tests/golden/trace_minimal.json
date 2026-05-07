@@ -1,7 +1,7 @@
 {
-  "errors": [],
   "graph_name": "minimal",
   "ok": true,
+  "runtime_errors": [],
   "trace": [
     {
       "attributes": {
@@ -381,23 +381,5 @@
     }
   ],
   "trace_event_count": 16,
-  "trace_events": [
-    "scheduler_iteration",
-    "scheduler_iteration_begin",
-    "component_execute",
-    "component_execute_begin",
-    "channel_publish",
-    "component_execute_end",
-    "channel_commit",
-    "component_execute",
-    "component_execute_begin",
-    "channel_publish",
-    "component_execute_end",
-    "channel_commit",
-    "component_execute",
-    "component_execute_begin",
-    "component_execute_end",
-    "scheduler_iteration_end"
-  ],
   "trace_schema_version": "1"
 }

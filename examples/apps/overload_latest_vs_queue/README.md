@@ -19,13 +19,13 @@ Expected output:
 
 ```text
 latest_payloads=frame-3
-latest_drop_count=2
+latest_overwrite_count=2
 latest_max_depth=1
 queue_payloads=event-2,event-3
-queue_drop_count=1
+queue_overwrite_count=1
 queue_max_depth=2
 ```
 
-This app demonstrates bounded channel policy under overload. `latest` keeps only the newest sample and records overwritten samples as drops. `queue` preserves FIFO order up to its capacity, then applies the configured overflow policy.
+This app demonstrates bounded channel policy under overload. `latest` keeps only the newest sample and records overwritten samples as overwrites. `queue` preserves FIFO order up to its capacity, then applies the configured overflow policy.
 
 Contrast case: `drop_newest` would reject the incoming payload instead of evicting the oldest queued payload, and `block` is unsuitable for the single-thread event-loop hot path unless a graph explicitly opts into blocking behavior.

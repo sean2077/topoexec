@@ -25,6 +25,7 @@ class Workload:
     graph_text: str
     steps: int
     expected_channel_drops: int = 0
+    expected_channel_overwrites: int = 0
     min_scheduler_rejections: int = 0
     max_component_count: int | None = None
 
@@ -202,7 +203,7 @@ def mixed_edges(scale: int, steps: int) -> Workload:
         "mixed_immediate_delay_state_async",
         graph_document("stress_mixed_edges", ["main: {type: event_loop}"], components, edges),
         mixed_steps,
-        expected_channel_drops=max(0, mixed_steps - 2),
+        expected_channel_overwrites=max(0, mixed_steps - 2),
     )
 
 
@@ -276,6 +277,10 @@ def assert_runtime_ok(workload: Workload, result: dict) -> None:
     if int(result.get("channel_drop_count", 0)) != workload.expected_channel_drops:
         raise StressFailure(
             f"{workload.name}: expected channel_drop_count={workload.expected_channel_drops}, got {result.get('channel_drop_count')}"
+        )
+    if int(result.get("channel_overwrite_count", 0)) != workload.expected_channel_overwrites:
+        raise StressFailure(
+            f"{workload.name}: expected channel_overwrite_count={workload.expected_channel_overwrites}, got {result.get('channel_overwrite_count')}"
         )
     if workload.max_component_count is not None and int(result.get("component_count", 0)) > workload.max_component_count:
         raise StressFailure(f"{workload.name}: component count unexpectedly high: {result.get('component_count')}")

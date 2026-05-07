@@ -1,13 +1,16 @@
 {
   "async_publication_count": 0,
   "channel_count": 2,
+  "channel_deadline_miss_count": 0,
   "channel_delivery_count": 2,
   "channel_drop_count": 0,
+  "channel_overwrite_count": 0,
   "channel_publish_count": 2,
+  "channel_reject_count": 0,
+  "channel_stale_drop_count": 0,
   "committed_publication_count": 2,
   "component_count": 3,
   "delayed_publication_count": 0,
-  "errors": [],
   "failed_publication_commit_count": 0,
   "graph_name": "minimal",
   "health_event_coalesced_count": 0,
@@ -907,6 +910,14 @@
       "channel_id": "",
       "component_id": "",
       "lane": "",
+      "name": "runtime.async.overwrite_count",
+      "tags": [],
+      "value": 0.0
+    },
+    {
+      "channel_id": "",
+      "component_id": "",
+      "lane": "",
       "name": "runtime.async.in_flight_count",
       "tags": [],
       "value": 0.0
@@ -1360,23 +1371,5 @@
     }
   ],
   "trace_event_count": 16,
-  "trace_events": [
-    "scheduler_iteration",
-    "scheduler_iteration_begin",
-    "component_execute",
-    "component_execute_begin",
-    "channel_publish",
-    "component_execute_end",
-    "channel_commit",
-    "component_execute",
-    "component_execute_begin",
-    "channel_publish",
-    "component_execute_end",
-    "channel_commit",
-    "component_execute",
-    "component_execute_begin",
-    "component_execute_end",
-    "scheduler_iteration_end"
-  ],
   "trace_schema_version": "1"
 }

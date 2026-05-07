@@ -47,7 +47,7 @@ handwritten or subgraph-expanded graph entries.
 
 Runtime channels are bounded. `latest` with `overwrite` and `capacity=1` is the low-latency default. `queue` with explicit capacity is for ordered event or command streams. `latched` keeps the last committed value for late readers. `previous_tick` stages a pending value and exposes it only at the next epoch boundary; update waiters are notified when that pending value becomes visible, not when it is first staged. `barrier` with capacity N waits until N queued messages are available before delivering the synchronized batch.
 
-Overflow behavior must be explicit. Dropped, overwritten, blocked, or rejected publications must be observable through channel metrics and, when enabled, bounded runtime health events. Blocking overflow reports a would-block result on the current non-blocking runtime path and is not allowed to silently block a single-thread event loop. Queue readers are single-reader by default; explicit `readers: multi` / `readers: multiple` uses per-reader cursors over bounded retained history, so a slow reader can still miss messages dropped by overflow.
+Overflow behavior must be explicit. Dropped, overwritten, blocked, or rejected publications must be observable through channel metrics and, when enabled, bounded runtime health events. Aggregate runtime results keep `channel_drop_count` for real drops only and expose overwrite, reject, stale-drop, and deadline-miss fields for user-facing explanations. Blocking overflow reports a would-block result on the current non-blocking runtime path and is not allowed to silently block a single-thread event loop. Queue readers are single-reader by default; explicit `readers: multi` / `readers: multiple` uses per-reader cursors over bounded retained history, so a slow reader can still miss messages overwritten by overflow.
 
 Health events are observer records, not trigger inputs. `RuntimeRunnerOptions::emit_health_events` and graph-level `graph.config.emit_health_events` can disable event capture; `RuntimeRunnerOptions::health_event_capacity` and `graph.config.health_event_capacity` bound retained events. Edge-level `policy.emit_health_events: false` suppresses channel events for that edge while keeping degradation metrics. The runtime does not execute a component because a health event was recorded; future health-to-graph routing must use an explicit normal graph boundary.
 
@@ -107,16 +107,14 @@ Without a matching `composite_loops[]` entry, this graph is invalid. With `compo
 `1`. Each `RuntimeTraceEvent` includes bounded phase and identity fields
 (`component_id`, `channel_id`, `lane`, `worker_id`, `epoch_id`,
 `transaction_id`, `correlation_id`, and `causation_id`) in addition to
-event-specific attributes. The legacy `trace_events` vector remains a name-only
-compatibility list derived from the same ordered events. Metrics/trace remain
-observer output only and do not feed back into scheduling.
+event-specific attributes. Metrics/trace remain observer output only and do not
+feed back into scheduling.
 
 ## Runtime Error Propagation
 
-Runtime execution reports failures in two compatible forms:
-
-- `RuntimeRunnerResult::errors` keeps legacy human-readable strings for CLI and existing tests.
-- `RuntimeRunnerResult::runtime_errors` records structured `RuntimeError` entries with `phase`, `component_id`, `lane`, `message`, `code`, `trace_id`, and `fatal`.
+Runtime execution reports failures through `RuntimeRunnerResult::runtime_errors`.
+Each `RuntimeError` entry records `phase`, `component_id`, `lane`, `message`,
+`code`, `trace_id`, and `fatal`.
 
 Lifecycle phases use `configure`, `activate`, optional start-epoch `restore`/`reset`, optional post-run `snapshot`, and `deactivate`. Component invocation failures use `execute`; runtime/compiler failures use `validate`, `dry_run`, or `runtime`. Restore/reset happen after activation and before the scheduler starts, so they never interleave with component execution. Snapshot capture happens after the scheduler run and before deactivation. Deactivate errors are recorded with `fatal: false` when they are cleanup follow-ons so they do not hide the original fatal error. The default runtime policy remains fail-fast; non-fail-fast policies are still future work and must not be silently emulated.
 

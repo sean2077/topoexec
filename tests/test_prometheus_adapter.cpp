@@ -109,7 +109,7 @@ TEST(PrometheusAdapter, ObservesRuntimeRunnerWithoutChangingSemantics) {
 
   const auto result = runner.run(prometheus_probe_graph(), options);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << (result.runtime_errors.empty() ? "" : result.runtime_errors.front().message);
   EXPECT_EQ(result.observer_failure_count, 0u);
   EXPECT_GT(exporter.metric_samples().size(), 0u);
   EXPECT_EQ(exporter.status().failure_count, 0u);

@@ -108,7 +108,7 @@ components:
   - {id: join, type: topoexec.app.AsyncJoin, event_sources: [{type: task_ready, inputs: [ready]}], trigger_policy: {type: task_ready, inputs: [ready]}, execution: {lane: main}}
 edges:
   - {id: source_worker, kind: immediate, from: source.out, to: worker.in, policy: {mode: latest, copy_policy: shared_view}}
-  - {id: worker_join_async, kind: async, from: worker.done, to: join.ready, policy: {mode: queue, capacity: 1, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: worker_join_async, kind: async, from: worker.done, to: join.ready, policy: {mode: queue, capacity: 1, overflow: drop_oldest, max_inflight: 1, copy_policy: shared_view}}
 )");
 }
 
@@ -127,9 +127,9 @@ bool saw_join_in_second_epoch_only() {
   return saw_second_epoch;
 }
 
-std::size_t async_drop_count(const topoexec::RuntimeRunnerResult& result) {
+std::size_t async_overwrite_count(const topoexec::RuntimeRunnerResult& result) {
   for (const auto& sample : result.runtime_metrics) {
-    if (sample.name == "runtime.channel.drop_count" && sample.channel_id == "worker_join_async") {
+    if (sample.name == "runtime.async.overwrite_count") {
       return static_cast<std::size_t>(sample.value);
     }
   }
@@ -147,8 +147,8 @@ int main() {
   options.tick_iterations = 2;
   const auto result = runner.run(graph(), options);
   if (!result.ok) {
-    for (const auto& error : result.errors) {
-      std::cerr << "error: " << error << "\n";
+    for (const auto& error : result.runtime_errors) {
+      std::cerr << "error: " << error.message << "\n";
     }
     return 1;
   }
@@ -156,15 +156,16 @@ int main() {
     std::cerr << "error: task_ready join did not run in epoch 2 only\n";
     return 2;
   }
-  const auto async_drops = async_drop_count(result);
-  if (async_drops != 1u) {
-    std::cerr << "error: async drop_oldest policy did not drop exactly one stale completion; got " << async_drops
-              << "\n";
+  const auto async_overwrites = async_overwrite_count(result);
+  if (async_overwrites != 2u) {
+    std::cerr << "error: async drop_oldest policy did not overwrite exactly two pending completions; got "
+              << async_overwrites << "\n";
     return 3;
   }
   std::cout << "task_ready_epoch=2\n";
   std::cout << "async_publication_count=" << result.async_publication_count << "\n";
-  std::cout << "async_drop_count=" << async_drops << "\n";
+  std::cout << "async_overwrite_count=" << async_overwrites << "\n";
   std::cout << "channel_drop_count=" << result.channel_drop_count << "\n";
+  std::cout << "channel_overwrite_count=" << result.channel_overwrite_count << "\n";
   return 0;
 }

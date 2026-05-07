@@ -245,6 +245,9 @@ struct GraphDryRunResult {
   std::size_t channel_publish_count{0};
   std::size_t channel_delivery_count{0};
   std::size_t channel_drop_count{0};
+  std::size_t channel_overwrite_count{0};
+  std::size_t channel_reject_count{0};
+  std::size_t channel_stale_drop_count{0};
   std::size_t channel_deadline_miss_count{0};
   std::size_t payload_copy_count{0};
   std::vector<std::string> ticked_components;

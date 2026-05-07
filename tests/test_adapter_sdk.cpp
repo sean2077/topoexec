@@ -167,7 +167,7 @@ TEST(AdapterSdk, ExposesContractVersionAndResultSinkAlias) {
 TEST(AdapterSdk, ComponentFactoryProviderRegistersWithoutRuntimeInternals) {
   const auto result = run_probe_graph();
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << (result.runtime_errors.empty() ? "" : result.runtime_errors.front().message);
   EXPECT_EQ(result.graph_name, "adapter_sdk_probe");
   EXPECT_EQ(result.instantiated_components, 1u);
   EXPECT_EQ(result.tick_calls, 1u);
@@ -208,7 +208,7 @@ TEST(AdapterSdk, ObserverFailureIsNonFatalRuntimeEvidence) {
   FailingAdapterObserver observer;
   const auto result = run_probe_graph(&observer);
 
-  ASSERT_TRUE(result.ok) << (result.errors.empty() ? "" : result.errors.front());
+  ASSERT_TRUE(result.ok) << (result.runtime_errors.empty() ? "" : result.runtime_errors.front().message);
   EXPECT_GT(observer.metric_count, 0u);
   EXPECT_EQ(observer.result_count, 1u);
   EXPECT_GT(result.observer_failure_count, 0u);

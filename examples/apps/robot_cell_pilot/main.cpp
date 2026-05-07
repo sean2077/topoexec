@@ -473,10 +473,9 @@ topoexec::GraphSpec graph(std::string tuner_speed) {
       .build();
 }
 
-std::size_t channel_metric(const topoexec::RuntimeRunnerResult& result, const std::string& name,
-                           const std::string& channel_id) {
+std::size_t metric_value(const topoexec::RuntimeRunnerResult& result, const std::string& name) {
   for (const auto& sample : result.runtime_metrics) {
-    if (sample.name == name && sample.channel_id == channel_id) {
+    if (sample.name == name && sample.channel_id.empty() && sample.component_id.empty() && sample.lane.empty()) {
       return static_cast<std::size_t>(sample.value);
     }
   }
@@ -522,8 +521,8 @@ int run_happy_path(const topoexec::ComponentRegistry& components) {
 
   const auto result = runner.run(graph("0.40"), options);
   if (!result.ok) {
-    for (const auto& error : result.errors) {
-      std::cerr << "error: " << error << "\n";
+    for (const auto& error : result.runtime_errors) {
+      std::cerr << "error: " << error.message << "\n";
     }
     return 1;
   }
@@ -545,12 +544,12 @@ int run_happy_path(const topoexec::ComponentRegistry& components) {
     std::cerr << "error: planner did not observe state and delay feedback in epoch 3\n";
     return 5;
   }
-  const auto async_drops = channel_metric(result, "runtime.channel.drop_count", "camera_detector_async");
-  const auto bounded_drops = std::max(async_drops, result.channel_drop_count);
-  if (result.async_publication_count < 6u || bounded_drops < 3u) {
-    std::cerr << "error: bounded async overload metrics were not emitted; async_publication_count="
-              << result.async_publication_count << " async_drops=" << async_drops
-              << " channel_drop_count=" << result.channel_drop_count << "\n";
+  const auto async_overwrites = metric_value(result, "runtime.async.overwrite_count");
+  if (result.async_publication_count < 6u || async_overwrites < 3u) {
+    std::cerr << "error: bounded async overwrite metrics were not emitted; async_publication_count="
+              << result.async_publication_count << " async_overwrites=" << async_overwrites
+              << " channel_drop_count=" << result.channel_drop_count
+              << " channel_overwrite_count=" << result.channel_overwrite_count << "\n";
     return 6;
   }
   if (result.state_publication_count < 2u || result.delayed_publication_count < 2u) {
@@ -579,7 +578,8 @@ int run_happy_path(const topoexec::ComponentRegistry& components) {
   std::cout << "payload_pool_detached_count=" << state.pool_detached_count << "\n";
   std::cout << "payload_address_preserved=true\n";
   std::cout << "async_publication_count=" << result.async_publication_count << "\n";
-  std::cout << "bounded_overload_drop_count=" << bounded_drops << "\n";
+  std::cout << "bounded_async_overwrite_count=" << async_overwrites << "\n";
+  std::cout << "channel_overwrite_count=" << result.channel_overwrite_count << "\n";
   std::cout << "state_feedback_epoch=3\n";
   std::cout << "delay_feedback_epoch=3\n";
   std::cout << "controller_command=" << state.commands.back() << "\n";
@@ -601,13 +601,13 @@ int run_error_path(const topoexec::ComponentRegistry& components) {
     std::cerr << "error: invalid controller config was accepted\n";
     return 20;
   }
-  const auto rejected = std::any_of(result.errors.begin(), result.errors.end(), [](const auto& error) {
-    return error.find("config transaction validation failed for component controller") != std::string::npos;
+  const auto rejected = std::any_of(result.runtime_errors.begin(), result.runtime_errors.end(), [](const auto& error) {
+    return error.message.find("config transaction validation failed for component controller") != std::string::npos;
   });
   if (!rejected) {
     std::cerr << "error: invalid config failed through an unexpected path\n";
-    for (const auto& error : result.errors) {
-      std::cerr << "error-detail: " << error << "\n";
+    for (const auto& error : result.runtime_errors) {
+      std::cerr << "error-detail: " << error.message << "\n";
     }
     return 21;
   }

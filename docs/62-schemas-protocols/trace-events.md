@@ -1,6 +1,6 @@
 # Trace Events
 
-TopoExec trace events are in-memory runtime spans copied into `RuntimeRunnerResult::trace`. The legacy `trace_events` array remains a compatibility list of event names, but new integrations should use the structured `trace` array and `trace_schema_version` contract.
+TopoExec trace events are in-memory runtime spans copied into `RuntimeRunnerResult::trace`. CLI JSON exposes the structured `trace` array and `trace_schema_version` contract.
 
 Run a structured trace:
 

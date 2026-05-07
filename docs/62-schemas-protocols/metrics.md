@@ -137,7 +137,7 @@ Channels:
 
 - `runtime.channel.publish_count`: accepted publications for a channel.
 - `runtime.channel.delivery_count`: delivered messages for a channel.
-- `runtime.channel.drop_count`: dropped, overwritten, rejected, or failed-fast channel publications.
+- `runtime.channel.drop_count`: messages that did not enter a consumable path or expired before delivery.
 - `runtime.channel.deadline_miss_count`: delivered messages older than `policy.deadline_ms`.
 - `runtime.channel.stale_drop_count`: messages dropped before delivery because `policy.lifespan_ms` expired.
 - `runtime.channel.reject_count`: publications rejected or would-blocked by capacity/backpressure policy.
@@ -171,7 +171,8 @@ Async admission:
 
 - `runtime.async.accepted_count`: async completions accepted by edge-level admission.
 - `runtime.async.rejected_count`: async completions rejected by `policy.max_inflight` admission.
-- `runtime.async.dropped_count`: pending or newest async completions dropped by admission overflow.
+- `runtime.async.dropped_count`: newest async completions dropped instead of being retained, such as `drop_newest`.
+- `runtime.async.overwrite_count`: older pending async completions removed by `drop_oldest` / `overwrite` admission to retain a newer completion.
 - `runtime.async.in_flight_count`: async completions still pending deferred delivery at the end of the run.
 - `runtime.async.max_in_flight_count`: maximum pending async completions observed during the run.
 - `runtime.async.completed_count`: async completions committed to runtime channels at epoch boundaries.
@@ -232,11 +233,15 @@ Custom histograms:
 
 ## Aggregate Counters
 
-The top-level JSON result also carries aggregate counters for common dashboards:
+The top-level JSON result also carries aggregate counters for common dashboards. `channel_drop_count` is the real-drop total; use the breakdown fields below to explain overwrite, rejection, stale expiry, or deadline misses separately.
 
 - `channel_publish_count`
 - `channel_delivery_count`
 - `channel_drop_count`
+- `channel_overwrite_count`
+- `channel_reject_count`
+- `channel_stale_drop_count`
+- `channel_deadline_miss_count`
 - `payload_copy_count`
 - `staged_publication_count`
 - `committed_publication_count`

@@ -66,14 +66,14 @@ int main() {
     const auto source_metrics = bus.metrics("source_preprocessor_latest");
     const auto preprocessor_metrics = bus.metrics("preprocessor_detector_latest");
     const auto detector_metrics = bus.metrics("detector_tracker_latest");
-    if (source_metrics.drop_count != 2u || preprocessor_metrics.payload_copy_count != 0u ||
+    if (source_metrics.overwrite_count != 2u || preprocessor_metrics.payload_copy_count != 0u ||
         detector_metrics.payload_copy_count != 0u) {
       std::cerr << "error: unexpected latest/no-copy metrics\n";
       return 3;
     }
 
     std::cout << "tracker_latest=" << track << "\n";
-    std::cout << "source_latest_drop_count=" << source_metrics.drop_count << "\n";
+    std::cout << "source_latest_overwrite_count=" << source_metrics.overwrite_count << "\n";
     std::cout << "pipeline_payload_copy_count="
               << (source_metrics.payload_copy_count + preprocessor_metrics.payload_copy_count +
                   detector_metrics.payload_copy_count)
