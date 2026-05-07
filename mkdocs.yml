@@ -3,8 +3,92 @@ site_description: Small embeddable C++20 semantic runtime
 repo_url: https://github.com/sean2077/topoexec
 docs_dir: docs
 site_dir: site
+nav:
+  - Overview:
+      - Home: README.md
+      - Why TopoExec: 10-user-overview/why-topoexec.md
+      - Concepts: 10-user-overview/concepts.md
+      - FAQ: 10-user-overview/faq.md
+      - Project Map: 00-start-here/project-map.md
+  - Get Started:
+      - Getting Started: 01-quickstart/getting-started.md
+      - Cookbook: 11-user-guide/cookbook.md
+      - Examples: 11-user-guide/examples.md
+  - Build Graphs:
+      - Graph Spec: 11-user-guide/graph-spec.md
+      - Components: 11-user-guide/components.md
+      - Channels and Backpressure: 11-user-guide/channels.md
+      - Component Lifecycle: 11-user-guide/lifecycle.md
+      - Trigger Semantics: 11-user-guide/triggers.md
+      - Graph Templates: 11-user-guide/graph-templates.md
+      - CompositeLoop Regions: 11-user-guide/composite-loops.md
+      - Hierarchical Graphs: 11-user-guide/hierarchical-graphs.md
+      - "Case Study: Robot Cell": 11-user-guide/case-study-robot-cell.md
+  - Integrate & Embed:
+      - Adapter Boundaries: 12-integrations/adapter-boundaries.md
+      - Python Automation Preview: 12-integrations/python-preview.md
+      - Dynamic Plugin Loader Preview: 12-integrations/plugin-loader.md
+      - Adapters:
+          - OTel Exporter Preview: 12-integrations/adapters/otel.md
+          - Prometheus Exporter Preview: 12-integrations/adapters/prometheus.md
+          - ROS 2 Adapter Preview: 12-integrations/adapters/ros2.md
+      - API Overview: 61-api/api-overview.md
+      - Public C++ API: 61-api/public-api.md
+      - C API / FFI Preview: 61-api/c-api.md
+  - Architecture:
+      - Runtime Architecture: 21-architecture/runtime-architecture.md
+      - Scheduler Semantics: 21-architecture/scheduler.md
+      - Runtime Semantics: 21-architecture/runtime-semantics.md
+      - Runtime Semantic Contract: 21-architecture/semantic-contract.md
+      - State and Config Snapshots: 21-architecture/state.md
+      - Async Tasks: 21-architecture/async-tasks.md
+      - Concurrency: 21-architecture/concurrency.md
+      - Memory and Buffer Pools: 21-architecture/memory.md
+      - Payloads and Ownership: 21-architecture/payloads.md
+      - Architecture Guardrails: 21-architecture/architecture-guardrails.md
+      - Architecture Diagrams: 21-architecture/architecture-diagrams.md
+  - Quality & Tooling:
+      - CLI: 41-development-tools/cli.md
+      - Quality Gates: 41-development-tools/quality-gates.md
+      - Testing Strategy: 24-testing/testing-strategy.md
+      - Defensive Input Handling: 24-testing/defensive-input.md
+      - Coverage-Guided Fuzzing: 24-testing/fuzzing.md
+      - Stress and Soak Testing: 24-testing/stress-testing.md
+      - Performance Baselines: 24-testing/performance-baselines.md
+      - Low-Overhead Live Runtime Validation: 41-development-tools/live-runtime-validation.md
+      - Live Observe Performance Policy: 24-testing/live-observe-performance.md
+  - Reference:
+      - Schema Version 1: 33-specs-rfcs/schema-v1.md
+      - Diagnostics: 62-schemas-protocols/diagnostics.md
+      - Runtime Metrics: 62-schemas-protocols/metrics.md
+      - Trace Events: 62-schemas-protocols/trace-events.md
+      - Live Observe Events Schema v1: 62-schemas-protocols/live-observe-events.md
+      - Doxygen API Reference: 61-api/doxygen.md
+not_in_nav: |
+  20-development-overview/**
+  21-architecture/design-principles.md
+  21-architecture/runtime-invariants.md
+  22-codebase/**
+  24-testing/reliability-program.md
+  31-planning-roadmap/**
+  33-specs-rfcs/schema-v2-notes.md
+  41-development-tools/agent-goals.md
+  41-development-tools/editor-schema.md
+  41-development-tools/examples-and-showcase.md
+  43-ci-build-release-tools/**
+  44-coding-standards/**
+  45-doc-standards/**
+  61-api/api-change-checklist.md
+  94-doc-migrations/**
 theme:
-  name: readthedocs
+  name: material
+  features:
+    - navigation.sections
+    - navigation.prune
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - toc.follow
 use_directory_urls: true
 strict: true
 markdown_extensions:
