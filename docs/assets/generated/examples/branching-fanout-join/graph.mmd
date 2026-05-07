@@ -1,0 +1,15 @@
+flowchart TD
+  %% graph: branching_fanout_join
+  source["source\ntopoexec.boundary.Input"]
+  preprocess["preprocess\ntopoexec.transforms.Identity"]
+  branch_a["branch_a\ntopoexec.transforms.Identity"]
+  branch_b["branch_b\ntopoexec.transforms.Identity"]
+  merge["merge\ntopoexec.transforms.Join"]
+  sink["sink\ntopoexec.boundary.Output"]
+  source -->|"source_to_preprocess:immediate/queue"| preprocess
+  preprocess -->|"preprocess_to_branch_a:immediate/latest"| branch_a
+  preprocess -->|"preprocess_to_branch_b:immediate/latest"| branch_b
+  branch_a -->|"branch_a_to_merge:immediate/latest"| merge
+  branch_b -->|"branch_b_to_merge:immediate/latest"| merge
+  merge -->|"merge_to_sink:immediate/queue"| sink
+  %% region_order: source,preprocess,branch_a,branch_b,merge,sink

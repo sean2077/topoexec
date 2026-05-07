@@ -1,0 +1,8 @@
+flowchart TD
+  %% graph: golden_pipeline
+  source["source\ntopoexec.boundary.Input"]
+  normalize["normalize\ntopoexec.transforms.Identity"]
+  sink["sink\ntopoexec.boundary.Output"]
+  source -->|"source_to_normalize:immediate/queue"| normalize
+  normalize -->|"normalize_to_sink:immediate/latest"| sink
+  %% region_order: source,normalize,sink

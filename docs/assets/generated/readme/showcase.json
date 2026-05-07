@@ -1,0 +1,83 @@
+[
+  {
+    "category": "Getting Started",
+    "graph_asset": "docs/assets/generated/examples/minimal-pipeline/graph.svg",
+    "id": "minimal-pipeline",
+    "readme_priority": 10,
+    "show_in_readme": true,
+    "summary": "Small source-transform-sink graph for the first validate, plan, render, and run commands.",
+    "title": "Minimal pipeline"
+  },
+  {
+    "category": "Basic Dataflow",
+    "graph_asset": "docs/assets/generated/examples/branching-fanout-join/graph.svg",
+    "id": "branching-fanout-join",
+    "readme_priority": 20,
+    "show_in_readme": true,
+    "summary": "A non-linear source -> preprocess -> branch_a/branch_b -> merge -> sink graph.",
+    "title": "Branching fan-out and join"
+  },
+  {
+    "category": "Execution Semantics",
+    "graph_asset": "docs/assets/generated/examples/trigger-semantics/graph.svg",
+    "id": "trigger-semantics",
+    "readme_priority": 30,
+    "show_in_readme": true,
+    "summary": "One graph showing any_input, all_inputs, time_sync, batch, rate_limit, debounce, and condition trigger policies.",
+    "title": "Trigger semantics showcase"
+  },
+  {
+    "category": "Execution Semantics",
+    "graph_asset": "docs/assets/generated/examples/async-bounded-inflight/graph.svg",
+    "id": "async-bounded-inflight",
+    "readme_priority": 40,
+    "show_in_readme": true,
+    "summary": "Request validation followed by an async worker edge with max_inflight=2 and bounded queue capacity.",
+    "title": "Async worker with bounded inflight"
+  },
+  {
+    "category": "Advanced Semantics",
+    "graph_asset": "docs/assets/generated/examples/composite-loop-solver/graph.svg",
+    "id": "composite-loop-solver",
+    "readme_priority": 50,
+    "show_in_readme": true,
+    "summary": "A declared estimator/controller feedback SCC with fixed-point policy, convergence label, and iteration budget.",
+    "title": "CompositeLoop iterative solver"
+  },
+  {
+    "category": "Observability",
+    "graph_asset": "docs/assets/generated/examples/metrics-trace-observe/graph.svg",
+    "id": "metrics-trace-observe",
+    "readme_priority": 60,
+    "show_in_readme": true,
+    "summary": "Minimal graph run that produces metrics JSON, structured trace JSON, Chrome trace, and live observe NDJSON.",
+    "title": "Metrics, trace, and live observe"
+  },
+  {
+    "category": "Testing and Validation",
+    "graph_asset": "docs/assets/generated/examples/validation-and-golden/graph.svg",
+    "id": "validation-and-golden",
+    "readme_priority": 70,
+    "show_in_readme": true,
+    "summary": "A deterministic valid graph plus an invalid fixture for showing clear diagnostics and CI-friendly golden checks.",
+    "title": "Validation diagnostics and golden-friendly output"
+  },
+  {
+    "category": "Performance",
+    "graph_asset": "docs/assets/generated/examples/minimal-benchmark/graph.svg",
+    "id": "minimal-benchmark",
+    "readme_priority": 80,
+    "show_in_readme": true,
+    "summary": "Small graph bench command for local performance awareness without cross-machine timing claims.",
+    "title": "Minimal performance benchmark"
+  },
+  {
+    "category": "Realistic Scenario",
+    "graph_asset": "docs/assets/generated/examples/sensor-fusion-mini/graph.svg",
+    "id": "sensor-fusion-mini",
+    "readme_priority": 90,
+    "show_in_readme": false,
+    "summary": "A small robot-cell-inspired event/data pipeline with time sync, detector stage, async planner, and output boundary.",
+    "title": "Robot-cell sensor fusion mini scenario"
+  }
+]

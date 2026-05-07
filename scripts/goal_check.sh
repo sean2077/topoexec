@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|fuzz|stress|bench|live|live-perf|policy|adapters|ffi|python|plugins|release|sanitizer|format|tidy|debug]
+Usage: scripts/goal_check.sh [all|quick|golden|schema|package|docs|examples|showcase|fuzz|stress|bench|live|live-perf|policy|adapters|ffi|python|plugins|release|sanitizer|format|tidy|debug]
 
 Goal-specific validation dispatcher for TopoExec agents.
 - all:    required repository gate (scripts/agent_check.sh)
@@ -12,6 +12,8 @@ Goal-specific validation dispatcher for TopoExec agents.
 - schema: schema v1 contract smoke
 - package: install/export downstream smoke, runtime-only option smoke, CPack, and package draft checks
 - docs:   executable docs command smoke plus docs map contract
+- examples: curated example metadata, command, validate/run/render, index, and asset freshness smokes
+- showcase: README/showcase asset, link, generated-index, generated-asset, and quick-start smokes
 - fuzz:   deterministic parser/compiler fuzz smoke plus optional fuzzer target corpus replay
 - stress: bounded runtime stress graph smoke plus task-executor overload stress
 - bench:  benchmark output-contract smoke plus local baseline generation without thresholds
@@ -63,6 +65,16 @@ case "$MODE" in
   docs)
     configure_build
     ctest --test-dir "$BUILD_DIR" --output-on-failure -R docs_command_smoke
+    ;;
+  examples)
+    configure_build
+    python3 scripts/update_examples_index.py --check
+    python3 scripts/render_example_assets.py --topoexec "$BUILD_DIR/topoexec" --check
+    python3 scripts/examples_smoke.py --topoexec "$BUILD_DIR/topoexec"
+    ;;
+  showcase)
+    configure_build
+    TOPOEXEC="$BUILD_DIR/topoexec" ./scripts/check_readme_assets.sh
     ;;
   fuzz)
     configure_build

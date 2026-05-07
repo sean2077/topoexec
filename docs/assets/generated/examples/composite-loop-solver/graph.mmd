@@ -1,0 +1,15 @@
+flowchart TD
+  %% graph: composite_loop_solver
+  sensor["sensor\ntopoexec.example.Sensor"]
+  estimator["estimator\ntopoexec.example.Estimator"]
+  controller["controller\ntopoexec.example.Controller"]
+  actuator["actuator\ntopoexec.example.Actuator"]
+  subgraph estimator_controller_loop[CompositeLoop: fixed_point]
+    estimator
+    controller
+  end
+  sensor -->|"sensor_to_estimator:immediate/latest"| estimator
+  estimator -->|"estimator_to_controller:immediate/latest"| controller
+  controller -->|"controller_correction:immediate/latest"| estimator
+  controller -->|"controller_to_actuator:delay/queue"| actuator
+  %% region_order: sensor,actuator,estimator_controller_loop

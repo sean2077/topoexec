@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "id": "validation-and-golden",
+  "title": "Validation diagnostics and golden-friendly output",
+  "category": "Testing and Validation",
+  "summary": "A deterministic valid graph plus an invalid fixture for showing clear diagnostics and CI-friendly golden checks.",
+  "difficulty": "beginner",
+  "graph": "golden_pipeline.yaml",
+  "show_in_readme": true,
+  "readme_priority": 70,
+  "expected_exit": 0,
+  "commands": [
+    {
+      "label": "Validate valid graph",
+      "argv": [
+        "graph",
+        "validate",
+        "examples/60-testing-validation/golden_pipeline.yaml",
+        "--format",
+        "json"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Run stable output",
+      "argv": [
+        "graph",
+        "run",
+        "examples/60-testing-validation/golden_pipeline.yaml",
+        "--steps",
+        "1"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Render stable graph",
+      "argv": [
+        "graph",
+        "render",
+        "examples/60-testing-validation/golden_pipeline.yaml",
+        "--format",
+        "mermaid"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Validate invalid fixture",
+      "argv": [
+        "graph",
+        "validate",
+        "examples/60-testing-validation/invalid_missing_edge_kind.yaml"
+      ],
+      "expect_success": false
+    }
+  ],
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "ci": {
+    "validate": true,
+    "run": true,
+    "render": true,
+    "smoke": true
+  },
+  "related_docs": [
+    "docs/62-schemas-protocols/diagnostics.md",
+    "docs/24-testing/testing-strategy.md"
+  ],
+  "tags": [
+    "diagnostics",
+    "golden",
+    "ci"
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "id": "metrics-trace-observe",
+  "title": "Metrics, trace, and live observe",
+  "category": "Observability",
+  "summary": "Minimal graph run that produces metrics JSON, structured trace JSON, Chrome trace, and live observe NDJSON.",
+  "difficulty": "beginner",
+  "graph": "minimal_observability.yaml",
+  "show_in_readme": true,
+  "readme_priority": 60,
+  "expected_exit": 0,
+  "commands": [
+    {
+      "label": "Metrics",
+      "argv": [
+        "graph",
+        "metrics",
+        "examples/50-observability/minimal_observability.yaml",
+        "--steps",
+        "1",
+        "--format",
+        "json"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Trace",
+      "argv": [
+        "graph",
+        "trace",
+        "examples/50-observability/minimal_observability.yaml",
+        "--steps",
+        "1",
+        "--format",
+        "json"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Chrome trace",
+      "argv": [
+        "graph",
+        "trace",
+        "examples/50-observability/minimal_observability.yaml",
+        "--steps",
+        "1",
+        "--format",
+        "chrome"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Observe",
+      "argv": [
+        "graph",
+        "observe",
+        "examples/50-observability/minimal_observability.yaml",
+        "--steps",
+        "3",
+        "--observe-level",
+        "summary",
+        "--format",
+        "ndjson"
+      ],
+      "expect_success": true
+    }
+  ],
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": true,
+    "generate_trace_summary": true
+  },
+  "ci": {
+    "validate": true,
+    "run": true,
+    "render": true,
+    "smoke": true
+  },
+  "related_docs": [
+    "docs/62-schemas-protocols/metrics.md",
+    "docs/62-schemas-protocols/trace-events.md",
+    "docs/41-development-tools/live-runtime-validation.md"
+  ],
+  "tags": [
+    "metrics",
+    "trace",
+    "observe"
+  ]
+}

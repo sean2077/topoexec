@@ -1,0 +1,33 @@
+schema_version: 1
+graph:
+  name: async_bounded_inflight
+  kind: runnable
+lanes:
+  main: {type: event_loop}
+components:
+  - id: request_source
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: request-source}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: validator
+    type: topoexec.transforms.Validator
+    event_sources: [{type: request, inputs: [request]}]
+    trigger_policy: {type: request, inputs: [request], max_latency_ms: 5}
+    execution: {lane: main}
+  - id: async_worker
+    type: topoexec.transforms.AsyncWorker
+    event_sources: [{type: task_ready, inputs: [ready]}]
+    trigger_policy: {type: task_ready, inputs: [ready]}
+    execution: {lane: main}
+  - id: response_sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: response-sink}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: request_to_validator, kind: immediate, from: request_source.out, to: validator.request, policy: {mode: queue, capacity: 8, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: validator_to_worker, kind: async, from: validator.out, to: async_worker.ready, policy: {mode: queue, capacity: 4, max_inflight: 2, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: worker_to_response, kind: immediate, from: async_worker.out, to: response_sink.in, policy: {mode: latest, copy_policy: shared_view}}

@@ -1,0 +1,17 @@
+{
+  "event_kinds": {
+    "async_admission": 1,
+    "channel_commit": 3,
+    "channel_publish": 4,
+    "component_execute": 4,
+    "component_execute_begin": 4,
+    "component_execute_end": 4,
+    "scheduler_iteration": 1,
+    "scheduler_iteration_begin": 1,
+    "scheduler_iteration_end": 1
+  },
+  "graph_name": "sensor_fusion_mini",
+  "ok": true,
+  "trace_event_count": 23,
+  "trace_schema_version": "1"
+}

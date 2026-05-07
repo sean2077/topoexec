@@ -1,0 +1,69 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "category": "Getting Started",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/00-getting-started/minimal.yaml"
+      ],
+      "expect_success": true,
+      "label": "Validate"
+    },
+    {
+      "argv": [
+        "graph",
+        "plan",
+        "examples/00-getting-started/minimal.yaml",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Plan"
+    },
+    {
+      "argv": [
+        "graph",
+        "render",
+        "examples/00-getting-started/minimal.yaml",
+        "--format",
+        "mermaid"
+      ],
+      "expect_success": true,
+      "label": "Render"
+    },
+    {
+      "argv": [
+        "graph",
+        "run",
+        "examples/00-getting-started/minimal.yaml",
+        "--steps",
+        "1"
+      ],
+      "expect_success": true,
+      "label": "Run"
+    }
+  ],
+  "component_count": 3,
+  "difficulty": "beginner",
+  "edge_count": 2,
+  "graph": "examples/00-getting-started/minimal.yaml",
+  "id": "minimal-pipeline",
+  "region_order": [
+    "source",
+    "transform",
+    "sink"
+  ],
+  "tags": [
+    "minimal",
+    "quick-start",
+    "dataflow"
+  ],
+  "title": "Minimal pipeline",
+  "validate_first_line": "ok"
+}

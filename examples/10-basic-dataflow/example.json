@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "id": "branching-fanout-join",
+  "title": "Branching fan-out and join",
+  "category": "Basic Dataflow",
+  "summary": "A non-linear source -> preprocess -> branch_a/branch_b -> merge -> sink graph.",
+  "difficulty": "beginner",
+  "graph": "branching_fanout_join.yaml",
+  "show_in_readme": true,
+  "readme_priority": 20,
+  "expected_exit": 0,
+  "commands": [
+    {
+      "label": "Validate",
+      "argv": [
+        "graph",
+        "validate",
+        "examples/10-basic-dataflow/branching_fanout_join.yaml"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Render",
+      "argv": [
+        "graph",
+        "render",
+        "examples/10-basic-dataflow/branching_fanout_join.yaml",
+        "--format",
+        "mermaid"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Run",
+      "argv": [
+        "graph",
+        "run",
+        "examples/10-basic-dataflow/branching_fanout_join.yaml",
+        "--steps",
+        "1"
+      ],
+      "expect_success": true
+    }
+  ],
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "ci": {
+    "validate": true,
+    "run": true,
+    "render": true,
+    "smoke": true
+  },
+  "related_docs": [
+    "docs/11-user-guide/examples.md",
+    "docs/21-architecture/runtime-semantics.md"
+  ],
+  "tags": [
+    "branching",
+    "fan-out",
+    "join"
+  ]
+}

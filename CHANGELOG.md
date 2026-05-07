@@ -6,6 +6,12 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Added
 
+- Added G74 examples/showcase refresh with a generated README hero and visual
+  showcase, 9 curated example directories with metadata/README pages, generated
+  graph/metrics/trace assets under `docs/assets/generated`,
+  `scripts/update_examples_index.py`, `scripts/render_example_assets.py`,
+  `scripts/examples_smoke.py`, `scripts/check_readme_assets.sh`, and focused
+  `./scripts/goal_check.sh examples` / `showcase` anti-rot gates.
 - Added G73 low-overhead live runtime validation with compile-time optional
   runtime live-observe transport, default-off `RuntimeRunnerOptions`
   activation, `topoexec graph observe` NDJSON/json-summary output,
@@ -186,6 +192,12 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Added
 
+- Added G74 examples/showcase refresh with a generated README hero and visual
+  showcase, 9 curated example directories with metadata/README pages, generated
+  graph/metrics/trace assets under `docs/assets/generated`,
+  `scripts/update_examples_index.py`, `scripts/render_example_assets.py`,
+  `scripts/examples_smoke.py`, `scripts/check_readme_assets.sh`, and focused
+  `./scripts/goal_check.sh examples` / `showcase` anti-rot gates.
 - Split CMake package targets into `topoexec::core`, `topoexec::runtime`, and optional `topoexec::yaml`.
 - Added a pure C++ graph builder and `examples/apps/cpp_builder_minimal`.
 - Added package installation smoke coverage for downstream `find_package(topoexec)`.

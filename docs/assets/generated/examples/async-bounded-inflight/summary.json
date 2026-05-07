@@ -1,0 +1,61 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": true
+  },
+  "category": "Execution Semantics",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/30-async/async_bounded_inflight.yaml"
+      ],
+      "expect_success": true,
+      "label": "Validate"
+    },
+    {
+      "argv": [
+        "graph",
+        "run",
+        "examples/30-async/async_bounded_inflight.yaml",
+        "--steps",
+        "4"
+      ],
+      "expect_success": true,
+      "label": "Run"
+    },
+    {
+      "argv": [
+        "graph",
+        "trace",
+        "examples/30-async/async_bounded_inflight.yaml",
+        "--steps",
+        "4",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Trace"
+    }
+  ],
+  "component_count": 4,
+  "difficulty": "intermediate",
+  "edge_count": 3,
+  "graph": "examples/30-async/async_bounded_inflight.yaml",
+  "id": "async-bounded-inflight",
+  "region_order": [
+    "request_source",
+    "async_worker",
+    "validator",
+    "response_sink"
+  ],
+  "tags": [
+    "async",
+    "max-inflight",
+    "task-ready"
+  ],
+  "title": "Async worker with bounded inflight",
+  "validate_first_line": "ok"
+}

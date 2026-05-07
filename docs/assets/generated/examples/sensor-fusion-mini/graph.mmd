@@ -1,0 +1,14 @@
+flowchart TD
+  %% graph: sensor_fusion_mini
+  camera_event["camera_event\ntopoexec.boundary.Input"]
+  force_event["force_event\ntopoexec.boundary.Input"]
+  fusion["fusion\ntopoexec.transforms.Join"]
+  detector["detector\ntopoexec.transforms.Identity"]
+  planner_worker["planner_worker\ntopoexec.transforms.AsyncWorker"]
+  cell_output["cell_output\ntopoexec.boundary.Output"]
+  camera_event -->|"camera_to_fusion:immediate/queue"| fusion
+  force_event -->|"force_to_fusion:immediate/queue"| fusion
+  fusion -->|"fusion_to_detector:immediate/latest"| detector
+  detector -->|"detector_to_planner:async/queue"| planner_worker
+  planner_worker -->|"planner_to_output:immediate/latest"| cell_output
+  %% region_order: camera_event,force_event,planner_worker,fusion,cell_output,detector

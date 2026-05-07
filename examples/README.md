@@ -1,8 +1,68 @@
 # TopoExec Examples
 
-This directory contains dependency-free YAML graphs and C++ applications that
-teach the core TopoExec runtime contracts. See the full walkthrough in
-[`docs/11-user-guide/examples.md`](../docs/11-user-guide/examples.md).
+This directory contains the public example gallery for TopoExec. The G74
+showcase path is generated from curated `example.json` metadata, while the
+legacy top-level YAML files remain in place as compatibility fixtures for
+existing tests, docs, and golden outputs.
+
+## Recommended learning path
+
+1. [`00-getting-started/`](00-getting-started/) — Small source-transform-sink graph for the first validate, plan, render, and run commands.
+2. [`10-basic-dataflow/`](10-basic-dataflow/) — A non-linear source -> preprocess -> branch_a/branch_b -> merge -> sink graph.
+3. [`20-triggers/`](20-triggers/) — One graph showing any_input, all_inputs, time_sync, batch, rate_limit, debounce, and condition trigger policies.
+4. [`30-async/`](30-async/) — Request validation followed by an async worker edge with max_inflight=2 and bounded queue capacity.
+5. [`40-composite-loop/`](40-composite-loop/) — A declared estimator/controller feedback SCC with fixed-point policy, convergence label, and iteration budget.
+6. [`50-observability/`](50-observability/) — Minimal graph run that produces metrics JSON, structured trace JSON, Chrome trace, and live observe NDJSON.
+7. [`60-testing-validation/`](60-testing-validation/) — A deterministic valid graph plus an invalid fixture for showing clear diagnostics and CI-friendly golden checks.
+8. [`70-performance/`](70-performance/) — Small graph bench command for local performance awareness without cross-machine timing claims.
+9. [`80-realistic-mini-scenario/`](80-realistic-mini-scenario/) — A small robot-cell-inspired event/data pipeline with time sync, detector stage, async planner, and output boundary.
+
+## Curated example matrix
+
+| Directory | Metadata id | Category | Purpose |
+| --- | --- | --- | --- |
+| [`00-getting-started/`](00-getting-started/) | `minimal-pipeline` | Getting Started | Small source-transform-sink graph for the first validate, plan, render, and run commands. |
+| [`10-basic-dataflow/`](10-basic-dataflow/) | `branching-fanout-join` | Basic Dataflow | A non-linear source -> preprocess -> branch_a/branch_b -> merge -> sink graph. |
+| [`20-triggers/`](20-triggers/) | `trigger-semantics` | Execution Semantics | One graph showing any_input, all_inputs, time_sync, batch, rate_limit, debounce, and condition trigger policies. |
+| [`30-async/`](30-async/) | `async-bounded-inflight` | Execution Semantics | Request validation followed by an async worker edge with max_inflight=2 and bounded queue capacity. |
+| [`40-composite-loop/`](40-composite-loop/) | `composite-loop-solver` | Advanced Semantics | A declared estimator/controller feedback SCC with fixed-point policy, convergence label, and iteration budget. |
+| [`50-observability/`](50-observability/) | `metrics-trace-observe` | Observability | Minimal graph run that produces metrics JSON, structured trace JSON, Chrome trace, and live observe NDJSON. |
+| [`60-testing-validation/`](60-testing-validation/) | `validation-and-golden` | Testing and Validation | A deterministic valid graph plus an invalid fixture for showing clear diagnostics and CI-friendly golden checks. |
+| [`70-performance/`](70-performance/) | `minimal-benchmark` | Performance | Small graph bench command for local performance awareness without cross-machine timing claims. |
+| [`80-realistic-mini-scenario/`](80-realistic-mini-scenario/) | `sensor-fusion-mini` | Realistic Scenario | A small robot-cell-inspired event/data pipeline with time sync, detector stage, async planner, and output boundary. |
+
+## Metadata convention
+
+Each curated example directory uses a dependency-free `example.json` file that
+is validated by `examples/metadata.schema.json` and consumed by showcase tooling.
+The metadata declares:
+
+- stable example id, category, title, summary, difficulty, and tags;
+- the primary graph file;
+- commands to validate, render, run, observe, or benchmark the example;
+- generated asset requirements;
+- focused CI smoke expectations;
+- related documentation links.
+
+A reusable README template lives at `_templates/example-readme.md`. Individual
+example READMEs follow these sections: What this example demonstrates, Graph
+structure, How to run, Expected result, What to inspect, and Related docs.
+
+## Regenerate index and assets
+
+```bash
+python3 scripts/update_examples_index.py
+python3 scripts/render_example_assets.py --topoexec build/topoexec
+```
+
+Use `--check` on either script in CI to fail when generated content is stale.
+
+## Legacy YAML and C++ apps
+
+The existing top-level YAML graphs and `apps/` C++ examples are still supported
+and continue to back tests and deeper docs. G74 showcase pages should link to
+the curated directories first, then to legacy fixtures where they explain an
+advanced or compatibility-specific contract.
 
 ## Quick smoke
 
@@ -11,42 +71,3 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j
 ctest --test-dir build --output-on-failure -R 'app_|cli_run_|cli_validate_'
 ```
-
-## YAML graphs
-
-| File | Purpose | Command |
-| --- | --- | --- |
-| `minimal.yaml` | Immediate source-transform-sink pipeline. | `./build/topoexec graph run examples/minimal.yaml --steps 1` |
-| `control_feedback_delay.yaml` | Feedback delayed to the next epoch. | `./build/topoexec graph run examples/control_feedback_delay.yaml --steps 2` |
-| `composite_loop.yaml` | Declared immediate feedback SCC. | `./build/topoexec graph plan examples/composite_loop.yaml --format json` |
-| `large_payload_copy.yaml` | Lintable large-payload copy policy. | `./build/topoexec graph lint examples/large_payload_copy.yaml` |
-| `diagnostic_warnings.yaml` | Warning diagnostics and strict-diagnostics behavior. | `./build/topoexec graph validate examples/diagnostic_warnings.yaml --strict-diagnostics --format json` |
-| `state_config_snapshot.yaml` | State/config snapshot visibility. | `./build/topoexec graph run examples/state_config_snapshot.yaml --steps 2` |
-| `batch_time_sync.yaml` | Two-input time-sync trigger. | `./build/topoexec graph run examples/batch_time_sync.yaml --steps 1` |
-| `service_pipeline.yaml` | Request, async, and task-ready pipeline shape. | `./build/topoexec graph run examples/service_pipeline.yaml --steps 2` |
-| `boundary_adapter_pattern.yaml` | App-owned external I/O boundary pattern. | `./build/topoexec graph run examples/boundary_adapter_pattern.yaml --steps 1` |
-| `template_source_transform_sink.yaml` | Parameter-substituted reusable graph snippet. | `./build/topoexec graph run examples/template_source_transform_sink.yaml --steps 1` |
-| `invalid_*.yaml` | Negative validation fixtures. | `./build/topoexec graph validate examples/invalid_immediate_cycle.yaml` |
-
-## C++ apps
-
-- `apps/minimal_pipeline`: immediate pipeline with runtime metrics.
-- `apps/overload_latest_vs_queue`: low-latency latest versus event queue overload.
-- `apps/control_feedback_delay`: previous-tick feedback.
-- `apps/composite_loop_fixed_point`: explicit CompositeLoop ownership.
-- `apps/async_worker`: async completion and bounded backlog.
-- `apps/cpp_builder_minimal`: pure C++ builder and app-defined registry path.
-- `apps/low_latency_sensor_pipeline`: source/preprocessor/detector/tracker latest-only path.
-- `apps/control_loop_with_state`: fixed-rate control loop with state and delay boundaries.
-- `apps/async_request_response`: request, validator, task-executor, and response boundary path.
-- `apps/composite_solver`: CompositeLoop convergence and budget-overrun evidence.
-- `apps/payload_pool_pipeline`: BufferPool copy/shared/loaned payload metrics.
-- `apps/robot_cell_pilot`: composed robotics-like pilot with multiple lanes,
-  async/drop overload, state/delay feedback, BufferPool frames, config snapshot,
-  metrics/trace evidence, and invalid-config rejection.
-
-These examples do not implement ROS 2, OpenTelemetry, Prometheus, Python, or
-external Perfetto adapters. Boundary examples show where such adapters can attach
-once the core API is stable. Hierarchy and graph templates are compile-time
-schema features covered by parser/runtime tests and YAML examples rather than
-runtime nesting apps.

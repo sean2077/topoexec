@@ -1,0 +1,46 @@
+schema_version: 1
+graph:
+  name: sensor_fusion_mini
+  kind: runnable
+lanes:
+  main: {type: event_loop}
+components:
+  - id: camera_event
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: camera-event-boundary}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: force_event
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: force-event-boundary}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: fusion
+    type: topoexec.transforms.Join
+    event_sources: [{type: message, inputs: [left, right]}]
+    trigger_policy: {type: time_sync, inputs: [left, right], sync_slop_ms: 5}
+    execution: {lane: main}
+  - id: detector
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: planner_worker
+    type: topoexec.transforms.AsyncWorker
+    event_sources: [{type: task_ready, inputs: [ready]}]
+    trigger_policy: {type: task_ready, inputs: [ready]}
+    execution: {lane: main}
+  - id: cell_output
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: robot-cell-command-boundary}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: camera_to_fusion, kind: immediate, from: camera_event.out, to: fusion.left, policy: {mode: queue, capacity: 8, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: force_to_fusion, kind: immediate, from: force_event.out, to: fusion.right, policy: {mode: queue, capacity: 8, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: fusion_to_detector, kind: immediate, from: fusion.out, to: detector.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: detector_to_planner, kind: async, from: detector.out, to: planner_worker.ready, policy: {mode: queue, capacity: 4, max_inflight: 2, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: planner_to_output, kind: immediate, from: planner_worker.out, to: cell_output.in, policy: {mode: latest, copy_policy: shared_view}}

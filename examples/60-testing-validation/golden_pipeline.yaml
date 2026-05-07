@@ -1,0 +1,27 @@
+schema_version: 1
+graph:
+  name: golden_pipeline
+  kind: runnable
+lanes:
+  main: {type: event_loop}
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: deterministic-source}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: normalize
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: deterministic-sink}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: source_to_normalize, kind: immediate, from: source.out, to: normalize.in, policy: {mode: queue, capacity: 4, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: normalize_to_sink, kind: immediate, from: normalize.out, to: sink.in, policy: {mode: latest, copy_policy: shared_view}}

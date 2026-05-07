@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "id": "minimal-benchmark",
+  "title": "Minimal performance benchmark",
+  "category": "Performance",
+  "summary": "Small graph bench command for local performance awareness without cross-machine timing claims.",
+  "difficulty": "intermediate",
+  "graph": "minimal_benchmark.yaml",
+  "show_in_readme": true,
+  "readme_priority": 80,
+  "expected_exit": 0,
+  "commands": [
+    {
+      "label": "Validate",
+      "argv": [
+        "graph",
+        "validate",
+        "examples/70-performance/minimal_benchmark.yaml"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Bench",
+      "argv": [
+        "graph",
+        "bench",
+        "examples/70-performance/minimal_benchmark.yaml",
+        "--steps",
+        "1",
+        "--runs",
+        "2",
+        "--format",
+        "json"
+      ],
+      "expect_success": true
+    }
+  ],
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "ci": {
+    "validate": true,
+    "run": false,
+    "render": true,
+    "smoke": true
+  },
+  "related_docs": [
+    "benchmarks/README.md",
+    "docs/24-testing/performance-baselines.md"
+  ],
+  "tags": [
+    "benchmark",
+    "performance",
+    "regression"
+  ]
+}

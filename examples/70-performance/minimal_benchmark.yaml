@@ -1,0 +1,41 @@
+schema_version: 1
+graph:
+  name: minimal_benchmark
+  kind: internal_test
+lanes:
+  main:
+    type: event_loop
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: stdin}
+    event_sources:
+      - type: manual
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: transform
+    type: topoexec.transforms.Identity
+    event_sources:
+      - type: message
+        inputs: [in]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: stdout}
+    event_sources:
+      - type: message
+        inputs: [in]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - id: source_to_transform
+    kind: immediate
+    from: source.out
+    to: transform.in
+    policy: {mode: queue, capacity: 4, overflow: drop_oldest, copy_policy: shared_view}
+  - id: transform_to_sink
+    kind: immediate
+    from: transform.out
+    to: sink.in
+    policy: {mode: latest, copy_policy: shared_view}

@@ -1,0 +1,69 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "category": "Advanced Semantics",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/40-composite-loop/composite_loop_solver.yaml"
+      ],
+      "expect_success": true,
+      "label": "Validate"
+    },
+    {
+      "argv": [
+        "graph",
+        "plan",
+        "examples/40-composite-loop/composite_loop_solver.yaml",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Plan"
+    },
+    {
+      "argv": [
+        "graph",
+        "render",
+        "examples/40-composite-loop/composite_loop_solver.yaml",
+        "--format",
+        "mermaid"
+      ],
+      "expect_success": true,
+      "label": "Render"
+    },
+    {
+      "argv": [
+        "graph",
+        "run",
+        "examples/40-composite-loop/composite_loop_solver.yaml",
+        "--steps",
+        "2"
+      ],
+      "expect_success": true,
+      "label": "Run"
+    }
+  ],
+  "component_count": 4,
+  "difficulty": "advanced",
+  "edge_count": 4,
+  "graph": "examples/40-composite-loop/composite_loop_solver.yaml",
+  "id": "composite-loop-solver",
+  "region_order": [
+    "sensor",
+    "actuator",
+    "estimator_controller_loop"
+  ],
+  "tags": [
+    "loop",
+    "fixed-point",
+    "feedback"
+  ],
+  "title": "CompositeLoop iterative solver",
+  "validate_first_line": "ok"
+}

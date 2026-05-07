@@ -1,0 +1,8 @@
+flowchart TD
+  %% graph: minimal_benchmark
+  source["source\ntopoexec.boundary.Input"]
+  transform["transform\ntopoexec.transforms.Identity"]
+  sink["sink\ntopoexec.boundary.Output"]
+  source -->|"source_to_transform:immediate/queue"| transform
+  transform -->|"transform_to_sink:immediate/latest"| sink
+  %% region_order: source,transform,sink

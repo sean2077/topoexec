@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360" role="img">
+<rect width="100%" height="100%" rx="18" fill="#f8fafc"/>
+<rect x="18" y="18" width="724" height="324" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+<circle cx="48" cy="50" r="12" fill="#7c3aed"/>
+<text x="72" y="57" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700" fill="#0f172a">Trace summary · minimal_observability</text>
+<text x="42" y="92" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">trace_schema_version: 1</text>
+<text x="42" y="116" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">graph_name: minimal_observability</text>
+<text x="42" y="140" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">ok: True</text>
+<text x="42" y="164" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">trace_event_count: 16</text>
+<text x="42" y="188" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">channel_commit: 2</text>
+<text x="42" y="212" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">channel_publish: 2</text>
+<text x="42" y="236" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">component_execute: 3</text>
+<text x="42" y="260" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">component_execute_begin: 3</text>
+<text x="42" y="284" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">component_execute_end: 3</text>
+<text x="42" y="308" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#334155">scheduler_iteration: 1</text>
+</svg>

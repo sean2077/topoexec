@@ -1,0 +1,113 @@
+schema_version: 1
+graph:
+  name: trigger_semantics_showcase
+  kind: runnable
+lanes:
+  main: {type: event_loop}
+components:
+  - id: left_sensor
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: left-sensor}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: right_sensor
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: right-sensor}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: any_tap
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: all_join
+    type: topoexec.transforms.Join
+    event_sources: [{type: message, inputs: [left, right]}]
+    trigger_policy: {type: all_inputs, inputs: [left, right]}
+    execution: {lane: main}
+  - id: sync_join
+    type: topoexec.transforms.Join
+    event_sources: [{type: message, inputs: [left, right]}]
+    trigger_policy: {type: time_sync, inputs: [left, right], sync_slop_ms: 5}
+    execution: {lane: main}
+  - id: batch_window
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: batch, inputs: [in], batch_size: 2, batch_window_ms: 20}
+    execution: {lane: main}
+  - id: rate_limit_gate
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: rate_limit, inputs: [in], min_interval_ms: 1, coalesce: true}
+    execution: {lane: main}
+  - id: debounce_gate
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: debounce, inputs: [in], debounce_window_ms: 1, coalesce: true}
+    execution: {lane: main}
+  - id: condition_gate
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: condition, inputs: [in], condition: event_timestamp_present}
+    execution: {lane: main}
+  - id: any_sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: any-output}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: all_sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: all-output}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: sync_sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: sync-output}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: batch_sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: batch-output}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: rate_sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: rate-output}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: debounce_sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: debounce-output}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: condition_sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: condition-output}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: left_to_any, kind: immediate, from: left_sensor.out, to: any_tap.in, policy: {mode: queue, capacity: 4, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: any_to_sink, kind: immediate, from: any_tap.out, to: any_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: left_to_all, kind: immediate, from: left_sensor.out, to: all_join.left, policy: {mode: latest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: right_to_all, kind: immediate, from: right_sensor.out, to: all_join.right, policy: {mode: latest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: all_to_sink, kind: immediate, from: all_join.out, to: all_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: left_to_sync, kind: immediate, from: left_sensor.out, to: sync_join.left, policy: {mode: queue, capacity: 4, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: right_to_sync, kind: immediate, from: right_sensor.out, to: sync_join.right, policy: {mode: queue, capacity: 4, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: sync_to_sink, kind: immediate, from: sync_join.out, to: sync_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: left_to_batch, kind: immediate, from: left_sensor.out, to: batch_window.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: batch_to_sink, kind: immediate, from: batch_window.out, to: batch_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: left_to_rate, kind: immediate, from: left_sensor.out, to: rate_limit_gate.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: rate_to_sink, kind: immediate, from: rate_limit_gate.out, to: rate_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: left_to_debounce, kind: immediate, from: left_sensor.out, to: debounce_gate.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: debounce_to_sink, kind: immediate, from: debounce_gate.out, to: debounce_sink.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: left_to_condition, kind: immediate, from: left_sensor.out, to: condition_gate.in, policy: {mode: queue, capacity: 8, overflow: drop_oldest, timestamp_domain: steady, copy_policy: shared_view}}
+  - {id: condition_to_sink, kind: immediate, from: condition_gate.out, to: condition_sink.in, policy: {mode: latest, copy_policy: shared_view}}

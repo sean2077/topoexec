@@ -11,11 +11,68 @@ release-prep evidence, or git history.
 | Area | State |
 | --- | --- |
 | Historical goal sweeps | G0-G25 and G26-G70 are complete. |
-| Active implementation goal | None. G73-low-overhead-live-runtime-validation and G71-post-alpha-hardening-docs-pages are complete. |
+| Active implementation goal | None. G74-examples-showcase-and-readme-refresh, G73-low-overhead-live-runtime-validation, and G71-post-alpha-hardening-docs-pages are complete. |
 | Required repository gate | `scripts/agent_check.sh` before declaring repo changes complete. |
 | Focused docs gate | `scripts/goal_check.sh docs`. |
 | Focused live gates | `scripts/goal_check.sh live` and `scripts/goal_check.sh live-perf`. |
+| Focused G74 gates | `scripts/goal_check.sh examples` and `scripts/goal_check.sh showcase`. |
 | Blockers | None active. |
+
+## Completed Goal: G74-examples-showcase-and-readme-refresh
+
+| Field | Value |
+| --- | --- |
+| Priority | P0/P1 mixed |
+| Status | complete |
+| Scope | Examples hierarchy, executable YAML examples, example metadata, generated README/example visual assets, example index, README refresh, showcase/docs tooling, focused examples/showcase gates, docs/CHANGELOG/goal ledgers. Runtime semantics should remain unchanged unless a change has clear developer/documentation value and its boundary is documented. |
+| Allowed files | `README.md`, `examples/`, `docs/assets/`, `scripts/render_example_assets.py`, `scripts/update_examples_index.py`, `scripts/check_readme_assets.sh`, `scripts/goal_check.sh`, `docs/41-development-tools/`, `docs/README.md`, `CHANGELOG.md`, and this goal ledger/backlog. |
+| Acceptance | README communicates TopoExec value within one screen; Quick Start uses real build/validate/render/run commands; at least 8 curated examples cover minimal graph, branching, triggers, async, CompositeLoop/loop, observability, validation diagnostics, testing/golden-friendly use, and benchmark/performance; each public example has README/config/commands/expected output/graph asset references; assets are generated or validated from real examples; examples/showcase gates pass; project status remains honest beta/pre-production without production-readiness exaggeration. |
+| Validation | Baseline and final `./scripts/agent_check.sh`, focused `docs`, `golden`, new `examples` and `showcase` gates, generated asset/index checks, README/example link or asset checks, and `git diff --check`; additional live/bench gates where touched or reused by showcase assets. |
+| Blocker protocol | No product/API blocker is active. If example taxonomy, README positioning, or visualization generation requires a product/API decision, write `docs/31-planning-roadmap/goals/blockers/g74-*.md`, recommend one option, and continue only with safe independent work. |
+
+### G74 M0 baseline evidence
+
+Baseline captured on 2026-05-07 from the current working tree before G74
+examples/showcase edits. The only tracked change present at baseline was the
+requested added plan file
+`docs/32-plans/topoexec_g74_examples_readme_showcase_plan_zh.md`.
+Detailed logs are kept in the local OMX evidence artifact
+`.omx/ultragoal/evidence/g74-m0-baseline.log`.
+
+| Command or inventory | Result |
+| --- | --- |
+| `git status --short` | pass; reported the requested added G74 plan file. |
+| README/examples inventory | README had 72 lines; examples had 15 top-level YAML files and 12 C++ app example directories; no generated docs/assets files existed. |
+| `./scripts/agent_check.sh` | pass; configure, format, tidy, build, and 86/86 CTest passed. |
+| `./scripts/goal_check.sh docs` | pass; `docs_command_smoke` passed. |
+| `./scripts/goal_check.sh golden` | pass; `cli_golden_outputs` passed. |
+| `git diff --check` | pass. |
+
+### G74 M1-M6 implementation evidence
+
+| Area | Evidence |
+| --- | --- |
+| Examples taxonomy and metadata | Added curated directories `examples/00-getting-started/` through `examples/80-realistic-mini-scenario/`, dependency-free `example.json` metadata, `examples/metadata.schema.json`, and `examples/_templates/example-readme.md`. |
+| Curated example matrix | Added 9 documented, smokeable examples covering minimal pipeline, branching/fan-out/join, trigger policies, async bounded inflight, CompositeLoop fixed-point solver, metrics/trace/live observe, validation diagnostics plus golden-friendly output, benchmark, and synthetic robot-cell mini scenario. |
+| Generated assets and index | Added `scripts/update_examples_index.py` and `scripts/render_example_assets.py`; generated `docs/assets/generated/examples/*` graph Mermaid/SVG/summary assets plus README hero/showcase assets from real CLI output. |
+| README refresh | Rebuilt README around one-sentence positioning, generated hero/showcase visuals, Quick Start, expected output, core capabilities table, examples gallery, docs links, embedding notes, and honest beta/pre-production boundaries. |
+| Focused gates | Added `scripts/examples_smoke.py`, `scripts/check_readme_assets.sh`, `./scripts/goal_check.sh examples`, and `./scripts/goal_check.sh showcase` to prevent metadata, assets, README links, and quick-start drift. |
+| Validation | `./scripts/goal_check.sh examples`, `./scripts/goal_check.sh showcase`, `./scripts/goal_check.sh docs`, `./scripts/goal_check.sh golden`, `python3 scripts/update_examples_index.py --check`, `python3 scripts/render_example_assets.py --topoexec build/topoexec --check`, and `git diff --check` passed during M1-M6. |
+
+
+### G74 M7 final validation evidence
+
+Final validation on 2026-05-07 completed after G74 example, asset, README, tooling, docs, and ledger changes. No unsupported local G74 gates remain.
+
+| Command | Result |
+| --- | --- |
+| `./scripts/agent_check.sh` | pass; configure, format, tidy, build, and 86/86 CTest passed. |
+| `./scripts/goal_check.sh docs` | pass; `docs_command_smoke` passed. |
+| `./scripts/goal_check.sh golden` | pass; `cli_golden_outputs` passed. |
+| `./scripts/goal_check.sh examples` | pass; generated index/assets were current and 31 metadata commands across 9 curated examples behaved as expected. |
+| `./scripts/goal_check.sh showcase` | pass; README/generated assets, Markdown links, status phrases, and quick-start validate/render/run smoke passed. |
+| `./scripts/goal_check.sh bench` | pass; benchmark output contract and local baseline generation passed. |
+| `git diff --check` | pass. |
 
 ## Completed Goal: G71-post-alpha-hardening-docs-pages
 

@@ -1,0 +1,65 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": true,
+    "generate_trace_summary": true
+  },
+  "category": "Realistic Scenario",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/80-realistic-mini-scenario/sensor_fusion_mini.yaml"
+      ],
+      "expect_success": true,
+      "label": "Validate"
+    },
+    {
+      "argv": [
+        "graph",
+        "run",
+        "examples/80-realistic-mini-scenario/sensor_fusion_mini.yaml",
+        "--steps",
+        "3"
+      ],
+      "expect_success": true,
+      "label": "Run"
+    },
+    {
+      "argv": [
+        "graph",
+        "observe",
+        "examples/80-realistic-mini-scenario/sensor_fusion_mini.yaml",
+        "--steps",
+        "3",
+        "--observe-level",
+        "summary",
+        "--format",
+        "ndjson"
+      ],
+      "expect_success": true,
+      "label": "Observe"
+    }
+  ],
+  "component_count": 6,
+  "difficulty": "intermediate",
+  "edge_count": 5,
+  "graph": "examples/80-realistic-mini-scenario/sensor_fusion_mini.yaml",
+  "id": "sensor-fusion-mini",
+  "region_order": [
+    "camera_event",
+    "force_event",
+    "planner_worker",
+    "fusion",
+    "cell_output",
+    "detector"
+  ],
+  "tags": [
+    "realistic",
+    "robot-cell",
+    "async"
+  ],
+  "title": "Robot-cell sensor fusion mini scenario",
+  "validate_first_line": "ok"
+}

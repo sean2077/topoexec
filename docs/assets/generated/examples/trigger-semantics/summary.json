@@ -1,0 +1,80 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "category": "Execution Semantics",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/20-triggers/trigger_semantics.yaml"
+      ],
+      "expect_success": true,
+      "label": "Validate"
+    },
+    {
+      "argv": [
+        "graph",
+        "render",
+        "examples/20-triggers/trigger_semantics.yaml",
+        "--format",
+        "mermaid"
+      ],
+      "expect_success": true,
+      "label": "Render"
+    },
+    {
+      "argv": [
+        "graph",
+        "run",
+        "examples/20-triggers/trigger_semantics.yaml",
+        "--steps",
+        "3"
+      ],
+      "expect_success": true,
+      "label": "Run"
+    },
+    {
+      "argv": [
+        "graph",
+        "explain",
+        "examples/20-triggers/trigger_semantics.yaml"
+      ],
+      "expect_success": true,
+      "label": "Explain"
+    }
+  ],
+  "component_count": 16,
+  "difficulty": "intermediate",
+  "edge_count": 16,
+  "graph": "examples/20-triggers/trigger_semantics.yaml",
+  "id": "trigger-semantics",
+  "region_order": [
+    "left_sensor",
+    "right_sensor",
+    "any_tap",
+    "batch_window",
+    "condition_gate",
+    "debounce_gate",
+    "rate_limit_gate",
+    "all_join",
+    "sync_join",
+    "any_sink",
+    "batch_sink",
+    "condition_sink",
+    "debounce_sink",
+    "rate_sink",
+    "all_sink",
+    "sync_sink"
+  ],
+  "tags": [
+    "trigger",
+    "readiness",
+    "suppression"
+  ],
+  "title": "Trigger semantics showcase",
+  "validate_first_line": "ok"
+}

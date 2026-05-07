@@ -1,0 +1,35 @@
+flowchart TD
+  %% graph: trigger_semantics_showcase
+  left_sensor["left_sensor\ntopoexec.boundary.Input"]
+  right_sensor["right_sensor\ntopoexec.boundary.Input"]
+  any_tap["any_tap\ntopoexec.transforms.Identity"]
+  all_join["all_join\ntopoexec.transforms.Join"]
+  sync_join["sync_join\ntopoexec.transforms.Join"]
+  batch_window["batch_window\ntopoexec.transforms.Identity"]
+  rate_limit_gate["rate_limit_gate\ntopoexec.transforms.Identity"]
+  debounce_gate["debounce_gate\ntopoexec.transforms.Identity"]
+  condition_gate["condition_gate\ntopoexec.transforms.Identity"]
+  any_sink["any_sink\ntopoexec.boundary.Output"]
+  all_sink["all_sink\ntopoexec.boundary.Output"]
+  sync_sink["sync_sink\ntopoexec.boundary.Output"]
+  batch_sink["batch_sink\ntopoexec.boundary.Output"]
+  rate_sink["rate_sink\ntopoexec.boundary.Output"]
+  debounce_sink["debounce_sink\ntopoexec.boundary.Output"]
+  condition_sink["condition_sink\ntopoexec.boundary.Output"]
+  left_sensor -->|"left_to_any:immediate/queue"| any_tap
+  any_tap -->|"any_to_sink:immediate/latest"| any_sink
+  left_sensor -->|"left_to_all:immediate/latest"| all_join
+  right_sensor -->|"right_to_all:immediate/latest"| all_join
+  all_join -->|"all_to_sink:immediate/latest"| all_sink
+  left_sensor -->|"left_to_sync:immediate/queue"| sync_join
+  right_sensor -->|"right_to_sync:immediate/queue"| sync_join
+  sync_join -->|"sync_to_sink:immediate/latest"| sync_sink
+  left_sensor -->|"left_to_batch:immediate/queue"| batch_window
+  batch_window -->|"batch_to_sink:immediate/latest"| batch_sink
+  left_sensor -->|"left_to_rate:immediate/queue"| rate_limit_gate
+  rate_limit_gate -->|"rate_to_sink:immediate/latest"| rate_sink
+  left_sensor -->|"left_to_debounce:immediate/queue"| debounce_gate
+  debounce_gate -->|"debounce_to_sink:immediate/latest"| debounce_sink
+  left_sensor -->|"left_to_condition:immediate/queue"| condition_gate
+  condition_gate -->|"condition_to_sink:immediate/latest"| condition_sink
+  %% region_order: left_sensor,right_sensor,any_tap,batch_window,condition_gate,debounce_gate,rate_limit_gate,all_join,sync_join,any_sink,batch_sink,condition_sink,debounce_sink,rate_sink,all_sink,sync_sink

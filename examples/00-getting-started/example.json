@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "id": "minimal-pipeline",
+  "title": "Minimal pipeline",
+  "category": "Getting Started",
+  "summary": "Small source-transform-sink graph for the first validate, plan, render, and run commands.",
+  "difficulty": "beginner",
+  "graph": "minimal.yaml",
+  "show_in_readme": true,
+  "readme_priority": 10,
+  "expected_exit": 0,
+  "commands": [
+    {
+      "label": "Validate",
+      "argv": [
+        "graph",
+        "validate",
+        "examples/00-getting-started/minimal.yaml"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Plan",
+      "argv": [
+        "graph",
+        "plan",
+        "examples/00-getting-started/minimal.yaml",
+        "--format",
+        "json"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Render",
+      "argv": [
+        "graph",
+        "render",
+        "examples/00-getting-started/minimal.yaml",
+        "--format",
+        "mermaid"
+      ],
+      "expect_success": true
+    },
+    {
+      "label": "Run",
+      "argv": [
+        "graph",
+        "run",
+        "examples/00-getting-started/minimal.yaml",
+        "--steps",
+        "1"
+      ],
+      "expect_success": true
+    }
+  ],
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "ci": {
+    "validate": true,
+    "run": true,
+    "render": true,
+    "smoke": true
+  },
+  "related_docs": [
+    "docs/11-user-guide/graph-spec.md",
+    "docs/41-development-tools/cli.md"
+  ],
+  "tags": [
+    "minimal",
+    "quick-start",
+    "dataflow"
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": true,
+    "generate_trace_summary": true
+  },
+  "category": "Observability",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "metrics",
+        "examples/50-observability/minimal_observability.yaml",
+        "--steps",
+        "1",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Metrics"
+    },
+    {
+      "argv": [
+        "graph",
+        "trace",
+        "examples/50-observability/minimal_observability.yaml",
+        "--steps",
+        "1",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Trace"
+    },
+    {
+      "argv": [
+        "graph",
+        "trace",
+        "examples/50-observability/minimal_observability.yaml",
+        "--steps",
+        "1",
+        "--format",
+        "chrome"
+      ],
+      "expect_success": true,
+      "label": "Chrome trace"
+    },
+    {
+      "argv": [
+        "graph",
+        "observe",
+        "examples/50-observability/minimal_observability.yaml",
+        "--steps",
+        "3",
+        "--observe-level",
+        "summary",
+        "--format",
+        "ndjson"
+      ],
+      "expect_success": true,
+      "label": "Observe"
+    }
+  ],
+  "component_count": 3,
+  "difficulty": "beginner",
+  "edge_count": 2,
+  "graph": "examples/50-observability/minimal_observability.yaml",
+  "id": "metrics-trace-observe",
+  "region_order": [
+    "source",
+    "transform",
+    "sink"
+  ],
+  "tags": [
+    "metrics",
+    "trace",
+    "observe"
+  ],
+  "title": "Metrics, trace, and live observe",
+  "validate_first_line": "ok"
+}

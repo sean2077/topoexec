@@ -1,0 +1,61 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "category": "Basic Dataflow",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/10-basic-dataflow/branching_fanout_join.yaml"
+      ],
+      "expect_success": true,
+      "label": "Validate"
+    },
+    {
+      "argv": [
+        "graph",
+        "render",
+        "examples/10-basic-dataflow/branching_fanout_join.yaml",
+        "--format",
+        "mermaid"
+      ],
+      "expect_success": true,
+      "label": "Render"
+    },
+    {
+      "argv": [
+        "graph",
+        "run",
+        "examples/10-basic-dataflow/branching_fanout_join.yaml",
+        "--steps",
+        "1"
+      ],
+      "expect_success": true,
+      "label": "Run"
+    }
+  ],
+  "component_count": 6,
+  "difficulty": "beginner",
+  "edge_count": 6,
+  "graph": "examples/10-basic-dataflow/branching_fanout_join.yaml",
+  "id": "branching-fanout-join",
+  "region_order": [
+    "source",
+    "preprocess",
+    "branch_a",
+    "branch_b",
+    "merge",
+    "sink"
+  ],
+  "tags": [
+    "branching",
+    "fan-out",
+    "join"
+  ],
+  "title": "Branching fan-out and join",
+  "validate_first_line": "ok"
+}

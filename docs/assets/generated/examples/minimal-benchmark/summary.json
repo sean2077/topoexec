@@ -1,0 +1,51 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "category": "Performance",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/70-performance/minimal_benchmark.yaml"
+      ],
+      "expect_success": true,
+      "label": "Validate"
+    },
+    {
+      "argv": [
+        "graph",
+        "bench",
+        "examples/70-performance/minimal_benchmark.yaml",
+        "--steps",
+        "1",
+        "--runs",
+        "2",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Bench"
+    }
+  ],
+  "component_count": 3,
+  "difficulty": "intermediate",
+  "edge_count": 2,
+  "graph": "examples/70-performance/minimal_benchmark.yaml",
+  "id": "minimal-benchmark",
+  "region_order": [
+    "source",
+    "transform",
+    "sink"
+  ],
+  "tags": [
+    "benchmark",
+    "performance",
+    "regression"
+  ],
+  "title": "Minimal performance benchmark",
+  "validate_first_line": "ok"
+}

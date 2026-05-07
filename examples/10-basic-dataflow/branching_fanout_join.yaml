@@ -1,0 +1,46 @@
+schema_version: 1
+graph:
+  name: branching_fanout_join
+  kind: runnable
+lanes:
+  main: {type: event_loop}
+components:
+  - id: source
+    type: topoexec.boundary.Input
+    boundary: {role: input, descriptor: demo-source}
+    event_sources: [{type: manual}]
+    trigger_policy: {type: manual}
+    execution: {lane: main}
+  - id: preprocess
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: branch_a
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: branch_b
+    type: topoexec.transforms.Identity
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+  - id: merge
+    type: topoexec.transforms.Join
+    event_sources: [{type: message, inputs: [left, right]}]
+    trigger_policy: {type: all_inputs, inputs: [left, right]}
+    execution: {lane: main}
+  - id: sink
+    type: topoexec.boundary.Output
+    boundary: {role: output, descriptor: merged-output}
+    event_sources: [{type: message, inputs: [in]}]
+    trigger_policy: {type: any_input, inputs: [in]}
+    execution: {lane: main}
+edges:
+  - {id: source_to_preprocess, kind: immediate, from: source.out, to: preprocess.in, policy: {mode: queue, capacity: 4, overflow: drop_oldest, copy_policy: shared_view}}
+  - {id: preprocess_to_branch_a, kind: immediate, from: preprocess.out, to: branch_a.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: preprocess_to_branch_b, kind: immediate, from: preprocess.out, to: branch_b.in, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: branch_a_to_merge, kind: immediate, from: branch_a.out, to: merge.left, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: branch_b_to_merge, kind: immediate, from: branch_b.out, to: merge.right, policy: {mode: latest, copy_policy: shared_view}}
+  - {id: merge_to_sink, kind: immediate, from: merge.out, to: sink.in, policy: {mode: queue, capacity: 2, overflow: drop_oldest, copy_policy: shared_view}}

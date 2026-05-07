@@ -1,0 +1,10 @@
+flowchart TD
+  %% graph: async_bounded_inflight
+  request_source["request_source\ntopoexec.boundary.Input"]
+  validator["validator\ntopoexec.transforms.Validator"]
+  async_worker["async_worker\ntopoexec.transforms.AsyncWorker"]
+  response_sink["response_sink\ntopoexec.boundary.Output"]
+  request_source -->|"request_to_validator:immediate/queue"| validator
+  validator -->|"validator_to_worker:async/queue"| async_worker
+  async_worker -->|"worker_to_response:immediate/latest"| response_sink
+  %% region_order: request_source,async_worker,validator,response_sink

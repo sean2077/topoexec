@@ -1,0 +1,69 @@
+{
+  "assets": {
+    "generate_graph": true,
+    "generate_metrics_summary": false,
+    "generate_trace_summary": false
+  },
+  "category": "Testing and Validation",
+  "commands": [
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/60-testing-validation/golden_pipeline.yaml",
+        "--format",
+        "json"
+      ],
+      "expect_success": true,
+      "label": "Validate valid graph"
+    },
+    {
+      "argv": [
+        "graph",
+        "run",
+        "examples/60-testing-validation/golden_pipeline.yaml",
+        "--steps",
+        "1"
+      ],
+      "expect_success": true,
+      "label": "Run stable output"
+    },
+    {
+      "argv": [
+        "graph",
+        "render",
+        "examples/60-testing-validation/golden_pipeline.yaml",
+        "--format",
+        "mermaid"
+      ],
+      "expect_success": true,
+      "label": "Render stable graph"
+    },
+    {
+      "argv": [
+        "graph",
+        "validate",
+        "examples/60-testing-validation/invalid_missing_edge_kind.yaml"
+      ],
+      "expect_success": false,
+      "label": "Validate invalid fixture"
+    }
+  ],
+  "component_count": 3,
+  "difficulty": "beginner",
+  "edge_count": 2,
+  "graph": "examples/60-testing-validation/golden_pipeline.yaml",
+  "id": "validation-and-golden",
+  "region_order": [
+    "source",
+    "normalize",
+    "sink"
+  ],
+  "tags": [
+    "diagnostics",
+    "golden",
+    "ci"
+  ],
+  "title": "Validation diagnostics and golden-friendly output",
+  "validate_first_line": "ok"
+}

@@ -1,0 +1,17 @@
+{
+  "event_kinds": {
+    "async_admission": 1,
+    "channel_commit": 1,
+    "channel_publish": 2,
+    "component_execute": 2,
+    "component_execute_begin": 2,
+    "component_execute_end": 2,
+    "scheduler_iteration": 1,
+    "scheduler_iteration_begin": 1,
+    "scheduler_iteration_end": 1
+  },
+  "graph_name": "async_bounded_inflight",
+  "ok": true,
+  "trace_event_count": 13,
+  "trace_schema_version": "1"
+}
