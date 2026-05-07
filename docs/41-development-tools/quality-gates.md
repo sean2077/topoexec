@@ -15,6 +15,18 @@ The required local gate is:
 It checks whitespace, commit-message policy, CMake configure, `clang-format`,
 `clang-tidy`, build, and CTest.
 
+The default pull-request CI path uses a faster gate:
+
+```bash
+./scripts/ci_pr_check.sh
+```
+
+It keeps whitespace, commit-message, formatting, build, golden/schema/docs, and
+package smoke coverage, but leaves the full matrix, `clang-tidy`, sanitizers,
+fuzz, and preview-option builds to the full gate on main, scheduled, or manual
+CI runs. Do not treat this as a replacement for `agent_check.sh` before a final
+local completion claim.
+
 Focused gates are available while iterating:
 
 ```bash
