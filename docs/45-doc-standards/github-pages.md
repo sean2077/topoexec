@@ -12,7 +12,7 @@ README until the workflow has deployed successfully for the repository.
 Install docs-only tools in your preferred isolated environment, then run:
 
 ```bash
-python -m pip install mkdocs
+python -m pip install mkdocs-material=="9.*"
 ./scripts/docs_build_site.sh
 ```
 

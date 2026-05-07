@@ -283,7 +283,7 @@ Optional documentation site/API reference:
 ```bash
 cmake -S . -B build-docs -DCMAKE_BUILD_TYPE=Release -DTOPOEXEC_BUILD_DOCS=ON
 cmake --build build-docs --target topoexec_doxygen
-python -m pip install mkdocs
+python -m pip install mkdocs-material=="9.*"
 ./scripts/docs_build_site.sh
 ```
 

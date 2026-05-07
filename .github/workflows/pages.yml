@@ -39,7 +39,7 @@ jobs:
             nlohmann-json3-dev \
             pkg-config
           python -m pip install --upgrade pip
-          python -m pip install mkdocs
+          python -m pip install mkdocs-material=="9.*"
 
       - name: Build site
         run: PYTHON=python ./scripts/docs_build_site.sh
