@@ -23,6 +23,12 @@ Overflow policy is explicit:
 - `reject` / `fail_fast`: reject capacity overflow; `fail_fast` uses the channel-capacity error path.
 - `block`: reports `would block producer` in the current non-blocking runtime. It does not block an event-loop thread.
 
+When one `GraphContext::publish()` fans out to several channels, or when a
+staged publication batch is committed, preflightable reject paths are
+all-or-nothing: the runtime validates target channels, payload copy policy, and
+capacity rejection before making any payload visible. Rejected commits still
+record reject/drop health and metric evidence on the rejecting channel.
+
 Channel metrics distinguish common causes:
 
 - `runtime.channel.drop_count`: messages that did not enter a consumable path or expired before delivery.

@@ -120,12 +120,14 @@ Component fields:
 Allowed fields:
 
 - `id` optional string.
-- `type` optional string, default `manual`; allowed values are `manual`, `message`, `timer`, `request`, `action_goal`, `action_cancel`, `task_ready`, and `future_ready`.
+- `type` optional string, default `manual`; allowed values are `manual`, `message`, `timer`, `request`, `task_ready`, and `future_ready`. Action goal/cancel event sources remain deferred and are not valid schema-v1 runtime triggers.
 - `inputs` optional string array.
 - `input` optional string shorthand for one input.
 - `period_ms` optional integer; required positive value for `timer`.
 
 `message` sources require at least one input.
+`timer` sources cannot be mixed with input-driven event source types on the same
+component; split periodic and input-driven behavior into separate components.
 
 ### trigger_policy
 
@@ -142,9 +144,9 @@ Allowed fields:
 - `watermark_lateness_ms` optional non-negative integer; `watermark` drops
   timestamped messages older than the component's observed watermark minus this
   allowance.
-- `debounce_window_ms` optional non-negative integer reserved for future
-  wall-clock debounce windows. In schema v1, `debounce` coalesces pending inputs
-  at the current scheduler check without sleeping.
+- `debounce_window_ms` optional integer reserved for future wall-clock debounce
+  windows. In schema v1 it must be `0`; `debounce` coalesces pending inputs at
+  the current scheduler check without sleeping.
 - `condition` optional string for `condition` triggers. Allowed values are
   `all_inputs_ready`, `any_input_ready`, and `event_timestamp_present`; arbitrary
   expressions or scripts are invalid.

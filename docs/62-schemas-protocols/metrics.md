@@ -147,6 +147,11 @@ Channels:
 - `runtime.channel.message_age_ms`: latest observed age at delivery time for that channel.
 - `runtime.channel.payload_copy_count`: payload copies forced by channel copy policy.
 
+Fan-out and batch commits preflight deterministic reject paths before making
+payloads visible. A failed preflight does not partially publish earlier payloads,
+but the rejecting channel still records reject/drop metrics and health events so
+operators can diagnose the failed commit.
+
 Health events:
 
 - `runtime.health.event_count`: bounded health events retained in `RuntimeRunnerResult::health_events`.

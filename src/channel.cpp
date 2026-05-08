@@ -296,6 +296,21 @@ RuntimeChannelBus::publish_shared_from_with_metadata(const std::string& source_e
   if (channels == source_to_channels_.end()) {
     return {false, "unknown source endpoint: " + source_endpoint};
   }
+  if (channels->second.size() > 1u) {
+    std::map<std::string, std::size_t> planned_publications;
+    for (const auto& channel_id : channels->second) {
+      auto& state = channels_.at(channel_id);
+      auto payload_preflight = preflight_payload_for_state(state, *payload);
+      if (!payload_preflight.accepted) {
+        return payload_preflight;
+      }
+      const auto capacity_preflight = preflight_publish_to_state(state, planned_publications[channel_id]);
+      if (!capacity_preflight.accepted) {
+        return capacity_preflight;
+      }
+      ++planned_publications[channel_id];
+    }
+  }
   RuntimeChannelPublishResult last{true, {}};
   for (const auto& channel_id : channels->second) {
     auto& state = channels_.at(channel_id);
@@ -316,20 +331,73 @@ RuntimeChannelBus::publish_shared_from_with_metadata(const std::string& source_e
 
 RuntimeChannelPublishResult
 RuntimeChannelBus::publish_batch(const std::vector<RuntimeChannelPublication>& publications) {
+  struct ExpandedPublication {
+    std::string channel_id;
+    RuntimePayloadPtr payload;
+    std::optional<EventTimestamp> event_timestamp;
+    InvocationMetadata metadata;
+  };
+
+  std::lock_guard lock(mutex_);
+  std::vector<ExpandedPublication> expanded;
+  std::map<std::string, std::size_t> planned_publications;
   for (const auto& publication : publications) {
-    RuntimeChannelPublishResult result;
-    if (publication.target == RuntimeChannelPublishTarget::kChannel) {
-      result = publish_shared_with_metadata(publication.id, publication.payload, publication.metadata,
-                                            publication.event_timestamp);
-    } else {
-      result = publish_shared_from_with_metadata(publication.id, publication.payload, publication.metadata,
-                                                 publication.event_timestamp);
+    if (publication.payload == nullptr) {
+      return {false, "payload must not be null"};
     }
-    if (!result.accepted) {
-      return result;
+    if (publication.target == RuntimeChannelPublishTarget::kChannel) {
+      auto found = channels_.find(publication.id);
+      if (found == channels_.end()) {
+        return {false, "unknown channel: " + publication.id};
+      }
+      auto payload_preflight = preflight_payload_for_state(found->second, *publication.payload);
+      if (!payload_preflight.accepted) {
+        return payload_preflight;
+      }
+      const auto capacity_preflight = preflight_publish_to_state(found->second, planned_publications[publication.id]);
+      if (!capacity_preflight.accepted) {
+        return capacity_preflight;
+      }
+      ++planned_publications[publication.id];
+      expanded.push_back(
+          ExpandedPublication{publication.id, publication.payload, publication.event_timestamp, publication.metadata});
+    } else {
+      const auto channels = source_to_channels_.find(publication.id);
+      if (channels == source_to_channels_.end()) {
+        return {false, "unknown source endpoint: " + publication.id};
+      }
+      for (const auto& channel_id : channels->second) {
+        auto& state = channels_.at(channel_id);
+        auto payload_preflight = preflight_payload_for_state(state, *publication.payload);
+        if (!payload_preflight.accepted) {
+          return payload_preflight;
+        }
+        const auto capacity_preflight = preflight_publish_to_state(state, planned_publications[channel_id]);
+        if (!capacity_preflight.accepted) {
+          return capacity_preflight;
+        }
+        ++planned_publications[channel_id];
+        expanded.push_back(ExpandedPublication{channel_id, publication.payload, publication.event_timestamp,
+                                               metadata_for_source_endpoint(publication.metadata, publication.id)});
+      }
     }
   }
-  return {true, {}};
+  RuntimeChannelPublishResult last{true, {}};
+  for (auto& publication : expanded) {
+    auto& state = channels_.at(publication.channel_id);
+    RuntimePayloadPtr payload_for_channel;
+    bool copied = false;
+    auto prepared = prepare_payload_for_state(state, publication.payload, payload_for_channel, copied);
+    if (!prepared.accepted) {
+      return prepared;
+    }
+    last = publish_to_state(state, std::move(payload_for_channel), std::move(publication.event_timestamp), copied,
+                            std::move(publication.metadata));
+    if (!last.accepted) {
+      return last;
+    }
+  }
+  return last;
 }
 
 void RuntimeChannelBus::advance_epoch() {
@@ -446,6 +514,9 @@ std::vector<RuntimeChannelMessage> RuntimeChannelBus::drain_for_component_port(c
   std::vector<RuntimeChannelMessage> messages;
   const auto ids = channel_ids_for_component_port(component_id, port_name);
   for (const auto& channel_id : ids) {
+    if (max_batch != 0u && messages.size() >= max_batch) {
+      break;
+    }
     auto& state = channels_.at(channel_id);
     if (is_latest_style(state.config.type)) {
       auto latest = consume_latest_from_state(state, component_id + "." + port_name);
@@ -453,9 +524,6 @@ std::vector<RuntimeChannelMessage> RuntimeChannelBus::drain_for_component_port(c
         messages.push_back(std::move(*latest));
       }
       continue;
-    }
-    if (max_batch != 0u && messages.size() >= max_batch) {
-      break;
     }
     const auto remaining = max_batch == 0u ? 0u : max_batch - messages.size();
     auto drained = consume_from_state(state, component_id + "." + port_name, remaining);
@@ -558,6 +626,51 @@ RuntimeChannelPublishResult RuntimeChannelBus::prepare_payload_for_state(Channel
     return {true, {}};
   }
   payload_for_channel = std::move(source);
+  return {true, {}};
+}
+
+RuntimeChannelPublishResult RuntimeChannelBus::preflight_payload_for_state(ChannelState& state,
+                                                                           const RuntimePayload& payload) {
+  if (state.config.copy_policy != CopyPolicy::kCopy) {
+    return {true, {}};
+  }
+  const auto reason = large_payload_copy_reason(payload);
+  if (!reason.empty()) {
+    ++state.metrics.copy_fallback_count;
+    state.metrics.degradation_reason = reason;
+    return {false, reason};
+  }
+  return {true, {}};
+}
+
+RuntimeChannelPublishResult RuntimeChannelBus::preflight_publish_to_state(ChannelState& state,
+                                                                          std::size_t planned_publications) {
+  if (is_latest_style(state.config.type) || state.queue.size() + planned_publications < state.config.capacity) {
+    return {true, {}};
+  }
+  if (state.config.drop_policy == DropPolicy::kDropNewest) {
+    ++state.metrics.drop_count;
+    ++state.metrics.reject_count;
+    ++state.metrics.health_event_count;
+    emit_channel_health_event(state, HealthEventKind::kChannelOverflow, state.next_sequence, state.queue.size(),
+                              "dropped newest payload");
+    return {false, "dropped newest payload"};
+  }
+  if (state.config.drop_policy == DropPolicy::kBlockProducer) {
+    ++state.metrics.reject_count;
+    ++state.metrics.health_event_count;
+    emit_channel_health_event(state, HealthEventKind::kChannelOverflow, state.next_sequence, state.queue.size(),
+                              "would block producer");
+    return {false, "would block producer"};
+  }
+  if (state.config.drop_policy == DropPolicy::kFailFast) {
+    ++state.metrics.drop_count;
+    ++state.metrics.reject_count;
+    ++state.metrics.health_event_count;
+    emit_channel_health_event(state, HealthEventKind::kChannelOverflow, state.next_sequence, state.queue.size(),
+                              "channel capacity exceeded");
+    return {false, "channel capacity exceeded"};
+  }
   return {true, {}};
 }
 

@@ -51,7 +51,7 @@ Runtime rules:
 - `period_ms` sets the cadence when positive; otherwise `hz` derives the period.
 - `tick_budget_ms` overrides the overrun accounting budget without changing the cadence.
 - `wall_clock_enabled: false` keeps deterministic simulated ticks.
-- `wall_clock_enabled: true` sleeps before later ticks when the next scheduled tick is in the future.
+- `wall_clock_enabled: true` sleeps before later ticks when the next scheduled tick is in the future; the sleep polls the stop token in short intervals so external stop requests do not wait for the full period.
 - `overrun_policy` accepts `drop_tick`, `skip_next`, or `catch_up_once`; it is an alpha policy for how the next scheduled wall-clock tick is chosen after lateness, not a hard real-time guarantee.
 - The v1 wall-clock scheduler remains single-runtime and cooperative; it does not create independent lane threads.
 
@@ -135,7 +135,7 @@ Test coverage:
 
 ## Stop, Drain, And Cleanup
 
-`RuntimeRunnerOptions::stop_token` is checked before each scheduler iteration. If stop is requested:
+`RuntimeRunnerOptions::stop_token` is checked before each scheduler iteration and during opt-in fixed-rate wall-clock sleeps. If stop is requested:
 
 - no new iteration starts;
 - already-started components are deactivated in reverse startup order;

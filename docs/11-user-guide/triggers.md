@@ -16,7 +16,7 @@ Trigger readiness is owned by the runtime. Components receive `Invocation` objec
 | `task_ready` / `future_ready` | Produces task/future-ready event invocations from async completion-style inputs. |
 | `watermark` | Message trigger v2 preview. Tracks the maximum event timestamp per component/timestamp domain and drops timestamped samples older than that watermark minus `watermark_lateness_ms`. Messages without event timestamps are still delivered but do not advance the watermark. |
 | `condition` | Declarative trigger v2 preview. Allows only built-in readiness predicates: `all_inputs_ready`, `any_input_ready`, and `event_timestamp_present`; arbitrary scripting is invalid. |
-| `debounce` | Trigger v2 preview that coalesces currently pending messages to the latest message per input at the scheduler check. `debounce_window_ms` is reserved and does not sleep in schema v1. |
+| `debounce` | Trigger v2 preview that coalesces currently pending messages to the latest message per input at the scheduler check. `debounce_window_ms` is reserved; schema v1 accepts only `0` and does not sleep. |
 | `rate_limit` | Trigger v2 preview that uses positive `min_interval_ms` to admit at most one ready invocation inside the interval. It is deterministic and does not rely on OS timers. |
 
 ## Coalescing, rate limits, and timeouts
@@ -38,6 +38,11 @@ Trigger readiness is owned by the runtime. Components receive `Invocation` objec
   message.
 
 Timeouts are cooperative and deterministic; they do not interrupt component code that is already executing.
+
+Timer event sources are exclusive with input-driven event source types on the
+same component. Action goal/cancel readiness is deferred from schema v1 runtime
+triggers; model those paths as message or request inputs until the action
+adapter contract is implemented.
 
 ## Request and future metadata
 

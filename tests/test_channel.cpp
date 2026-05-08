@@ -185,6 +185,67 @@ TEST(Channel, QueueFailFastReturnsCapacityError) {
   EXPECT_EQ(metrics.health_event_count, 1u);
 }
 
+TEST(Channel, FanOutPreflightRejectDoesNotCommitEarlierTargets) {
+  auto accepted = edge("accepted", "queue", 2);
+  accepted.to = "left.in";
+  auto rejected = edge("copy_reject", "queue", 2);
+  rejected.to = "right.in";
+  rejected.policy.copy_policy = "copy";
+  topoexec::RuntimeChannelBus bus({accepted, rejected});
+  auto buffer = std::make_shared<const topoexec::SharedBuffer>(32);
+
+  const auto result = bus.publish_from("producer.out", topoexec::make_binary_blob_payload(buffer, 0, 32, "bytes"));
+
+  EXPECT_FALSE(result.accepted);
+  EXPECT_NE(result.reason.find("cannot copy large payload schema topoexec.runtime.BinaryBlob"), std::string::npos);
+  EXPECT_TRUE(bus.consume_for_component("left").empty());
+  EXPECT_EQ(bus.metrics("accepted").published_count, 0u);
+  EXPECT_EQ(bus.metrics("copy_reject").published_count, 0u);
+}
+
+TEST(Channel, PublishBatchPreflightRejectDoesNotCommitPartialBatch) {
+  auto spec = edge("events", "queue", 1);
+  spec.policy.overflow = "fail_fast";
+  topoexec::RuntimeChannelBus bus({spec});
+  topoexec::RuntimeChannelPublication first;
+  first.target = topoexec::RuntimeChannelPublishTarget::kChannel;
+  first.id = "events";
+  first.payload = topoexec::make_shared_payload(topoexec::make_text_payload("one"));
+  topoexec::RuntimeChannelPublication second;
+  second.target = topoexec::RuntimeChannelPublishTarget::kChannel;
+  second.id = "events";
+  second.payload = topoexec::make_shared_payload(topoexec::make_text_payload("two"));
+
+  const auto result = bus.publish_batch({first, second});
+
+  EXPECT_FALSE(result.accepted);
+  EXPECT_EQ(result.reason, "channel capacity exceeded");
+  EXPECT_TRUE(bus.consume_for_component("consumer").empty());
+  const auto metrics = bus.metrics("events");
+  EXPECT_EQ(metrics.published_count, 0u);
+  EXPECT_EQ(metrics.drop_count, 1u);
+  EXPECT_EQ(metrics.reject_count, 1u);
+}
+
+TEST(Channel, PublicationRouterCommitPreflightRejectDoesNotCommitPartialImmediateBatch) {
+  auto spec = edge("events", "queue", 1);
+  spec.policy.overflow = "fail_fast";
+  topoexec::RuntimeChannelBus bus({spec});
+  topoexec::RuntimePublicationRouter router(&bus, {spec});
+  ASSERT_TRUE(router.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(router.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+
+  const auto result = router.commit_immediate();
+
+  EXPECT_FALSE(result.accepted);
+  EXPECT_EQ(result.reason, "channel capacity exceeded");
+  EXPECT_TRUE(bus.consume_for_component("consumer").empty());
+  EXPECT_EQ(bus.metrics("events").published_count, 0u);
+  const auto router_metrics = router.metrics();
+  EXPECT_EQ(router_metrics.committed_count, 0u);
+  EXPECT_EQ(router_metrics.failed_commit_count, 1u);
+}
+
 TEST(Channel, QueueDrainMaxBatchPreservesRemainingMessages) {
   topoexec::RuntimeChannelBus bus({edge("events", "queue", 3)});
   ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
@@ -198,6 +259,24 @@ TEST(Channel, QueueDrainMaxBatchPreservesRemainingMessages) {
   auto second = bus.drain_for_component_port("consumer", "in", 1);
   ASSERT_EQ(second.size(), 1u);
   EXPECT_EQ(*second.front().payload, "two");
+}
+
+TEST(Channel, LatestPortDrainMaxBatchPreservesUndrainedLatestChannels) {
+  auto left = edge("left_latest");
+  left.from = "left.out";
+  auto right = edge("right_latest");
+  right.from = "right.out";
+  topoexec::RuntimeChannelBus bus({left, right});
+  ASSERT_TRUE(bus.publish_from("left.out", topoexec::make_text_payload("left")).accepted);
+  ASSERT_TRUE(bus.publish_from("right.out", topoexec::make_text_payload("right")).accepted);
+
+  auto first = bus.drain_for_component_port("consumer", "in", 1);
+  ASSERT_EQ(first.size(), 1u);
+  EXPECT_EQ(*first.front().payload, "left");
+
+  auto second = bus.drain_for_component_port("consumer", "in", 1);
+  ASSERT_EQ(second.size(), 1u);
+  EXPECT_EQ(*second.front().payload, "right");
 }
 
 TEST(Channel, SnapshotDoesNotConsumeQueuedMessages) {

@@ -285,8 +285,12 @@ bool is_large_payload_schema(const std::string& schema) {
 }
 
 bool is_allowed_event_source_type(const std::string& type) {
-  return type == "message" || type == "timer" || type == "request" || type == "action_goal" ||
-         type == "action_cancel" || type == "task_ready" || type == "future_ready" || type == "manual";
+  return type == "message" || type == "timer" || type == "request" || type == "task_ready" || type == "future_ready" ||
+         type == "manual";
+}
+
+bool is_reserved_event_source_type(const std::string& type) {
+  return type == "action_goal" || type == "action_cancel";
 }
 
 bool is_allowed_trigger_policy_type(const std::string& type) {
@@ -851,7 +855,10 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
       add_error(result, "component " + component.id + " requires at least one event_source");
     }
     for (const auto& source : component.event_sources) {
-      if (!is_allowed_event_source_type(source.type)) {
+      if (is_reserved_event_source_type(source.type)) {
+        add_error(result, "component " + component.id + " event_source.type " + source.type +
+                              " is reserved but not implemented in schema v1");
+      } else if (!is_allowed_event_source_type(source.type)) {
         add_error(result, "component " + component.id + " has unsupported event_source.type " + source.type);
       }
       if (source.type == "timer" && source.period_ms <= 0) {
@@ -860,6 +867,10 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
       if (source.type == "message" && source.inputs.empty()) {
         add_error(result, "component " + component.id + " message event_source requires at least one input");
       }
+    }
+    if (has_timer_event_source(component) && has_message_event_source(component)) {
+      add_error(result,
+                "component " + component.id + " cannot mix timer event_source with input-driven event_source types");
     }
     if (!is_allowed_trigger_policy_type(component.trigger_policy.type)) {
       add_error(result,
@@ -878,6 +889,10 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
         component.trigger_policy.max_latency_ms < 0 || component.trigger_policy.watermark_lateness_ms < 0 ||
         component.trigger_policy.debounce_window_ms < 0) {
       add_error(result, "component " + component.id + " trigger_policy numeric fields must be non-negative");
+    }
+    if (component.trigger_policy.debounce_window_ms > 0) {
+      add_error(result, "component " + component.id +
+                            " trigger_policy.debounce_window_ms is reserved in schema v1 and must be 0");
     }
     if (component.trigger_policy.type == "batch" && component.trigger_policy.batch_size <= 0 &&
         component.trigger_policy.batch_window_ms <= 0) {

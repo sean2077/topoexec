@@ -13,6 +13,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <map>
 #include <mutex>
 #include <string>
@@ -194,15 +195,15 @@ public:
   void clear();
 
 private:
-  template <typename T> Status push_bounded(std::vector<T>& records, T value);
+  template <typename T> Status push_bounded(std::deque<T>& records, T value);
 
   std::size_t capacity_{256};
   mutable std::mutex mutex_;
-  std::vector<RuntimeRunnerResult> results_;
-  std::vector<RuntimeMetricSample> metrics_;
-  std::vector<RuntimeTraceEvent> trace_events_;
-  std::vector<HealthEvent> health_events_;
-  std::vector<RuntimeError> runtime_errors_;
+  std::deque<RuntimeRunnerResult> results_;
+  std::deque<RuntimeMetricSample> metrics_;
+  std::deque<RuntimeTraceEvent> trace_events_;
+  std::deque<HealthEvent> health_events_;
+  std::deque<RuntimeError> runtime_errors_;
   std::atomic_size_t dropped_event_count_{0};
 };
 

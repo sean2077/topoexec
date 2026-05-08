@@ -184,6 +184,18 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 
 ### Fixed
 
+- Rejected unsupported trigger contract shapes before runtime execution:
+  timer/input-driven event source mixes, schema-v1 action goal/cancel event
+  sources, and non-zero reserved `debounce_window_ms` values.
+- Made fan-out and batch publication reject paths preflight before payloads
+  become visible, while preserving reject/drop health and metric evidence on the
+  rejecting channel.
+- Bounded `ThreadedTaskExecutor` completed-record backlog by counting undrained
+  completions toward admission and exposing `completed_backlog_depth`.
+- Made opt-in fixed-rate wall-clock sleeps poll stop tokens instead of sleeping
+  through the full period after a stop request.
+- Made the release-prepare smoke idempotent when a local candidate tag already
+  exists, without weakening the real release-prep existing-tag guard.
 - Fixed `topoexec doctor --format json` graph inventory drift by discovering
   schema-versioned YAML examples and benchmark graphs recursively while
   excluding live-assertion YAML files from graph example lists.
@@ -196,6 +208,8 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 - Moved drained channel queue messages into component input batches instead
   of copying them, preserving delivery order while reducing hot-path payload
   churn.
+- Replaced `InMemoryRuntimeObserver` front-vector erasure with bounded deque
+  storage while keeping the public vector snapshot API unchanged.
 - Expanded the focused schema gate to include CLI parser-limit and
   diagnostics error-path regression coverage.
 - Clarified `overflow: block` as alpha would-block rejection rather than true

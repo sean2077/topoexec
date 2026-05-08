@@ -1,6 +1,6 @@
 # Goal Status
 
-Last updated: 2026-05-07
+Last updated: 2026-05-08
 
 This is the current goal ledger. It records live state, completed ranges,
 current evidence, and active deferrals only. Detailed command transcripts,
@@ -12,8 +12,8 @@ bundles, or git history.
 | Area | State |
 | --- | --- |
 | Historical goal sweeps | G0-G25, G26-G70, G71, G73-G95, and G99 are complete. |
-| Active implementation goal | None. |
-| Required repository gate | `scripts/agent_check.sh` before declaring repo changes complete. |
+| Active implementation goal | G100 Runtime contract bugfix and boundedness stabilization is complete. |
+| Required repository gate | `scripts/agent_check.sh` passed on 2026-05-08, including `release_prepare_smoke` with an existing local `v0.2.0-alpha.0` tag. |
 | Focused docs gate | `scripts/goal_check.sh docs`. |
 | High-signal focused gates | `golden`, `schema`, `examples`, `showcase`, `package`, `policy`, `live`, `bench`, `live-perf`, `stress`, `fuzz`, and `sanitizer` as relevant to the changed surface. |
 | Blockers | G81/G82/G83 ecosystem, integration, package-publication, schema-v2, v1.0, and hard-real-time decisions remain deferred until adoption signals and human owner decisions resolve them. |
@@ -32,6 +32,60 @@ bundles, or git history.
 | G84-G85 | Core-runtime beta-candidate readiness and v1 readiness deferral completed. | Beta readiness review, v1 readiness program, release progression/checklist, and focused beta/v1 validation. |
 | G86-G95 | Trust-trial maintainability sweeps completed across runtime correctness, concurrency/lifetime, CLI/schema/YAML errors, performance, coverage, API/package, reliability, public consistency, and release-candidate stabilization. | Current docs, tests, CHANGELOG, focused gates, and full repository validation. |
 | G99 | Final validation and ledger reconciliation completed for G75-G95. | Required repository gate, focused docs/golden/schema/examples/showcase/package/policy/live/bench/live-perf/stress/fuzz/sanitizer gates, diff check, and ultragoal status reconciliation were completed on 2026-05-07. |
+
+## Active Goal
+
+### G100 Runtime contract bugfix and boundedness stabilization
+
+State: complete.
+
+Scope:
+- Align schema-accepted trigger/channel/runtime fields with implemented
+  behavior, or reject unsupported reserved behavior with validation diagnostics.
+- Make fan-out and batch publication reject paths all-or-nothing where the
+  runtime can preflight them deterministically.
+- Prove bounded batch, queue, completion, and scheduler metric behavior with
+  focused regression tests.
+- Reconcile semantic docs, schema/goldens, CHANGELOG, and preview boundaries
+  with the implemented runtime behavior.
+
+Allowed files:
+- `src/trigger_policy.cpp`, `src/graph.cpp`, `src/graph_io.cpp`,
+  `src/channel.cpp`, `src/task_executor.cpp`, `src/scheduler.cpp`,
+  `src/event_runtime.cpp`, and matching public runtime headers when required.
+- `tests/test_runtime.cpp`, `tests/test_channel.cpp`, `tests/test_graph.cpp`,
+  `tests/test_stress.cpp`, and focused CLI/schema/golden checks when the
+  changed contract requires them.
+- Runtime semantic docs, schema files, generated goldens, roadmap status, and
+  CHANGELOG entries directly tied to this goal.
+
+Acceptance criteria:
+- Schema-accepted runtime behavior is implemented, validation-rejected, or
+  documented as reserved with a focused diagnostic.
+- Fan-out publication and `publish_batch` do not leave partially visible
+  mutations on preflightable reject paths.
+- Bounded APIs honor their configured batch, capacity, and queue limits, and
+  metrics used to report those limits have direct tests.
+- Health/observer/trace changes preserve best-effort observer semantics and do
+  not add production exporter, adapter, hard-real-time, schema-v2, or dashboard
+  scope.
+
+Validation:
+- Required final gate: `scripts/agent_check.sh`.
+- Focused gates as changed surfaces require: `scripts/goal_check.sh docs`,
+  `golden`, `schema`, `stress`, `fuzz`, `sanitizer`, `bench`, and `live`.
+- Targeted CTest filters for graph, runtime, channel, stress, scheduler, and
+  executor regressions before broader gates.
+
+Current evidence:
+- `scripts/agent_check.sh` passed format, clang-tidy, build, and 87/87 CTest
+  cases.
+- `release_prepare_smoke` now passes without deleting or rewriting an existing
+  local `v0.2.0-alpha.0` tag.
+- `ctest --test-dir build-asan-ubsan --output-on-failure -E
+  '^release_prepare_smoke$'` passed 86/86 after rebuilding the sanitizer tree.
+- Focused docs, schema, golden, package, stress, fuzz, bench, live, and
+  live-perf gates passed.
 
 ## Active Deferrals
 

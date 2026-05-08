@@ -544,7 +544,7 @@ RuntimeObserverStatus RuntimeObserver::status() const {
 
 InMemoryRuntimeObserver::InMemoryRuntimeObserver(std::size_t capacity) : capacity_(capacity) {}
 
-template <typename T> Status InMemoryRuntimeObserver::push_bounded(std::vector<T>& records, T value) {
+template <typename T> Status InMemoryRuntimeObserver::push_bounded(std::deque<T>& records, T value) {
   if (capacity_ == 0u) {
     dropped_event_count_.fetch_add(1u, std::memory_order_relaxed);
     return Status::success();
@@ -555,7 +555,7 @@ template <typename T> Status InMemoryRuntimeObserver::push_bounded(std::vector<T
     return Status::success();
   }
   if (records.size() >= capacity_) {
-    records.erase(records.begin());
+    records.pop_front();
     dropped_event_count_.fetch_add(1u, std::memory_order_relaxed);
   }
   records.push_back(std::move(value));
@@ -588,27 +588,27 @@ RuntimeObserverStatus InMemoryRuntimeObserver::status() const {
 
 std::vector<RuntimeRunnerResult> InMemoryRuntimeObserver::results() const {
   std::lock_guard lock(mutex_);
-  return results_;
+  return {results_.begin(), results_.end()};
 }
 
 std::vector<RuntimeMetricSample> InMemoryRuntimeObserver::metrics() const {
   std::lock_guard lock(mutex_);
-  return metrics_;
+  return {metrics_.begin(), metrics_.end()};
 }
 
 std::vector<RuntimeTraceEvent> InMemoryRuntimeObserver::trace_events() const {
   std::lock_guard lock(mutex_);
-  return trace_events_;
+  return {trace_events_.begin(), trace_events_.end()};
 }
 
 std::vector<HealthEvent> InMemoryRuntimeObserver::health_events() const {
   std::lock_guard lock(mutex_);
-  return health_events_;
+  return {health_events_.begin(), health_events_.end()};
 }
 
 std::vector<RuntimeError> InMemoryRuntimeObserver::runtime_errors() const {
   std::lock_guard lock(mutex_);
-  return runtime_errors_;
+  return {runtime_errors_.begin(), runtime_errors_.end()};
 }
 
 void InMemoryRuntimeObserver::clear() {

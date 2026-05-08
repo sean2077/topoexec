@@ -23,9 +23,12 @@ The core runtime does not require a task executor. Applications can attach any `
 - `max_workers`: maximum worker threads in the preview pool; `0` is normalized to `1`.
 - `shutdown_policy`: `drain` by default. `cancel_pending` / `cancel` / `discard_pending` cancel pending work during shutdown. Active work is not forcibly killed.
 
-The executor never creates an unbounded task backlog.
+The executor never creates an unbounded task backlog. For
+`ThreadedTaskExecutor`, completion records waiting for `run_ready()` count
+toward the admission bound, so an embedder that never drains completions cannot
+grow memory without limit.
 
-Rejected task submissions increment `TaskExecutorMetrics::rejected_count` and, when a bounded `HealthEventSink` is attached, emit a `task_reject` health event with the executor overflow policy, reason, depth, and capacity. The event is observer-only; it does not run graph components or retry work.
+Rejected task submissions increment `TaskExecutorMetrics::rejected_count` and, when a bounded `HealthEventSink` is attached, emit a `task_reject` health event with the executor overflow policy, reason, depth, and capacity. The threaded executor builds the event while holding its internal mutex but emits it after releasing that mutex. The event is observer-only; it does not run graph components or retry work.
 
 ## Deterministic execution
 
@@ -33,7 +36,7 @@ Rejected task submissions increment `TaskExecutorMetrics::rejected_count` and, w
 
 ## Threaded preview
 
-`ThreadedTaskExecutor` starts a bounded worker pool at construction. `submit()` admits work into a bounded pending queue, workers execute admitted tasks up to `min(max_workers, max_inflight)` active tasks, and completion callbacks run exactly once per completed task. `run_ready(max_tasks, cancel_token)` drains completion records already produced by workers; it does not execute tasks synchronously. `wait_for_idle(timeout)` is a preview-only helper for tests and embedders that need to wait until pending and active work reach zero.
+`ThreadedTaskExecutor` starts a bounded worker pool at construction. `submit()` admits work into a bounded pending queue, workers execute admitted tasks up to `min(max_workers, max_inflight)` active tasks, and completion callbacks run exactly once per completed task. `run_ready(max_tasks, cancel_token)` drains completion records already produced by workers; it does not execute tasks synchronously. `wait_for_idle(timeout)` is a preview-only helper for tests and embedders that need to wait until pending and active work reach zero. If completed records are not drained, `completed_backlog_depth` grows only up to the same admission capacity and new submissions are rejected or handled by overflow policy.
 
 Cancellation remains cooperative: `cancel_pending()` and cancellation passed to `run_ready()` remove pending tasks, while already active C++ work runs until it returns. `shutdown()` joins worker threads after draining or cancelling pending tasks according to `shutdown_policy`; no hard thread termination is attempted.
 
@@ -53,5 +56,6 @@ Cancellation remains cooperative: `cancel_pending()` and cancellation passed to 
 - `timeout_budget_exceeded_count`
 - `max_inflight_count`
 - `queue_depth`
+- `completed_backlog_depth`
 
 Task failures become `TaskCompletion{ok=false, error=...}`; they do not throw out of `run_ready()`.

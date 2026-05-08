@@ -28,6 +28,7 @@ def main() -> int:
         "v0.2.0-alpha.0",
         "--dry-run",
         "--allow-dirty",
+        "--allow-existing-tag",
         "--artifacts-dir",
         str(smoke_dir),
         "--notes-out",

@@ -141,10 +141,12 @@ contract intentionally changes.
 
 ## Release prep smoke
 
-`release_prepare_smoke` runs `scripts/release_prepare.sh --dry-run --allow-dirty`
-with the recommended `v0.2.0-alpha.0` prerelease target. It proves the script
-can validate release docs/changelog policy, draft notes, and write the
-human-only annotated tag command without creating artifacts, tags, or uploads.
+`release_prepare_smoke` runs `scripts/release_prepare.sh --dry-run --allow-dirty
+--allow-existing-tag` with the recommended `v0.2.0-alpha.0` prerelease target.
+It proves the script can validate release docs/changelog policy, draft notes,
+and write the human-only annotated tag command without creating artifacts, tags,
+or uploads. The smoke is idempotent when the local candidate tag already exists;
+real non-dry-run release prep still fails on existing tags.
 Use the focused gate for script changes:
 
 ```bash

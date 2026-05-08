@@ -13,6 +13,7 @@
 #include <deque>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -45,6 +46,7 @@ struct TaskExecutorMetrics {
   std::size_t timeout_budget_exceeded_count{0};
   std::size_t max_inflight_count{0};
   std::size_t queue_depth{0};
+  std::size_t completed_backlog_depth{0};
 };
 
 struct TaskSubmissionResult {
@@ -126,12 +128,18 @@ private:
     Work work;
     CompletionCallback completion;
   };
+  struct RejectedSubmission {
+    TaskSubmissionResult result;
+    HealthEventSink* sink{nullptr};
+    std::optional<HealthEvent> event;
+  };
 
   std::size_t admission_capacity_locked() const;
   bool drop_oldest_on_overflow_locked() const;
   bool cancel_pending_on_shutdown_locked() const;
-  TaskSubmissionResult reject_submission_locked(std::string reason);
-  void emit_reject_health_event_locked(const std::string& reason);
+  RejectedSubmission reject_submission_locked(std::string reason);
+  std::optional<HealthEvent> make_reject_health_event_locked(const std::string& reason) const;
+  void emit_reject_health_event(RejectedSubmission& rejected);
   void cancel_pending_locked();
   void shutdown_workers();
   void start_workers();

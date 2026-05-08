@@ -927,6 +927,49 @@ TEST(Graph, TriggerNeverReadyWarningDoesNotFailValidation) {
   EXPECT_EQ(diagnostic->graph_path, "components.b.trigger_policy");
 }
 
+TEST(Graph, RejectsTimerAndInputDrivenEventSourceMix) {
+  auto graph = minimal_graph();
+  auto& sink = graph.components.back();
+  topoexec::EventSourceSpec timer;
+  timer.type = "timer";
+  timer.period_ms = 10;
+  topoexec::EventSourceSpec message;
+  message.type = "message";
+  message.inputs = {"in"};
+  sink.event_sources = {timer, message};
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(
+      has_error_containing(result.errors, "cannot mix timer event_source with input-driven event_source types"));
+}
+
+TEST(Graph, RejectsReservedActionEventSourcesUntilImplemented) {
+  auto graph = minimal_graph();
+  auto& sink = graph.components.back();
+  sink.event_sources.front().type = "action_goal";
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(has_error_containing(result.errors,
+                                   "event_source.type action_goal is reserved but not implemented in schema v1"));
+}
+
+TEST(Graph, RejectsNonZeroDebounceWindowMsUntilImplemented) {
+  auto graph = minimal_graph();
+  auto& sink = graph.components.back();
+  sink.trigger_policy.type = "debounce";
+  sink.trigger_policy.debounce_window_ms = 25;
+
+  const auto result = topoexec::validate_graph_structure(graph);
+
+  EXPECT_FALSE(result.ok);
+  EXPECT_TRUE(
+      has_error_containing(result.errors, "trigger_policy.debounce_window_ms is reserved in schema v1 and must be 0"));
+}
+
 TEST(Graph, PlanJsonIncludesSchedulerLaneCapabilitySummary) {
   const auto graph = topoexec::load_graph_text(R"(
 schema_version: 1

@@ -2,6 +2,7 @@
 #include "topoexec/runtime/event_runtime.hpp"
 #include "topoexec/runtime/metric_schema.hpp"
 #include "topoexec/runtime/runtime_runner.hpp"
+#include "topoexec/runtime/scheduler.hpp"
 #include "topoexec/runtime/state.hpp"
 
 #include <gtest/gtest.h>
@@ -1916,6 +1917,22 @@ edges:
 
 } // namespace
 
+TEST(Runtime, SchedulerMetricsTrackerCountsObservedTicks) {
+  topoexec::SchedulerMetricsTracker tracker;
+  topoexec::SchedulerGroupConfig group;
+  group.id = "main";
+  const auto scheduled_at = std::chrono::steady_clock::now();
+  const auto started_at = scheduled_at + std::chrono::milliseconds(2);
+
+  tracker.observe_tick(group, scheduled_at, started_at, std::chrono::milliseconds(3));
+  tracker.observe_tick(group, scheduled_at, started_at, std::chrono::milliseconds(0));
+
+  const auto& metrics = tracker.metrics();
+  EXPECT_EQ(metrics.tick_count, 2u);
+  EXPECT_EQ(metrics.completed_count, 1u);
+  EXPECT_GT(metrics.tick_jitter_ms, 0.0);
+}
+
 TEST(Runtime, StaticRegistryValidationAndDryRunPass) {
   const auto reg = registry();
   const auto spec = graph();
@@ -2728,6 +2745,35 @@ TEST(Runtime, ThreadedTaskExecutorRunsBoundedWorkAndReportsCompletions) {
   EXPECT_GE(metrics.max_inflight_count, 1u);
 }
 
+TEST(Runtime, ThreadedTaskExecutorCompletedBacklogCountsTowardAdmission) {
+  topoexec::ThreadedTaskExecutorConfig config;
+  config.max_workers = 1;
+  config.max_inflight = 1;
+  config.queue_capacity = 0;
+  config.overflow = "reject";
+  topoexec::ThreadedTaskExecutor executor(config);
+  topoexec::HealthEventSink sink(4);
+  executor.set_health_event_sink(&sink);
+
+  ASSERT_TRUE(executor.submit([]() { return topoexec::make_text_payload("one"); }).accepted);
+  ASSERT_TRUE(executor.wait_for_idle(std::chrono::seconds(1)));
+  EXPECT_EQ(executor.metrics().completed_backlog_depth, 1u);
+
+  const auto rejected = executor.submit([]() { return topoexec::make_text_payload("two"); });
+
+  EXPECT_FALSE(rejected.accepted);
+  EXPECT_EQ(rejected.reason, "task executor queue full");
+  const auto events = sink.snapshot();
+  ASSERT_EQ(events.size(), 1u);
+  EXPECT_EQ(events.front().kind, topoexec::HealthEventKind::kTaskReject);
+  EXPECT_EQ(events.front().depth, 1u);
+
+  const auto completions = executor.run_ready();
+  ASSERT_EQ(completions.size(), 1u);
+  EXPECT_EQ(executor.metrics().completed_backlog_depth, 0u);
+  EXPECT_TRUE(executor.submit([]() { return topoexec::make_text_payload("three"); }).accepted);
+}
+
 TEST(Runtime, ThreadedTaskExecutorReportsFailuresWithoutThrowingFromRunReady) {
   topoexec::ThreadedTaskExecutor executor;
   ASSERT_TRUE(
@@ -3192,6 +3238,38 @@ TEST(Runtime, FixedRateWallClockModeSleepsBetweenTicksWhenOptedIn) {
   EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.blocked_duration_ms", 1.0));
   EXPECT_TRUE(has_trace_event(result, "fixed_rate_tick_begin"));
   EXPECT_TRUE(has_trace_event(result, "fixed_rate_tick_end"));
+}
+
+TEST(Runtime, FixedRateWallClockSleepStopsPromptlyWhenTokenRequested) {
+  const auto reg = delay_registry();
+  auto spec = fixed_rate_wall_clock_graph();
+  spec.lanes.front().period_ms = 250;
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 2;
+  topoexec::SchedulerStopSource stop_source;
+  options.stop_token = stop_source.token();
+  topoexec::RuntimeRunnerResult result;
+  std::atomic_bool run_started{false};
+
+  const auto started_at = std::chrono::steady_clock::now();
+  std::thread runtime_thread([&]() {
+    run_started.store(true, std::memory_order_release);
+    result = runner.run(spec, options);
+  });
+  while (!run_started.load(std::memory_order_acquire)) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  stop_source.request_stop();
+  runtime_thread.join();
+  const auto elapsed = std::chrono::steady_clock::now() - started_at;
+
+  EXPECT_TRUE(result.ok) << first_error_message(result);
+  EXPECT_EQ(result.scheduler_stop_reason, topoexec::SchedulerStopReason::kStopRequested);
+  EXPECT_LT(elapsed, std::chrono::milliseconds(200));
+  EXPECT_LE(result.tick_calls, 1u);
 }
 
 TEST(Runtime, RuntimePriorityOrdersIndependentReadyComponentsAndDoesNotStarveLowPriority) {

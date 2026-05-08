@@ -72,6 +72,7 @@ void SchedulerMetricsTracker::observe_tick(const SchedulerGroupConfig&,
                                            std::chrono::steady_clock::time_point scheduled_at,
                                            std::chrono::steady_clock::time_point started_at,
                                            std::chrono::steady_clock::duration callback_duration) {
+  ++metrics_.tick_count;
   metrics_.tick_jitter_ms = std::chrono::duration<double, std::milli>(started_at - scheduled_at).count();
   metrics_.last_callback_duration_ms = std::chrono::duration<double, std::milli>(callback_duration).count();
   if (metrics_.last_callback_duration_ms > 0.0) {

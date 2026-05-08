@@ -217,6 +217,8 @@ private:
 
   RuntimeChannelPublishResult prepare_payload_for_state(ChannelState& state, RuntimePayloadPtr source,
                                                         RuntimePayloadPtr& payload_for_channel, bool& copied);
+  RuntimeChannelPublishResult preflight_payload_for_state(ChannelState& state, const RuntimePayload& payload);
+  RuntimeChannelPublishResult preflight_publish_to_state(ChannelState& state, std::size_t planned_publications);
   RuntimeChannelPublishResult publish_to_state(ChannelState& state, RuntimePayloadPtr payload,
                                                std::optional<EventTimestamp> event_timestamp, bool payload_was_copied,
                                                InvocationMetadata metadata);

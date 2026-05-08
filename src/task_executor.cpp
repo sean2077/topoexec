@@ -138,6 +138,7 @@ std::size_t DeterministicTaskExecutor::cancel_pending() {
 TaskExecutorMetrics DeterministicTaskExecutor::metrics() const {
   auto metrics = metrics_;
   metrics.queue_depth = pending_.size();
+  metrics.completed_backlog_depth = 0u;
   return metrics;
 }
 
@@ -163,24 +164,33 @@ bool ThreadedTaskExecutor::cancel_pending_on_shutdown_locked() const {
   return cancel_pending_shutdown_policy(config_.shutdown_policy);
 }
 
-TaskSubmissionResult ThreadedTaskExecutor::reject_submission_locked(std::string reason) {
+ThreadedTaskExecutor::RejectedSubmission ThreadedTaskExecutor::reject_submission_locked(std::string reason) {
   ++metrics_.rejected_count;
-  emit_reject_health_event_locked(reason);
-  return {false, 0u, std::move(reason)};
+  RejectedSubmission rejected;
+  rejected.result = {false, 0u, reason};
+  rejected.sink = health_events_;
+  rejected.event = make_reject_health_event_locked(reason);
+  return rejected;
 }
 
-void ThreadedTaskExecutor::emit_reject_health_event_locked(const std::string& reason) {
+std::optional<HealthEvent> ThreadedTaskExecutor::make_reject_health_event_locked(const std::string& reason) const {
   if (health_events_ == nullptr) {
-    return;
+    return std::nullopt;
   }
   HealthEvent event;
   event.kind = HealthEventKind::kTaskReject;
   event.source = "task_executor";
   event.policy = config_.overflow;
   event.reason = reason;
-  event.depth = pending_.size() + metrics_.active_count;
+  event.depth = pending_.size() + metrics_.active_count + completed_.size();
   event.capacity = admission_capacity_locked();
-  health_events_->emit(std::move(event));
+  return event;
+}
+
+void ThreadedTaskExecutor::emit_reject_health_event(RejectedSubmission& rejected) {
+  if (rejected.sink != nullptr && rejected.event.has_value()) {
+    rejected.sink->emit(std::move(*rejected.event));
+  }
 }
 
 void ThreadedTaskExecutor::set_health_event_sink(HealthEventSink* sink) {
@@ -203,37 +213,58 @@ void ThreadedTaskExecutor::start_workers() {
 
 TaskSubmissionResult ThreadedTaskExecutor::submit(Work work, CompletionCallback completion) {
   if (!work) {
-    std::lock_guard lock(mutex_);
-    return reject_submission_locked("task work must not be empty");
+    RejectedSubmission rejected;
+    {
+      std::lock_guard lock(mutex_);
+      rejected = reject_submission_locked("task work must not be empty");
+    }
+    emit_reject_health_event(rejected);
+    return rejected.result;
   }
 
-  std::lock_guard lock(mutex_);
-  if (stopping_) {
-    return reject_submission_locked("task executor is shutting down");
-  }
-  const auto capacity = admission_capacity_locked();
-  const auto outstanding = pending_.size() + metrics_.active_count;
-  if (outstanding >= capacity) {
-    if (drop_oldest_on_overflow_locked() && !pending_.empty()) {
-      pending_.pop_front();
-      ++metrics_.cancelled_count;
+  TaskSubmissionResult accepted;
+  RejectedSubmission rejected;
+  bool was_rejected = false;
+  {
+    std::lock_guard lock(mutex_);
+    if (stopping_) {
+      rejected = reject_submission_locked("task executor is shutting down");
+      was_rejected = true;
     } else {
-      return reject_submission_locked(config_.overflow == "fail_fast" ? "task executor capacity exceeded"
-                                                                      : "task executor queue full");
+      const auto capacity = admission_capacity_locked();
+      const auto outstanding = pending_.size() + metrics_.active_count + completed_.size();
+      if (outstanding >= capacity) {
+        if (drop_oldest_on_overflow_locked() && !pending_.empty()) {
+          pending_.pop_front();
+          ++metrics_.cancelled_count;
+        } else {
+          rejected = reject_submission_locked(config_.overflow == "fail_fast" ? "task executor capacity exceeded"
+                                                                              : "task executor queue full");
+          was_rejected = true;
+        }
+      }
+    }
+    if (!was_rejected) {
+      PendingTask task;
+      task.id = next_task_id_++;
+      task.work = std::move(work);
+      task.completion = std::move(completion);
+      pending_.push_back(std::move(task));
+      ++metrics_.submitted_count;
+      ++metrics_.queued_count;
+      metrics_.queue_depth = pending_.size();
+      metrics_.completed_backlog_depth = completed_.size();
+      metrics_.max_inflight_count =
+          std::max(metrics_.max_inflight_count, pending_.size() + metrics_.active_count + completed_.size());
+      accepted = {true, pending_.back().id, {}};
     }
   }
-
-  PendingTask task;
-  task.id = next_task_id_++;
-  task.work = std::move(work);
-  task.completion = std::move(completion);
-  pending_.push_back(std::move(task));
-  ++metrics_.submitted_count;
-  ++metrics_.queued_count;
-  metrics_.queue_depth = pending_.size();
-  metrics_.max_inflight_count = std::max(metrics_.max_inflight_count, pending_.size() + metrics_.active_count);
+  if (was_rejected) {
+    emit_reject_health_event(rejected);
+    return rejected.result;
+  }
   work_available_.notify_one();
-  return {true, pending_.back().id, {}};
+  return accepted;
 }
 
 std::vector<TaskCompletion> ThreadedTaskExecutor::run_ready(std::size_t max_tasks, CancellationToken cancel_token) {
@@ -253,6 +284,7 @@ std::vector<TaskCompletion> ThreadedTaskExecutor::run_ready(std::size_t max_task
     completed_.pop_front();
   }
   metrics_.queue_depth = pending_.size();
+  metrics_.completed_backlog_depth = completed_.size();
   return completions;
 }
 
@@ -271,6 +303,7 @@ TaskExecutorMetrics ThreadedTaskExecutor::metrics() const {
   std::lock_guard lock(mutex_);
   auto metrics = metrics_;
   metrics.queue_depth = pending_.size();
+  metrics.completed_backlog_depth = completed_.size();
   return metrics;
 }
 
@@ -362,6 +395,7 @@ void ThreadedTaskExecutor::worker_loop() {
       }
       completed_.push_back(std::move(completion));
       metrics_.queue_depth = pending_.size();
+      metrics_.completed_backlog_depth = completed_.size();
       if (pending_.empty() && metrics_.active_count == 0u) {
         idle_.notify_all();
       }

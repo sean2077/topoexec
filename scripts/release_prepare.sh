@@ -16,6 +16,7 @@ Options:
   --skip-gates             Do not run validation gates. Intended only for script smoke/dry-run rehearsals.
   --skip-artifacts         Do not create tarballs/schema/checksum artifacts.
   --allow-dirty           Allow a dirty working tree. Intended only for local script smoke.
+  --allow-existing-tag     Allow an existing local tag only for dry-run smoke rehearsals.
   -h, --help               Show this help.
 
 This script never creates or pushes tags. It verifies tag policy and prints the
@@ -32,6 +33,7 @@ DRY_RUN=0
 SKIP_GATES=0
 SKIP_ARTIFACTS=0
 ALLOW_DIRTY=0
+ALLOW_EXISTING_TAG=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -65,6 +67,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --allow-dirty)
       ALLOW_DIRTY=1
+      shift
+      ;;
+    --allow-existing-tag)
+      ALLOW_EXISTING_TAG=1
       shift
       ;;
     -h|--help|help)
@@ -101,9 +107,17 @@ if [[ "$ALLOW_DIRTY" -ne 1 && -n "$(git status --short)" ]]; then
   exit 1
 fi
 
-if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null; then
+if [[ "$ALLOW_EXISTING_TAG" -eq 1 && "$DRY_RUN" -ne 1 ]]; then
+  echo "--allow-existing-tag is only valid with --dry-run" >&2
+  exit 2
+fi
+
+if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null && [[ "$ALLOW_EXISTING_TAG" -ne 1 ]]; then
   echo "tag already exists locally: ${VERSION}; fix forward with a new tag" >&2
   exit 1
+fi
+if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null && [[ "$ALLOW_EXISTING_TAG" -eq 1 ]]; then
+  echo "dry-run: allowing existing local tag ${VERSION} for smoke rehearsal"
 fi
 
 if ! grep -q '^## Unreleased' CHANGELOG.md; then

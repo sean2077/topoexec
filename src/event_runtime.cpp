@@ -230,6 +230,18 @@ std::chrono::steady_clock::duration fixed_rate_budget_for_lane(const SchedulerGr
   return fixed_rate_period_for_lane(lane);
 }
 
+bool sleep_until_or_stop(std::chrono::steady_clock::time_point deadline, const std::function<bool()>& stop_requested) {
+  constexpr auto kStopPollInterval = std::chrono::milliseconds(5);
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (stop_requested && stop_requested()) {
+      return true;
+    }
+    const auto now = std::chrono::steady_clock::now();
+    std::this_thread::sleep_until(std::min(deadline, now + kStopPollInterval));
+  }
+  return stop_requested && stop_requested();
+}
+
 std::size_t missed_periods(std::chrono::steady_clock::duration lateness, std::chrono::steady_clock::duration period) {
   if (lateness <= std::chrono::steady_clock::duration::zero() ||
       period <= std::chrono::steady_clock::duration::zero()) {
@@ -573,7 +585,10 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
   };
   for (std::size_t iteration = 0; iteration < iterations; ++iteration) {
     const auto tick_calls_before_iteration = result.tick_calls;
-    if (options.stop_token.stop_requested() || runtime_cancel_token.requested()) {
+    const auto stop_requested = [&]() {
+      return options.stop_token.stop_requested() || runtime_cancel_token.requested();
+    };
+    if (stop_requested()) {
       result.stop_reason = SchedulerStopReason::kStopRequested;
       break;
     }
@@ -583,17 +598,25 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
       break;
     }
     current_wall_clock_ticks.clear();
+    bool stopped_during_wall_clock_wait = false;
     for (auto& [lane_id, scheduled_tick] : next_wall_clock_ticks) {
       auto& metrics = result.group_metrics[lane_id];
       auto now = std::chrono::steady_clock::now();
       if (iteration > 0u && now < scheduled_tick) {
         const auto wait_started_at = now;
-        std::this_thread::sleep_until(scheduled_tick);
+        stopped_during_wall_clock_wait = sleep_until_or_stop(scheduled_tick, stop_requested);
         now = std::chrono::steady_clock::now();
         metrics.blocked_duration_ms = std::max(
             metrics.blocked_duration_ms, std::chrono::duration<double, std::milli>(now - wait_started_at).count());
+        if (stopped_during_wall_clock_wait) {
+          break;
+        }
       }
       current_wall_clock_ticks[lane_id] = scheduled_tick;
+    }
+    if (stopped_during_wall_clock_wait) {
+      result.stop_reason = SchedulerStopReason::kStopRequested;
+      break;
     }
     const auto iteration_started_at = std::chrono::steady_clock::now();
     record_trace_event(trace_, "scheduler_iteration_begin", {{"iteration", std::to_string(iteration + 1u)}});
@@ -985,13 +1008,19 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           record_trace_span(trace_, "loop_iteration", loop_iteration_started_at, loop_iteration_finished_at,
                             iteration_attributes);
           record_trace_event(trace_, "loop_iteration_end", std::move(iteration_attributes));
+          bool residual_threshold_met = false;
+          const auto residual_threshold_limit = region.loop_policy.residual_threshold;
+          if (convergence_snapshot.residual.has_value() && residual_threshold_limit.has_value()) {
+            const auto residual = convergence_snapshot.residual.value();
+            const auto residual_threshold = residual_threshold_limit.value();
+            residual_threshold_met = residual <= residual_threshold;
+          }
           std::string convergence_reason;
           if (loop_policy_converged_after_iteration(region.loop_policy)) {
             convergence_reason = region.loop_policy.convergence;
           } else if (convergence_snapshot.converged) {
             convergence_reason = convergence_snapshot.reason.empty() ? "component_report" : convergence_snapshot.reason;
-          } else if (convergence_snapshot.residual.has_value() && region.loop_policy.residual_threshold.has_value() &&
-                     *convergence_snapshot.residual <= *region.loop_policy.residual_threshold) {
+          } else if (residual_threshold_met) {
             convergence_reason = "residual_threshold";
           }
           if (!convergence_reason.empty()) {

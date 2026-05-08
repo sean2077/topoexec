@@ -1,6 +1,6 @@
 # Goal Backlog
 
-Last updated: 2026-05-07
+Last updated: 2026-05-08
 
 This is the current roadmap entry point. It lists how to choose the next goal,
 whether any work is active, which historical ranges are complete, and which
@@ -19,9 +19,54 @@ future tracks remain deferred.
 
 ## Active Backlog
 
-No implementation goal is active. The next goal should be opened only after its
-scope, allowed files, acceptance criteria, validation, and blocker handling are
-recorded here or in a dedicated blocker note.
+### G100 Runtime contract bugfix and boundedness stabilization
+
+State: complete.
+
+Scope:
+- Align schema/runtime trigger behavior for mixed timer/message sources,
+  unsupported action sources, and reserved debounce window semantics.
+- Make channel fan-out and batch publication reject paths atomic where the
+  runtime can preflight the failure before commit.
+- Harden bounded drain, scheduler metric, executor completion, health emission,
+  and stop-responsiveness behavior with focused tests.
+- Keep semantic docs, schema/goldens, CHANGELOG, and preview boundary wording
+  synchronized with the implementation.
+
+Allowed files:
+- Runtime implementation: `src/trigger_policy.cpp`, `src/graph.cpp`,
+  `src/graph_io.cpp`, `src/channel.cpp`, `src/task_executor.cpp`,
+  `src/scheduler.cpp`, `src/event_runtime.cpp`, and matching public runtime
+  headers when required.
+- Tests: `tests/test_runtime.cpp`, `tests/test_channel.cpp`,
+  `tests/test_graph.cpp`, `tests/test_stress.cpp`, and focused CLI/schema/golden
+  checks for changed contracts.
+- Docs and generated contracts: runtime semantic docs, schema files, generated
+  goldens, this roadmap ledger, and CHANGELOG entries directly tied to G100.
+
+Acceptance criteria:
+- Unsupported schema-accepted runtime semantics are rejected or explicitly
+  reserved with diagnostics; supported semantics have implementation evidence.
+- Fan-out and batch publication preflightable failures are all-or-nothing.
+- Bounded batch/capacity/queue/metric behavior is covered by regression tests.
+- No new adapter, schema-v2 implementation, native Python binding, production
+  exporter, hard-real-time, or runtime dashboard scope is added.
+
+Validation:
+- Required final gate: `scripts/agent_check.sh`.
+- Focused gates as applicable: `scripts/goal_check.sh docs`, `golden`,
+  `schema`, `stress`, `fuzz`, `sanitizer`, `bench`, and `live`.
+- Targeted CTest filters should run before broader gates for graph, runtime,
+  channel, stress, scheduler, and executor regressions.
+
+Current evidence:
+- `scripts/agent_check.sh` passed format, clang-tidy, build, and 87/87 CTest
+  cases.
+- `release_prepare_smoke` now passes without deleting or rewriting an existing
+  local `v0.2.0-alpha.0` tag.
+- Sanitizer CTest passed 86/86 after excluding only the release smoke.
+- Focused docs, schema, golden, package, stress, fuzz, bench, live, and
+  live-perf gates passed.
 
 ## Completed Historical Sweeps
 

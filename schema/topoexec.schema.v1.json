@@ -265,8 +265,6 @@
             "message",
             "timer",
             "request",
-            "action_goal",
-            "action_cancel",
             "task_ready",
             "future_ready"
           ],
@@ -349,7 +347,8 @@
         "debounce_window_ms": {
           "type": "integer",
           "minimum": 0,
-          "default": 0
+          "default": 0,
+          "maximum": 0
         },
         "condition": {
           "type": "string",
