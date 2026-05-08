@@ -28,7 +28,7 @@ The executor never creates an unbounded task backlog. For
 toward the admission bound, so an embedder that never drains completions cannot
 grow memory without limit.
 
-Rejected task submissions increment `TaskExecutorMetrics::rejected_count` and, when a bounded `HealthEventSink` is attached, emit a `task_reject` health event with the executor overflow policy, reason, depth, and capacity. The threaded executor builds the event while holding its internal mutex but emits it after releasing that mutex. The event is observer-only; it does not run graph components or retry work.
+Rejected task submissions increment `TaskExecutorMetrics::rejected_count` and, when a bounded `HealthEventSink` is attached, emit a `task_reject` health event with the executor overflow policy, reason, depth, and capacity. Threaded reject events also include `pending_depth`, `active_count`, `completed_backlog_depth`, and `admission_capacity` attributes so an undrained-completion rejection is distinguishable from a full pending queue. The threaded executor builds the event while holding its internal mutex but emits it after releasing that mutex. The event is observer-only; it does not run graph components or retry work.
 
 ## Deterministic execution
 
@@ -54,7 +54,8 @@ Cancellation remains cooperative: `cancel_pending()` and cancellation passed to 
 - `cancellation_requested_count`
 - `cancellation_observed_count`
 - `timeout_budget_exceeded_count`
-- `max_inflight_count`
+- `max_inflight_count`: high-water mark for pending plus active work only; it does not include undrained completions.
+- `max_outstanding_count`: high-water mark for pending, active, and undrained completed records counted against threaded admission.
 - `queue_depth`
 - `completed_backlog_depth`
 

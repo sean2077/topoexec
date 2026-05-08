@@ -192,6 +192,9 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
   rejecting channel.
 - Bounded `ThreadedTaskExecutor` completed-record backlog by counting undrained
   completions toward admission and exposing `completed_backlog_depth`.
+- Split `ThreadedTaskExecutor` in-flight and outstanding high-water metrics so
+  undrained completions do not pollute `max_inflight_count`, and made completed
+  backlog admission rejections report an explicit reason.
 - Moved channel health-event sink calls outside the channel bus mutex while
   preserving in-lock metric and degradation accounting.
 - Made `reject_new` lane overflow explicitly follow the reject-newest admission
@@ -236,6 +239,9 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 - Runtime docs now distinguish async-edge admission from optional deterministic/threaded task executor helpers.
 - Runtime docs now describe bounded-cardinality correlation/causation metadata on invocations, channel messages, and trace events while keeping metrics labels stable by default.
 - Runtime docs now distinguish channel health counters from optional bounded health events and document that health events are observer-only unless future graph-boundary wiring is explicitly added.
+- Runtime/API docs now state non-owning health sink lifetime requirements and
+  clarify that action descriptors/action event enums are preview concepts, not
+  schema-v1 runtime triggers.
 - Release docs now distinguish a conditional core-runtime beta candidate review
   from adapter/ecosystem beta readiness, package-registry publication, signed
   artifact release, sandboxed/stable plugin ecosystems, or hard real-time

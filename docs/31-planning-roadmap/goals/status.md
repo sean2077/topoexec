@@ -12,7 +12,8 @@ bundles, or git history.
 | Area | State |
 | --- | --- |
 | Historical goal sweeps | G0-G25, G26-G70, G71, G73-G95, and G99 are complete. |
-| Active implementation goal | G100 Runtime contract bugfix and boundedness stabilization is complete. |
+| Active implementation goal | None. |
+| Recently completed goal | G100 Runtime contract bugfix and boundedness stabilization. |
 | Required repository gate | `scripts/agent_check.sh` passed on 2026-05-08, including `release_prepare_smoke` with an existing local `v0.2.0-alpha.0` tag. |
 | Focused docs gate | `scripts/goal_check.sh docs`. |
 | High-signal focused gates | `golden`, `schema`, `examples`, `showcase`, `package`, `policy`, `live`, `bench`, `live-perf`, `stress`, `fuzz`, and `sanitizer` as relevant to the changed surface. |
@@ -32,8 +33,9 @@ bundles, or git history.
 | G84-G85 | Core-runtime beta-candidate readiness and v1 readiness deferral completed. | Beta readiness review, v1 readiness program, release progression/checklist, and focused beta/v1 validation. |
 | G86-G95 | Trust-trial maintainability sweeps completed across runtime correctness, concurrency/lifetime, CLI/schema/YAML errors, performance, coverage, API/package, reliability, public consistency, and release-candidate stabilization. | Current docs, tests, CHANGELOG, focused gates, and full repository validation. |
 | G99 | Final validation and ledger reconciliation completed for G75-G95. | Required repository gate, focused docs/golden/schema/examples/showcase/package/policy/live/bench/live-perf/stress/fuzz/sanitizer gates, diff check, and ultragoal status reconciliation were completed on 2026-05-07. |
+| G100 | Runtime contract bugfix and boundedness stabilization completed. | Schema/runtime trigger contract diagnostics, atomic channel publication tests, bounded executor metrics, fixed-rate stop responsiveness, health-event lifetime docs, and `scripts/agent_check.sh` validation. |
 
-## Active Goal
+## Recently Completed Goal
 
 ### G100 Runtime contract bugfix and boundedness stabilization
 

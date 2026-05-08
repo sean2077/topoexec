@@ -19,6 +19,10 @@ future tracks remain deferred.
 
 ## Active Backlog
 
+No active implementation goal is open.
+
+## Recently Completed
+
 ### G100 Runtime contract bugfix and boundedness stabilization
 
 State: complete.
@@ -80,6 +84,7 @@ Current evidence:
 | G75-G85 | Complete | Release/adoption readiness, dogfood, compatibility, package, reliability, adoption, ecosystem deferral, beta-readiness, and v1 deferral summarized in `status.md`. |
 | G86-G95 | Complete | Trust-trial maintainability sweeps over runtime, CLI/schema/YAML, performance, coverage, package/API, reliability, public consistency, and release-candidate surfaces summarized in `status.md`. |
 | G99 | Complete | Final validation and ledger reconciliation for G75-G95 summarized in `status.md`. |
+| G100 | Complete | Runtime contract bugfix and boundedness stabilization summarized in `status.md`. |
 
 The old detailed plan files were deleted as completed process artifacts during
 the 2026-05 documentation cleanup. Current facts live in this backlog, the

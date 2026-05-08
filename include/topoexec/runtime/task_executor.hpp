@@ -45,6 +45,7 @@ struct TaskExecutorMetrics {
   std::size_t cancellation_observed_count{0};
   std::size_t timeout_budget_exceeded_count{0};
   std::size_t max_inflight_count{0};
+  std::size_t max_outstanding_count{0};
   std::size_t queue_depth{0};
   std::size_t completed_backlog_depth{0};
 };
@@ -138,6 +139,7 @@ private:
   bool drop_oldest_on_overflow_locked() const;
   bool cancel_pending_on_shutdown_locked() const;
   RejectedSubmission reject_submission_locked(std::string reason);
+  std::string capacity_reject_reason_locked() const;
   std::optional<HealthEvent> make_reject_health_event_locked(const std::string& reason) const;
   void emit_reject_health_event(RejectedSubmission& rejected);
   void cancel_pending_locked();

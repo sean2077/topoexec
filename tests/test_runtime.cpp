@@ -2749,7 +2749,7 @@ TEST(Runtime, ThreadedTaskExecutorCompletedBacklogCountsTowardAdmission) {
   topoexec::ThreadedTaskExecutorConfig config;
   config.max_workers = 1;
   config.max_inflight = 1;
-  config.queue_capacity = 0;
+  config.queue_capacity = 1;
   config.overflow = "reject";
   topoexec::ThreadedTaskExecutor executor(config);
   topoexec::HealthEventSink sink(4);
@@ -2758,20 +2758,31 @@ TEST(Runtime, ThreadedTaskExecutorCompletedBacklogCountsTowardAdmission) {
   ASSERT_TRUE(executor.submit([]() { return topoexec::make_text_payload("one"); }).accepted);
   ASSERT_TRUE(executor.wait_for_idle(std::chrono::seconds(1)));
   EXPECT_EQ(executor.metrics().completed_backlog_depth, 1u);
+  ASSERT_TRUE(executor.submit([]() { return topoexec::make_text_payload("two"); }).accepted);
+  ASSERT_TRUE(executor.wait_for_idle(std::chrono::seconds(1)));
+  auto metrics = executor.metrics();
+  EXPECT_EQ(metrics.completed_backlog_depth, 2u);
+  EXPECT_EQ(metrics.max_inflight_count, 1u);
+  EXPECT_EQ(metrics.max_outstanding_count, 2u);
 
-  const auto rejected = executor.submit([]() { return topoexec::make_text_payload("two"); });
+  const auto rejected = executor.submit([]() { return topoexec::make_text_payload("three"); });
 
   EXPECT_FALSE(rejected.accepted);
-  EXPECT_EQ(rejected.reason, "task executor queue full");
+  EXPECT_EQ(rejected.reason, "task executor completed backlog full");
   const auto events = sink.snapshot();
   ASSERT_EQ(events.size(), 1u);
   EXPECT_EQ(events.front().kind, topoexec::HealthEventKind::kTaskReject);
-  EXPECT_EQ(events.front().depth, 1u);
+  EXPECT_EQ(events.front().depth, 2u);
+  EXPECT_EQ(events.front().capacity, 2u);
+  EXPECT_EQ(events.front().attributes.at("pending_depth"), "0");
+  EXPECT_EQ(events.front().attributes.at("active_count"), "0");
+  EXPECT_EQ(events.front().attributes.at("completed_backlog_depth"), "2");
+  EXPECT_EQ(events.front().attributes.at("admission_capacity"), "2");
 
   const auto completions = executor.run_ready();
-  ASSERT_EQ(completions.size(), 1u);
+  ASSERT_EQ(completions.size(), 2u);
   EXPECT_EQ(executor.metrics().completed_backlog_depth, 0u);
-  EXPECT_TRUE(executor.submit([]() { return topoexec::make_text_payload("three"); }).accepted);
+  EXPECT_TRUE(executor.submit([]() { return topoexec::make_text_payload("four"); }).accepted);
 }
 
 TEST(Runtime, ThreadedTaskExecutorReportsFailuresWithoutThrowingFromRunReady) {

@@ -85,6 +85,7 @@ TaskSubmissionResult DeterministicTaskExecutor::submit(Work work, CompletionCall
   ++metrics_.queued_count;
   metrics_.queue_depth = std::max(metrics_.queue_depth, pending_.size());
   metrics_.max_inflight_count = std::max(metrics_.max_inflight_count, pending_.size());
+  metrics_.max_outstanding_count = std::max(metrics_.max_outstanding_count, pending_.size());
   return {true, pending_.back().id, {}};
 }
 
@@ -173,6 +174,13 @@ ThreadedTaskExecutor::RejectedSubmission ThreadedTaskExecutor::reject_submission
   return rejected;
 }
 
+std::string ThreadedTaskExecutor::capacity_reject_reason_locked() const {
+  if (completed_.size() >= admission_capacity_locked()) {
+    return "task executor completed backlog full";
+  }
+  return config_.overflow == "fail_fast" ? "task executor capacity exceeded" : "task executor queue full";
+}
+
 std::optional<HealthEvent> ThreadedTaskExecutor::make_reject_health_event_locked(const std::string& reason) const {
   if (health_events_ == nullptr) {
     return std::nullopt;
@@ -184,6 +192,10 @@ std::optional<HealthEvent> ThreadedTaskExecutor::make_reject_health_event_locked
   event.reason = reason;
   event.depth = pending_.size() + metrics_.active_count + completed_.size();
   event.capacity = admission_capacity_locked();
+  event.attributes["pending_depth"] = std::to_string(pending_.size());
+  event.attributes["active_count"] = std::to_string(metrics_.active_count);
+  event.attributes["completed_backlog_depth"] = std::to_string(completed_.size());
+  event.attributes["admission_capacity"] = std::to_string(event.capacity);
   return event;
 }
 
@@ -238,8 +250,7 @@ TaskSubmissionResult ThreadedTaskExecutor::submit(Work work, CompletionCallback 
           pending_.pop_front();
           ++metrics_.cancelled_count;
         } else {
-          rejected = reject_submission_locked(config_.overflow == "fail_fast" ? "task executor capacity exceeded"
-                                                                              : "task executor queue full");
+          rejected = reject_submission_locked(capacity_reject_reason_locked());
           was_rejected = true;
         }
       }
@@ -254,8 +265,10 @@ TaskSubmissionResult ThreadedTaskExecutor::submit(Work work, CompletionCallback 
       ++metrics_.queued_count;
       metrics_.queue_depth = pending_.size();
       metrics_.completed_backlog_depth = completed_.size();
-      metrics_.max_inflight_count =
-          std::max(metrics_.max_inflight_count, pending_.size() + metrics_.active_count + completed_.size());
+      const auto inflight = pending_.size() + metrics_.active_count;
+      const auto outstanding = inflight + completed_.size();
+      metrics_.max_inflight_count = std::max(metrics_.max_inflight_count, inflight);
+      metrics_.max_outstanding_count = std::max(metrics_.max_outstanding_count, outstanding);
       accepted = {true, pending_.back().id, {}};
     }
   }
@@ -375,7 +388,9 @@ void ThreadedTaskExecutor::worker_loop() {
       pending_.pop_front();
       ++metrics_.active_count;
       metrics_.queue_depth = pending_.size();
-      metrics_.max_inflight_count = std::max(metrics_.max_inflight_count, pending_.size() + metrics_.active_count);
+      const auto inflight = pending_.size() + metrics_.active_count;
+      metrics_.max_inflight_count = std::max(metrics_.max_inflight_count, inflight);
+      metrics_.max_outstanding_count = std::max(metrics_.max_outstanding_count, inflight + completed_.size());
     }
 
     auto completion = execute_task(task);
@@ -396,6 +411,8 @@ void ThreadedTaskExecutor::worker_loop() {
       completed_.push_back(std::move(completion));
       metrics_.queue_depth = pending_.size();
       metrics_.completed_backlog_depth = completed_.size();
+      const auto inflight = pending_.size() + metrics_.active_count;
+      metrics_.max_outstanding_count = std::max(metrics_.max_outstanding_count, inflight + completed_.size());
       if (pending_.empty() && metrics_.active_count == 0u) {
         idle_.notify_all();
       }
