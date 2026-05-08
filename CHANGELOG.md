@@ -192,6 +192,10 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
   rejecting channel.
 - Bounded `ThreadedTaskExecutor` completed-record backlog by counting undrained
   completions toward admission and exposing `completed_backlog_depth`.
+- Moved channel health-event sink calls outside the channel bus mutex while
+  preserving in-lock metric and degradation accounting.
+- Made `reject_new` lane overflow explicitly follow the reject-newest admission
+  path with scheduler health-event policy coverage.
 - Made opt-in fixed-rate wall-clock sleeps poll stop tokens instead of sleeping
   through the full period after a stop request.
 - Made the release-prepare smoke idempotent when a local candidate tag already
@@ -282,11 +286,11 @@ TopoExec follows the versioning policy in [docs/43-ci-build-release-tools/versio
 - `runtime.channel.drop_count` / `channel_drop_count` now count real drops only;
   latest, previous-tick, queue `drop_oldest`, and async admission overwrite
   paths increment overwrite counters instead.
-- `RuntimeRunner` now rejects `thread_pool` lanes in `run` mode instead of silently executing them as event-loop work.
+- `thread_pool` lanes now execute through the experimental bounded worker-pool runtime instead of falling back to event-loop behavior.
 
 ### Known Limitations
 
-- Threaded worker-pool scheduling is not implemented; use `event_loop` for runnable alpha graphs.
+- `thread_pool` scheduling is experimental and in-process only; OS priority/affinity, hard timeout preemption, and hard real-time guarantees remain deferred.
 - Async max-inflight policy is represented by bounded async channel capacity and overflow policy, not a dedicated worker-pool admission controller.
 - Production OpenTelemetry, Prometheus, ROS 2, native Python bindings, and Perfetto adapters are deferred until after beta core stabilization; current adapter/Python preview targets are dependency-free or CLI-backed previews only.
-- Sanitizer CI is planned but not yet wired.
+- ThreadSanitizer remains non-blocking policy evidence; ASAN+UBSAN is the blocking sanitizer gate.

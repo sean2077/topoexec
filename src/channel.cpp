@@ -250,19 +250,28 @@ RuntimeChannelBus::publish_shared_with_metadata(const std::string& channel_id, R
   if (payload == nullptr) {
     return {false, "payload must not be null"};
   }
-  std::lock_guard lock(mutex_);
-  auto found = channels_.find(channel_id);
-  if (found == channels_.end()) {
-    return {false, "unknown channel: " + channel_id};
+  RuntimeChannelPublishResult result;
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    auto found = channels_.find(channel_id);
+    if (found == channels_.end()) {
+      result = {false, "unknown channel: " + channel_id};
+    } else {
+      RuntimePayloadPtr payload_for_channel;
+      bool copied = false;
+      auto prepared = prepare_payload_for_state(found->second, std::move(payload), payload_for_channel, copied);
+      if (!prepared.accepted) {
+        result = prepared;
+      } else {
+        result = publish_to_state(found->second, std::move(payload_for_channel), std::move(event_timestamp), copied,
+                                  std::move(metadata));
+      }
+    }
+    health_events = drain_pending_health_events_locked();
   }
-  RuntimePayloadPtr payload_for_channel;
-  bool copied = false;
-  auto prepared = prepare_payload_for_state(found->second, std::move(payload), payload_for_channel, copied);
-  if (!prepared.accepted) {
-    return prepared;
-  }
-  return publish_to_state(found->second, std::move(payload_for_channel), std::move(event_timestamp), copied,
-                          std::move(metadata));
+  emit_pending_health_events(std::move(health_events));
+  return result;
 }
 
 RuntimeChannelPublishResult RuntimeChannelBus::publish_from(const std::string& source_endpoint, RuntimePayload payload,
@@ -291,42 +300,54 @@ RuntimeChannelBus::publish_shared_from_with_metadata(const std::string& source_e
   if (payload == nullptr) {
     return {false, "payload must not be null"};
   }
-  std::lock_guard lock(mutex_);
-  const auto channels = source_to_channels_.find(source_endpoint);
-  if (channels == source_to_channels_.end()) {
-    return {false, "unknown source endpoint: " + source_endpoint};
-  }
-  if (channels->second.size() > 1u) {
-    std::map<std::string, std::size_t> planned_publications;
-    for (const auto& channel_id : channels->second) {
-      auto& state = channels_.at(channel_id);
-      auto payload_preflight = preflight_payload_for_state(state, *payload);
-      if (!payload_preflight.accepted) {
-        return payload_preflight;
+  RuntimeChannelPublishResult result;
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    const auto channels = source_to_channels_.find(source_endpoint);
+    if (channels == source_to_channels_.end()) {
+      result = {false, "unknown source endpoint: " + source_endpoint};
+    } else {
+      result = {true, {}};
+      if (channels->second.size() > 1u) {
+        std::map<std::string, std::size_t> planned_publications;
+        for (const auto& channel_id : channels->second) {
+          auto& state = channels_.at(channel_id);
+          auto payload_preflight = preflight_payload_for_state(state, *payload);
+          if (!payload_preflight.accepted) {
+            result = payload_preflight;
+            break;
+          }
+          const auto capacity_preflight = preflight_publish_to_state(state, planned_publications[channel_id]);
+          if (!capacity_preflight.accepted) {
+            result = capacity_preflight;
+            break;
+          }
+          ++planned_publications[channel_id];
+        }
       }
-      const auto capacity_preflight = preflight_publish_to_state(state, planned_publications[channel_id]);
-      if (!capacity_preflight.accepted) {
-        return capacity_preflight;
+      if (result.accepted) {
+        for (const auto& channel_id : channels->second) {
+          auto& state = channels_.at(channel_id);
+          RuntimePayloadPtr payload_for_channel;
+          bool copied = false;
+          auto prepared = prepare_payload_for_state(state, payload, payload_for_channel, copied);
+          if (!prepared.accepted) {
+            result = prepared;
+            break;
+          }
+          result = publish_to_state(state, std::move(payload_for_channel), event_timestamp, copied,
+                                    metadata_for_source_endpoint(metadata, source_endpoint));
+          if (!result.accepted) {
+            break;
+          }
+        }
       }
-      ++planned_publications[channel_id];
     }
+    health_events = drain_pending_health_events_locked();
   }
-  RuntimeChannelPublishResult last{true, {}};
-  for (const auto& channel_id : channels->second) {
-    auto& state = channels_.at(channel_id);
-    RuntimePayloadPtr payload_for_channel;
-    bool copied = false;
-    auto prepared = prepare_payload_for_state(state, payload, payload_for_channel, copied);
-    if (!prepared.accepted) {
-      return prepared;
-    }
-    last = publish_to_state(state, std::move(payload_for_channel), event_timestamp, copied,
-                            metadata_for_source_endpoint(metadata, source_endpoint));
-    if (!last.accepted) {
-      return last;
-    }
-  }
-  return last;
+  emit_pending_health_events(std::move(health_events));
+  return result;
 }
 
 RuntimeChannelPublishResult
@@ -338,66 +359,84 @@ RuntimeChannelBus::publish_batch(const std::vector<RuntimeChannelPublication>& p
     InvocationMetadata metadata;
   };
 
-  std::lock_guard lock(mutex_);
-  std::vector<ExpandedPublication> expanded;
-  std::map<std::string, std::size_t> planned_publications;
-  for (const auto& publication : publications) {
-    if (publication.payload == nullptr) {
-      return {false, "payload must not be null"};
-    }
-    if (publication.target == RuntimeChannelPublishTarget::kChannel) {
-      auto found = channels_.find(publication.id);
-      if (found == channels_.end()) {
-        return {false, "unknown channel: " + publication.id};
+  RuntimeChannelPublishResult result{true, {}};
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    std::vector<ExpandedPublication> expanded;
+    std::map<std::string, std::size_t> planned_publications;
+    for (const auto& publication : publications) {
+      if (publication.payload == nullptr) {
+        result = {false, "payload must not be null"};
+        break;
       }
-      auto payload_preflight = preflight_payload_for_state(found->second, *publication.payload);
-      if (!payload_preflight.accepted) {
-        return payload_preflight;
-      }
-      const auto capacity_preflight = preflight_publish_to_state(found->second, planned_publications[publication.id]);
-      if (!capacity_preflight.accepted) {
-        return capacity_preflight;
-      }
-      ++planned_publications[publication.id];
-      expanded.push_back(
-          ExpandedPublication{publication.id, publication.payload, publication.event_timestamp, publication.metadata});
-    } else {
-      const auto channels = source_to_channels_.find(publication.id);
-      if (channels == source_to_channels_.end()) {
-        return {false, "unknown source endpoint: " + publication.id};
-      }
-      for (const auto& channel_id : channels->second) {
-        auto& state = channels_.at(channel_id);
-        auto payload_preflight = preflight_payload_for_state(state, *publication.payload);
+      if (publication.target == RuntimeChannelPublishTarget::kChannel) {
+        auto found = channels_.find(publication.id);
+        if (found == channels_.end()) {
+          result = {false, "unknown channel: " + publication.id};
+          break;
+        }
+        auto payload_preflight = preflight_payload_for_state(found->second, *publication.payload);
         if (!payload_preflight.accepted) {
-          return payload_preflight;
+          result = payload_preflight;
+          break;
         }
-        const auto capacity_preflight = preflight_publish_to_state(state, planned_publications[channel_id]);
+        const auto capacity_preflight = preflight_publish_to_state(found->second, planned_publications[publication.id]);
         if (!capacity_preflight.accepted) {
-          return capacity_preflight;
+          result = capacity_preflight;
+          break;
         }
-        ++planned_publications[channel_id];
-        expanded.push_back(ExpandedPublication{channel_id, publication.payload, publication.event_timestamp,
-                                               metadata_for_source_endpoint(publication.metadata, publication.id)});
+        ++planned_publications[publication.id];
+        expanded.push_back(ExpandedPublication{publication.id, publication.payload, publication.event_timestamp,
+                                               publication.metadata});
+      } else {
+        const auto channels = source_to_channels_.find(publication.id);
+        if (channels == source_to_channels_.end()) {
+          result = {false, "unknown source endpoint: " + publication.id};
+          break;
+        }
+        for (const auto& channel_id : channels->second) {
+          auto& state = channels_.at(channel_id);
+          auto payload_preflight = preflight_payload_for_state(state, *publication.payload);
+          if (!payload_preflight.accepted) {
+            result = payload_preflight;
+            break;
+          }
+          const auto capacity_preflight = preflight_publish_to_state(state, planned_publications[channel_id]);
+          if (!capacity_preflight.accepted) {
+            result = capacity_preflight;
+            break;
+          }
+          ++planned_publications[channel_id];
+          expanded.push_back(ExpandedPublication{channel_id, publication.payload, publication.event_timestamp,
+                                                 metadata_for_source_endpoint(publication.metadata, publication.id)});
+        }
+        if (!result.accepted) {
+          break;
+        }
       }
     }
-  }
-  RuntimeChannelPublishResult last{true, {}};
-  for (auto& publication : expanded) {
-    auto& state = channels_.at(publication.channel_id);
-    RuntimePayloadPtr payload_for_channel;
-    bool copied = false;
-    auto prepared = prepare_payload_for_state(state, publication.payload, payload_for_channel, copied);
-    if (!prepared.accepted) {
-      return prepared;
+    if (result.accepted) {
+      for (auto& publication : expanded) {
+        auto& state = channels_.at(publication.channel_id);
+        RuntimePayloadPtr payload_for_channel;
+        bool copied = false;
+        auto prepared = prepare_payload_for_state(state, publication.payload, payload_for_channel, copied);
+        if (!prepared.accepted) {
+          result = prepared;
+          break;
+        }
+        result = publish_to_state(state, std::move(payload_for_channel), std::move(publication.event_timestamp), copied,
+                                  std::move(publication.metadata));
+        if (!result.accepted) {
+          break;
+        }
+      }
     }
-    last = publish_to_state(state, std::move(payload_for_channel), std::move(publication.event_timestamp), copied,
-                            std::move(publication.metadata));
-    if (!last.accepted) {
-      return last;
-    }
+    health_events = drain_pending_health_events_locked();
   }
-  return last;
+  emit_pending_health_events(std::move(health_events));
+  return result;
 }
 
 void RuntimeChannelBus::advance_epoch() {
@@ -422,140 +461,180 @@ void RuntimeChannelBus::advance_epoch() {
 
 RuntimeChannelReadResult RuntimeChannelBus::read_latest_for_reader(const std::string& channel_id,
                                                                    const std::string& reader_id) {
-  std::lock_guard lock(mutex_);
-  auto found = channels_.find(channel_id);
-  if (found == channels_.end()) {
-    return {false, std::nullopt, "unknown channel: " + channel_id};
+  RuntimeChannelReadResult result;
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    auto found = channels_.find(channel_id);
+    if (found == channels_.end()) {
+      result = {false, std::nullopt, "unknown channel: " + channel_id};
+    } else if (!is_latest_style(found->second.config.type)) {
+      result = {false, std::nullopt, "channel is not latest-style: " + channel_id};
+    } else {
+      result = {true, consume_latest_from_state(found->second, reader_id), {}};
+    }
+    health_events = drain_pending_health_events_locked();
   }
-  if (!is_latest_style(found->second.config.type)) {
-    return {false, std::nullopt, "channel is not latest-style: " + channel_id};
-  }
-  return {true, consume_latest_from_state(found->second, reader_id), {}};
+  emit_pending_health_events(std::move(health_events));
+  return result;
 }
 
 RuntimeChannelReadResult RuntimeChannelBus::read_latest_update_for_component_port(const std::string& component_id,
                                                                                   const std::string& port_name) {
-  std::lock_guard lock(mutex_);
-  const auto ids = channel_ids_for_component_port(component_id, port_name);
-  for (const auto& channel_id : ids) {
-    auto& state = channels_.at(channel_id);
-    if (!is_latest_style(state.config.type)) {
-      continue;
+  RuntimeChannelReadResult result{true, std::nullopt, {}};
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    const auto ids = channel_ids_for_component_port(component_id, port_name);
+    for (const auto& channel_id : ids) {
+      auto& state = channels_.at(channel_id);
+      if (!is_latest_style(state.config.type)) {
+        continue;
+      }
+      auto message = consume_latest_from_state(state, component_id + "." + port_name);
+      if (message.has_value()) {
+        result = {true, std::move(message), {}};
+        break;
+      }
     }
-    auto message = consume_latest_from_state(state, component_id + "." + port_name);
-    if (message.has_value()) {
-      return {true, std::move(message), {}};
-    }
+    health_events = drain_pending_health_events_locked();
   }
-  return {true, std::nullopt, {}};
+  emit_pending_health_events(std::move(health_events));
+  return result;
 }
 
 RuntimeChannelReadResult RuntimeChannelBus::peek_latest_for_component_port(const std::string& component_id,
                                                                            const std::string& port_name) {
-  std::lock_guard lock(mutex_);
-  const auto ids = channel_ids_for_component_port(component_id, port_name);
-  for (const auto& channel_id : ids) {
-    auto& state = channels_.at(channel_id);
-    auto snapshot = snapshot_from_state(state, 1);
-    if (!snapshot.empty()) {
-      return {true, std::move(snapshot.front()), {}};
+  RuntimeChannelReadResult result{true, std::nullopt, {}};
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    const auto ids = channel_ids_for_component_port(component_id, port_name);
+    for (const auto& channel_id : ids) {
+      auto& state = channels_.at(channel_id);
+      auto snapshot = snapshot_from_state(state, 1);
+      if (!snapshot.empty()) {
+        result = {true, std::move(snapshot.front()), {}};
+        break;
+      }
     }
+    health_events = drain_pending_health_events_locked();
   }
-  return {true, std::nullopt, {}};
+  emit_pending_health_events(std::move(health_events));
+  return result;
 }
 
 std::vector<RuntimeChannelMessage> RuntimeChannelBus::drain_for_reader(const std::string& channel_id,
                                                                        const std::string& reader_id,
                                                                        std::size_t max_batch) {
-  std::lock_guard lock(mutex_);
-  const auto found = channels_.find(channel_id);
-  if (found == channels_.end()) {
-    return {};
-  }
-  auto& state = found->second;
-  if (is_latest_style(state.config.type)) {
-    auto latest = consume_latest_from_state(state, reader_id);
-    if (latest.has_value()) {
-      std::vector<RuntimeChannelMessage> messages;
-      messages.push_back(std::move(*latest));
-      return messages;
+  std::vector<RuntimeChannelMessage> messages;
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    const auto found = channels_.find(channel_id);
+    if (found != channels_.end()) {
+      auto& state = found->second;
+      if (is_latest_style(state.config.type)) {
+        auto latest = consume_latest_from_state(state, reader_id);
+        if (latest.has_value()) {
+          messages.push_back(std::move(*latest));
+        }
+      } else {
+        messages = consume_from_state(state, reader_id, max_batch);
+      }
     }
-    return {};
+    health_events = drain_pending_health_events_locked();
   }
-  return consume_from_state(state, reader_id, max_batch);
+  emit_pending_health_events(std::move(health_events));
+  return messages;
 }
 
 std::vector<RuntimeChannelMessage> RuntimeChannelBus::snapshot_for_component_port(const std::string& component_id,
                                                                                   const std::string& port_name,
                                                                                   std::size_t max_batch) {
-  std::lock_guard lock(mutex_);
   std::vector<RuntimeChannelMessage> messages;
-  const auto ids = channel_ids_for_component_port(component_id, port_name);
-  for (const auto& channel_id : ids) {
-    if (max_batch != 0u && messages.size() >= max_batch) {
-      break;
-    }
-    const auto remaining = max_batch == 0u ? 0u : max_batch - messages.size();
-    auto snapshot = snapshot_from_state(channels_.at(channel_id), remaining);
-    for (auto& message : snapshot) {
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    const auto ids = channel_ids_for_component_port(component_id, port_name);
+    for (const auto& channel_id : ids) {
       if (max_batch != 0u && messages.size() >= max_batch) {
         break;
       }
-      messages.push_back(std::move(message));
+      const auto remaining = max_batch == 0u ? 0u : max_batch - messages.size();
+      auto snapshot = snapshot_from_state(channels_.at(channel_id), remaining);
+      for (auto& message : snapshot) {
+        if (max_batch != 0u && messages.size() >= max_batch) {
+          break;
+        }
+        messages.push_back(std::move(message));
+      }
     }
+    health_events = drain_pending_health_events_locked();
   }
+  emit_pending_health_events(std::move(health_events));
   return messages;
 }
 
 std::vector<RuntimeChannelMessage> RuntimeChannelBus::drain_for_component_port(const std::string& component_id,
                                                                                const std::string& port_name,
                                                                                std::size_t max_batch) {
-  std::lock_guard lock(mutex_);
   std::vector<RuntimeChannelMessage> messages;
-  const auto ids = channel_ids_for_component_port(component_id, port_name);
-  for (const auto& channel_id : ids) {
-    if (max_batch != 0u && messages.size() >= max_batch) {
-      break;
-    }
-    auto& state = channels_.at(channel_id);
-    if (is_latest_style(state.config.type)) {
-      auto latest = consume_latest_from_state(state, component_id + "." + port_name);
-      if (latest.has_value()) {
-        messages.push_back(std::move(*latest));
-      }
-      continue;
-    }
-    const auto remaining = max_batch == 0u ? 0u : max_batch - messages.size();
-    auto drained = consume_from_state(state, component_id + "." + port_name, remaining);
-    for (auto& message : drained) {
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    const auto ids = channel_ids_for_component_port(component_id, port_name);
+    for (const auto& channel_id : ids) {
       if (max_batch != 0u && messages.size() >= max_batch) {
         break;
       }
-      messages.push_back(std::move(message));
+      auto& state = channels_.at(channel_id);
+      if (is_latest_style(state.config.type)) {
+        auto latest = consume_latest_from_state(state, component_id + "." + port_name);
+        if (latest.has_value()) {
+          messages.push_back(std::move(*latest));
+        }
+        continue;
+      }
+      const auto remaining = max_batch == 0u ? 0u : max_batch - messages.size();
+      auto drained = consume_from_state(state, component_id + "." + port_name, remaining);
+      for (auto& message : drained) {
+        if (max_batch != 0u && messages.size() >= max_batch) {
+          break;
+        }
+        messages.push_back(std::move(message));
+      }
     }
+    health_events = drain_pending_health_events_locked();
   }
+  emit_pending_health_events(std::move(health_events));
   return messages;
 }
 
 std::vector<RuntimeChannelMessage> RuntimeChannelBus::consume_for_component(const std::string& component_id) {
-  std::lock_guard lock(mutex_);
   std::vector<RuntimeChannelMessage> messages;
-  const auto found = component_to_channels_.find(component_id);
-  if (found == component_to_channels_.end()) {
-    return messages;
-  }
-  for (const auto& channel_id : found->second) {
-    auto& state = channels_.at(channel_id);
-    if (is_latest_style(state.config.type)) {
-      auto latest = consume_latest_from_state(state, component_id);
-      if (latest.has_value()) {
-        messages.push_back(std::move(*latest));
+  std::vector<PendingChannelHealthEvent> health_events;
+  {
+    std::lock_guard lock(mutex_);
+    const auto found = component_to_channels_.find(component_id);
+    if (found != component_to_channels_.end()) {
+      for (const auto& channel_id : found->second) {
+        auto& state = channels_.at(channel_id);
+        if (is_latest_style(state.config.type)) {
+          auto latest = consume_latest_from_state(state, component_id);
+          if (latest.has_value()) {
+            messages.push_back(std::move(*latest));
+          }
+        } else {
+          auto drained = consume_from_state(state, component_id);
+          messages.insert(messages.end(), std::make_move_iterator(drained.begin()),
+                          std::make_move_iterator(drained.end()));
+        }
       }
-    } else {
-      auto drained = consume_from_state(state, component_id);
-      messages.insert(messages.end(), std::make_move_iterator(drained.begin()), std::make_move_iterator(drained.end()));
     }
+    health_events = drain_pending_health_events_locked();
   }
+  emit_pending_health_events(std::move(health_events));
   return messages;
 }
 
@@ -912,7 +991,21 @@ void RuntimeChannelBus::emit_channel_health_event(const ChannelState& state, Hea
   event.attributes = std::move(attributes);
   event.attributes["from"] = state.from;
   event.attributes["to"] = state.to;
-  health_events_->emit(std::move(event));
+  pending_health_events_.push_back(PendingChannelHealthEvent{health_events_, std::move(event)});
+}
+
+std::vector<RuntimeChannelBus::PendingChannelHealthEvent> RuntimeChannelBus::drain_pending_health_events_locked() {
+  auto events = std::move(pending_health_events_);
+  pending_health_events_.clear();
+  return events;
+}
+
+void RuntimeChannelBus::emit_pending_health_events(std::vector<PendingChannelHealthEvent> events) {
+  for (auto& event : events) {
+    if (event.sink != nullptr) {
+      event.sink->emit(std::move(event.event));
+    }
+  }
 }
 
 void RuntimeChannelBus::maybe_emit_high_watermark(ChannelState& state, const RuntimeChannelMessage& message) {

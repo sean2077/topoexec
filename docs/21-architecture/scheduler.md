@@ -128,7 +128,7 @@ Test coverage:
 - `Runtime.ThreadPoolWorkersPersistAcrossMultipleRuntimeSteps` proves workers remain bounded and reused across runtime steps.
 - `Runtime.ThreadPoolLaneSerializesNonReentrantInvocations` proves non-reentrant no-overlap.
 - `Runtime.ThreadPoolStopWhileQueueNonEmptyDrainsAdmittedWork` proves stop requests do not deadlock with queued admitted work.
-- `Runtime.ThreadPoolLaneQueueCapacityRejectsNewestWhenFull` and `Runtime.ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured` prove explicit lane admission behavior, rejected-count metrics, scheduler-reject health events, and low-priority rejection counting.
+- `Runtime.ThreadPoolLaneQueueCapacityRejectsNewestWhenFull`, `Runtime.ThreadPoolLaneRejectNewKeepsOldestAdmissionWhenFull`, and `Runtime.ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured` prove explicit lane admission behavior, rejected-count metrics, scheduler-reject health events, and low-priority rejection counting.
 - `Runtime.RuntimePriorityOrdersIndependentReadyComponentsAndDoesNotStarveLowPriority` proves runtime priority ordering for independent ready regions while still executing lower-priority work in a bounded example.
 - `Runtime.ThreadPoolExecuteStatusFailureKeepsStructuredRuntimeError` proves current fail-fast execute errors remain structured on worker lanes.
 - `Runtime.PublishStagesWithoutRecursiveDownstreamExecute` protects the no-recursive-publish boundary that worker lanes must preserve.

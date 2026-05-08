@@ -54,6 +54,8 @@ Low-level readers expose the same semantics used by the runtime trigger engine:
 - `consume_for_component()` drains all visible inputs for the component.
 - `drain_for_reader(channel_id, reader_id, max_batch)` is the explicit per-reader queue API.
 
+For latest-style channels, component-port drains use the `component.port` cursor while component-wide drains use the `component` cursor. Embedders that need one stable low-level cursor should use the explicit reader APIs instead of mixing both helper families on the same channel.
+
 Runtime channel messages carry invocation metadata (`correlation_id`, `causation_id`, `epoch_id`, `transaction_id`, source endpoint, and trigger kind) alongside payload and timing fields. This metadata flows through immediate, delay/state/async, task-completion, and CompositeLoop external commits; metrics avoid using it as default labels.
 
 `readers: single` is the default. Queue-style single-reader drains remove delivered messages from the channel. `readers: multi` / `readers: multiple` keeps bounded queue storage and tracks a per-reader sequence cursor so each explicit reader can observe each retained queued message once. Because retained history is still bounded by channel `capacity`, a slow reader can miss messages dropped by overflow.

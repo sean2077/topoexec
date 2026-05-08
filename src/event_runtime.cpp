@@ -179,6 +179,10 @@ bool lane_overflow_drops_oldest(const std::string& overflow) {
   return overflow == "drop_oldest" || overflow == "overwrite";
 }
 
+bool lane_overflow_rejects_newest(const std::string& overflow) {
+  return overflow == "drop_newest" || overflow == "reject" || overflow == "reject_new" || overflow == "block";
+}
+
 bool lane_overflow_fails_fast(const std::string& overflow) {
   return overflow == "fail_fast";
 }
@@ -865,8 +869,14 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
           }
           if (lane_overflow_drops_oldest(found->lane.overflow)) {
             invocations.erase(invocations.begin(), invocations.begin() + static_cast<std::ptrdiff_t>(overflow_count));
-          } else {
+          } else if (lane_overflow_rejects_newest(found->lane.overflow)) {
             invocations.resize(admission_capacity);
+          } else {
+            result.ok = false;
+            result.stop_reason = SchedulerStopReason::kError;
+            result.errors.push_back("thread_pool lane " + found->lane.id + " has unsupported overflow " +
+                                    found->lane.overflow);
+            return false;
           }
         }
 

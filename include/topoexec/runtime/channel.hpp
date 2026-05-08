@@ -214,6 +214,10 @@ private:
     RuntimeChannelMetrics metrics;
     bool high_watermark_reported{false};
   };
+  struct PendingChannelHealthEvent {
+    HealthEventSink* sink{nullptr};
+    HealthEvent event;
+  };
 
   RuntimeChannelPublishResult prepare_payload_for_state(ChannelState& state, RuntimePayloadPtr source,
                                                         RuntimePayloadPtr& payload_for_channel, bool& copied);
@@ -234,6 +238,8 @@ private:
   void emit_channel_health_event(const ChannelState& state, HealthEventKind kind, std::uint64_t sequence,
                                  std::size_t depth, std::string reason,
                                  std::map<std::string, std::string> attributes = {});
+  std::vector<PendingChannelHealthEvent> drain_pending_health_events_locked();
+  static void emit_pending_health_events(std::vector<PendingChannelHealthEvent> events);
   void maybe_emit_high_watermark(ChannelState& state, const RuntimeChannelMessage& message);
   RuntimeChannelMetrics metrics_from_state(const ChannelState& state) const;
   std::vector<std::string> channel_ids_for_component_port(const std::string& component_id,
@@ -246,6 +252,7 @@ private:
   std::condition_variable update_available_;
   std::uint64_t update_sequence_{0};
   HealthEventSink* health_events_{nullptr};
+  std::vector<PendingChannelHealthEvent> pending_health_events_;
 };
 
 /// @brief Routes GraphContext publications across immediate, deferred, async, and CompositeLoop visibility boundaries.

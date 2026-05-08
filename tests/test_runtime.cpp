@@ -4329,6 +4329,31 @@ TEST(Runtime, ThreadPoolLaneQueueCapacityRejectsNewestWhenFull) {
   EXPECT_TRUE(has_trace_event(result, "thread_pool_batch"));
 }
 
+TEST(Runtime, ThreadPoolLaneRejectNewKeepsOldestAdmissionWhenFull) {
+  const auto reg = delay_registry();
+  auto spec = thread_pool_graph(true);
+  spec.lanes.back().max_threads = 1;
+  spec.lanes.back().queue_capacity = 1;
+  spec.lanes.back().overflow = "reject_new";
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  reset_thread_pool_probe_state();
+  const auto result = runner.run(spec, options);
+
+  ASSERT_TRUE(result.ok) << first_error_message(result);
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-1"));
+  EXPECT_TRUE(has_record(1, "worker", "in", "burst-1-2"));
+  EXPECT_FALSE(has_record(1, "worker", "in", "burst-1-3"));
+  EXPECT_TRUE(has_metric_at_least(result, "runtime.scheduler.rejected_count", 1.0));
+  EXPECT_TRUE(std::any_of(result.health_events.begin(), result.health_events.end(), [](const auto& event) {
+    return event.kind == topoexec::HealthEventKind::kSchedulerReject && event.policy == "reject_new";
+  }));
+}
+
 TEST(Runtime, ThreadPoolLaneQueueCapacityDropsOldestWhenConfigured) {
   const auto reg = delay_registry();
   auto spec = thread_pool_graph(true);
