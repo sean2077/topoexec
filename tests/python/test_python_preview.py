@@ -6,8 +6,9 @@ from __future__ import annotations
 import os
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from topoexec_preview import GraphDocument, TopoExecClient
+from topoexec_preview import GraphDocument, TopoExecClient, TopoExecCommandError
 
 
 class PythonPreviewSmoke(unittest.TestCase):
@@ -51,6 +52,24 @@ class PythonPreviewSmoke(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(result.data["ok"])
         self.assertGreater(len(result.data["errors"]), 0)
+
+
+class PythonPreviewUnit(unittest.TestCase):
+    def test_check_true_raises_when_json_ok_false_with_zero_exit(self) -> None:
+        client = TopoExecClient("topoexec")
+        completed = mock.Mock(returncode=0, stdout='{"ok": false, "errors": ["x"]}', stderr="")
+        with mock.patch("topoexec_preview.client.subprocess.run", return_value=completed):
+            with self.assertRaises(TopoExecCommandError):
+                client.validate("graph.yaml", check=True)
+
+    def test_check_false_returns_result_when_json_ok_false_with_zero_exit(self) -> None:
+        client = TopoExecClient("topoexec")
+        completed = mock.Mock(returncode=0, stdout='{"ok": false, "errors": ["x"]}', stderr="")
+        with mock.patch("topoexec_preview.client.subprocess.run", return_value=completed):
+            result = client.validate("graph.yaml", check=False)
+        self.assertEqual(result.returncode, 0)
+        self.assertFalse(result.ok)
+        self.assertFalse(result.data["ok"])
 
 
 if __name__ == "__main__":
