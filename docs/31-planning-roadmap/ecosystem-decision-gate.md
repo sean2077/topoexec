@@ -4,6 +4,9 @@ Status: G81 decision artifact. No G82 integration track is open yet. This page
 compares possible ecosystem directions against the evidence from G75-G80 and
 keeps implementation blocked until adoption signals justify one track.
 
+For the broader competitor survey and positioning rationale behind these track
+choices, see [Competitive landscape and positioning](competitive-landscape.md).
+
 ## Entry evidence available now
 
 | Evidence | Status |
