@@ -1,0 +1,34 @@
+{
+  "env": {
+    "FORMAT_ON_EDIT_CMD": "clang-format -i",
+    "FORMAT_ON_EDIT_EXTS": "c cc cpp cxx h hh hpp hxx ipp tpp"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/tools/agent/hooks/trunk_edit_guard.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/tools/agent/hooks/format_on_edit.sh"
+          },
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/tools/agent/hooks/authority_doc_budget.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
