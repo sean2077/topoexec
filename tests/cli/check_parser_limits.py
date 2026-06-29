@@ -116,8 +116,20 @@ def main() -> int:
                 "--steps",
                 "-1",
             ],
-            "Could not convert: --steps = -1",
+            "Value -1 not in range",
             "negative run steps",
+        ),
+        (
+            [
+                str(args.topoexec),
+                "graph",
+                "run",
+                minimal,
+                "--steps",
+                "0",
+            ],
+            "Value 0 not in range",
+            "zero run steps",
         ),
         (
             [

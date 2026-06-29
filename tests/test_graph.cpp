@@ -289,6 +289,7 @@ TEST(GraphInputLimits, ExposesDefaultLimitContract) {
   EXPECT_EQ(limits.max_config_depth, 8u);
   EXPECT_EQ(limits.max_config_value_bytes, 4096u);
   EXPECT_EQ(limits.max_string_bytes, 4096u);
+  EXPECT_EQ(limits.max_yaml_alias_count, 32u);
 }
 
 TEST(GraphInputLimits, CustomLimitsApplyToGraphText) {
@@ -1511,4 +1512,167 @@ TEST(Graph, FixedSeedImmediateCyclesRejectAndAcceptExactCompositeLoop) {
       EXPECT_EQ(accepted.compiled_plan.component_region.at(component.id), loop.id);
     }
   }
+}
+
+TEST(GraphRender, MermaidEscapesUntrustedIdentifiers) {
+  // Identifiers pass schema validation with no character-set restriction, so a hostile graph file can carry
+  // Mermaid metacharacters. graph_mermaid must neutralize them rather than emit injectable diagram syntax.
+  topoexec::GraphSpec graph;
+  graph.name = "g";
+  topoexec::ComponentNodeSpec component;
+  component.id = "evil\"] -->|x| BOOM";
+  component.type = "topoexec.test.Source";
+  graph.components.push_back(component);
+
+  const topoexec::GraphCompiledPlan plan;
+  const auto mermaid = topoexec::graph_mermaid(graph, plan);
+
+  // The raw label breakout (a closing quote+bracket) must never appear verbatim.
+  EXPECT_EQ(mermaid.find("evil\"]"), std::string::npos) << mermaid;
+  // The quote is entity-escaped inside the quoted label instead.
+  EXPECT_NE(mermaid.find("&quot;"), std::string::npos) << mermaid;
+  // The bare node id is sanitized so it can no longer carry an injected edge/arrow.
+  EXPECT_EQ(mermaid.find("BOOM\n"), std::string::npos) << mermaid;
+}
+
+TEST(GraphInputLimits, RejectsExcessiveYamlAliases) {
+  // Nested YAML alias expansion ("billion laughs") can make load traversal cost explode. The alias-count
+  // guard must reject before YAML::Load, independent of where the aliases appear in the document.
+  std::string text = "schema_version: 1\n"
+                     "graph: {name: b, kind: internal_test}\n"
+                     "lanes: {main: {type: event_loop}}\n"
+                     "components: []\n"
+                     "edges: []\n"
+                     "anchor: &a [x]\n"
+                     "fanout: [";
+  for (int index = 0; index < 40; ++index) {
+    text += "*a,";
+  }
+  text += "*a]\n";
+
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(text);
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("too many YAML aliases"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
+TEST(GraphInputLimits, RejectsDigitNamedYamlAliasesAboveLimit) {
+  // Regression for the digit-named-alias bypass: anchor/alias names may start with digits, so a guard that
+  // only recognizes [A-Za-z_] after `*` misses `*1`. The event-based counter must catch these.
+  std::string text = "schema_version: 1\n"
+                     "graph: {name: b, kind: internal_test}\n"
+                     "lanes: {main: {type: event_loop}}\n"
+                     "components: []\n"
+                     "edges: []\n"
+                     "anchor: &1 [x]\n"
+                     "fanout: [";
+  for (int index = 0; index < 40; ++index) {
+    text += "*1,";
+  }
+  text += "*1]\n";
+
+  EXPECT_THROW(
+      {
+        try {
+          (void)topoexec::load_graph_text(text);
+        } catch (const std::invalid_argument& error) {
+          EXPECT_NE(std::string(error.what()).find("too many YAML aliases"), std::string::npos);
+          throw;
+        }
+      },
+      std::invalid_argument);
+}
+
+TEST(GraphInputLimits, AcceptsBlockScalarTextThatResemblesAliases) {
+  // Regression for the block-scalar false positive: literal text like `*a` inside a YAML block scalar is
+  // scalar content, not alias use, and must not be counted against the alias limit.
+  std::string text = "schema_version: 1\n"
+                     "graph: {name: g, kind: internal_test}\n"
+                     "lanes: {main: {type: event_loop}}\n"
+                     "components:\n"
+                     "  - id: c\n"
+                     "    type: topoexec.test.Identity\n"
+                     "    config:\n"
+                     "      note: |\n";
+  for (int index = 0; index < 60; ++index) {
+    text += "        *a\n";
+  }
+  text += "    event_sources: [{type: manual}]\n"
+          "    trigger_policy: {type: manual}\n"
+          "    execution: {lane: main}\n"
+          "edges: []\n";
+
+  // load_graph_text only parses structure; the block scalar must not trip the alias guard.
+  EXPECT_NO_THROW((void)topoexec::load_graph_text(text));
+}
+
+TEST(Graph, ConfigIntFieldRejectsNonFiniteAndOutOfRangeWithoutUndefinedBehavior) {
+  // H2: int config validation must reject NaN/Inf/out-of-range before the float-to-int narrowing, which is
+  // undefined behavior for those inputs. Reachable via any public ConfigValueKind::kInt descriptor field.
+  topoexec::ConfigFieldSpec count_field;
+  count_field.name = "count";
+  count_field.kind = topoexec::ConfigValueKind::kInt;
+  auto sink = component_descriptor("topoexec.test.Sink", topoexec::ComponentRole::kOutputBoundary,
+                                   {port("in", topoexec::kTextPayloadSchema)}, {});
+  sink.config_fields.push_back(count_field);
+  const auto registry = registry_for({
+      component_descriptor("topoexec.test.Source", topoexec::ComponentRole::kInputBoundary, {},
+                           {port("out", topoexec::kTextPayloadSchema)}),
+      sink,
+  });
+
+  for (const std::string& value :
+       {std::string("nan"), std::string("inf"), std::string("3000000000"), std::string("1e300")}) {
+    const auto graph = topoexec::load_graph_text(
+        "schema_version: 1\n"
+        "graph: {name: cfg, kind: internal_test}\n"
+        "lanes: {main: {type: event_loop}}\n"
+        "components:\n"
+        "  - id: a\n"
+        "    type: topoexec.test.Source\n"
+        "    boundary: {role: input, descriptor: test}\n"
+        "    event_sources: [{type: manual}]\n"
+        "    trigger_policy: {type: manual}\n"
+        "    execution: {lane: main}\n"
+        "  - id: b\n"
+        "    type: topoexec.test.Sink\n"
+        "    boundary: {role: output, descriptor: test}\n"
+        "    config: {count: " +
+        value +
+        "}\n"
+        "    event_sources: [{type: message, inputs: [in]}]\n"
+        "    trigger_policy: {type: any_input, inputs: [in]}\n"
+        "    execution: {lane: main}\n"
+        "edges:\n"
+        "  - {id: e, kind: immediate, from: a.out, to: b.in, policy: {mode: latest, copy_policy: shared_view}}\n");
+    const auto result = topoexec::validate_graph(graph, registry); // must not invoke UB under UBSAN
+    EXPECT_FALSE(result.ok) << value;
+    EXPECT_TRUE(has_error_containing(result.errors, "must be int")) << value;
+  }
+}
+
+TEST(GraphRender, MermaidKeepsDistinctIdsDistinctAfterSanitization) {
+  // Sanitizing ids independently could map distinct valid ids ("a b" and "a_b") to the same Mermaid node id,
+  // collapsing them. The render must keep them distinct while leaving already-safe ids unchanged.
+  topoexec::GraphSpec graph;
+  graph.name = "g";
+  for (const std::string& id : {std::string("a b"), std::string("a_b")}) {
+    topoexec::ComponentNodeSpec component;
+    component.id = id;
+    component.type = "topoexec.test.Source";
+    graph.components.push_back(component);
+  }
+
+  const topoexec::GraphCompiledPlan plan;
+  const auto mermaid = topoexec::graph_mermaid(graph, plan);
+
+  // The already-safe id keeps its exact name; the sanitized one is disambiguated, so two node defs exist.
+  EXPECT_NE(mermaid.find("a_b[\""), std::string::npos) << mermaid;
+  EXPECT_NE(mermaid.find("a_b_2[\""), std::string::npos) << mermaid;
 }

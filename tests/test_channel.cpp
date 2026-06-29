@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -739,4 +740,66 @@ TEST(Payload, BatchPayloadsCanUseTypedHelpersInOrder) {
   ASSERT_NE(invocation.batch_payloads[1], nullptr);
   EXPECT_EQ(topoexec::payload_as<topoexec::TextPayload>(*invocation.batch_payloads[0]).text, "one");
   EXPECT_EQ(topoexec::payload_as<topoexec::TextPayload>(*invocation.batch_payloads[1]).text, "two");
+}
+
+TEST(Channel, HighWatermarkReArmsAfterChannelDrainsBelowCapacity) {
+  // The backpressure high-watermark signal must fire again each time the channel re-saturates, not just once
+  // for the channel's whole lifetime. Saturate, drain below capacity, then re-saturate and expect two events.
+  topoexec::HealthEventSink sink(16);
+  topoexec::RuntimeChannelBus bus({edge("events", "queue", 2)});
+  bus.set_health_event_sink(&sink);
+
+  auto high_watermark_occurrences = [&]() -> std::size_t {
+    const auto events = sink.snapshot();
+    const auto found = std::find_if(events.begin(), events.end(), [](const auto& event) {
+      return event.kind == topoexec::HealthEventKind::kBackpressureHighWatermark;
+    });
+    return found == events.end() ? 0u : found->occurrence_count;
+  };
+
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("one")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("two")).accepted);
+  EXPECT_EQ(high_watermark_occurrences(), 1u);
+
+  // Drain the queue so depth falls below capacity and re-arms the watermark.
+  const auto drained = bus.consume_for_component("consumer");
+  ASSERT_EQ(drained.size(), 2u);
+  EXPECT_EQ(bus.metrics("events").depth, 0u);
+
+  // Re-saturating must emit the high-watermark a second time. The sink coalesces same-key events, so the
+  // second emission appears as occurrence_count == 2 rather than a distinct event. With the latch bug the flag
+  // would never re-arm and occurrence_count would stay 1.
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("three")).accepted);
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("four")).accepted);
+  EXPECT_EQ(high_watermark_occurrences(), 2u);
+}
+
+TEST(Channel, LatestReaderDedupMapIsHardBoundedWithBoundedRedelivery) {
+  // H6: caller-supplied reader ids must not grow the dedup map without limit. Safe pruning alone keeps every
+  // reader that sits at the current latest sequence, so a hard cap (kMaxTrackedReaders == 4096 in channel.cpp)
+  // evicts the oldest-by-id reader once exceeded. The evicted reader observes one bounded re-delivery on its
+  // next read (at-least-once degradation under abuse), while a retained reader still de-duplicates.
+  constexpr int kReaderCount = 4097; // one past the internal cap so eviction is guaranteed
+  topoexec::RuntimeChannelBus bus({edge("events", "latest", 1)});
+  ASSERT_TRUE(bus.publish_from("producer.out", topoexec::make_text_payload("v1")).accepted);
+
+  char id[16];
+  for (int index = 0; index < kReaderCount; ++index) {
+    std::snprintf(id, sizeof(id), "r%05d", index);
+    const auto first = bus.read_latest_for_reader("events", id);
+    ASSERT_TRUE(first.ok);
+    ASSERT_TRUE(first.message.has_value()) << "reader " << id << " should receive the latest on first read";
+  }
+
+  // The smallest-id reader ("r00000") was evicted to hold the cap, so re-reading it re-delivers v1.
+  const auto evicted = bus.read_latest_for_reader("events", "r00000");
+  ASSERT_TRUE(evicted.ok);
+  EXPECT_TRUE(evicted.message.has_value()) << "evicted reader should see a bounded re-delivery";
+
+  // The most-recently-tracked reader is retained, so it still de-duplicates (no re-delivery).
+  char last_id[16];
+  std::snprintf(last_id, sizeof(last_id), "r%05d", kReaderCount - 1);
+  const auto retained = bus.read_latest_for_reader("events", last_id);
+  ASSERT_TRUE(retained.ok);
+  EXPECT_FALSE(retained.message.has_value()) << "retained reader must still de-duplicate";
 }

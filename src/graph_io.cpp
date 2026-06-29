@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <yaml-cpp/eventhandler.h>
+#include <yaml-cpp/parser.h>
 #include <yaml-cpp/yaml.h>
 
 namespace topoexec {
@@ -194,7 +196,11 @@ int optional_int(const YAML::Node& node, const char* key, int fallback = 0) {
   if (!child || child.IsNull()) {
     return fallback;
   }
-  return child.as<int>();
+  try {
+    return child.as<int>();
+  } catch (const std::exception&) {
+    throw std::invalid_argument(std::string("field ") + key + " must be an integer");
+  }
 }
 
 double optional_double(const YAML::Node& node, const char* key, double fallback = 0.0) {
@@ -202,7 +208,11 @@ double optional_double(const YAML::Node& node, const char* key, double fallback 
   if (!child || child.IsNull()) {
     return fallback;
   }
-  return child.as<double>();
+  try {
+    return child.as<double>();
+  } catch (const std::exception&) {
+    throw std::invalid_argument(std::string("field ") + key + " must be a number");
+  }
 }
 
 bool optional_bool(const YAML::Node& node, const char* key, bool fallback = false) {
@@ -210,7 +220,11 @@ bool optional_bool(const YAML::Node& node, const char* key, bool fallback = fals
   if (!child || child.IsNull()) {
     return fallback;
   }
-  return child.as<bool>();
+  try {
+    return child.as<bool>();
+  } catch (const std::exception&) {
+    throw std::invalid_argument(std::string("field ") + key + " must be a boolean (true/false)");
+  }
 }
 
 std::vector<std::string> optional_string_vector(const YAML::Node& node, const char* key, const std::string& context) {
@@ -959,6 +973,53 @@ std::string read_bounded_graph_file(const std::string& path, const GraphInputLim
   return text;
 }
 
+// Counts YAML alias references with yaml-cpp's event parser instead of a raw text scan. Every `*anchor`
+// reference emits exactly one OnAlias event regardless of the anchor name's characters (so digit-named
+// aliases like `*1` are counted), and `*`-containing block-scalar text is reported as scalar content, not an
+// alias (so literal text is never miscounted). The event stream is linear in the source tokens — aliases are
+// NOT expanded into subtrees — so this stays cheap even for nested-alias ("billion laughs") inputs and runs
+// before the potentially expensive node-tree build in YAML::Load.
+class AliasCountingEventHandler : public YAML::EventHandler {
+public:
+  void OnDocumentStart(const YAML::Mark& /*mark*/) override {}
+  void OnDocumentEnd() override {}
+  void OnNull(const YAML::Mark& /*mark*/, YAML::anchor_t /*anchor*/) override {}
+  void OnAlias(const YAML::Mark& /*mark*/, YAML::anchor_t /*anchor*/) override {
+    ++count_;
+  }
+  void OnScalar(const YAML::Mark& /*mark*/, const std::string& /*tag*/, YAML::anchor_t /*anchor*/,
+                const std::string& /*value*/) override {}
+  void OnSequenceStart(const YAML::Mark& /*mark*/, const std::string& /*tag*/, YAML::anchor_t /*anchor*/,
+                       YAML::EmitterStyle::value /*style*/) override {}
+  void OnSequenceEnd() override {}
+  void OnMapStart(const YAML::Mark& /*mark*/, const std::string& /*tag*/, YAML::anchor_t /*anchor*/,
+                  YAML::EmitterStyle::value /*style*/) override {}
+  void OnMapEnd() override {}
+
+  std::size_t count() const {
+    return count_;
+  }
+
+private:
+  std::size_t count_{0u};
+};
+
+std::size_t count_yaml_alias_references(const std::string& text) {
+  std::istringstream stream(text);
+  YAML::Parser parser(stream);
+  AliasCountingEventHandler handler;
+  try {
+    while (parser.HandleNextDocument(handler)) {
+      // Drive the event stream across every document in the input.
+    }
+  } catch (const YAML::Exception&) {
+    // Malformed YAML: let the normal YAML::Load path surface a precise parse error rather than reporting an
+    // alias overflow here. A genuine alias bomb must parse to expand, so it is still counted before that throw.
+    return handler.count();
+  }
+  return handler.count();
+}
+
 } // namespace
 
 GraphSpec load_graph_text(const std::string& text) {
@@ -968,6 +1029,12 @@ GraphSpec load_graph_text(const std::string& text) {
 GraphSpec load_graph_text(const std::string& text, const GraphInputLimits& limits) {
   enforce_limit(text.size(), limits.max_graph_input_bytes, "graph input size");
   enforce_valid_utf8(text);
+  // Bound YAML alias expansion before YAML::Load: nested aliases can blow up traversal cost exponentially.
+  const auto alias_count = count_yaml_alias_references(text);
+  if (alias_count > limits.max_yaml_alias_count) {
+    throw std::invalid_argument("graph input uses too many YAML aliases (" + std::to_string(alias_count) +
+                                " exceeds limit " + std::to_string(limits.max_yaml_alias_count) + ")");
+  }
   const ScopedGraphInputLimits scope(limits);
   try {
     auto graph = load_graph_node(YAML::Load(text));

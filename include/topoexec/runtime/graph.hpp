@@ -28,6 +28,11 @@ struct GraphInputLimits {
   std::size_t max_config_depth{8u};
   std::size_t max_config_value_bytes{4096u};
   std::size_t max_string_bytes{4096u};
+  // Upper bound on YAML alias references (`*anchor`) accepted in a single graph input. Nested anchor/alias
+  // expansion ("billion laughs") can make traversal cost grow exponentially even when the parser shares the
+  // underlying nodes; capping aliases (combined with max_config_depth) keeps load cost bounded. Graph specs
+  // do not normally use aliases, so the default is generous while still bounding nested-expansion cost.
+  std::size_t max_yaml_alias_count{32u};
 };
 
 struct LaneSpec {

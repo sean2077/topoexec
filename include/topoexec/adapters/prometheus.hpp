@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cctype>
+#include <cmath>
 #include <cstddef>
 #include <map>
 #include <mutex>
@@ -213,11 +214,27 @@ private:
         result.push_back(character);
       } else if (character == '\n') {
         result += "\\n";
+      } else if (character == '\r') {
+        result += "\\r";
       } else {
         result.push_back(character);
       }
     }
     return result;
+  }
+
+  // Format a metric value for the Prometheus text exposition format. Non-finite values have specific spellings
+  // (NaN, +Inf, -Inf); the default ostream output (nan/inf) is rejected by scrapers, so map them explicitly.
+  static std::string format_value(double value) {
+    if (std::isnan(value)) {
+      return "NaN";
+    }
+    if (std::isinf(value)) {
+      return value > 0.0 ? "+Inf" : "-Inf";
+    }
+    std::ostringstream out;
+    out << value;
+    return out.str();
   }
 
   static std::map<std::string, std::string> descriptor_labels(const RuntimeMetricDescriptor& descriptor,
@@ -267,7 +284,7 @@ private:
     const auto name = prometheus_sample_name(descriptor);
     render_header(out, emitted_headers, name, prometheus_type(descriptor),
                   "TopoExec runtime metric " + descriptor.name);
-    out << name << render_labels(descriptor_labels(descriptor, metric)) << " " << metric.value << "\n";
+    out << name << render_labels(descriptor_labels(descriptor, metric)) << " " << format_value(metric.value) << "\n";
   }
 
   static bool parse_histogram_summary(std::string_view name, HistogramSummaryKey& key) {
@@ -291,13 +308,13 @@ private:
     }
     const auto name = base_name + "_" + std::string(suffix);
     render_header(out, emitted_headers, name, "gauge", "TopoExec custom histogram " + std::string(suffix));
-    out << name << " " << *value << "\n";
+    out << name << " " << format_value(*value) << "\n";
   }
 
   static void render_quantile(std::ostringstream& out, const std::string& name, std::string_view quantile,
                               const std::optional<double>& value) {
     if (value.has_value()) {
-      out << name << "{quantile=\"" << quantile << "\"} " << *value << "\n";
+      out << name << "{quantile=\"" << quantile << "\"} " << format_value(*value) << "\n";
     }
   }
 
@@ -306,9 +323,9 @@ private:
     const auto name = sanitize_name(raw_base_name);
     render_header(out, emitted_headers, name, "summary", "TopoExec custom histogram summary " + raw_base_name);
     if (histogram.count.has_value()) {
-      out << name << "_count " << *histogram.count << "\n";
+      out << name << "_count " << format_value(*histogram.count) << "\n";
       if (histogram.avg.has_value()) {
-        out << name << "_sum " << (*histogram.avg * *histogram.count) << "\n";
+        out << name << "_sum " << format_value(*histogram.avg * *histogram.count) << "\n";
       }
     }
     render_quantile(out, name, "0.5", histogram.p50);

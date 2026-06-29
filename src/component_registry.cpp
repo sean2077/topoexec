@@ -21,6 +21,12 @@ bool ComponentRegistry::register_component(ComponentRegistration registration, C
   return true;
 }
 
+bool ComponentRegistry::unregister(const std::string& type) {
+  const auto removed = registrations_.erase(type);
+  factories_.erase(type);
+  return removed != 0u;
+}
+
 bool ComponentRegistry::contains(const std::string& type) const {
   return registrations_.count(type) != 0u;
 }

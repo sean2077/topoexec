@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -90,6 +91,13 @@ public:
   BufferPool() = default;
   explicit BufferPool(BufferPoolConfig config);
 
+  // Movable (the mutex member otherwise deletes these). Moving a pool with outstanding loans is unsupported,
+  // since LoanedFrame holds a raw pointer back to its pool; callers must move only an idle pool.
+  BufferPool(BufferPool&& other) noexcept;
+  BufferPool& operator=(BufferPool&& other) noexcept;
+  BufferPool(const BufferPool&) = delete;
+  BufferPool& operator=(const BufferPool&) = delete;
+
   LoanedFrame loan_frame(std::size_t size, std::uint32_t width, std::uint32_t height, std::uint32_t stride,
                          std::string format);
   const BufferPoolConfig& config() const;
@@ -103,8 +111,12 @@ private:
   bool can_allocate(std::size_t allocation_size) const;
   void mark_detached(const std::shared_ptr<SharedBuffer>& buffer);
   void return_buffer(std::shared_ptr<SharedBuffer> buffer);
+  // Private helpers below assume mutex_ is already held by the calling public method.
   void refresh_available_stats();
 
+  // Loaned frames are designed to flow across threads (e.g. thread_pool lanes) and are returned/detached from
+  // whichever thread releases them, so every access to the pool's mutable state is serialized by this mutex.
+  mutable std::mutex mutex_;
   BufferPoolConfig config_;
   std::vector<std::shared_ptr<SharedBuffer>> available_;
   BufferPoolStats stats_;

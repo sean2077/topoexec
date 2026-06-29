@@ -45,7 +45,7 @@ components:
   - id: debounce_gate
     type: topoexec.transforms.Identity
     event_sources: [{type: message, inputs: [in]}]
-    trigger_policy: {type: debounce, inputs: [in], debounce_window_ms: 1, coalesce: true}
+    trigger_policy: {type: debounce, inputs: [in], debounce_window_ms: 0, coalesce: true}
     execution: {lane: main}
   - id: condition_gate
     type: topoexec.transforms.Identity

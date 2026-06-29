@@ -881,7 +881,7 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
         }
 
         auto execute_worker_invocations = [&](std::size_t offset, std::size_t count, bool commit_each) {
-          if (options.stop_token.stop_requested()) {
+          if (options.stop_token.stop_requested() || runtime_cancel_token.requested()) {
             result.stop_reason = SchedulerStopReason::kStopRequested;
             return false;
           }
@@ -903,11 +903,27 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
                                           priority, found->id));
           }
 
+          // Drain every submitted future before processing outcomes or returning. The submitted work captures
+          // `run_invocation` (and through it the per-component `found`) by reference; if we returned while siblings
+          // were still in flight, those workers would dereference stack state destroyed as `execute_component`
+          // unwinds (use-after-scope / data race). This also honors the cooperative-drain-then-join contract.
           std::vector<WorkerInvocationOutcome> outcomes;
           outcomes.reserve(futures.size());
-          for (std::size_t index = 0; index < futures.size(); ++index) {
-            outcomes.push_back(futures[index].get());
-            if (!record_invocation_outcome(invocations[offset + index], outcomes.back().outcome, commit_each)) {
+          std::exception_ptr pending_exception;
+          for (auto& future : futures) {
+            try {
+              outcomes.push_back(future.get());
+            } catch (...) {
+              if (pending_exception == nullptr) {
+                pending_exception = std::current_exception();
+              }
+            }
+          }
+          if (pending_exception != nullptr) {
+            std::rethrow_exception(pending_exception);
+          }
+          for (std::size_t index = 0; index < outcomes.size(); ++index) {
+            if (!record_invocation_outcome(invocations[offset + index], outcomes[index].outcome, commit_each)) {
               return false;
             }
           }
@@ -1143,7 +1159,10 @@ SchedulerRunResult EventRuntime::run(const SchedulerRunOptions& options) {
             std::max(metrics.max_lateness_ms, std::chrono::duration<double, std::milli>(wall_clock_lateness).count());
         auto skipped_ticks = missed_periods(wall_clock_lateness, period);
         if (lane.overrun_policy == "skip_next" && wall_clock_lateness.count() > 0) {
-          ++skipped_ticks;
+          // skip_next deliberately skips the next nominal slot. Count at least that one skip, but if whole
+          // periods were already missed those ARE the skipped ticks; adding +1 unconditionally double-counts
+          // when lateness already spans one or more periods.
+          skipped_ticks = std::max<std::size_t>(skipped_ticks, 1u);
           next_wall_clock_ticks[lane_id] = next_nominal_tick + period;
         } else if (lane.overrun_policy == "catch_up_once" && wall_clock_lateness.count() > 0) {
           next_wall_clock_ticks[lane_id] = iteration_finished_at;

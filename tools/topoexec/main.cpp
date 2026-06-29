@@ -354,6 +354,17 @@ nlohmann::json edge_policy_json(const topoexec::EdgeSpec& edge) {
           {"slow_reader_drop_risk", slow_reader_drop_risk(edge.policy)}};
 }
 
+// Resolve the effective bounded-step count for run/metrics/trace/observe. When --until-idle is requested
+// without an explicit --steps bound, pass 0 so the runtime applies its idle-run safety bound rather than the
+// CLI default of 1 (which would otherwise stop after a single iteration and defeat --until-idle). An explicit
+// --steps value is always honored as the safety upper bound.
+std::size_t resolve_run_steps(std::size_t steps, bool until_idle, std::size_t steps_option_count) {
+  if (until_idle && steps_option_count == 0u) {
+    return 0u;
+  }
+  return steps;
+}
+
 topoexec::RuntimeRunnerResult
 run_graph_file(const std::string& path, std::size_t steps, std::uint64_t duration_ms, bool until_idle,
                const topoexec::GraphInputLimits& limits,
@@ -2008,7 +2019,8 @@ int main(int argc, char** argv) {
   bool run_until_idle{false};
   auto* run = graph_cmd->add_subcommand("run", "Run a graph with built-in demo components");
   run->add_option("file", run_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
-  run->add_option("--steps", run_steps, "Bounded event-loop steps");
+  auto* run_steps_option =
+      run->add_option("--steps", run_steps, "Bounded event-loop steps")->check(CLI::PositiveNumber);
   run->add_option("--duration-ms", run_duration_ms, "Optional duration bound in milliseconds");
   run->add_flag("--until-idle", run_until_idle, "Stop early after an event-loop iteration executes no components");
   run->add_option("--format", run_format, "Output format")->check(CLI::IsMember({"text", "json"}));
@@ -2021,7 +2033,8 @@ int main(int argc, char** argv) {
   bool metrics_until_idle{false};
   auto* metrics = graph_cmd->add_subcommand("metrics", "Run a graph and print runtime metrics");
   metrics->add_option("file", metrics_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
-  metrics->add_option("--steps", metrics_steps, "Bounded event-loop steps");
+  auto* metrics_steps_option =
+      metrics->add_option("--steps", metrics_steps, "Bounded event-loop steps")->check(CLI::PositiveNumber);
   metrics->add_option("--duration-ms", metrics_duration_ms, "Optional duration bound in milliseconds");
   metrics->add_flag("--until-idle", metrics_until_idle,
                     "Stop early after an event-loop iteration executes no components");
@@ -2035,7 +2048,8 @@ int main(int argc, char** argv) {
   bool trace_until_idle{false};
   auto* trace = graph_cmd->add_subcommand("trace", "Run a graph and print runtime trace events");
   trace->add_option("file", trace_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
-  trace->add_option("--steps", trace_steps, "Bounded event-loop steps");
+  auto* trace_steps_option =
+      trace->add_option("--steps", trace_steps, "Bounded event-loop steps")->check(CLI::PositiveNumber);
   trace->add_option("--duration-ms", trace_duration_ms, "Optional duration bound in milliseconds");
   trace->add_flag("--until-idle", trace_until_idle, "Stop early after an event-loop iteration executes no components");
   trace->add_option("--format", trace_format, "Output format")->check(CLI::IsMember({"text", "json", "chrome"}));
@@ -2061,7 +2075,8 @@ int main(int argc, char** argv) {
   bool observe_fail_on_observer_drop{false};
   auto* observe = graph_cmd->add_subcommand("observe", "Run a graph and emit live observe NDJSON");
   observe->add_option("file", observe_path, "Graph YAML file")->required()->check(CLI::ExistingFile);
-  observe->add_option("--steps", observe_steps, "Bounded event-loop steps");
+  auto* observe_steps_option =
+      observe->add_option("--steps", observe_steps, "Bounded event-loop steps")->check(CLI::PositiveNumber);
   observe->add_option("--duration-ms", observe_duration_ms, "Optional duration bound in milliseconds");
   observe->add_flag("--until-idle", observe_until_idle,
                     "Stop early after an event-loop iteration executes no components");
@@ -2176,17 +2191,23 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (*run) {
-      return print_runner_result(run_graph_file(run_path, run_steps, run_duration_ms, run_until_idle, input_limits),
+      return print_runner_result(run_graph_file(run_path,
+                                                resolve_run_steps(run_steps, run_until_idle, run_steps_option->count()),
+                                                run_duration_ms, run_until_idle, input_limits),
                                  run_format);
     }
     if (*metrics) {
       return print_metrics_result(
-          run_graph_file(metrics_path, metrics_steps, metrics_duration_ms, metrics_until_idle, input_limits),
+          run_graph_file(metrics_path,
+                         resolve_run_steps(metrics_steps, metrics_until_idle, metrics_steps_option->count()),
+                         metrics_duration_ms, metrics_until_idle, input_limits),
           metrics_format);
     }
     if (*trace) {
       return print_trace_result(
-          run_graph_file(trace_path, trace_steps, trace_duration_ms, trace_until_idle, input_limits), trace_format);
+          run_graph_file(trace_path, resolve_run_steps(trace_steps, trace_until_idle, trace_steps_option->count()),
+                         trace_duration_ms, trace_until_idle, input_limits),
+          trace_format);
     }
     if (*observe) {
       if (observe_payload_preview_bytes > 0u && observe_level != "debug") {
@@ -2211,15 +2232,18 @@ int main(int argc, char** argv) {
       live_options.level = parse_live_observe_level(observe_level);
       live_options.event_buffer_capacity = observe_event_buffer_capacity;
       live_options.stream_id = 1;
-      const auto result = run_graph_file(observe_path, observe_steps, observe_duration_ms, observe_until_idle,
-                                         input_limits, live_options);
+      const auto result = run_graph_file(
+          observe_path, resolve_run_steps(observe_steps, observe_until_idle, observe_steps_option->count()),
+          observe_duration_ms, observe_until_idle, input_limits, live_options);
       const ObserveOutputFilter observe_output_filter{observe_include_components, observe_include_channels,
                                                       observe_include_events, observe_exclude_events,
                                                       observe_sample_events};
       const auto exit_code = print_observe_result(
           observe_path, graph, validation, result, observe_level, observe_format, observe_ui_frame_ms,
           observe_assert_file, observe_record_dir, observe_fail_on_assertion_fail, observe_output_filter);
-      if (observe_fail_on_observer_drop && result.live_observe_dropped_event_count != 0u) {
+      // A runtime (1) or assertion (3) failure must take priority over the collector-drop code (4); only
+      // upgrade to 4 when the command otherwise succeeded. Otherwise a real runtime failure would be masked.
+      if (exit_code == 0 && observe_fail_on_observer_drop && result.live_observe_dropped_event_count != 0u) {
         return 4;
       }
       return exit_code;

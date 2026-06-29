@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <mutex>
 #include <utility>
 
 namespace topoexec {
@@ -112,11 +113,30 @@ BufferPool::BufferPool(BufferPoolConfig config) : config_(std::move(config)) {
   stats_.max_bytes = config_.max_bytes;
 }
 
+BufferPool::BufferPool(BufferPool&& other) noexcept {
+  std::lock_guard lock(other.mutex_);
+  config_ = std::move(other.config_);
+  available_ = std::move(other.available_);
+  stats_ = other.stats_;
+}
+
+BufferPool& BufferPool::operator=(BufferPool&& other) noexcept {
+  if (this != &other) {
+    std::scoped_lock lock(mutex_, other.mutex_);
+    config_ = std::move(other.config_);
+    available_ = std::move(other.available_);
+    stats_ = other.stats_;
+  }
+  return *this;
+}
+
 LoanedFrame BufferPool::loan_frame(std::size_t size, std::uint32_t width, std::uint32_t height, std::uint32_t stride,
                                    std::string format) {
+  std::lock_guard lock(mutex_);
   std::shared_ptr<SharedBuffer> buffer;
-  auto reusable = std::find_if(available_.begin(), available_.end(),
-                               [size](const auto& candidate) { return candidate->size() >= size; });
+  auto reusable = std::find_if(available_.begin(), available_.end(), [size](const auto& candidate) {
+    return candidate != nullptr && candidate->size() >= size;
+  });
   if (reusable == available_.end()) {
     const auto allocated_size = allocation_size(size);
     if (!can_allocate(allocated_size)) {
@@ -146,10 +166,12 @@ const BufferPoolConfig& BufferPool::config() const {
 }
 
 BufferPoolStats BufferPool::stats() const {
+  std::lock_guard lock(mutex_);
   return stats_;
 }
 
 bool BufferPool::has_outstanding_loans() const {
+  std::lock_guard lock(mutex_);
   return stats_.active_count != 0u;
 }
 
@@ -183,6 +205,7 @@ void BufferPool::mark_detached(const std::shared_ptr<SharedBuffer>& buffer) {
   if (buffer == nullptr) {
     return;
   }
+  std::lock_guard lock(mutex_);
   ++stats_.detached_count;
   if (stats_.active_count > 0u) {
     --stats_.active_count;
@@ -201,7 +224,13 @@ void BufferPool::mark_detached(const std::shared_ptr<SharedBuffer>& buffer) {
 }
 
 void BufferPool::return_buffer(std::shared_ptr<SharedBuffer> buffer) {
-  const auto size = buffer == nullptr ? 0u : buffer->size();
+  if (buffer == nullptr) {
+    // Never store a null buffer: loan_frame's reuse scan would otherwise dereference it. Releasing a frame
+    // with no buffer is a no-op rather than corrupting the free list.
+    return;
+  }
+  std::lock_guard lock(mutex_);
+  const auto size = buffer->size();
   available_.push_back(std::move(buffer));
   ++stats_.release_count;
   if (stats_.active_count > 0u) {

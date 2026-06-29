@@ -27,6 +27,10 @@ using ComponentFactory = std::function<std::unique_ptr<Component>()>;
 class ComponentRegistry {
 public:
   bool register_component(ComponentRegistration registration, ComponentFactory factory);
+  /// @brief Remove a previously registered component type. Returns true if a registration was removed.
+  /// @note Caller must ensure no live component instance of this type (and, for plugin-provided types, no
+  ///       code from the providing shared object) is still in use before unloading that shared object.
+  bool unregister(const std::string& type);
   bool contains(const std::string& type) const;
   std::optional<ComponentRegistration> metadata(const std::string& type) const;
   std::unique_ptr<Component> create(const std::string& type) const;

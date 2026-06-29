@@ -158,6 +158,43 @@ bool is_multi_reader(const std::string& readers) {
   return readers == "multi" || readers == "multiple";
 }
 
+// Upper bound on distinct reader ids tracked per channel for de-duplication. The public read APIs accept
+// caller-supplied reader ids; without a bound a per-message/per-connection id pattern would grow these maps
+// without limit. Pruning only ever drops entries whose removal cannot change delivery behavior.
+constexpr std::size_t kMaxTrackedReaders = 4096u;
+
+// An entry in the latest-dedup map only suppresses a re-delivery when it equals the current latest sequence;
+// any other value behaves identically to the entry's absence, so dropping it never changes delivery.
+void prune_latest_dedup(std::map<std::string, std::uint64_t>& delivered, std::uint64_t latest_sequence) {
+  for (auto it = delivered.begin(); it != delivered.end();) {
+    it = (it->second != latest_sequence) ? delivered.erase(it) : std::next(it);
+  }
+}
+
+// An entry in the queue-dedup map suppresses messages with sequence <= the stored value. Once everything a
+// reader has consumed has been evicted from the queue (stored value < the smallest retained sequence), the
+// entry suppresses nothing its absence wouldn't, so dropping it is safe. min_retained_sequence == 0 means the
+// queue is empty, in which case every entry is safe to drop.
+void prune_queue_dedup(std::map<std::string, std::uint64_t>& delivered, std::uint64_t min_retained_sequence) {
+  for (auto it = delivered.begin(); it != delivered.end();) {
+    const bool droppable = min_retained_sequence == 0u || it->second < min_retained_sequence;
+    it = droppable ? delivered.erase(it) : std::next(it);
+  }
+}
+
+// Enforce the absolute reader-id cap after safe pruning. Safe pruning alone does not bound the maps: if many
+// distinct caller-supplied reader ids all sit at the current latest sequence (or still overlap retained queue
+// history), every entry remains delivery-relevant and is kept. When more than kMaxTrackedReaders such live
+// entries remain, evict deterministically (by reader id) to hold a hard memory bound. An evicted reader's
+// dedup cursor is forgotten, so its next read may observe one bounded re-delivery — at-least-once degradation
+// under reader-id abuse, never data loss or crash. Normal graphs use a fixed, small reader set and never reach
+// this cap, so this path is abuse-only bounded degradation.
+void enforce_reader_cap(std::map<std::string, std::uint64_t>& delivered) {
+  while (delivered.size() > kMaxTrackedReaders) {
+    delivered.erase(delivered.begin());
+  }
+}
+
 std::string large_payload_copy_reason(const RuntimePayload& payload) {
   if (!payload.is_large_payload()) {
     return {};
@@ -861,6 +898,10 @@ std::optional<RuntimeChannelMessage> RuntimeChannelBus::consume_latest_from_stat
     return std::nullopt;
   }
   state.delivered_latest_sequences[reader_id] = state.latest->sequence;
+  if (state.delivered_latest_sequences.size() > kMaxTrackedReaders) {
+    prune_latest_dedup(state.delivered_latest_sequences, state.latest->sequence);
+    enforce_reader_cap(state.delivered_latest_sequences);
+  }
   ++state.metrics.delivered_count;
   auto message = *state.latest;
   mark_delivery_metrics(state, message, now);
@@ -906,6 +947,11 @@ RuntimeChannelBus::consume_from_state(ChannelState& state, const std::string& re
     state.queue.clear();
   }
   state.metrics.depth = state.queue.size();
+  maybe_rearm_high_watermark(state);
+  if (state.delivered_queue_sequences.size() > kMaxTrackedReaders) {
+    prune_queue_dedup(state.delivered_queue_sequences, state.queue.empty() ? 0u : state.queue.front().sequence);
+    enforce_reader_cap(state.delivered_queue_sequences);
+  }
   return messages;
 }
 
@@ -938,6 +984,7 @@ std::vector<RuntimeChannelMessage> RuntimeChannelBus::snapshot_from_state(Channe
   }
   state.queue = std::move(retained);
   state.metrics.depth = state.queue.size();
+  maybe_rearm_high_watermark(state);
   return messages;
 }
 
@@ -950,7 +997,12 @@ void RuntimeChannelBus::mark_delivery_metrics(ChannelState& state, RuntimeChanne
                                               std::chrono::steady_clock::time_point now) {
   const auto age = now - message.published_at;
   state.metrics.message_age_ms = std::chrono::duration<double, std::milli>(age).count();
-  state.metrics.delivery_latency_ms = state.metrics.message_age_ms;
+  // message_age_ms measures time since the producer event (published_at); delivery_latency_ms measures time
+  // since the channel received/enqueued the message (received_at). In this in-process model a publish is
+  // received synchronously, so received_at == published_at and the two coincide; they are kept distinct so
+  // out-of-process producers (where the two differ) report meaningful latency without an API change.
+  const auto delivery_latency = now - message.received_at;
+  state.metrics.delivery_latency_ms = std::chrono::duration<double, std::milli>(delivery_latency).count();
   if (state.config.deadline.count() > 0 && age > state.config.deadline) {
     message.deadline_missed = true;
     ++state.metrics.deadline_miss_count;
@@ -1016,6 +1068,14 @@ void RuntimeChannelBus::maybe_emit_high_watermark(ChannelState& state, const Run
   state.high_watermark_reported = true;
   emit_channel_health_event(state, HealthEventKind::kBackpressureHighWatermark, message.sequence, state.metrics.depth,
                             "channel depth reached capacity");
+}
+
+void RuntimeChannelBus::maybe_rearm_high_watermark(ChannelState& state) {
+  // Re-arm the high-watermark backpressure signal once the channel drains below capacity so that a later
+  // re-saturation emits another event (the flag would otherwise latch for the channel's whole lifetime).
+  if (state.metrics.depth < state.config.capacity) {
+    state.high_watermark_reported = false;
+  }
 }
 
 RuntimeChannelMetrics RuntimeChannelBus::metrics_from_state(const ChannelState& state) const {

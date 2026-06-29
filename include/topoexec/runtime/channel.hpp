@@ -241,6 +241,7 @@ private:
   std::vector<PendingChannelHealthEvent> drain_pending_health_events_locked();
   static void emit_pending_health_events(std::vector<PendingChannelHealthEvent> events);
   void maybe_emit_high_watermark(ChannelState& state, const RuntimeChannelMessage& message);
+  void maybe_rearm_high_watermark(ChannelState& state);
   RuntimeChannelMetrics metrics_from_state(const ChannelState& state) const;
   std::vector<std::string> channel_ids_for_component_port(const std::string& component_id,
                                                           const std::string& port_name) const;

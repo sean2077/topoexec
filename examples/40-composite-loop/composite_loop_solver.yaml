@@ -37,6 +37,9 @@ composite_loops:
     components: [estimator, controller]
     loop_policy:
       type: fixed_point
-      budget_ms: 5
+      # Generous wall-clock safety budget: the loop normally stops at max_iterations/convergence well within
+      # 1ms, so this only caps a pathologically slow loop. A tight budget made golden runtime metrics flaky
+      # under instrumented (sanitizer) parallel test load, where an iteration could exceed a few milliseconds.
+      budget_ms: 1000
       max_iterations: 3
       convergence: stable_state

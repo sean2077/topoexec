@@ -173,9 +173,38 @@ LoadedPlugin load_plugin(const std::string& path, ComponentRegistry& registry, P
 
   const auto before_types = type_set(registry);
   auto register_function = reinterpret_cast<PluginRegisterFunction>(register_symbol);
-  if (!register_function(&registry)) {
+
+  // Roll back any components the plugin added. Used on failure paths so a failed load never leaves
+  // half-registered factories behind (which would dangle once the library handle is closed).
+  const auto rollback_registered = [&]() {
+    for (const auto& type : type_set(registry)) {
+      if (before_types.count(type) == 0u) {
+        registry.unregister(type);
+      }
+    }
+  };
+
+  bool register_ok = false;
+  try {
+    register_ok = register_function(&registry);
+  } catch (const std::exception& error) {
+    // A C++ exception must never propagate across the C plugin ABI boundary (undefined behavior); contain it.
+    result.errors.push_back(
+        make_error("register.threw", std::string("plugin register function threw: ") + error.what()));
+    rollback_registered();
+    close_handle(handle);
+    return LoadedPlugin(nullptr, std::move(result), false);
+  } catch (...) {
+    result.errors.push_back(make_error("register.threw", "plugin register function threw a non-standard exception"));
+    rollback_registered();
+    close_handle(handle);
+    return LoadedPlugin(nullptr, std::move(result), false);
+  }
+  if (!register_ok) {
     result.errors.push_back(make_error("register.failed", "plugin register function returned false"));
-    return LoadedPlugin(handle, std::move(result), options.close_on_destroy);
+    rollback_registered();
+    close_handle(handle);
+    return LoadedPlugin(nullptr, std::move(result), false);
   }
 
   const auto after_types = type_set(registry);

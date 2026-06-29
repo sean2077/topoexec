@@ -4507,3 +4507,73 @@ TEST(Runtime, AsyncMaxInflightRejectPoliciesDoNotCommitRejectedCompletions) {
     EXPECT_EQ(*metric_value(result, "runtime.async.overwrite_count"), 0.0);
   }
 }
+
+TEST(Runtime, ThreadPoolDrainsInFlightSiblingsWhenEarlierInvocationFails) {
+  // Regression for the reentrant thread_pool drain bug: when a non-last invocation in a batch returns an error,
+  // the runtime must wait for the still-running sibling invocations before unwinding. Otherwise those workers
+  // dereference the per-component stack state that execute_component destroys on return (use-after-scope / data
+  // race that ASan/TSan would flag). The first burst message ("...-1") fails fast; the siblings sleep so they
+  // are still in flight when the failure triggers the early return.
+  class ThreadPoolFailFirstComponent : public topoexec::Component {
+  public:
+    topoexec::ComponentDescriptor describe() const override {
+      topoexec::ComponentDescriptor descriptor;
+      descriptor.type = "topoexec.test.ThreadPoolFailFirst";
+      descriptor.name = "thread_pool_fail_first";
+      descriptor.role = topoexec::ComponentRole::kOutputBoundary;
+      descriptor.inputs = {{"in", topoexec::kTextPayloadSchema}};
+      return descriptor;
+    }
+    void configure(topoexec::GraphContext&, const topoexec::ConfigView&) override {}
+    topoexec::Status execute_status(const topoexec::Invocation& invocation, topoexec::GraphContext&) override {
+      std::string text;
+      const auto found = invocation.payloads_by_port.find("in");
+      if (found != invocation.payloads_by_port.end() && found->second) {
+        text = found->second->text();
+      }
+      if (text.size() >= 2u && text.compare(text.size() - 2u, 2u, "-1") == 0) {
+        return topoexec::Status::error("worker failed on first burst message");
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      return topoexec::Status::success();
+    }
+  };
+
+  auto reg = delay_registry();
+  reg.register_component({"topoexec.test.ThreadPoolFailFirst"},
+                         []() { return std::make_unique<ThreadPoolFailFirstComponent>(); });
+  auto spec = thread_pool_graph(true);
+  spec.components.back().type = "topoexec.test.ThreadPoolFailFirst";
+  const auto validation = topoexec::validate_graph(spec, reg);
+  ASSERT_TRUE(validation.ok) << first_error_message(validation);
+
+  topoexec::RuntimeRunner runner(reg);
+  topoexec::RuntimeRunnerOptions options;
+  options.mode = topoexec::RuntimeRunMode::kRun;
+  options.tick_iterations = 1;
+
+  reset_runtime_records();
+  reset_thread_pool_probe_state();
+  const auto result = runner.run(spec, options); // must not crash: siblings are drained before unwinding
+
+  EXPECT_FALSE(result.ok);
+  ASSERT_FALSE(result.runtime_errors.empty());
+  EXPECT_EQ(result.runtime_errors.front().component_id, "worker");
+}
+
+TEST(Runtime, ComponentRegistryUnregisterRemovesAndAllowsReRegistration) {
+  topoexec::ComponentRegistry registry;
+  const auto factory = []() -> std::unique_ptr<topoexec::Component> {
+    return std::make_unique<ThreadPoolProbeComponent>();
+  };
+  ASSERT_TRUE(registry.register_component({"topoexec.test.Removable"}, factory));
+  EXPECT_TRUE(registry.contains("topoexec.test.Removable"));
+
+  EXPECT_TRUE(registry.unregister("topoexec.test.Removable"));
+  EXPECT_FALSE(registry.contains("topoexec.test.Removable"));
+  // Unregistering an absent type reports that nothing was removed.
+  EXPECT_FALSE(registry.unregister("topoexec.test.Removable"));
+  // The slot is free again, so the type can be re-registered.
+  EXPECT_TRUE(registry.register_component({"topoexec.test.Removable"}, factory));
+  EXPECT_TRUE(registry.contains("topoexec.test.Removable"));
+}

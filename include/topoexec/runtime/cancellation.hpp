@@ -30,7 +30,7 @@ public:
 
   bool requested() const {
     return state_ != nullptr &&
-           (state_->requested.load(std::memory_order_relaxed) || (state_->callback && state_->callback()));
+           (state_->requested.load(std::memory_order_acquire) || (state_->callback && state_->callback()));
   }
 
   bool cancel_requested() const {
@@ -68,11 +68,13 @@ public:
   }
 
   void request_cancel() {
-    state_->requested.store(true, std::memory_order_relaxed);
+    // Release so that state published before requesting cancellation is visible to any thread that observes
+    // the flag with the matching acquire load in requested()/cancel_requested().
+    state_->requested.store(true, std::memory_order_release);
   }
 
   bool cancel_requested() const {
-    return state_->requested.load(std::memory_order_relaxed);
+    return state_->requested.load(std::memory_order_acquire);
   }
 
 private:

@@ -5,8 +5,10 @@
 #include "topoexec/runtime/trigger_policy.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <deque>
 #include <functional>
+#include <limits>
 #include <map>
 #include <optional>
 #include <set>
@@ -718,8 +720,14 @@ void validate_component_config(const ComponentNodeSpec& component, const Compone
                             config_kind_name(field.kind));
       continue;
     }
-    if (field.kind == ConfigValueKind::kInt && numeric != static_cast<int>(numeric)) {
-      add_error(result, "component " + component.id + " config field " + field.name + " must be int");
+    if (field.kind == ConfigValueKind::kInt) {
+      // Reject non-finite first: NaN/Inf (std::stod accepts "nan"/"inf") pass both the < and > comparisons and
+      // would otherwise reach static_cast<int>(numeric), which is undefined behavior. Then range-check before
+      // any narrowing: the cast is UB for values outside the int range too, and this input is user-controlled.
+      if (!std::isfinite(numeric) || numeric < static_cast<double>(std::numeric_limits<int>::min()) ||
+          numeric > static_cast<double>(std::numeric_limits<int>::max()) || numeric != static_cast<int>(numeric)) {
+        add_error(result, "component " + component.id + " config field " + field.name + " must be int");
+      }
     }
     if (field.min_value.has_value() && numeric < *field.min_value) {
       add_error(result, "component " + component.id + " config field " + field.name + " is below minimum");
@@ -829,6 +837,7 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
   std::map<std::string, ComponentDescriptor> descriptors;
   bool has_input_boundary = false;
   bool has_output_boundary = false;
+  bool has_duplicate_component_id = false;
   for (const auto& component : graph.components) {
     if (component.id.empty()) {
       add_error(result, "component id must not be empty");
@@ -836,6 +845,7 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     }
     if (!component_ids.insert(component.id).second) {
       add_error(result, "duplicate component: " + component.id);
+      has_duplicate_component_id = true;
     }
     if (component.type.empty()) {
       add_error(result, "component " + component.id + " type must not be empty");
@@ -1179,10 +1189,15 @@ GraphValidationResult validate_graph_impl(const GraphSpec& graph, const Componen
     }
   }
 
-  const auto compile = compile_graph_impl(graph);
-  result.compiled_plan = compile.plan;
-  for (const auto& error : compile.errors) {
-    add_error(result, error);
+  // Duplicate component ids make compilation ambiguous: compile_graph_impl silently keeps only the first
+  // occurrence, so the resulting plan would not match validation's full-component view. Skip producing a
+  // (misleading) plan in that case; validation has already reported the duplicate as an error.
+  if (!has_duplicate_component_id) {
+    const auto compile = compile_graph_impl(graph);
+    result.compiled_plan = compile.plan;
+    for (const auto& error : compile.errors) {
+      add_error(result, error);
+    }
   }
   return result;
 }
@@ -1303,20 +1318,127 @@ std::string graph_plan_text(const GraphSpec& graph, const GraphCompiledPlan& pla
   return out.str();
 }
 
+// Escape a value for use inside a quoted Mermaid label ("..."). Without this an identifier containing a double
+// quote (or bracket) could close the label early and inject arbitrary diagram syntax. Identifiers pass schema
+// validation with no character-set restriction, so this is reachable from untrusted graph files.
+std::string mermaid_label(const std::string& text) {
+  std::string out;
+  out.reserve(text.size());
+  for (const char character : text) {
+    switch (character) {
+    case '"':
+      out += "&quot;";
+      break;
+    case '\\':
+      out += "&#92;";
+      break;
+    case '[':
+      out += "&#91;";
+      break;
+    case ']':
+      out += "&#93;";
+      break;
+    case '\n':
+    case '\r':
+      out += ' ';
+      break;
+    default:
+      out += character;
+      break;
+    }
+  }
+  return out;
+}
+
+// Sanitize a value for use as a bare (unquoted) Mermaid node id. Any character outside a conservative safe set
+// is replaced with '_'. The same function is applied to node definitions and to edge endpoints so references
+// stay consistent. Dots and hyphens (used by namespacing and types) are preserved to keep diagrams stable.
+std::string mermaid_node_id(const std::string& id) {
+  std::string out;
+  out.reserve(id.size());
+  for (const unsigned char character : id) {
+    const bool safe = (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') ||
+                      (character >= '0' && character <= '9') || character == '_' || character == '.' ||
+                      character == '-';
+    out += safe ? static_cast<char>(character) : '_';
+  }
+  return out;
+}
+
+// Build a collision-free original-id -> Mermaid-node-id map. Sanitizing each id independently can map two
+// distinct valid ids (e.g. "a b" and "a_b") to the same token, collapsing them in the rendered graph. Here
+// ids that are already safe keep their exact name (so clean graphs render identically), and ids needing
+// sanitization get a deterministic numeric suffix when their sanitized base is already taken. The map covers
+// every id that can appear as a node definition or edge endpoint so node defs and edges resolve consistently.
+std::map<std::string, std::string> build_mermaid_node_ids(const GraphSpec& graph) {
+  std::set<std::string> originals;
+  for (const auto& component : graph.components) {
+    originals.insert(component.id);
+  }
+  for (const auto& hierarchy : graph.hierarchy) {
+    originals.insert(hierarchy.id);
+    for (const auto& component_id : hierarchy.components) {
+      originals.insert(component_id);
+    }
+  }
+  for (const auto& loop : graph.composite_loops) {
+    originals.insert(loop.id);
+    for (const auto& component_id : loop.components) {
+      originals.insert(component_id);
+    }
+  }
+  for (const auto& edge : graph.edges) {
+    originals.insert(component_id_from_endpoint(edge.from));
+    originals.insert(component_id_from_endpoint(edge.to));
+  }
+
+  std::map<std::string, std::string> mapping;
+  std::set<std::string> used;
+  // Pass 1: already-safe ids claim their exact name. Distinct safe ids cannot collide with each other.
+  for (const auto& id : originals) {
+    if (mermaid_node_id(id) == id) {
+      mapping.emplace(id, id);
+      used.insert(id);
+    }
+  }
+  // Pass 2: ids that change under sanitization get a unique, deterministic name around the claimed safe names.
+  for (const auto& id : originals) {
+    if (mapping.count(id) != 0u) {
+      continue;
+    }
+    const std::string base = mermaid_node_id(id);
+    std::string candidate = base;
+    std::size_t suffix = 2u;
+    while (used.count(candidate) != 0u) {
+      candidate = base + "_" + std::to_string(suffix);
+      ++suffix;
+    }
+    mapping.emplace(id, candidate);
+    used.insert(candidate);
+  }
+  return mapping;
+}
+
 std::string graph_mermaid(const GraphSpec& graph, const GraphCompiledPlan& plan) {
+  const auto node_ids = build_mermaid_node_ids(graph);
+  auto node_id = [&](const std::string& id) -> std::string {
+    const auto found = node_ids.find(id);
+    return found == node_ids.end() ? mermaid_node_id(id) : found->second;
+  };
   std::ostringstream out;
   out << "flowchart TD\n";
-  out << "  %% graph: " << graph.name << "\n";
+  out << "  %% graph: " << mermaid_label(graph.name) << "\n";
   std::set<std::string> hierarchy_components;
   for (const auto& hierarchy : graph.hierarchy) {
-    out << "  subgraph " << hierarchy.id << "[Subgraph: " << hierarchy.id << "]\n";
+    out << "  subgraph " << node_id(hierarchy.id) << "[Subgraph: " << mermaid_label(hierarchy.id) << "]\n";
     for (const auto& component_id : hierarchy.components) {
       const auto component = std::find_if(graph.components.begin(), graph.components.end(),
                                           [&](const auto& candidate) { return candidate.id == component_id; });
       if (component != graph.components.end()) {
-        out << "    " << component->id << "[\"" << component->id << "\\n" << component->type << "\"]\n";
+        out << "    " << node_id(component->id) << "[\"" << mermaid_label(component->id) << "\\n"
+            << mermaid_label(component->type) << "\"]\n";
       } else {
-        out << "    " << component_id << "\n";
+        out << "    " << node_id(component_id) << "\n";
       }
       hierarchy_components.insert(component_id);
     }
@@ -1324,19 +1446,21 @@ std::string graph_mermaid(const GraphSpec& graph, const GraphCompiledPlan& plan)
   }
   for (const auto& component : graph.components) {
     if (hierarchy_components.count(component.id) == 0u) {
-      out << "  " << component.id << "[\"" << component.id << "\\n" << component.type << "\"]\n";
+      out << "  " << node_id(component.id) << "[\"" << mermaid_label(component.id) << "\\n"
+          << mermaid_label(component.type) << "\"]\n";
     }
   }
   for (const auto& loop : graph.composite_loops) {
-    out << "  subgraph " << loop.id << "[CompositeLoop: " << loop.loop_policy.type << "]\n";
+    out << "  subgraph " << node_id(loop.id) << "[CompositeLoop: " << mermaid_label(loop.loop_policy.type) << "]\n";
     for (const auto& component : loop.components) {
-      out << "    " << component << "\n";
+      out << "    " << node_id(component) << "\n";
     }
     out << "  end\n";
   }
   for (const auto& edge : graph.edges) {
-    out << "  " << component_id_from_endpoint(edge.from) << " -->|\"" << edge.id << ":" << to_string(edge.kind) << "/"
-        << edge.policy.mode << "\"| " << component_id_from_endpoint(edge.to) << "\n";
+    out << "  " << node_id(component_id_from_endpoint(edge.from)) << " -->|\"" << mermaid_label(edge.id) << ":"
+        << to_string(edge.kind) << "/" << mermaid_label(edge.policy.mode) << "\"| "
+        << node_id(component_id_from_endpoint(edge.to)) << "\n";
   }
   out << "  %% region_order: " << join_ids(plan.region_order) << "\n";
   return out.str();
