@@ -14,7 +14,7 @@ JsonObject = Mapping[str, Any]
 
 
 class TopoExecError(RuntimeError):
-    """Base error for the Python automation preview."""
+    """Base error for the Python preview client."""
 
 
 @dataclass(frozen=True)
@@ -129,13 +129,20 @@ class TopoExecClient:
             stderr=completed.stderr,
             data=data,
         )
-        if check and completed.returncode != 0:
+        semantic_ok = bool(data.get("ok", True))
+        if check and (completed.returncode != 0 or not semantic_ok):
             raise TopoExecCommandError(result)
         return result
 
 
 @contextmanager
 def materialized_graph(graph: GraphInput) -> Iterator[Path]:
+    """Yield a filesystem path for graph input.
+
+    Existing paths are passed through unchanged. For in-memory GraphDocument
+    inputs, temporary filenames preserve any provided suffix and default to
+    ``.yaml`` only when no suffix is provided.
+    """
     if isinstance(graph, GraphDocument):
         if graph.path is not None:
             yield graph.path
